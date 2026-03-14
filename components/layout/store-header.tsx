@@ -3,14 +3,14 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useCartStore } from '@/hooks/use-cart';
-import { ShoppingBag, Search, Moon, Sun, Menu, X } from 'lucide-react';
-import { useTheme } from 'next-themes';
-import { Button } from '@/components/ui/button';
+import { ShoppingBag, Search, Menu, X } from 'lucide-react';
+// import { useTheme } from 'next-themes';
+// import { Button } from '@/components/ui/button';
 import { CartDrawer } from '@/components/cart/cart-drawer';
 
 export function StoreHeader() {
   const [isClient, setIsClient] = React.useState(false);
-  const { theme, setTheme } = useTheme();
+  // const { theme, setTheme } = useTheme();
   const cartItems = useCartStore((state) => state.items);
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isCartOpen, setIsCartOpen] = React.useState(false);
@@ -58,17 +58,17 @@ export function StoreHeader() {
               )}
             </button>
 
-            {isClient && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                className="hidden md:flex"
-              >
-                {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                <span className="sr-only">Toggle theme</span>
-              </Button>
-            )}
+            {/*{isClient && (*/}
+            {/*  <Button*/}
+            {/*    variant="ghost"*/}
+            {/*    size="icon"*/}
+            {/*    onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}*/}
+            {/*    className="hidden md:flex"*/}
+            {/*  >*/}
+            {/*    {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}*/}
+            {/*    <span className="sr-only">Toggle theme</span>*/}
+            {/*  </Button>*/}
+            {/*)}*/}
 
             <button
               type="button"

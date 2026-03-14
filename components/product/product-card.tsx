@@ -24,7 +24,7 @@ export function ProductCard({ product }: { product: IProductCard }) {
           </div>
         )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img 
+        <img
           src={mainImage} 
           alt={product.name}
           className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500 ease-in-out"

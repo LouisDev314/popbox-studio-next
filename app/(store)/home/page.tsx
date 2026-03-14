@@ -40,7 +40,7 @@ export default function StorefrontHomePage() {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-      <StorefrontHero 
+      <StorefrontHero
         title="Discover Premium Collectibles" 
         subtitle="Your exclusive source for Ichiban Kuji and authentic anime figures."
         ctaText="Shop Now"
