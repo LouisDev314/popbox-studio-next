@@ -3,12 +3,11 @@
 import * as React from 'react';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import QueryConfigs from '@/configs/api/query-config';
-import { IProductListPage } from '@/interfaces/product';
+import { IProductListPage, productSort } from '@/interfaces/product';
 import { ProductCard } from '@/components/product/product-card';
 import { Loader2 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { productSort } from '@/interfaces/product';
 
 function ProductsContent() {
   const searchParams = useSearchParams();

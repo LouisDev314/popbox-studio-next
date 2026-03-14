@@ -4,7 +4,7 @@ import './globals.css';
 import { ReactQueryProvider } from '@/components/react-query-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import React from 'react';
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from '@vercel/analytics/next'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',

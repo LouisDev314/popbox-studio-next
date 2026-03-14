@@ -2,10 +2,9 @@ import httpClient from '@/api/http-client';
 import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IHomepageData } from '@/interfaces/home';
-import { IProduct, IProductListPage, IProductSuggestion, ICollection, ITag } from '@/interfaces/product';
+import { IProduct, IProductListPage, IProductSuggestion, ICollection, ITag, productSort, productType } from '@/interfaces/product';
 import { IGuestOrderDetail, IGuestTicketView } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
-import { productSort, productType } from '@/interfaces/product';
 
 const QueryConfigs = {
   fetchHomePage: (): Promise<AxiosResponse<IBaseApiResponse<IHomepageData>>> => {
