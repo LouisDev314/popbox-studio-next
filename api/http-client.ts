@@ -1,4 +1,4 @@
-import getEnvConfig from '@/utils/config/env';
+import getEnvConfig from '@/configs/env';
 import axios from 'axios';
 import { requestInterceptor, responseInterceptor } from '@/api/interceptors';
 
