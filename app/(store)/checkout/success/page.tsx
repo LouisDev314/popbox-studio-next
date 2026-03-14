@@ -77,7 +77,7 @@ function CheckoutSuccessContent() {
       </h1>
       
       <p className="text-xl text-muted-foreground mb-8 max-w-xl leading-relaxed">
-        Thank you for your purchase. We've sent a confirmation email with your order details.
+        Thank you for your purchase. We&apos;ve sent a confirmation email with your order details.
       </p>
 
       <div className="bg-card w-full border border-border/50 rounded-2xl p-6 md:p-8 mb-8 text-left shadow-sm">
@@ -90,7 +90,7 @@ function CheckoutSuccessContent() {
           <div className="font-medium text-right text-foreground capitalize">{order.status.replace('_', ' ')}</div>
           
           <div className="text-muted-foreground">Items</div>
-          <div className="font-medium text-right text-foreground">{order.items.reduce((acc: number, item: any) => acc + item.quantity, 0)}</div>
+          <div className="font-medium text-right text-foreground">{order.items.reduce((acc: number, item) => acc + item.quantity, 0)}</div>
         </div>
       </div>
 

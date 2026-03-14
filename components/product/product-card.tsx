@@ -4,11 +4,10 @@ import { IProductCard } from '@/interfaces/product';
 import Link from 'next/link';
 import { formatPrice } from '@/utils/helpers';
 import { Button } from '@/components/ui/button';
-import { useTheme } from 'next-themes';
 import React from 'react';
 
 export function ProductCard({ product }: { product: IProductCard }) {
-  const { theme } = useTheme();
+  // const { theme } = useTheme();
   const isKuji = product.productType === 'kuji';
   const mainImage = product.images?.[0]?.url || '/placeholder.png'; // Assuming generic placeholder handling
 

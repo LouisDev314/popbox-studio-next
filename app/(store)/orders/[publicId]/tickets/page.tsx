@@ -11,7 +11,7 @@ import { TicketRevealCard } from '@/components/kuji/ticket-reveal-card';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Ticket as TicketIcon, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { QueryClient, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function OrderTicketsPage() {
   const params = useParams();
@@ -82,7 +82,7 @@ export default function OrderTicketsPage() {
     return (
       <div className="container mx-auto px-4 py-32 text-center flex flex-col items-center">
         <h1 className="text-3xl font-bold text-destructive mb-4">Tickets Not Found</h1>
-        <p className="text-muted-foreground mb-8">This order might not exist or doesn't have any tickets.</p>
+        <p className="text-muted-foreground mb-8">This order might not exist or doesn&apos;t have any tickets.</p>
         <Button asChild variant="outline">
           <Link href="/">Return to Home</Link>
         </Button>

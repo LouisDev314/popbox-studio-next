@@ -78,3 +78,7 @@ export interface IProductSuggestion {
   priceCents: number;
   currency: string;
 }
+
+export type productSort = 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc';
+
+export type productType = 'standard' | 'kuji';

@@ -35,7 +35,7 @@ export default function ProductDetailPage() {
     return (
       <div className="container mx-auto px-4 py-32 text-center">
         <h1 className="text-3xl font-bold text-destructive mb-4">Product Not Found</h1>
-        <p className="text-muted-foreground text-lg">We couldn't find what you're looking for.</p>
+        <p className="text-muted-foreground text-lg">We couldn&apos;t find what you&apos;re looking for.</p>
       </div>
     );
   }

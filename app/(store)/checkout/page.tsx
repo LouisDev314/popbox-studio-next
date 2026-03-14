@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useCartStore } from '@/hooks/use-cart';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 
-import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import { ICheckoutRequest, ICheckoutSession } from '@/interfaces/checkout';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/utils/helpers';
 import { Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import Link from 'next/link';
 
 export default function CheckoutPage() {
   const { items, getCartTotal } = useCartStore();
@@ -67,7 +67,7 @@ export default function CheckoutPage() {
     mutate(
       { data: requestData, key: uuidv4() },
       {
-        onSuccess: (res: any) => {
+        onSuccess: (res) => {
           if (res?.data?.data?.checkoutUrl) {
             window.location.href = res.data.data.checkoutUrl;
           }
@@ -82,7 +82,7 @@ export default function CheckoutPage() {
         <h1 className="text-3xl font-bold mb-4">Your cart is empty</h1>
         <p className="text-muted-foreground mb-8">Add items to your cart before checking out.</p>
         <Button asChild size="lg" className="rounded-full">
-          <a href="/products">Browse Products</a>
+          <Link href="/products">Browse Products</Link>
         </Button>
       </div>
     );

@@ -5,7 +5,6 @@ import { useCartStore } from '@/hooks/use-cart';
 import { Button } from '@/components/ui/button';
 import { X, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { formatPrice } from '@/utils/helpers';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {

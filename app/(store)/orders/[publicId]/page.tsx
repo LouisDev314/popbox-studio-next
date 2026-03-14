@@ -34,7 +34,7 @@ export default function GuestOrderPage() {
     return (
       <div className="container mx-auto px-4 py-32 text-center">
         <h1 className="text-3xl font-bold text-destructive mb-4">Order Not Found</h1>
-        <p className="text-muted-foreground mb-8">This order might not exist or you don't have permission to view it.</p>
+        <p className="text-muted-foreground mb-8">This order might not exist or you don&apos;t have permission to view it.</p>
         <Link href="/" className="text-primary hover:underline">Return to Home</Link>
       </div>
     );
@@ -77,7 +77,7 @@ export default function GuestOrderPage() {
               Order Items
             </h2>
             <div className="space-y-4">
-              {order.items.map((item: any) => (
+              {order.items.map((item) => (
                 <div key={item.id} className="flex justify-between items-start py-4 border-b border-border/30 last:border-0 last:pb-0">
                   <div className="flex gap-4">
                     <div className="h-16 w-16 bg-muted/30 rounded-lg shrink-0 flex items-center justify-center font-bold text-muted-foreground">

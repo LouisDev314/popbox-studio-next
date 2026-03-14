@@ -3,11 +3,12 @@
 import * as React from 'react';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import QueryConfigs from '@/configs/api/query-config';
-import { IProductListPage, ICollection, ITag } from '@/interfaces/product';
+import { IProductListPage } from '@/interfaces/product';
 import { ProductCard } from '@/components/product/product-card';
 import { Loader2 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { productSort } from '@/interfaces/product';
 
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -15,7 +16,7 @@ function ProductsContent() {
 
   const typeParam = searchParams.get('type') as 'standard' | 'kuji' | undefined;
   const collectionParam = searchParams.get('collection') ?? undefined;
-  const sortParam = (searchParams.get('sort') as any) ?? 'newest';
+  const sortParam = searchParams.get('sort') ?? 'newest';
   
   // Basic infinite scroll placeholder state
   const [cursor, setCursor] = React.useState<string | undefined>(undefined);
@@ -26,7 +27,7 @@ function ProductsContent() {
     queryFn: () => QueryConfigs.fetchProducts({
       type: typeParam,
       collection: collectionParam,
-      sort: sortParam,
+      sort: sortParam as productSort,
       pageParam: cursor,
     }),
   });
@@ -57,7 +58,8 @@ function ProductsContent() {
     router.push(`?${params.toString()}`);
   }
 
-  const hasNextPage = response?.data?.data?.nextCursor != null;
+  const nextCursor = response?.data?.data?.nextCursor;
+  const hasNextPage = nextCursor !== null;
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
@@ -120,7 +122,9 @@ function ProductsContent() {
                 variant="outline" 
                 size="lg" 
                 disabled={isPending}
-                onClick={() => setCursor(response.data.data.nextCursor!)}
+                onClick={() => {
+                  if (nextCursor) setCursor(nextCursor);
+                }}
               >
                 {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Load More

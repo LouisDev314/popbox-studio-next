@@ -26,7 +26,7 @@ export interface IOrderItem {
   unitPriceCents: number;
   quantity: number;
   lineTotalCents: number;
-  metadata: Record<string, any> | null;
+  metadata: Record<string, unknown> | null;
 }
 
 export interface IShipment {
@@ -65,8 +65,8 @@ export interface IOrderDetail {
   paidAt: string | null;
   cancelledAt: string | null;
   refundedAt: string | null;
-  shippingAddress: Record<string, any>;
-  billingAddress: Record<string, any> | null;
+  shippingAddress: Record<string, string>;
+  billingAddress: Record<string, string> | null;
   customer: IOrderCustomer;
   shipment: IShipment | null;
   items: IOrderItem[];

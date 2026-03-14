@@ -14,7 +14,7 @@ export function ProductActions({ product }: { product: IProduct }) {
   const isOutOfStock = product.inventory?.available === 0;
 
   const handleAdd = () => {
-    addItem(product as any, quantity);
+    addItem(product, quantity);
     // Could add toast here
   };
 
