@@ -27,11 +27,11 @@ export function CartDrawer(props: ICartDrawerProps) {
   return (
     <>
       <div 
-        className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" 
+        className="fixed inset-0 z-[70] bg-background/80 backdrop-blur-sm" 
         onClick={props.onClose}
         aria-hidden="true"
       />
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-sm border-l border-border bg-background shadow-lg transition-transform duration-300 ease-in-out transform flex flex-col">
+      <div className="fixed inset-y-0 right-0 z-[71] flex w-full max-w-sm transform flex-col border-l border-border bg-background shadow-lg transition-transform duration-300 ease-in-out">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <ShoppingBag className="h-5 w-5" />
