@@ -7,6 +7,7 @@ interface ICustomizeMutationConfig<ApiResponse, ApiRequest> {
   retry?: boolean | number;
   onError?: (err: AxiosError<IBaseApiResponse>) => void;
   onSuccess?: (data: AxiosResponse<IBaseApiResponse<ApiResponse>, unknown>) => void;
+  onSettled?: (data: AxiosResponse<IBaseApiResponse<ApiResponse>, unknown> | undefined, error: AxiosError<IBaseApiResponse> | null, variables: ApiRequest, context: unknown) => void;
 }
 
 const useCustomizeMutation = <ApiResponse, ApiRequest>(config: ICustomizeMutationConfig<ApiResponse, ApiRequest>) => {
@@ -23,6 +24,9 @@ const useCustomizeMutation = <ApiResponse, ApiRequest>(config: ICustomizeMutatio
       } else {
         onError?.(err as AxiosError<IBaseApiResponse>);
       }
+    },
+    onSettled: (data, error, variables, context) => {
+      mutationConfig.onSettled?.(data, error as AxiosError<IBaseApiResponse>, variables, context);
     },
   });
 

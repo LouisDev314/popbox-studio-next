@@ -1,114 +1,87 @@
-// import appClient from '@/api/app-client';
-// import { AxiosResponse } from 'axios';
-// import { IBaseApiResponse } from '@/interfaces/api-response';
-// import { IUser } from '@/interfaces/user';
-// import { IItem, IItemsResponse, IKujiCard, IProductCard } from '@/interfaces/items';
-// import { IAutocompleteItem } from '@/interfaces/search';
-// import { IWishlistItem } from '@/interfaces/wishlist';
-// import { ICartItem } from '@/interfaces/cart';
-//
-// const QueryConfigs = {
-//   fetchUser: (uid: string): Promise<AxiosResponse<IBaseApiResponse<IUser>>> => {
-//     return appClient.get(`/users/${uid}`);
-//   },
-//   fetchProducts: async ({
-//     pageParam = undefined,
-//     search,
-//     category,
-//     sortBy,
-//     order = 'desc',
-//   }: {
-//     pageParam?: string | unknown;
-//     search?: string;
-//     category?: string;
-//     sortBy?: string;
-//     order?: string;
-//   }): Promise<AxiosResponse<IBaseApiResponse<IItemsResponse>>> => {
-//     return await appClient.get('/products', {
-//       params: {
-//         // limit: 10,
-//         cursor: pageParam ?? '',
-//         search,
-//         category,
-//         sortBy,
-//         order: order.toLowerCase(),
-//       },
-//     });
-//   },
-//   fetchTrendingProducts: () => {
-//     return appClient.get('/products/trending');
-//   },
-//   fetchTrendingKujis: () => {
-//     return appClient.get('/kujis/trending');
-//   },
-//   fetchAutocomplete: (query: string, isKuji: boolean): Promise<AxiosResponse<IBaseApiResponse<IAutocompleteItem[]>>> => {
-//     return appClient.get('/search/autocomplete', {
-//       params: {
-//         search: query,
-//         isKuji,
-//       },
-//     });
-//   },
-//   fetchFuzzySearch: (query: string, isKuji: boolean): Promise<AxiosResponse<IBaseApiResponse<IProductCard[] | IKujiCard[] | undefined>>> => {
-//     return appClient.get('/search', {
-//       params: {
-//         search: query,
-//         isKuji,
-//       },
-//     });
-//   },
-//   fetchProductById: (id: string): Promise<AxiosResponse<IBaseApiResponse<IItem>>> => {
-//     return appClient.get(`/products/${id}`);
-//   },
-//   fetchKujiById: (id: string): Promise<AxiosResponse<IBaseApiResponse<IItem>>> => {
-//     return appClient.get(`/kujis/${id}`);
-//   },
-//   fetchKujis: async ({
-//     pageParam = undefined,
-//     search,
-//     category,
-//     sortBy,
-//     order = 'desc',
-//   }: {
-//     pageParam?: string | unknown;
-//     search?: string;
-//     category?: string;
-//     sortBy?: string;
-//     order?: string;
-//   }): Promise<AxiosResponse<IBaseApiResponse<IItemsResponse>>> => {
-//     return await appClient.get('/kujis', {
-//       params: {
-//         // limit: 10,
-//         cursor: pageParam ?? '',
-//         search,
-//         category,
-//         sortBy,
-//         order: order.toLowerCase(),
-//       },
-//     });
-//   },
-//   fetchUserWishlist: async ({
-//     uid,
-//     category,
-//     sortBy,
-//     order = 'desc',
-//   }: {
-//     uid?: string;
-//     category?: string;
-//     sortBy?: string;
-//     order?: string;
-//   }): Promise<AxiosResponse<IBaseApiResponse<IWishlistItem[]>>> => {
-//     return await appClient.get(`/wishlists/${uid}`, {
-//       params: {
-//         category,
-//         sortBy,
-//         order: order.toLowerCase(),
-//       },
-//     });
-//   },
-//   fetchUserCart: async (uid?: string): Promise<AxiosResponse<IBaseApiResponse<ICartItem[]>>> => {
-//     return await appClient.get(`/carts/${uid}`);
-//   },
-// };
-//
-// export default QueryConfigs;
+import { httpClient } from '@/api/http-client';
+import { AxiosResponse } from 'axios';
+import { IBaseApiResponse } from '@/interfaces/api-response';
+import { IHomepageData } from '@/interfaces/home';
+import { IProduct, IProductListPage, IProductSuggestion, ICollection, ITag } from '@/interfaces/product';
+import { IGuestOrderDetail, IGuestTicketView } from '@/interfaces/order';
+import { ICheckoutSuccess } from '@/interfaces/checkout';
+
+const appClient = httpClient();
+
+const QueryConfigs = {
+  fetchHomePage: (): Promise<AxiosResponse<IBaseApiResponse<IHomepageData>>> => {
+    return appClient.get('/api/v1/home');
+  },
+  fetchCollections: (): Promise<AxiosResponse<IBaseApiResponse<ICollection[]>>> => {
+    return appClient.get('/api/v1/collections');
+  },
+  fetchTags: (): Promise<AxiosResponse<IBaseApiResponse<ITag[]>>> => {
+    return appClient.get('/api/v1/tags');
+  },
+  fetchProducts: async ({
+    pageParam = undefined,
+    collection,
+    tag,
+    type,
+    sort,
+  }: {
+    pageParam?: string | unknown;
+    collection?: string;
+    tag?: string;
+    type?: 'standard' | 'kuji';
+    sort?: 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc';
+  }): Promise<AxiosResponse<IBaseApiResponse<IProductListPage>>> => {
+    return appClient.get('/api/v1/products', {
+      params: {
+        cursor: pageParam ?? '',
+        collection,
+        tag,
+        type,
+        sort,
+      },
+    });
+  },
+  fetchProductBySlug: (slug: string): Promise<AxiosResponse<IBaseApiResponse<IProduct>>> => {
+    return appClient.get(`/api/v1/products/${slug}`);
+  },
+  fetchSearch: async ({
+    query,
+  }: {
+    query: string;
+  }): Promise<AxiosResponse<IBaseApiResponse<IProductListPage>>> => {
+    return appClient.get('/api/v1/search', {
+      params: {
+        q: query,
+      },
+    });
+  },
+  fetchAutocomplete: (query: string): Promise<AxiosResponse<IBaseApiResponse<IProductSuggestion[]>>> => {
+    return appClient.get('/api/v1/search/autocomplete', {
+      params: {
+        q: query,
+      },
+    });
+  },
+  fetchCheckoutSuccess: (sessionId: string): Promise<AxiosResponse<IBaseApiResponse<ICheckoutSuccess>>> => {
+    return appClient.get('/api/v1/checkout/success', {
+      params: {
+        session_id: sessionId,
+      },
+    });
+  },
+  fetchGuestOrderAccess: (publicId: string, token?: string): Promise<AxiosResponse<IBaseApiResponse<any>>> => {
+    // Note: The /access endpoint returns a 302 redirect normally.
+    // However, if called via fetch/axios, it may need special handling depending on CORS/redirect following.
+    return appClient.get(`/api/v1/orders/${publicId}/access`, {
+      params: { token },
+    });
+  },
+  fetchGuestOrder: (publicId: string): Promise<AxiosResponse<IBaseApiResponse<IGuestOrderDetail>>> => {
+    return appClient.get(`/api/v1/orders/${publicId}`);
+  },
+  fetchGuestTickets: (publicId: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
+    return appClient.get(`/api/v1/orders/${publicId}/tickets`);
+  },
+};
+
+export default QueryConfigs;
