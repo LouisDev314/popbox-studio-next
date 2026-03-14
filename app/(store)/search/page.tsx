@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from 'react';
+import { type FormEvent, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 
 export default function SearchPage() {
   const router = useRouter();
-  const [query, setQuery] = React.useState('');
+  const [query, setQuery] = useState('');
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
       router.push(`/search/results?q=${encodeURIComponent(query)}`);

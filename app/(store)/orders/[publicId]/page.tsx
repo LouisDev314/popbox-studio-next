@@ -1,6 +1,5 @@
 'use client';
 
-import * as React from 'react';
 import { useParams } from 'next/navigation';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import QueryConfigs from '@/configs/api/query-config';

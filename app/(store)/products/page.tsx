@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from 'react';
+import { Suspense, type ChangeEvent, useState } from 'react';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import QueryConfigs from '@/configs/api/query-config';
 import { IProductListPage, productSort } from '@/interfaces/product';
@@ -18,8 +18,8 @@ function ProductsContent() {
   const sortParam = searchParams.get('sort') ?? 'newest';
   
   // Basic infinite scroll placeholder state
-  const [cursor, setCursor] = React.useState<string | undefined>(undefined);
-  const [allProducts, setAllProducts] = React.useState<IProductListPage['items']>([]);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [allProducts, setAllProducts] = useState<IProductListPage['items']>([]);
 
   const { data: response, isPending, isError } = useCustomizeQuery<IProductListPage>({
     queryKey: ['products', typeParam, collectionParam, sortParam, cursor],
@@ -29,20 +29,14 @@ function ProductsContent() {
       sort: sortParam as productSort,
       pageParam: cursor,
     }),
+    onSuccess: (queryResponse) => {
+      const items = queryResponse.data.data.items;
+
+      setAllProducts((prev) => (cursor ? [...prev, ...items] : items));
+    },
   });
 
-  // Simple accumulate for load more
-  React.useEffect(() => {
-    if (response?.data?.data?.items) {
-      if (!cursor) {
-        setAllProducts(response.data.data.items);
-      } else {
-        setAllProducts((prev) => [...prev, ...response.data.data.items]);
-      }
-    }
-  }, [response?.data?.data, cursor]);
-
-  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleSortChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('sort', e.target.value);
     setCursor(undefined);
@@ -138,12 +132,12 @@ function ProductsContent() {
 
 export default function ProductsPage() {
   return (
-    <React.Suspense fallback={
+    <Suspense fallback={
       <div className="container mx-auto px-4 py-32 flex justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     }>
       <ProductsContent />
-    </React.Suspense>
+    </Suspense>
   );
 }

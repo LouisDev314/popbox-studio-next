@@ -1,12 +1,17 @@
 import { StoreHeader } from '@/components/layout/store-header';
 import { StoreFooter } from '@/components/layout/store-footer';
+import { type ReactNode } from 'react';
 
-export default function StoreLayout({ children }: { children: React.ReactNode }) {
+interface IStoreLayoutProps {
+  children: ReactNode;
+}
+
+export default function StoreLayout(props: IStoreLayoutProps) {
   return (
     <>
       <StoreHeader />
       <main className="flex-1 w-full flex flex-col">
-        {children}
+        {props.children}
       </main>
       <StoreFooter />
     </>

@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from 'react';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import QueryConfigs from '@/configs/api/query-config';
@@ -49,12 +49,12 @@ function SearchResultsContent() {
 
 export default function SearchResultsPage() {
   return (
-    <React.Suspense fallback={
+    <Suspense fallback={
       <div className="container mx-auto px-4 py-32 flex justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     }>
       <SearchResultsContent />
-    </React.Suspense>
+    </Suspense>
   );
 }

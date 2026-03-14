@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from 'react';
+import { type ChangeEvent, type FormEvent, useState } from 'react';
 import { useCartStore } from '@/hooks/use-cart';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 
@@ -13,11 +13,23 @@ import { Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import Link from 'next/link';
 
+interface ICheckoutFormData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  line1: string;
+  line2: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  phone: string;
+}
+
 export default function CheckoutPage() {
   const { items, getCartTotal } = useCartStore();
   const { totalCents } = getCartTotal();
 
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState<ICheckoutFormData>({
     email: '',
     firstName: '',
     lastName: '',
@@ -33,11 +45,11 @@ export default function CheckoutPage() {
     mutationFn: ({ data, key }: { data: ICheckoutRequest; key: string }) => MutationConfigs.createCheckoutSession(data, key),
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (items.length === 0) return;
 

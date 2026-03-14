@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from 'react';
+import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import QueryConfigs from '@/configs/api/query-config';
@@ -24,7 +24,7 @@ function CheckoutSuccessContent() {
 
   const successData = response?.data?.data;
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (successData) {
       clearCart();
     }
@@ -120,13 +120,13 @@ function CheckoutSuccessContent() {
 
 export default function CheckoutSuccessPage() {
   return (
-    <React.Suspense fallback={
+    <Suspense fallback={
       <div className="flex-1 flex flex-col items-center justify-center py-32 space-y-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <p className="text-lg font-medium text-muted-foreground">Loading...</p>
       </div>
     }>
       <CheckoutSuccessContent />
-    </React.Suspense>
+    </Suspense>
   );
 }

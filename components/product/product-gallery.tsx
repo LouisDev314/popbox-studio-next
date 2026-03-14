@@ -1,12 +1,16 @@
 'use client';
 
-import * as React from 'react';
+import { useState } from 'react';
 import { IProduct } from '@/interfaces/product';
 
-export function ProductGallery({ product }: { product: IProduct }) {
-  const [activeImage, setActiveImage] = React.useState(0);
+interface IProductGalleryProps {
+  product: IProduct;
+}
 
-  const images = product.images?.length ? product.images : [{ id: '1', url: '/placeholder.png', altText: product.name }];
+export function ProductGallery(props: IProductGalleryProps) {
+  const [activeImage, setActiveImage] = useState(0);
+
+  const images = props.product.images?.length ? props.product.images : [{ id: '1', url: '/placeholder.png', altText: props.product.name }];
 
   return (
     <div className="flex flex-col gap-4">
@@ -14,10 +18,10 @@ export function ProductGallery({ product }: { product: IProduct }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={images[activeImage].url}
-          alt={images[activeImage].altText || product.name}
+          alt={images[activeImage].altText || props.product.name}
           className="object-cover w-full h-full"
         />
-        {product.productType === 'kuji' && (
+        {props.product.productType === 'kuji' && (
           <div className="absolute top-4 left-4 z-20 px-3 py-1.5 bg-secondary text-secondary-foreground text-sm font-bold rounded-lg shadow-sm tracking-wide">
             Ichiban Kuji
           </div>

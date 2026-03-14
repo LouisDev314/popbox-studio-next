@@ -1,17 +1,16 @@
 'use client';
 
-import * as React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-interface HeroProps {
+interface IStorefrontHeroProps {
   title: string;
   subtitle: string;
   ctaText: string;
   ctaLink: string;
 }
 
-export function StorefrontHero({ title, subtitle, ctaText, ctaLink }: HeroProps) {
+export function StorefrontHero(props: IStorefrontHeroProps) {
   return (
     <div className="relative overflow-hidden rounded-3xl bg-primary/10 mb-16 h-[500px] flex items-center shadow-sm">
       <div className="absolute inset-0 z-0">
@@ -21,13 +20,13 @@ export function StorefrontHero({ title, subtitle, ctaText, ctaLink }: HeroProps)
       
       <div className="relative z-10 w-full px-8 md:px-16 flex flex-col items-start gap-6 max-w-3xl">
         <h1 className="text-4xl md:text-6xl font-extrabold text-foreground tracking-tight">
-          {title}
+          {props.title}
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-xl">
-          {subtitle}
+          {props.subtitle}
         </p>
         <Button asChild size="lg" className="mt-4 rounded-full px-8 py-6 text-lg shadow-md font-semibold">
-          <Link href={ctaLink}>{ctaText}</Link>
+          <Link href={props.ctaLink}>{props.ctaText}</Link>
         </Button>
       </div>
     </div>

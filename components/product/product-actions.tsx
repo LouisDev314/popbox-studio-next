@@ -1,20 +1,24 @@
 'use client';
 
-import * as React from 'react';
+import { useState } from 'react';
 import { IProduct } from '@/interfaces/product';
 import { useCartStore } from '@/hooks/use-cart';
 import { Button } from '@/components/ui/button';
 import { ShoppingBag, Minus, Plus } from 'lucide-react';
 import { formatPrice } from '@/utils/helpers';
 
-export function ProductActions({ product }: { product: IProduct }) {
-  const addItem = useCartStore((state) => state.addItem);
-  const [quantity, setQuantity] = React.useState(1);
+interface IProductActionsProps {
+  product: IProduct;
+}
 
-  const isOutOfStock = product.inventory?.available === 0;
+export function ProductActions(props: IProductActionsProps) {
+  const addItem = useCartStore((state) => state.addItem);
+  const [quantity, setQuantity] = useState(1);
+
+  const isOutOfStock = props.product.inventory?.available === 0;
 
   const handleAdd = () => {
-    addItem(product, quantity);
+    addItem(props.product, quantity);
     // Could add toast here
   };
 
@@ -52,7 +56,7 @@ export function ProductActions({ product }: { product: IProduct }) {
         onClick={handleAdd}
       >
         <ShoppingBag className="mr-2 h-5 w-5" />
-        {isOutOfStock ? 'Out of Stock' : `Add to Cart - ${formatPrice(product.priceCents * quantity, product.currency)}`}
+        {isOutOfStock ? 'Out of Stock' : `Add to Cart - ${formatPrice(props.product.priceCents * quantity, props.product.currency)}`}
       </Button>
     </div>
   );

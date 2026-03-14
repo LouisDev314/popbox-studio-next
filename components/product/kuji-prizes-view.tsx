@@ -1,11 +1,14 @@
 'use client';
 
-import * as React from 'react';
 import { IKujiPrize } from '@/interfaces/product';
 import { Ticket } from 'lucide-react';
 
-export function KujiPrizesView({ prizes }: { prizes: IKujiPrize[] }) {
-  if (!prizes || prizes.length === 0) return null;
+interface IKujiPrizesViewProps {
+  prizes: IKujiPrize[];
+}
+
+export function KujiPrizesView(props: IKujiPrizesViewProps) {
+  if (!props.prizes || props.prizes.length === 0) return null;
 
   return (
     <div className="mt-12 bg-card border border-border/50 rounded-3xl p-6 sm:p-8 shadow-sm">
@@ -17,7 +20,7 @@ export function KujiPrizesView({ prizes }: { prizes: IKujiPrize[] }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {prizes.map((prize) => {
+        {props.prizes.map((prize) => {
           const isSoldOut = prize.remainingQuantity === 0;
 
           return (

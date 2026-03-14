@@ -1,6 +1,5 @@
 'use client';
 
-import * as React from 'react';
 import QueryConfigs from '@/configs/api/query-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { StorefrontHero } from '@/components/home/storefront-hero';

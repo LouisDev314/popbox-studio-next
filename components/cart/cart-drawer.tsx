@@ -1,29 +1,34 @@
 'use client';
 
-import * as React from 'react';
+import { useSyncExternalStore } from 'react';
 import { useCartStore } from '@/hooks/use-cart';
 import { Button } from '@/components/ui/button';
 import { X, Minus, Plus, ShoppingBag } from 'lucide-react';
 import { formatPrice } from '@/utils/helpers';
 import { useRouter } from 'next/navigation';
 
-export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+interface ICartDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function CartDrawer(props: ICartDrawerProps) {
   const router = useRouter();
   const { items, updateQuantity, removeItem, getCartTotal } = useCartStore();
   const { totalCents, totalItems } = getCartTotal();
-  const [isClient, setIsClient] = React.useState(false);
+  const isClient = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
 
-  React.useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isOpen) return null;
+  if (!props.isOpen) return null;
 
   return (
     <>
       <div 
         className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" 
-        onClick={onClose}
+        onClick={props.onClose}
         aria-hidden="true"
       />
       <div className="fixed inset-y-0 right-0 z-50 w-full max-w-sm border-l border-border bg-background shadow-lg transition-transform duration-300 ease-in-out transform flex flex-col">
@@ -32,7 +37,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             <ShoppingBag className="h-5 w-5" />
             Your Cart {isClient && totalItems > 0 && `(${totalItems})`}
           </h2>
-          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+          <Button variant="ghost" size="icon" onClick={props.onClose} className="rounded-full">
             <X className="h-5 w-5" />
             <span className="sr-only">Close cart</span>
           </Button>
@@ -43,7 +48,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
               <ShoppingBag className="h-12 w-12 opacity-20" />
               <p>Your cart is empty.</p>
-              <Button onClick={onClose} variant="outline" className="mt-4">
+              <Button onClick={props.onClose} variant="outline" className="mt-4">
                 Continue Shopping
               </Button>
             </div>
@@ -110,7 +115,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             <Button 
               className="w-full h-12 text-base font-semibold rounded-xl"
               onClick={() => {
-                onClose();
+                props.onClose();
                 router.push('/checkout');
               }}
             >

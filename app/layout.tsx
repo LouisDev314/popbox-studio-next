@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { type ReactNode } from 'react';
 import './globals.css';
 import { ReactQueryProvider } from '@/components/react-query-provider';
 import { ThemeProvider } from '@/components/theme-provider';
-import React from 'react';
 import { Analytics } from '@vercel/analytics/next'
 
 const geistSans = Geist({
@@ -21,11 +21,11 @@ export const metadata: Metadata = {
   description: 'Premium Collectibles and Ichiban Kuji',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+interface IRootLayoutProps {
+  children: ReactNode;
+}
+
+export default function RootLayout(props: Readonly<IRootLayoutProps>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}>
@@ -36,7 +36,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ReactQueryProvider>
-            {children}
+            {props.children}
           </ReactQueryProvider>
         </ThemeProvider>
         <Analytics />

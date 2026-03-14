@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from 'react';
+import { useCallback, useState } from 'react';
 import { useParams } from 'next/navigation';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
@@ -18,8 +18,8 @@ export default function OrderTicketsPage() {
   const publicId = Array.isArray(params.publicId) ? params.publicId[0] : params.publicId;
   const queryClient = useQueryClient();
 
-  const [revealingId, setRevealingId] = React.useState<string | null>(null);
-  const [isRevealingAll, setIsRevealingAll] = React.useState(false);
+  const [revealingId, setRevealingId] = useState<string | null>(null);
+  const [isRevealingAll, setIsRevealingAll] = useState(false);
 
   const { data: response, isPending, isError } = useCustomizeQuery<IGuestTicketView>({
     queryKey: ['order-tickets', publicId],
@@ -47,7 +47,7 @@ export default function OrderTicketsPage() {
 
   const viewData = response?.data?.data;
 
-  const handleReveal = React.useCallback(
+  const handleReveal = useCallback(
     (ticketId: string) => {
       if (revealingId || isRevealingAll) return;
       setRevealingId(ticketId);

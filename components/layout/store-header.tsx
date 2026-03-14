@@ -1,6 +1,6 @@
 'use client';
 
-import * as React from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useCartStore } from '@/hooks/use-cart';
 import { ShoppingBag, Search, Menu, X } from 'lucide-react';
@@ -9,15 +9,15 @@ import { ShoppingBag, Search, Menu, X } from 'lucide-react';
 import { CartDrawer } from '@/components/cart/cart-drawer';
 
 export function StoreHeader() {
-  const [isClient, setIsClient] = React.useState(false);
+  const isClient = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
   // const { theme, setTheme } = useTheme();
   const cartItems = useCartStore((state) => state.items);
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const [isCartOpen, setIsCartOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const totalItems = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
