@@ -30,7 +30,7 @@ export function HomeProductSection(props: IHomeProductSectionProps) {
         ))}
       </div>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex justify-center">
         <Button asChild variant="outline" size="lg" className="px-6">
           <Link href={props.viewAllHref}>View all</Link>
         </Button>
