@@ -10,6 +10,7 @@ interface ICustomizeQueryConfig<ApiResponse> {
   enabled?: boolean;
   staleTime?: number;
   gcTime?: number;
+  refetchOnWindowFocus?: boolean | 'always';
   onSuccess?: (data: AxiosResponse<IBaseApiResponse<ApiResponse>>) => void;
   onError?: (err: AxiosError<IBaseApiResponse>) => void;
 }
@@ -29,6 +30,7 @@ function useCustomizeQuery<ApiResponse>(
     enabled: queryConfig.enabled,
     staleTime: queryConfig.staleTime,
     gcTime: queryConfig.gcTime,
+    refetchOnWindowFocus: queryConfig.refetchOnWindowFocus,
   });
 
   useEffect(() => {

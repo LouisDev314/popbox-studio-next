@@ -13,6 +13,8 @@ export default function StorefrontHomePage() {
   const { data: response, isPending, isError } = useCustomizeQuery<IHomepageData>({
     queryKey: ['homepage-data'],
     queryFn: () => QueryConfigs.fetchHomePage(),
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const homeData = response?.data?.data;

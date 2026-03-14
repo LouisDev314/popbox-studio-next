@@ -1,4 +1,4 @@
-import { httpClient } from '@/api/http-client';
+import { createHttpClient } from '@/api/http-client';
 import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IHomepageData } from '@/interfaces/home';
@@ -6,7 +6,7 @@ import { IProduct, IProductListPage, IProductSuggestion, ICollection, ITag } fro
 import { IGuestOrderDetail, IGuestTicketView } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
 
-const appClient = httpClient();
+const appClient = createHttpClient();
 
 const QueryConfigs = {
   fetchHomePage: (): Promise<AxiosResponse<IBaseApiResponse<IHomepageData>>> => {
