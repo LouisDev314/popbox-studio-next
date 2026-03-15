@@ -28,10 +28,10 @@ export default function CartPage() {
         <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
           <div className="space-y-4">
             <div className="h-8 w-40 rounded-full bg-muted/40" />
-            <div className="h-36 rounded-3xl bg-muted/40" />
-            <div className="h-36 rounded-3xl bg-muted/30" />
+            <div className="h-40 rounded-[2rem] bg-muted/35" />
+            <div className="h-40 rounded-[2rem] bg-muted/25" />
           </div>
-          <div className="h-72 rounded-3xl bg-muted/40" />
+          <div className="h-72 rounded-[2rem] bg-muted/35" />
         </div>
       </div>
     );
@@ -58,7 +58,7 @@ export default function CartPage() {
 
   return (
     <div className="container mx-auto w-full px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">Cart</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -69,14 +69,19 @@ export default function CartPage() {
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="ghost"
-          className="w-fit rounded-full px-4 text-muted-foreground hover:text-foreground"
-          onClick={clearCart}
-        >
-          Clear cart
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="outline" className="rounded-full px-5">
+            <Link href="/products">Continue shopping</Link>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-fit rounded-full px-4 text-muted-foreground hover:text-foreground"
+            onClick={clearCart}
+          >
+            Clear cart
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">

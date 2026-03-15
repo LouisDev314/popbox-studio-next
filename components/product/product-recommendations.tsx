@@ -1,6 +1,4 @@
 'use client';
-
-import { Loader2 } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { type IProduct, type IProductCard, type IProductListPage } from '@/interfaces/product';
@@ -52,12 +50,22 @@ export function ProductRecommendations(props: IProductRecommendationsProps) {
           <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
             You might also like
           </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            More picks from the same collection or tag without changing the current storefront API contract.
+          </p>
         </div>
       </div>
 
       {isPending ? (
-        <div className="mt-8 flex justify-center py-12">
-          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+          {Array.from({ length: RELATED_PRODUCTS_LIMIT }).map((_, index) => (
+            <div key={index} className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-card p-4">
+              <div className="aspect-square rounded-[1.4rem] bg-muted/35" />
+              <div className="mt-4 h-5 rounded-full bg-muted/35" />
+              <div className="mt-2 h-4 w-2/3 rounded-full bg-muted/25" />
+              <div className="mt-6 h-5 w-1/3 rounded-full bg-muted/35" />
+            </div>
+          ))}
         </div>
       ) : (
         <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { IProduct } from '@/interfaces/product';
-import { useCartStore } from '@/hooks/use-cart';
+import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ShoppingBag, Minus, Plus } from 'lucide-react';
+import { QuantityStepper } from '@/components/ui/quantity-stepper';
+import { useCartStore } from '@/hooks/use-cart';
+import { type IProduct } from '@/interfaces/product';
 import { formatPrice } from '@/utils/helpers';
 
 interface IProductActionsProps {
@@ -16,6 +17,12 @@ export function ProductActions(props: IProductActionsProps) {
   const [quantity, setQuantity] = useState(1);
 
   const isOutOfStock = props.product.inventory?.available === 0;
+  const availableInventory = props.product.inventory?.available;
+  const availabilityLabel = isOutOfStock
+    ? 'Currently unavailable'
+    : typeof availableInventory === 'number'
+      ? `${availableInventory} available`
+      : 'Available to order';
 
   const handleAdd = () => {
     addItem(props.product, quantity);
@@ -23,35 +30,23 @@ export function ProductActions(props: IProductActionsProps) {
   };
 
   return (
-    <div className="flex flex-col gap-4 mt-8">
-      <div className="flex items-center gap-4">
-        <span className="text-sm font-medium text-muted-foreground mr-2">Quantity</span>
-        <div className="flex items-center rounded-full border border-border">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-l-full h-10 w-10 hover:bg-muted"
-            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            disabled={isOutOfStock}
-          >
-            <Minus className="h-4 w-4" />
-          </Button>
-          <span className="w-12 text-center text-sm font-medium">{quantity}</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-r-full h-10 w-10 hover:bg-muted"
-            onClick={() => setQuantity(Math.min(20, quantity + 1))}
-            disabled={isOutOfStock}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+    <div className="mt-8 rounded-[2rem] border border-border/60 bg-card/70 p-5 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-foreground">Quantity</p>
+          <p className="mt-1 text-sm text-muted-foreground">{availabilityLabel}</p>
         </div>
+        <QuantityStepper
+          disabled={isOutOfStock}
+          value={quantity}
+          onDecrease={() => setQuantity(Math.max(1, quantity - 1))}
+          onIncrease={() => setQuantity(Math.min(20, quantity + 1))}
+        />
       </div>
 
-      <Button 
-        size="lg" 
-        className="w-full rounded-full h-14 text-lg font-semibold mt-2"
+      <Button
+        size="lg"
+        className="mt-5 h-14 w-full rounded-full text-lg font-semibold"
         disabled={isOutOfStock}
         onClick={handleAdd}
       >

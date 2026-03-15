@@ -1,132 +1,204 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
-import { useCartStore } from '@/hooks/use-cart';
-import { Button } from '@/components/ui/button';
-import { X, Minus, Plus, ShoppingBag } from 'lucide-react';
-import { formatPrice } from '@/utils/helpers';
+import { useEffect, useId, useRef, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
+import { ShoppingBag, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { QuantityStepper } from '@/components/ui/quantity-stepper';
+import { StorefrontImage } from '@/components/ui/storefront-image';
+import { useCartStore } from '@/hooks/use-cart';
+import { cn, formatPrice } from '@/utils/helpers';
 
 interface ICartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
+  triggerButtonId?: string;
 }
 
 export function CartDrawer(props: ICartDrawerProps) {
+  const isOpen = props.isOpen;
+  const onClose = props.onClose;
+  const triggerButtonId = props.triggerButtonId;
   const router = useRouter();
-  const { items, updateQuantity, removeItem, getCartSummary } = useCartStore();
-  const cartSummary = getCartSummary();
+  const items = useCartStore((state) => state.items);
+  const removeItem = useCartStore((state) => state.removeItem);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const getCartSummary = useCartStore((state) => state.getCartSummary);
   const isClient = useSyncExternalStore(
     () => () => undefined,
     () => true,
     () => false,
   );
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const titleId = useId();
+  const cartSummary = getCartSummary();
 
-  if (!props.isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyTouchAction = document.body.style.touchAction;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    document.documentElement.style.overflow = 'hidden';
+
+    window.requestAnimationFrame(() => {
+      closeButtonRef.current?.focus();
+    });
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.touchAction = previousBodyTouchAction;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+
+      window.requestAnimationFrame(() => {
+        const triggerButton = triggerButtonId ? document.getElementById(triggerButtonId) : null;
+        triggerButton?.focus();
+      });
+    };
+  }, [isOpen, onClose, triggerButtonId]);
 
   return (
     <>
       <div
-        className="fixed inset-0 z-[70] bg-background/80 backdrop-blur-sm"
-        onClick={props.onClose}
+        className={cn(
+          'fixed inset-0 z-[70] bg-foreground/12 backdrop-blur-sm transition-opacity duration-300',
+          isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+        )}
+        onClick={onClose}
         aria-hidden="true"
       />
-      <div className="fixed inset-y-0 right-0 z-[71] flex w-full max-w-sm transform flex-col border-l border-border bg-background shadow-lg transition-transform duration-300 ease-in-out">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
+      <aside
+        role="dialog"
+        aria-modal={true}
+        aria-hidden={!isOpen}
+        inert={!isOpen}
+        aria-labelledby={titleId}
+        className={cn(
+          'fixed inset-y-0 right-0 z-[71] flex w-full max-w-sm flex-col border-l border-border/70 bg-background/95 shadow-[0_24px_60px_-28px_hsl(var(--foreground)/0.4)] backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          isOpen ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full',
+        )}
+      >
+        <div className="flex items-center justify-between border-b border-border/70 px-5 py-4 sm:px-6">
+          <h2 id={titleId} className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
             <ShoppingBag className="h-5 w-5" />
             Your Cart {isClient && cartSummary.totalItems > 0 && `(${cartSummary.totalItems})`}
           </h2>
-          <Button variant="ghost" size="icon" onClick={props.onClose} className="rounded-full">
+          <Button
+            ref={closeButtonRef}
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="rounded-full"
+          >
             <X className="h-5 w-5" />
             <span className="sr-only">Close cart</span>
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {(!isClient || items.length === 0) ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
-              <ShoppingBag className="h-12 w-12 opacity-20" />
-              <p>Your cart is empty.</p>
-              <Button onClick={props.onClose} variant="outline" className="mt-4">
+        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+          {!isClient ? (
+            <div className="space-y-4">
+              <div className="h-6 w-28 rounded-full bg-muted/40" />
+              <div className="h-24 rounded-3xl bg-muted/35" />
+              <div className="h-24 rounded-3xl bg-muted/25" />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center rounded-[2rem] border border-dashed border-border/70 bg-card/70 px-8 py-12 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted/60">
+                <ShoppingBag className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <h3 className="mt-5 text-xl font-semibold tracking-tight text-foreground">Your cart is empty</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Add a few collectibles first, then return here for a quick checkout handoff.
+              </p>
+              <Button onClick={onClose} variant="outline" className="mt-6 rounded-full px-5">
                 Continue Shopping
               </Button>
             </div>
           ) : (
-            items.map((item) => (
-              <div key={item.id} className="flex gap-4">
-                <div className="h-20 w-20 shrink-0 rounded-md bg-muted/40 border border-border overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={item.product.images[0]?.url || '/placeholder.png'}
-                    alt={item.product.name}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div className="flex flex-1 flex-col justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium line-clamp-2 leading-tight">
-                      {item.product.name}
-                    </h3>
-                    <p className="mt-1 text-sm text-muted-foreground font-semibold">
-                      {formatPrice(item.product.priceCents, item.product.currency)}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center rounded-full border border-border">
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="p-1 hover:bg-muted rounded-l-full"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="text-xs font-medium w-8 text-center">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="p-1 hover:bg-muted rounded-r-full"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
+            <div className="space-y-4">
+              {items.map((item) => (
+                <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card/80 p-4 shadow-sm">
+                  <div className="flex gap-4">
+                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-muted/30">
+                      <StorefrontImage
+                        src={item.product.images[0]?.url}
+                        alt={item.product.name}
+                        label={item.product.name}
+                      />
                     </div>
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="text-xs font-medium text-destructive hover:underline"
-                    >
-                      Remove
-                    </button>
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
+                        {item.product.name}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {formatPrice(item.product.priceCents, item.product.currency)} each
+                      </p>
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <QuantityStepper
+                          size="sm"
+                          value={item.quantity}
+                          onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
+                          onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-9 rounded-full px-3 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => removeItem(item.id)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))
+                </article>
+              ))}
+            </div>
           )}
         </div>
 
-        {isClient && items.length > 0 && (
-          <div className="border-t border-border p-6 bg-card/50">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-base font-semibold">Subtotal</span>
-              <span className="text-lg font-bold">
+        {isClient && items.length > 0 ? (
+          <div className="border-t border-border/70 bg-card/60 px-5 py-5 sm:px-6">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-sm font-medium text-muted-foreground">Subtotal</span>
+              <span className="text-lg font-bold text-foreground">
                 {formatPrice(cartSummary.subtotalCents, cartSummary.currency)}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mb-4">
+            <p className="mb-4 text-xs leading-5 text-muted-foreground">
               Shipping and tax stay estimated on the cart page. Final totals still come from checkout.
             </p>
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant="outline"
-                className="h-12 rounded-xl"
+                className="h-12 rounded-full"
                 onClick={() => {
-                  props.onClose();
+                  onClose();
                   router.push('/cart');
                 }}
               >
                 View Cart
               </Button>
               <Button
-                className="h-12 text-base font-semibold rounded-xl"
+                className="h-12 rounded-full text-base font-semibold"
                 onClick={() => {
-                  props.onClose();
+                  onClose();
                   router.push('/checkout');
                 }}
               >
@@ -134,8 +206,8 @@ export function CartDrawer(props: ICartDrawerProps) {
               </Button>
             </div>
           </div>
-        )}
-      </div>
+        ) : null}
+      </aside>
     </>
   );
 }

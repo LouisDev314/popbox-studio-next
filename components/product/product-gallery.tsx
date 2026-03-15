@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { IProduct } from '@/interfaces/product';
+import { StorefrontImage } from '@/components/ui/storefront-image';
+import { type IProduct } from '@/interfaces/product';
 
 interface IProductGalleryProps {
   product: IProduct;
@@ -9,37 +10,50 @@ interface IProductGalleryProps {
 
 export function ProductGallery(props: IProductGalleryProps) {
   const [activeImage, setActiveImage] = useState(0);
-
-  const images = props.product.images?.length ? props.product.images : [{ id: '1', url: '/placeholder.png', altText: props.product.name }];
+  const images = props.product.images;
+  const activeImageData = images[activeImage];
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative aspect-square w-full rounded-3xl bg-muted/20 overflow-hidden border border-border/50">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={images[activeImage].url}
-          alt={images[activeImage].altText || props.product.name}
-          className="object-cover w-full h-full"
+      <div className="relative aspect-square w-full overflow-hidden rounded-[2rem] border border-border/50 bg-muted/20">
+        <StorefrontImage
+          src={activeImageData?.url}
+          alt={activeImageData?.altText || props.product.name}
+          label={props.product.name}
+          imageClassName="transition-transform duration-500 ease-out"
         />
         {props.product.productType === 'kuji' && (
-          <div className="absolute top-4 left-4 z-20 px-3 py-1.5 bg-secondary text-secondary-foreground text-sm font-bold rounded-lg shadow-sm tracking-wide">
+          <div className="absolute top-4 left-4 z-20 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold tracking-[0.2em] text-secondary-foreground shadow-sm">
             Ichiban Kuji
           </div>
         )}
+        {images.length > 1 ? (
+          <div className="absolute right-4 bottom-4 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
+            {activeImage + 1} / {images.length}
+          </div>
+        ) : null}
       </div>
 
       {images.length > 1 && (
-        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
+        <div className="flex gap-3 overflow-x-auto pb-2">
           {images.map((img, idx) => (
             <button
               key={img.id}
+              type="button"
+              aria-label={`View image ${idx + 1} of ${images.length}`}
+              aria-pressed={activeImage === idx}
               onClick={() => setActiveImage(idx)}
-              className={`relative aspect-square w-24 shrink-0 rounded-xl overflow-hidden border-2 transition-all ${
-                activeImage === idx ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-border'
+              className={`relative aspect-square w-20 shrink-0 overflow-hidden rounded-2xl border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-24 ${
+                activeImage === idx
+                  ? 'border-primary bg-primary/5 shadow-[0_12px_30px_-22px_hsl(var(--foreground)/0.45)]'
+                  : 'border-border/60 hover:border-primary/30'
               }`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.url} alt={img.altText || ''} className="object-cover w-full h-full" />
+              <StorefrontImage
+                src={img.url}
+                alt={img.altText || `${props.product.name} thumbnail ${idx + 1}`}
+                label={props.product.name}
+              />
             </button>
           ))}
         </div>

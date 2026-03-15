@@ -27,9 +27,9 @@ export function CartSummary(props: ICartSummaryProps) {
       : formatPrice(props.summary.shippingCents, props.summary.currency);
 
   return (
-    <div className={cn('rounded-3xl border border-border/60 bg-card p-6 shadow-sm', props.className)}>
+    <div className={cn('rounded-[2rem] border border-border/60 bg-card p-6 shadow-sm', props.className)}>
       {hasHeaderContent ? (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {resolvedHeading !== null ? (
             <h2 className="text-xl font-semibold tracking-tight text-foreground">{resolvedHeading}</h2>
           ) : null}
@@ -40,6 +40,11 @@ export function CartSummary(props: ICartSummaryProps) {
       ) : null}
 
       <div className={cn('space-y-3', hasHeaderContent ? 'mt-6' : '')}>
+        <div className="flex items-center justify-between rounded-2xl bg-muted/35 px-4 py-3 text-sm">
+          <span className="text-muted-foreground">Items</span>
+          <span className="font-medium text-foreground">{props.summary.totalItems}</span>
+        </div>
+
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Subtotal</span>
           <span className="font-medium text-foreground">
