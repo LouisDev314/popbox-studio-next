@@ -14,8 +14,8 @@ interface ICartDrawerProps {
 
 export function CartDrawer(props: ICartDrawerProps) {
   const router = useRouter();
-  const { items, updateQuantity, removeItem, getCartTotal } = useCartStore();
-  const { totalCents, totalItems } = getCartTotal();
+  const { items, updateQuantity, removeItem, getCartSummary } = useCartStore();
+  const cartSummary = getCartSummary();
   const isClient = useSyncExternalStore(
     () => () => undefined,
     () => true,
@@ -26,8 +26,8 @@ export function CartDrawer(props: ICartDrawerProps) {
 
   return (
     <>
-      <div 
-        className="fixed inset-0 z-[70] bg-background/80 backdrop-blur-sm" 
+      <div
+        className="fixed inset-0 z-[70] bg-background/80 backdrop-blur-sm"
         onClick={props.onClose}
         aria-hidden="true"
       />
@@ -35,7 +35,7 @@ export function CartDrawer(props: ICartDrawerProps) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <ShoppingBag className="h-5 w-5" />
-            Your Cart {isClient && totalItems > 0 && `(${totalItems})`}
+            Your Cart {isClient && cartSummary.totalItems > 0 && `(${cartSummary.totalItems})`}
           </h2>
           <Button variant="ghost" size="icon" onClick={props.onClose} className="rounded-full">
             <X className="h-5 w-5" />
@@ -106,21 +106,33 @@ export function CartDrawer(props: ICartDrawerProps) {
             <div className="flex items-center justify-between mb-4">
               <span className="text-base font-semibold">Subtotal</span>
               <span className="text-lg font-bold">
-                {formatPrice(totalCents, items[0].product.currency)}
+                {formatPrice(cartSummary.subtotalCents, cartSummary.currency)}
               </span>
             </div>
             <p className="text-xs text-muted-foreground mb-4">
-              Taxes and shipping calculated at checkout. Mixed orders containing Ichiban Kuji tickets are permitted!
+              Shipping and tax stay estimated on the cart page. Final totals still come from checkout.
             </p>
-            <Button 
-              className="w-full h-12 text-base font-semibold rounded-xl"
-              onClick={() => {
-                props.onClose();
-                router.push('/checkout');
-              }}
-            >
-              Proceed to Checkout
-            </Button>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant="outline"
+                className="h-12 rounded-xl"
+                onClick={() => {
+                  props.onClose();
+                  router.push('/cart');
+                }}
+              >
+                View Cart
+              </Button>
+              <Button
+                className="h-12 text-base font-semibold rounded-xl"
+                onClick={() => {
+                  props.onClose();
+                  router.push('/checkout');
+                }}
+              >
+                Checkout
+              </Button>
+            </div>
           </div>
         )}
       </div>

@@ -1,23 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { IProductCard } from '@/interfaces/product';
+import { type ICartItem, type ICartSummary } from '@/interfaces/cart';
+import { buildCartSummary } from '@/utils/cart';
 
-export interface CartItem {
-  id: string; // unique ID for cart row, handles duplicates if needed
-  product: IProductCard;
-  quantity: number;
-}
-
-interface CartStore {
-  items: CartItem[];
+interface ICartStore {
+  items: ICartItem[];
   addItem: (product: IProductCard, quantity?: number) => void;
   removeItem: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
-  getCartTotal: () => { totalItems: number; totalCents: number };
+  getCartSummary: () => ICartSummary;
 }
 
-export const useCartStore = create<CartStore>()(
+export const useCartStore = create<ICartStore>()(
   persist(
     (set, get) => ({
       items: [],
@@ -58,16 +54,8 @@ export const useCartStore = create<CartStore>()(
       clearCart: () => {
         set({ items: [] });
       },
-      getCartTotal: () => {
-        const { items } = get();
-        return items.reduce(
-          (acc, item) => {
-            acc.totalItems += item.quantity;
-            acc.totalCents += item.product.priceCents * item.quantity;
-            return acc;
-          },
-          { totalItems: 0, totalCents: 0 },
-        );
+      getCartSummary: () => {
+        return buildCartSummary(get().items);
       },
     }),
     {

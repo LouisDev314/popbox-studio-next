@@ -6,6 +6,7 @@ import { IProduct } from '@/interfaces/product';
 import { ProductGallery } from '@/components/product/product-gallery';
 import { ProductActions } from '@/components/product/product-actions';
 import { KujiPrizesView } from '@/components/product/kuji-prizes-view';
+import { ProductRecommendations } from '@/components/product/product-recommendations';
 import { Loader2 } from 'lucide-react';
 import { formatPrice } from '@/utils/helpers';
 import { useParams } from 'next/navigation';
@@ -43,12 +44,12 @@ export default function ProductDetailPage() {
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-start">
         {/* Left Column - Gallery */}
-        <div className="sticky top-24">
+        <div className="lg:sticky lg:top-24 lg:self-start">
           <ProductGallery product={product} />
         </div>
 
         {/* Right Column - Details */}
-        <div className="flex flex-col">
+        <div className="relative z-10 flex flex-col">
           {product.collection && (
             <div className="text-sm font-semibold tracking-wider uppercase text-primary mb-3">
               {product.collection.name}
@@ -88,6 +89,8 @@ export default function ProductDetailPage() {
       {product.productType === 'kuji' && product.kujiPrizes && (
         <KujiPrizesView prizes={product.kujiPrizes} />
       )}
+
+      <ProductRecommendations product={product} />
     </div>
   );
 }

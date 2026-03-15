@@ -1,12 +1,13 @@
 'use client';
 
-import { type ChangeEvent, type FormEvent, useState } from 'react';
+import { type ChangeEvent, type FormEvent, useState, useSyncExternalStore } from 'react';
 import { useCartStore } from '@/hooks/use-cart';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 
 import MutationConfigs from '@/configs/api/mutation-config';
 import { ICheckoutRequest, ICheckoutSession } from '@/interfaces/checkout';
 import { Button } from '@/components/ui/button';
+import { CartSummary } from '@/components/cart/cart-summary';
 import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/utils/helpers';
 import { Loader2 } from 'lucide-react';
@@ -26,8 +27,13 @@ interface ICheckoutFormData {
 }
 
 export default function CheckoutPage() {
-  const { items, getCartTotal } = useCartStore();
-  const { totalCents } = getCartTotal();
+  const { items, getCartSummary } = useCartStore();
+  const cartSummary = getCartSummary();
+  const isHydrated = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
 
   const [formData, setFormData] = useState<ICheckoutFormData>({
     email: '',
@@ -87,6 +93,17 @@ export default function CheckoutPage() {
       },
     );
   };
+
+  if (!isHydrated) {
+    return (
+      <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
+          <div className="h-[30rem] rounded-3xl bg-muted/40 lg:col-span-7 xl:col-span-8" />
+          <div className="h-[24rem] rounded-3xl bg-muted/40 lg:col-span-5 xl:col-span-4" />
+        </div>
+      </div>
+    );
+  }
 
   if (!items.length) {
     return (
@@ -171,7 +188,7 @@ export default function CheckoutPage() {
         <div className="lg:col-span-5 xl:col-span-4">
           <div className="bg-card border border-border/50 rounded-2xl p-6 sticky top-24 shadow-sm">
             <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
-            
+
             <div className="space-y-4 mb-6 max-h-96 overflow-y-auto pr-2">
               {items.map((item) => (
                 <div key={item.id} className="flex gap-4">
@@ -192,26 +209,18 @@ export default function CheckoutPage() {
               ))}
             </div>
 
-            <div className="border-t border-border/50 pt-4 space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium text-foreground">{formatPrice(totalCents, items[0].product.currency)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Shipping & Taxes</span>
-                <span className="text-muted-foreground italic">Calculated at next step</span>
-              </div>
-              <div className="border-t border-border/50 pt-4 flex justify-between">
-                <span className="text-base font-bold text-foreground">Total</span>
-                <span className="text-base font-bold text-foreground">{formatPrice(totalCents, items[0].product.currency)}</span>
-              </div>
-            </div>
+            <CartSummary
+              summary={cartSummary}
+              className="mt-6 border-0 bg-transparent p-0 shadow-none"
+              heading={null}
+              note="These are storefront estimates only. The backend checkout session remains the source of truth for payment and fulfillment totals."
+            />
 
-            <Button 
-              type="submit" 
-              form="checkout-form" 
+            <Button
+              type="submit"
+              form="checkout-form"
               disabled={isPending}
-              size="lg" 
+              size="lg"
               className="w-full h-14 rounded-full font-bold text-lg mt-8"
             >
               {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
