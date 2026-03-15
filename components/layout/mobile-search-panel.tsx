@@ -75,9 +75,10 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
   };
 
   return (
-    <div className="overflow-hidden rounded-[28px] border border-border/70 bg-background/95 shadow-[0_32px_70px_-38px_hsl(var(--foreground)/0.55)]">
-      <div className="border-b border-border/60 px-4 py-4">
-        <div className="flex items-center gap-3">
+    <div className="overflow-hidden rounded-[28px] md:rounded-none md:border-x-0 md:border-t-0 border border-border/70 bg-background/95 md:bg-background/90 md:backdrop-blur-2xl shadow-[0_32px_70px_-38px_hsl(var(--foreground)/0.55)]">
+      <div className="md:container md:mx-auto md:max-w-4xl">
+        <div className="border-b border-border/60 px-4 py-4 md:py-6 md:px-8">
+          <div className="flex items-center gap-3">
           <form className="min-w-0 flex-1" onSubmit={onSearchSubmit}>
             <div className="flex items-center rounded-[22px] border border-border/70 bg-muted/50 px-3 shadow-inner">
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -105,12 +106,12 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
             onClick={onClose}
           >
             <span className="sr-only">Close search</span>
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 md:h-5 md:w-5" />
           </button>
         </div>
       </div>
 
-      <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto px-4 py-4">
+      <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto px-4 py-4 md:px-8 md:py-8">
         {!trimmedQuery ? (
           <div className="space-y-4">
             <div>
@@ -209,6 +210,7 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
           </div>
         )}
       </div>
+     </div>
     </div>
   );
 }

@@ -10,6 +10,7 @@ interface IMobileNavOverlayProps {
   isOpen: boolean;
   onClose: () => void;
   panelClassName?: string;
+  containerClassName?: string;
   restoreFocusId?: string;
 }
 
@@ -20,6 +21,7 @@ export function MobileNavOverlay(props: IMobileNavOverlayProps) {
   const isOpen = props.isOpen;
   const onClose = props.onClose;
   const panelClassName = props.panelClassName;
+  const containerClassName = props.containerClassName;
   const restoreFocusId = props.restoreFocusId;
   const panelRef = useRef<HTMLDivElement | null>(null);
 
@@ -71,8 +73,9 @@ export function MobileNavOverlay(props: IMobileNavOverlayProps) {
   return (
     <div
       className={cn(
-        'fixed inset-x-0 top-16 bottom-0 z-40 transition-opacity duration-300 md:hidden',
+        'fixed inset-x-0 top-16 bottom-0 z-40 transition-opacity duration-300',
         isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+        containerClassName,
       )}
       aria-hidden={!isOpen}
       inert={!isOpen}

@@ -202,7 +202,7 @@ export function CartDrawer(props: ICartDrawerProps) {
                   router.push('/checkout');
                 }}
               >
-                Checkout
+                Review & Checkout
               </Button>
             </div>
           </div>

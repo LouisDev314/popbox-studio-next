@@ -34,11 +34,6 @@ export function useMobileNavbarVisibility(options?: IUseMobileNavbarVisibilityOp
     const updateVisibility = () => {
       animationFrameRef.current = null;
 
-      if (!mediaQuery.matches) {
-        resetVisibility();
-        return;
-      }
-
       const currentScrollY = window.scrollY;
       const lastScrollY = lastScrollYRef.current;
 

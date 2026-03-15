@@ -101,7 +101,7 @@ export default function CartPage() {
           <CartSummary
             summary={summary}
             actionHref="/checkout"
-            actionLabel="Proceed to checkout"
+            actionLabel="Review & Checkout"
             note="Shipping is estimated with a flat storefront rate for physical orders under $100 CAD. Tax is estimated at 5% GST until checkout returns backend-authoritative totals."
           />
         </div>

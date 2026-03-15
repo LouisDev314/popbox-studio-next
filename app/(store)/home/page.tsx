@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HomeProductSection } from '@/components/home/home-product-section';
+import { StorefrontCarousel } from '@/components/home/storefront-carousel';
 import { StorefrontHero } from '@/components/home/storefront-hero';
 import QueryConfigs from '@/configs/api/query-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
@@ -72,12 +73,16 @@ export default function StorefrontHomePage() {
 
   return (
     <div className="container mx-auto w-full px-4 py-8 sm:px-6 lg:px-8">
-      <StorefrontHero
-        title="Discover Premium Collectibles"
-        subtitle="Your exclusive source for Ichiban Kuji and authentic anime figures."
-        ctaText="Shop Now"
-        ctaLink="/products"
-      />
+      {featured && featured.length > 0 ? (
+        <StorefrontCarousel featuredProducts={featured} />
+      ) : (
+        <StorefrontHero
+          title="Discover Premium Collectibles"
+          subtitle="Your exclusive source for Ichiban Kuji and authentic anime figures."
+          ctaText="Shop Now"
+          ctaLink="/products"
+        />
+      )}
 
       <HomeProductSection
         title="Featured Prizes"

@@ -1,13 +1,13 @@
 import { IOrderDetail } from './order';
 
 export interface IAddress {
-  fullName: string;
-  line1: string;
+  fullName: string | null;
+  line1: string | null;
   line2: string | null;
-  city: string;
-  province: string;
-  postalCode: string;
-  countryCode: string;
+  city: string | null;
+  province: string | null;
+  postalCode: string | null;
+  countryCode: string | null;
   phone: string | null;
 }
 

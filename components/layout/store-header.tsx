@@ -131,7 +131,7 @@ export function StoreHeader() {
     <>
       <header
         className={cn(
-          'fixed inset-x-0 top-0 z-50 w-full border-b border-border/60 bg-background/90 backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:sticky md:top-0 md:translate-y-0 md:bg-background/95 supports-[backdrop-filter]:bg-background/75 md:supports-[backdrop-filter]:bg-background/60',
+          'fixed inset-x-0 top-0 z-50 w-full border-b border-border/60 bg-background/90 backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] supports-[backdrop-filter]:bg-background/75',
           shouldShowMobileNavbar ? 'translate-y-0' : '-translate-y-full',
           activeMobilePanel !== null
             ? 'shadow-[0_24px_54px_-36px_hsl(var(--foreground)/0.48)]'
@@ -161,21 +161,13 @@ export function StoreHeader() {
                 aria-expanded={isSearchOpen}
                 aria-label={isSearchOpen ? 'Close search' : 'Open search'}
                 className={cn(
-                  'rounded-full border border-transparent p-2 text-muted-foreground transition-all duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:hidden',
+                  'rounded-full border border-transparent p-2 text-muted-foreground transition-all duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                   isSearchOpen ? 'bg-primary/20 text-foreground shadow-sm' : 'bg-background/70',
                 )}
                 onClick={() => handleMobilePanelToggle('search')}
               >
                 <Search className="h-5 w-5" />
               </button>
-
-              <Link
-                href="/search"
-                className="hidden rounded-full border border-transparent bg-background/70 p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:inline-flex"
-              >
-                <span className="sr-only">Search</span>
-                <Search className="h-5 w-5" />
-              </Link>
 
               <button
                 id={MOBILE_CART_BUTTON_ID}
@@ -224,14 +216,15 @@ export function StoreHeader() {
         </div>
       </header>
 
-      <div className="h-16 md:hidden" aria-hidden="true" />
+      <div className="h-16" aria-hidden="true" />
 
       <MobileNavOverlay
         ariaLabel="Search PopBox Studio products"
         initialFocusId={MOBILE_SEARCH_INPUT_ID}
         isOpen={isSearchOpen}
         onClose={closeMobilePanel}
-        panelClassName="px-3"
+        containerClassName=""
+        panelClassName="px-3 md:px-0"
         restoreFocusId={MOBILE_SEARCH_BUTTON_ID}
       >
         <MobileSearchPanel
@@ -252,6 +245,7 @@ export function StoreHeader() {
         ariaLabel="Store navigation menu"
         isOpen={isMenuOpen}
         onClose={closeMobilePanel}
+        containerClassName="md:hidden"
         panelClassName="bottom-0 px-3 pb-4"
         restoreFocusId={MOBILE_MENU_BUTTON_ID}
       >
