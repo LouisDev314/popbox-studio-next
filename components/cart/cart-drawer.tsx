@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShoppingBag, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,14 +24,14 @@ export function CartDrawer(props: ICartDrawerProps) {
   const removeItem = useCartStore((state) => state.removeItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const getCartSummary = useCartStore((state) => state.getCartSummary);
-  const isClient = useSyncExternalStore(
-    () => () => undefined,
-    () => true,
-    () => false,
-  );
+  const [isMounted, setIsMounted] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const titleId = useId();
   const cartSummary = getCartSummary();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -96,7 +96,7 @@ export function CartDrawer(props: ICartDrawerProps) {
         <div className="flex items-center justify-between border-b border-border/70 px-5 py-4 sm:px-6">
           <h2 id={titleId} className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
             <ShoppingBag className="h-5 w-5" />
-            Your Cart {isClient && cartSummary.totalItems > 0 && `(${cartSummary.totalItems})`}
+            Your Cart {isMounted && cartSummary.totalItems > 0 && `(${cartSummary.totalItems})`}
           </h2>
           <Button
             ref={closeButtonRef}
@@ -111,7 +111,7 @@ export function CartDrawer(props: ICartDrawerProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-          {!isClient ? (
+          {!isMounted ? (
             <div className="space-y-4">
               <div className="h-6 w-28 rounded-full bg-muted/40" />
               <div className="h-24 rounded-3xl bg-muted/35" />
@@ -173,7 +173,7 @@ export function CartDrawer(props: ICartDrawerProps) {
           )}
         </div>
 
-        {isClient && items.length > 0 ? (
+        {isMounted && items.length > 0 ? (
           <div className="border-t border-border/70 bg-card/60 px-5 py-5 sm:px-6">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-sm font-medium text-muted-foreground">Subtotal</span>

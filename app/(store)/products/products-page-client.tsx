@@ -1,20 +1,21 @@
 'use client';
 
-import { type ChangeEvent, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import QueryConfigs from '@/configs/api/query-config';
-import { IProductListPage, productSort } from '@/interfaces/product';
+import { IProductListPage, productSort, productType } from '@/interfaces/product';
 import { ProductCard } from '@/components/product/product-card';
 import { ProductsGridSkeleton } from '@/components/product/products-grid-skeleton';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ProductsPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const typeParam = searchParams.get('type') as 'standard' | 'kuji' | undefined;
+  const typeParam = searchParams.get('type') as productType | undefined;
   const collectionParam = searchParams.get('collection') ?? undefined;
   const sortParam = (searchParams.get('sort') ?? 'newest') as productSort;
 
@@ -44,14 +45,16 @@ export default function ProductsPageClient() {
     mutator(params);
 
     const nextQueryString = params.toString();
-    const nextUrl = nextQueryString ? `?${nextQueryString}` : '/products';
+    const nextUrl = nextQueryString ? `/products?${nextQueryString}` : '/products';
 
     router.replace(nextUrl, { scroll: false });
   };
 
-  const handleSortChange = (event: ChangeEvent<HTMLSelectElement>) => {
+  const handleSortChange = (newSort: productSort | null) => {
+    if (!newSort) return;
+
     handleSearchParamReplace((params) => {
-      params.set('sort', event.target.value);
+      params.set('sort', newSort);
     });
   };
 
@@ -70,6 +73,24 @@ export default function ProductsPageClient() {
   const isLoadingMore = productsQuery.isFetchingNextPage;
   const hasNextPage = Boolean(productsQuery.hasNextPage);
 
+  const productTypeItems = [
+    { label: 'All Types', value: '' },
+    { label: 'Standard', value: 'standard' },
+    { label: 'Kuji', value: 'kuji' },
+  ];
+
+  const productSortItems = [
+    { label: 'Newest', value: 'newest' },
+    { label: 'Price: Low to High', value: 'price_asc' },
+    { label: 'Price: High to Low', value: 'price_desc' },
+  ];
+
+  const selectedProductTypeLabel =
+    productTypeItems.find((item) => item.value === (typeParam ?? ''))?.label ?? 'All Types';
+
+  const selectedSortLabel =
+    productSortItems.find((item) => item.value === sortParam)?.label ?? 'Newest';
+
   return (
     <div className="container mx-auto w-full px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
@@ -85,27 +106,41 @@ export default function ProductsPageClient() {
         </div>
 
         <div className="flex flex-col gap-4 sm:flex-row">
-          <select
-            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          <Select
             value={typeParam ?? ''}
-            onChange={(event) => handleTypeChange(event.target.value || null)}
-            aria-label="Filter by product type"
+            onValueChange={(value) => handleTypeChange(value === '' ? null : value)}
           >
-            <option value="">All Types</option>
-            <option value="standard">Standard</option>
-            <option value="kuji">Ichiban Kuji</option>
-          </select>
+            <SelectTrigger className="min-w-[180px]" aria-label="Filter by product type">
+              <SelectValue>{selectedProductTypeLabel}</SelectValue>
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {productTypeItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
 
-          <select
-            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          <Select
             value={sortParam}
-            onChange={handleSortChange}
-            aria-label="Sort products"
+            onValueChange={handleSortChange}
           >
-            <option value="newest">Newest</option>
-            <option value="price_asc">Price: Low to High</option>
-            <option value="price_desc">Price: High to Low</option>
-          </select>
+            <SelectTrigger className="min-w-[180px]" aria-label="Sort products">
+              <SelectValue>{selectedSortLabel}</SelectValue>
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {productSortItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
