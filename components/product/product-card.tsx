@@ -36,7 +36,7 @@ export function ProductCard(props: IProductCardProps) {
       </div>
 
       <div className="z-20 flex flex-col gap-1">
-        <h3 className="line-clamp-2 min-h-[2.75rem] text-base font-semibold text-foreground transition-colors group-hover:text-primary sm:min-h-[1.75rem] sm:text-lg">
+        <h3 className="line-clamp-2 min-h-[2.75rem] text-base font-semibold text-foreground transition-colors sm:min-h-[1.75rem] sm:text-lg">
           {props.product.name}
         </h3>
         {props.product.collection && (
@@ -46,14 +46,9 @@ export function ProductCard(props: IProductCardProps) {
         )}
       </div>
 
-      <div className="z-20 mt-auto flex items-center justify-between pt-2">
-        <p className="text-base font-bold text-foreground sm:text-lg">
-          {formatPrice(props.product.priceCents, props.product.currency)}
-        </p>
-        <span className="rounded-full border border-primary/20 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors group-hover:border-primary sm:text-sm">
-          View
-        </span>
-      </div>
+      <p className="text-base text-primary font-bold text-foreground sm:text-lg">
+        {formatPrice(props.product.priceCents, props.product.currency)}
+      </p>
     </div>
   );
 }
