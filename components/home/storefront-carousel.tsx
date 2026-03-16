@@ -119,7 +119,7 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
             <div key={product.id} className="relative min-w-0 flex-[0_0_100%]">
               <Link
                 href={`/products/${product.slug}`}
-                className="group/slide relative block aspect-[4/3] w-full sm:aspect-[16/9]"
+                className="group/slide relative block aspect-[4/3] w-full sm:aspect-video max-h-[500px]"
                 onClick={() => autoplay.current.stop()}
               >
                 <div className="absolute inset-0 bg-muted/20">

@@ -26,7 +26,7 @@ function HomePageSkeleton() {
               <div className="h-4 w-28 rounded-full bg-muted/30" />
               <div className="mt-3 h-9 w-56 rounded-full bg-muted/35" />
             </div>
-            <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:gap-4 lg:grid-cols-4">
               {Array.from({ length: 4 }).map((__, cardIndex) => (
                 <div
                   key={cardIndex}

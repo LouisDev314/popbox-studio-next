@@ -57,7 +57,7 @@ export function ProductRecommendations(props: IProductRecommendationsProps) {
       </div>
 
       {isPending ? (
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-4 lg:grid-cols-4">
           {Array.from({ length: RELATED_PRODUCTS_LIMIT }).map((_, index) => (
             <div key={index} className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-card p-4">
               <div className="aspect-square rounded-[1.4rem] bg-muted/35" />
@@ -68,7 +68,7 @@ export function ProductRecommendations(props: IProductRecommendationsProps) {
           ))}
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-4 lg:grid-cols-4">
           {relatedProducts.map((relatedProduct: IProductCard) => (
             <ProductCard key={relatedProduct.id} product={relatedProduct} />
           ))}
