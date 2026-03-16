@@ -48,7 +48,7 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
   const pathname = usePathname();
 
   return (
-    <div className="flex min-h-[calc(100dvh-5.5rem)] max-h-[calc(100dvh-5rem)] flex-col overflow-hidden rounded-[32px] border border-border/70 bg-background/95 shadow-[0_32px_72px_-40px_hsl(var(--foreground)/0.58)]">
+    <div className="flex min-h-[calc(100dvh-5.5rem)] max-h-[calc(100dvh-5rem)] flex-col overflow-hidden border border-border/70 bg-background shadow-[0_32px_72px_-40px_hsl(var(--foreground)/0.58)]">
       <div className="border-b border-border/60 px-5 pt-5 pb-4">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
           Mobile navigation

@@ -30,7 +30,8 @@ export function MobileNavOverlay(props: IMobileNavOverlayProps) {
       return undefined;
     }
 
-    const previouslyFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previouslyFocusedElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousBodyOverflow = document.body.style.overflow;
     const previousBodyTouchAction = document.body.style.touchAction;
     const previousHtmlOverflow = document.documentElement.style.overflow;
@@ -41,8 +42,7 @@ export function MobileNavOverlay(props: IMobileNavOverlayProps) {
 
     window.requestAnimationFrame(() => {
       const focusTarget =
-        (initialFocusId ? document.getElementById(initialFocusId) : null) ??
-        panelRef.current;
+        (initialFocusId ? document.getElementById(initialFocusId) : null) ?? panelRef.current;
       focusTarget?.focus();
     });
 
@@ -73,8 +73,8 @@ export function MobileNavOverlay(props: IMobileNavOverlayProps) {
   return (
     <div
       className={cn(
-        'fixed inset-x-0 top-16 bottom-0 z-40 transition-opacity duration-300',
-        isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+        'fixed inset-x-0 top-16 bottom-0 z-40',
+        isOpen ? 'pointer-events-auto' : 'pointer-events-none',
         containerClassName,
       )}
       aria-hidden={!isOpen}
@@ -83,13 +83,14 @@ export function MobileNavOverlay(props: IMobileNavOverlayProps) {
       <button
         type="button"
         className={cn(
-          'absolute inset-0 bg-foreground/10 backdrop-blur-[3px] transition-opacity duration-300',
+          'absolute inset-0 bg-foreground/12 backdrop-blur-sm transition-opacity duration-300',
           isOpen ? 'opacity-100' : 'opacity-0',
         )}
         aria-label="Close navigation overlay"
         tabIndex={isOpen ? 0 : -1}
         onClick={onClose}
       />
+
       <div
         ref={panelRef}
         role="dialog"
@@ -97,7 +98,7 @@ export function MobileNavOverlay(props: IMobileNavOverlayProps) {
         aria-label={ariaLabel}
         tabIndex={-1}
         className={cn(
-          'absolute inset-x-0 top-0 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none',
+          'absolute inset-x-0 top-0 will-change-transform will-change-opacity transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none',
           isOpen ? 'translate-y-0 opacity-100' : '-translate-y-3 opacity-0',
           panelClassName,
         )}

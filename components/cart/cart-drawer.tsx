@@ -89,7 +89,7 @@ export function CartDrawer(props: ICartDrawerProps) {
         inert={!isOpen}
         aria-labelledby={titleId}
         className={cn(
-          'fixed inset-y-0 right-0 z-[71] flex w-full max-w-sm flex-col border-l border-border/70 bg-background/95 shadow-[0_24px_60px_-28px_hsl(var(--foreground)/0.4)] backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          'fixed inset-y-0 right-0 z-[71] flex w-full max-w-sm flex-col border-l border-border/70 bg-background shadow-[0_24px_60px_-28px_hsl(var(--foreground)/0.4)] backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
           isOpen ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full',
         )}
       >

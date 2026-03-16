@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/utils/helpers';
+import Image from 'next/image';
 
 interface IStorefrontImageProps {
   alt: string;
@@ -27,10 +28,11 @@ function buildFallbackLabel(label: string) {
 export function StorefrontImage(props: IStorefrontImageProps) {
   if (props.src) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <Image
         src={props.src}
         alt={props.alt}
+        height={500}
+        width={500}
         className={cn('h-full w-full object-cover', props.imageClassName, props.className)}
         loading="lazy"
       />

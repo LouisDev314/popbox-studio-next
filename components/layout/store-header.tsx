@@ -224,7 +224,7 @@ export function StoreHeader() {
         isOpen={isSearchOpen}
         onClose={closeMobilePanel}
         containerClassName=""
-        panelClassName="px-3 md:px-0"
+        // panelClassName="px-0"
         restoreFocusId={MOBILE_SEARCH_BUTTON_ID}
       >
         <MobileSearchPanel
@@ -246,7 +246,7 @@ export function StoreHeader() {
         isOpen={isMenuOpen}
         onClose={closeMobilePanel}
         containerClassName="md:hidden"
-        panelClassName="bottom-0 px-3 pb-4"
+        // panelClassName="bottom-0 pb-8"
         restoreFocusId={MOBILE_MENU_BUTTON_ID}
       >
         <MobileMenuPanel isOpen={isMenuOpen} onNavigate={handleMobileMenuNavigate} />
