@@ -118,34 +118,34 @@ export default function CheckoutPage() {
         </div>
 
         <div>
-           <div className="bg-card border border-border/50 rounded-2xl p-6 sticky top-24 shadow-sm">
-             <CartSummary
-               summary={cartSummary}
-               className="border-0 bg-transparent p-0 shadow-none"
-               heading="Order Summary"
-               note="Final shipping and taxes will be calculated securely at checkout."
-             />
+          <div className="bg-card border border-border/50 rounded-2xl p-6 sticky top-24 shadow-sm">
+            <CartSummary
+              summary={cartSummary}
+              className="border-0 bg-transparent p-0 shadow-none"
+              heading="Order Summary"
+              note="Final shipping and taxes will be calculated securely at checkout."
+            />
 
-             {isError && (
+            {isError && (
               <div className="mt-6 p-4 rounded-xl bg-destructive/10 text-destructive text-sm font-medium border border-destructive/20">
                 An error occurred starting your checkout session. Please try again.
               </div>
-             )}
+            )}
 
-             <Button
-               onClick={handleCheckout}
-               disabled={isPending}
-               size="lg"
-               className="w-full h-14 rounded-full font-bold text-lg mt-8 shadow-md"
-             >
-               {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-               {isPending ? 'Processing...' : 'Proceed to Stripe Checkout'}
-             </Button>
+            <Button
+              onClick={handleCheckout}
+              disabled={isPending}
+              size="lg"
+              className="w-full h-14 rounded-full font-bold text-lg mt-8 shadow-md"
+            >
+              {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+              {isPending ? 'Processing...' : 'Proceed to Stripe Checkout'}
+            </Button>
 
-             <p className="text-center text-xs text-muted-foreground mt-4">
+            <p className="text-center text-xs text-muted-foreground mt-4">
                You will be redirected to Stripe to securely complete your payment.
-             </p>
-           </div>
+            </p>
+          </div>
         </div>
       </div>
     </div>
