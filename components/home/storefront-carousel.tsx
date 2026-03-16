@@ -2,21 +2,31 @@
 
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
-import Link from 'next/link';
-import { IProductCard } from '@/interfaces/product';
-import { cn } from '@/utils/helpers';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import type { EmblaCarouselType } from 'embla-carousel';
 import Image from 'next/image';
+import Link from 'next/link';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { EmblaCarouselType } from 'embla-carousel';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/utils/helpers';
+import { IProductCard } from '@/interfaces/product';
 
 interface IStorefrontCarouselProps {
   featuredProducts: IProductCard[];
+  className?: string;
+  onStateChange?: (state: IStorefrontCarouselState) => void;
+}
+
+export interface IStorefrontCarouselState {
+  selectedIndex: number;
+  scrollSnaps: number[];
+  scrollTo: (index: number) => void;
+  scrollPrev: () => void;
+  scrollNext: () => void;
 }
 
 export function StorefrontCarousel(props: IStorefrontCarouselProps) {
-  const { featuredProducts } = props;
+  const { featuredProducts, className, onStateChange } = props;
 
   const autoplay = useRef(
     Autoplay({
@@ -60,7 +70,9 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
   }, []);
 
   useEffect(() => {
-    if (!emblaApi) return;
+    if (!emblaApi) {
+      return;
+    }
 
     onInit(emblaApi);
     onSelect(emblaApi);
@@ -76,32 +88,50 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
     };
   }, [emblaApi, onInit, onSelect]);
 
+  useEffect(() => {
+    if (!onStateChange) {
+      return;
+    }
+
+    onStateChange({
+      selectedIndex,
+      scrollSnaps,
+      scrollTo,
+      scrollPrev,
+      scrollNext,
+    });
+  }, [onStateChange, scrollNext, scrollPrev, scrollSnaps, scrollTo, selectedIndex]);
+
   if (!featuredProducts || featuredProducts.length === 0) {
     return null;
   }
 
   return (
-    <section className="relative mb-14 overflow-hidden rounded-[2.25rem] border border-border/60 bg-card shadow-sm md:mb-16 group">
+    <section
+      className={cn(
+        'group relative overflow-hidden rounded-[2.25rem] border border-border/60 bg-card shadow-sm',
+        className,
+      )}
+    >
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex touch-pan-y">
           {featuredProducts.map((product) => (
-            <div key={product.id} className="relative flex-[0_0_100%] min-w-0">
-              {/* Background Image */}
+            <div key={product.id} className="relative min-w-0 flex-[0_0_100%]">
               <Link
                 href={`/products/${product.slug}`}
-                className="block relative aspect-[4/3] sm:aspect-[16/9] w-full group/slide"
+                className="group/slide relative block aspect-[4/3] w-full sm:aspect-[16/9]"
                 onClick={() => autoplay.current.stop()}
               >
                 <div className="absolute inset-0 bg-muted/20">
-                  {product.images?.[0]?.url && (
+                  {product.images?.[0]?.url ? (
                     <Image
                       src={product.images[0].url}
                       alt={product.name}
-                      width={1000}
-                      height={1000}
-                      className="object-cover w-full h-full transition-transform duration-700 ease-out group-hover/slide:scale-105"
+                      width={1600}
+                      height={900}
+                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover/slide:scale-105"
                     />
-                  )}
+                  ) : null}
                 </div>
               </Link>
             </div>
@@ -109,11 +139,11 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
         </div>
       </div>
 
-      <div className="absolute inset-y-0 left-4 right-4 items-center justify-between pointer-events-none opacity-0 transition-opacity duration-300 group-hover:opacity-100 hidden md:flex z-20">
+      <div className="pointer-events-none absolute inset-y-0 left-4 right-4 z-20 hidden items-center justify-between opacity-0 transition-opacity duration-300 group-hover:opacity-100 md:flex">
         <Button
           variant="outline"
           size="icon"
-          className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-sm pointer-events-auto shadow-md border-border/50 hover:bg-background hover:scale-105 transition-transform"
+          className="pointer-events-auto h-12 w-12 rounded-full border-border/50 bg-background/80 shadow-md backdrop-blur-sm transition-transform hover:scale-105 hover:bg-background"
           onClick={scrollPrev}
           aria-label="Previous slide"
         >
@@ -122,26 +152,12 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
         <Button
           variant="outline"
           size="icon"
-          className="h-12 w-12 rounded-full bg-background/80 backdrop-blur-sm pointer-events-auto shadow-md border-border/50 hover:bg-background hover:scale-105 transition-transform"
+          className="pointer-events-auto h-12 w-12 rounded-full border-border/50 bg-background/80 shadow-md backdrop-blur-sm transition-transform hover:scale-105 hover:bg-background"
           onClick={scrollNext}
           aria-label="Next slide"
         >
           <ChevronRight className="h-6 w-6" />
         </Button>
-      </div>
-
-      <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 z-20">
-        {scrollSnaps.map((_, index) => (
-          <button
-            key={index}
-            className={cn(
-              'h-1.5 rounded-full transition-all duration-300',
-              index === selectedIndex ? 'w-8 bg-primary' : 'w-2 bg-primary/40 hover:bg-primary/60',
-            )}
-            onClick={() => scrollTo(index)}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
       </div>
     </section>
   );

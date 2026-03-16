@@ -2,9 +2,14 @@
 
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { HomeProductSection } from '@/components/home/home-product-section';
-import { StorefrontCarousel } from '@/components/home/storefront-carousel';
+import {
+  StorefrontCarousel,
+  type IStorefrontCarouselState,
+} from '@/components/home/storefront-carousel';
+import { StorefrontCarouselDots } from '@/components/home/storefront-carousel-dots';
 import { StorefrontHero } from '@/components/home/storefront-hero';
 import QueryConfigs from '@/configs/api/query-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
@@ -23,7 +28,10 @@ function HomePageSkeleton() {
             </div>
             <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
               {Array.from({ length: 4 }).map((__, cardIndex) => (
-                <div key={cardIndex} className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-card p-4">
+                <div
+                  key={cardIndex}
+                  className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-card p-4"
+                >
                   <div className="aspect-square rounded-[1.4rem] bg-muted/35" />
                   <div className="mt-4 h-5 rounded-full bg-muted/35" />
                   <div className="mt-2 h-4 w-2/3 rounded-full bg-muted/25" />
@@ -39,12 +47,18 @@ function HomePageSkeleton() {
 }
 
 export default function StorefrontHomePage() {
+  const [carouselState, setCarouselState] = useState<IStorefrontCarouselState | null>(null);
+
   const { data: response, isPending, isError } = useCustomizeQuery<IHomepageData>({
     queryKey: ['homepage-data'],
     queryFn: () => QueryConfigs.fetchHomePage(),
     refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
+
+  const handleCarouselStateChange = useCallback((state: IStorefrontCarouselState) => {
+    setCarouselState(state);
+  }, []);
 
   const homeData = response?.data?.data;
 
@@ -57,9 +71,12 @@ export default function StorefrontHomePage() {
       <div className="container mx-auto flex min-h-[60vh] w-full items-center px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-xl rounded-[2rem] border border-dashed border-border/70 bg-card px-8 py-14 text-center shadow-sm">
           <Loader2 className="mx-auto h-8 w-8 text-primary" />
-          <h2 className="mt-5 text-2xl font-bold tracking-tight text-destructive">Failed to load content</h2>
+          <h2 className="mt-5 text-2xl font-bold tracking-tight text-destructive">
+            Failed to load content
+          </h2>
           <p className="mt-3 text-base text-muted-foreground">
-            The storefront homepage data is temporarily unavailable. Product browsing is still available.
+            The storefront homepage data is temporarily unavailable. Product browsing is still
+            available.
           </p>
           <Button asChild className="mt-8 rounded-full px-6">
             <Link href="/products">Browse products</Link>
@@ -70,11 +87,26 @@ export default function StorefrontHomePage() {
   }
 
   const { featured, trendingNow, allProductsPreview } = homeData;
+  const hasFeatured = featured && featured.length > 0;
 
   return (
     <div className="container mx-auto w-full px-4 py-8 sm:px-6 lg:px-8">
-      {featured && featured.length > 0 ? (
-        <StorefrontCarousel featuredProducts={featured} />
+      {hasFeatured ? (
+        <section className="mb-14 md:mb-16">
+          <StorefrontCarousel
+            featuredProducts={featured}
+            onStateChange={handleCarouselStateChange}
+          />
+
+          <StorefrontCarouselDots
+            className="mt-4"
+            selectedIndex={carouselState?.selectedIndex ?? 0}
+            scrollSnaps={carouselState?.scrollSnaps ?? []}
+            onDotClick={(index) => {
+              carouselState?.scrollTo(index);
+            }}
+          />
+        </section>
       ) : (
         <StorefrontHero
           title="Discover Premium Collectibles"
