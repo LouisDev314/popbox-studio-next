@@ -22,7 +22,7 @@ export function HomeProductSection(props: IHomeProductSectionProps) {
     <section className="mb-14 md:mb-16">
       <div className="mb-8 flex items-end justify-between gap-4">
         <h2 className="text-4xl font-bold tracking-tight text-foreground">{props.title}</h2>
-        <Button asChild variant="outline" size="sm" className="hidden rounded-full px-4 sm:inline-flex hover:bg-primary">
+        <Button asChild variant="outline" size="sm" className="hidden rounded-full px-4 sm:inline-flex hover:bg-primary/60">
           <Link href={props.viewAllHref}>View all</Link>
         </Button>
       </div>
@@ -34,7 +34,7 @@ export function HomeProductSection(props: IHomeProductSectionProps) {
       </div>
 
       <div className="mt-6 flex justify-center sm:hidden">
-        <Button asChild variant="outline" size="lg" className="rounded-full px-6 hover:bg-primary">
+        <Button asChild variant="outline" size="lg" className="rounded-full px-6 hover:bg-primary/60">
           <Link href={props.viewAllHref}>View all</Link>
         </Button>
       </div>

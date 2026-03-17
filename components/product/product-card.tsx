@@ -23,7 +23,7 @@ export function ProductCard(props: IProductCardProps) {
 
       <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-[1.4rem] bg-muted/30">
         {isKuji && (
-          <div className="absolute left-2 top-2 z-20 rounded-md bg-primary px-2 py-1 text-[10px] font-bold text-secondary-foreground shadow-sm sm:text-xs">
+          <div className="absolute left-2 top-2 z-20 rounded-md bg-primary/60 px-2 py-1 text-[10px] font-bold text-secondary-foreground shadow-sm sm:text-xs">
             Ichiban Kuji
           </div>
         )}

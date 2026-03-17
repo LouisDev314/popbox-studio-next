@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { type ICartSummary } from '@/interfaces/cart';
 import { cn, formatPrice } from '@/utils/helpers';
+import { Tooltip } from '@/components/ui/tooltip-card';
+import { CircleQuestionMark } from 'lucide-react';
 
 interface ICartSummaryProps {
   actionHref?: string;
@@ -31,7 +33,7 @@ export function CartSummary(props: ICartSummaryProps) {
       {hasHeaderContent ? (
         <div className="space-y-1.5">
           {resolvedHeading !== null ? (
-            <h2 className="text-xl font-semibold tracking-tight text-foreground">{resolvedHeading}</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">{resolvedHeading}</h2>
           ) : null}
           {resolvedNote ? (
             <p className="text-sm text-muted-foreground">{resolvedNote}</p>
@@ -39,7 +41,7 @@ export function CartSummary(props: ICartSummaryProps) {
         </div>
       ) : null}
 
-      <div className={cn('space-y-3', hasHeaderContent ? 'mt-6' : '')}>
+      <div className={cn('space-y-3', hasHeaderContent ? 'mt-4' : '')}>
         <div className="flex items-center justify-between rounded-2xl bg-muted/35 px-4 py-3 text-sm">
           <span className="text-muted-foreground">Items</span>
           <span className="font-medium text-foreground">{props.summary.totalItems}</span>
@@ -66,7 +68,15 @@ export function CartSummary(props: ICartSummaryProps) {
 
         <div className="border-t border-border/60 pt-4">
           <div className="flex items-center justify-between">
-            <span className="text-base font-semibold text-foreground">Estimated total</span>
+            <div className='flex justify-center items-center gap-2'>
+              <span className="text-base font-semibold text-foreground">Estimated total</span>
+              <Tooltip
+                containerClassName="text-neutral-600 dark:text-neutral-400"
+                content="The sales tax listed on the checkout page is only an estimate. Your invoice will contain the final sales tax, including federal and province taxes, as well as any applicable rebates or fees."
+              >
+                <CircleQuestionMark className='size-4.5' />
+              </Tooltip>
+            </div>
             <span className="text-xl font-bold text-foreground">
               {formatPrice(props.summary.totalCents, props.summary.currency)}
             </span>
