@@ -1,6 +1,6 @@
 'use client';
 
-import { type FormEvent, useEffect, useState, useSyncExternalStore } from 'react';
+import { Suspense, type FormEvent, useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, ShoppingBag } from 'lucide-react';
@@ -251,7 +251,9 @@ export function StoreHeader() {
         // panelClassName="bottom-0 pb-8"
         restoreFocusId={MOBILE_MENU_BUTTON_ID}
       >
-        <MobileMenuPanel isOpen={isMenuOpen} onNavigate={handleMobileMenuNavigate} />
+        <Suspense fallback={null}>
+          <MobileMenuPanel isOpen={isMenuOpen} onNavigate={handleMobileMenuNavigate} />
+        </Suspense>
       </MobileNavOverlay>
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} triggerButtonId={MOBILE_CART_BUTTON_ID} />
