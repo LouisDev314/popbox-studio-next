@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { useCartStore } from '@/hooks/use-cart';
 import { type IProduct } from '@/interfaces/product';
-import { formatPrice } from '@/utils/helpers';
 
 interface IProductActionsProps {
   product: IProduct;

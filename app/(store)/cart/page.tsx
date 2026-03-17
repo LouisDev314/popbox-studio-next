@@ -1,18 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingBag, Trash2 } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 import { CartPageItem } from '@/components/cart/cart-page-item';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/hooks/use-cart';
 import { formatPrice } from '@/utils/helpers';
-import { router } from 'next/client';
 
 export default function CartPage() {
   const items = useCartStore((state) => state.items);
-  const clearCart = useCartStore((state) => state.clearCart);
   const getCartSummary = useCartStore((state) => state.getCartSummary);
   const removeItem = useCartStore((state) => state.removeItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
