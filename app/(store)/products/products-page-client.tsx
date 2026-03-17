@@ -17,7 +17,10 @@ export default function ProductsPageClient() {
 
   const typeParam = searchParams.get('type') as productType | undefined;
   const collectionParam = searchParams.get('collection') ?? undefined;
-  const sortParam = (searchParams.get('sort') ?? 'newest') as productSort;
+  
+  const validSorts: productSort[] = ['newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'];
+  const rawSort = searchParams.get('sort');
+  const sortParam = (validSorts.includes(rawSort as productSort) ? rawSort : 'newest') as productSort;
 
   const productsQuery = useInfiniteQuery({
     queryKey: ['products', typeParam ?? null, collectionParam ?? null, sortParam],
@@ -79,10 +82,12 @@ export default function ProductsPageClient() {
     { label: 'Kuji', value: 'kuji' },
   ];
 
-  const productSortItems = [
+  const productSortItems: { label: string; value: productSort }[] = [
     { label: 'Newest', value: 'newest' },
     { label: 'Price: Low to High', value: 'price_asc' },
     { label: 'Price: High to Low', value: 'price_desc' },
+    { label: 'Name (A-Z)', value: 'name_asc' },
+    { label: 'Name (Z-A)', value: 'name_desc' },
   ];
 
   const selectedProductTypeLabel =

@@ -2,7 +2,7 @@
 
 import { Suspense, type FormEvent, useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Search, ShoppingBag } from 'lucide-react';
 import { CartDrawer } from '@/components/cart/cart-drawer';
 import { MobileMenuPanel } from '@/components/layout/mobile-menu-panel';
@@ -14,7 +14,7 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useMobileNavbarVisibility } from '@/hooks/use-mobile-navbar-visibility';
 import { type IProductSuggestion, IProductSuggestionResponse } from '@/interfaces/product';
-import { cn } from '@/utils/helpers';
+import { cn, isActiveLink } from '@/lib/utils';
 import Image from 'next/image';
 
 type TMobilePanel = 'menu' | 'search' | null;
@@ -26,6 +26,8 @@ const MOBILE_SEARCH_INPUT_ID = 'store-mobile-search-input';
 
 export function StoreHeader() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isClient = useSyncExternalStore(
     () => () => undefined,
     () => true,
@@ -149,11 +151,33 @@ export function StoreHeader() {
                 PopBox Studio
               </Link>
               <nav className="hidden md:flex md:items-center md:space-x-8">
-                <Link href="/products" className="text-sm font-medium text-foreground transition-colors hover:text-primary">
+                <Link 
+                  href="/products" 
+                  className={cn(
+                    "relative text-sm transition-colors duration-200 py-1",
+                    isActiveLink('/products', pathname, searchParams) 
+                      ? "text-primary font-medium" 
+                      : "text-foreground hover:text-primary"
+                  )}
+                >
                   Shop All
+                  {isActiveLink('/products', pathname, searchParams) && (
+                    <span className="absolute left-0 -bottom-1 w-full h-0.5 bg-primary rounded-full" />
+                  )}
                 </Link>
-                <Link href="/products?type=kuji" className="text-sm font-medium text-foreground transition-colors hover:text-primary">
+                <Link 
+                  href="/products?type=kuji" 
+                  className={cn(
+                    "relative text-sm transition-colors duration-200 py-1",
+                    isActiveLink('/products?type=kuji', pathname, searchParams) 
+                      ? "text-primary font-medium" 
+                      : "text-foreground hover:text-primary"
+                  )}
+                >
                   Ichiban Kuji
+                  {isActiveLink('/products?type=kuji', pathname, searchParams) && (
+                    <span className="absolute left-0 -bottom-1 w-full h-0.5 bg-primary rounded-full" />
+                  )}
                 </Link>
               </nav>
             </div>
