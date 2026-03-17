@@ -13,7 +13,7 @@ import { useCartStore } from '@/hooks/use-cart';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useMobileNavbarVisibility } from '@/hooks/use-mobile-navbar-visibility';
-import { type IProductSuggestion } from '@/interfaces/product';
+import { type IProductSuggestion, IProductSuggestionResponse } from '@/interfaces/product';
 import { cn } from '@/utils/helpers';
 import Image from 'next/image';
 
@@ -42,7 +42,7 @@ export function StoreHeader() {
   const shouldFetchAutocomplete = activeMobilePanel === 'search' && debouncedSearchQuery.length >= 2;
 
   const { data: autocompleteResponse, isError: isAutocompleteError, isPending: isAutocompletePending } =
-    useCustomizeQuery<IProductSuggestion[]>({
+    useCustomizeQuery<IProductSuggestionResponse>({
       queryKey: ['search', 'autocomplete', debouncedSearchQuery],
       queryFn: () => QueryConfigs.fetchAutocomplete(debouncedSearchQuery),
       enabled: shouldFetchAutocomplete,
@@ -56,7 +56,9 @@ export function StoreHeader() {
   const isMenuOpen = activeMobilePanel === 'menu';
   const isSearchOpen = activeMobilePanel === 'search';
   const shouldShowMobileNavbar = activeMobilePanel !== null || isCartOpen || isMobileNavbarVisible;
-  const autocompleteSuggestions = shouldFetchAutocomplete ? autocompleteResponse?.data?.data ?? [] : [];
+  const autocompleteSuggestions = shouldFetchAutocomplete
+    ? autocompleteResponse?.data?.data?.items ?? []
+    : [];
 
   useEffect(() => {
     if (!isSearchOpen) {
@@ -239,6 +241,7 @@ export function StoreHeader() {
           onSuggestionSelect={handleSuggestionSelect}
           searchInputId={MOBILE_SEARCH_INPUT_ID}
           searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
         />
       </MobileNavOverlay>
 

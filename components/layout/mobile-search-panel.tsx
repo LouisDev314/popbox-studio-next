@@ -1,7 +1,7 @@
 'use client';
 
 import { type FormEvent } from 'react';
-import { ArrowUpRight, ChevronRight, Loader2, Search, X } from 'lucide-react';
+import { ArrowUpRight, ChevronRight, CircleX, Loader2, Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type IProductSuggestion } from '@/interfaces/product';
@@ -24,6 +24,7 @@ interface IMobileSearchPanelProps {
   onSuggestionSelect: (suggestion: IProductSuggestion) => void;
   searchInputId: string;
   searchQuery: string;
+  setSearchQuery: (searchQuery: string) => void;
 }
 
 const MOBILE_SEARCH_QUICK_LINKS: IMobileSearchQuickLink[] = [
@@ -89,11 +90,12 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
                 className="h-12 border-0 bg-transparent px-3 text-base shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 onChange={(event) => onSearchQueryChange(event.target.value)}
               />
+              {searchQuery && <CircleX className='h-4 w-4 shrink-0 text-muted-foreground' onClick={() => props.setSearchQuery('')} />}
             </div>
           </form>
         </div>
 
-        <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto px-4 py-4 md:px-8 md:py-8">
+        <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto px-4 py-4 md:px-8 md:py-8 mb-4">
           {!trimmedQuery ? (
             <div className="space-y-4">
               <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground ml-2">
@@ -105,7 +107,7 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
                   <button
                     key={quickLink.label}
                     type="button"
-                    className="group flex items-center justify-between rounded-[24px] border border-border/70 bg-gradient-to-br from-background to-muted/55 px-4 py-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_18px_40px_-28px_hsl(var(--foreground)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-primary"
+                    className="group flex items-center justify-between rounded-3xl border border-border/70 bg-gradient-to-br from-background to-muted/55 px-4 py-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_18px_40px_-28px_hsl(var(--foreground)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-primary cursor-pointer"
                     onClick={() => handleQuickLinkSelect(quickLink)}
                   >
                     <div className="min-w-0">
@@ -134,7 +136,7 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
                     <button
                       key={suggestion.id}
                       type="button"
-                      className="flex w-full items-center gap-3 rounded-[22px] border border-border/70 bg-background px-3 py-3 text-left transition-all duration-200 hover:border-primary/40 hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="flex w-full items-center gap-3 rounded-3xl border border-border/70 bg-linear-to-br from-background to-muted/55 px-4 py-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_18px_40px_-28px_hsl(var(--foreground)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-primary cursor-pointer"
                       onClick={() => onSuggestionSelect(suggestion)}
                     >
                       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-muted/40">
@@ -158,7 +160,7 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
               ) : null}
 
               {!isAutocompletePending && autocompleteSuggestions.length === 0 ? (
-                <div className="rounded-[24px] border border-dashed border-border/80 bg-muted/20 px-4 py-5">
+                <div className="rounded-3xl border border-dashed border-border/80 bg-muted/20 px-4 py-5">
                   <p className="text-sm font-medium text-foreground">
                     {isAutocompleteError ? 'Autocomplete is unavailable right now.' : 'No instant matches yet.'}
                   </p>
@@ -168,19 +170,19 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
                 </div>
               ) : null}
 
-              <button
-                type="button"
-                className="flex w-full items-center justify-between rounded-[24px] border border-primary/30 bg-primary/10 px-4 py-4 text-left transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                onClick={() => onNavigate(`/search/results?q=${encodeURIComponent(trimmedQuery)}`)}
-              >
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Search all results</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                  View the complete results page for &quot;{trimmedQuery}&quot;.
-                  </p>
-                </div>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-foreground" />
-              </button>
+              {/*<button*/}
+              {/*  type="button"*/}
+              {/*  className="flex w-full items-center justify-between rounded-3xl border border-primary/30 bg-primary/10 px-4 py-4 text-left transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"*/}
+              {/*  onClick={() => onNavigate(`/search/results?q=${encodeURIComponent(trimmedQuery)}`)}*/}
+              {/*>*/}
+              {/*  <div>*/}
+              {/*    <p className="text-sm font-semibold text-foreground">Search all results</p>*/}
+              {/*    <p className="mt-1 text-sm text-muted-foreground">*/}
+              {/*    View the complete results page for &quot;{trimmedQuery}&quot;.*/}
+              {/*    </p>*/}
+              {/*  </div>*/}
+              {/*  <ArrowUpRight className="h-4 w-4 shrink-0 text-foreground" />*/}
+              {/*</button>*/}
             </div>
           )}
         </div>

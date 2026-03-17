@@ -2,7 +2,9 @@ import httpClient from '@/api/http-client';
 import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IHomepageData } from '@/interfaces/home';
-import { IProduct, IProductListPage, IProductSuggestion, ICollection, ITag, productSort, productType } from '@/interfaces/product';
+import { IProduct, IProductListPage, IProductSuggestion, ICollection, ITag, productSort, productType,
+  IProductSuggestionResponse
+} from '@/interfaces/product';
 import { IGuestOrderDetail, IGuestTicketView } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
 
@@ -53,7 +55,7 @@ const QueryConfigs = {
       },
     });
   },
-  fetchAutocomplete: (query: string): Promise<AxiosResponse<IBaseApiResponse<IProductSuggestion[]>>> => {
+  fetchAutocomplete: (query: string): Promise<AxiosResponse<IBaseApiResponse<IProductSuggestionResponse>>> => {
     return httpClient.get('/api/v1/search/autocomplete', {
       params: {
         q: query,
