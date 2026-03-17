@@ -27,7 +27,7 @@ export function KujiPrizesView(props: IKujiPrizesViewProps) {
           return (
             <div 
               key={prize.id} 
-              className={`flex items-start gap-4 p-4 rounded-2xl border ${isSoldOut ? 'bg-muted/30 border-dashed opacity-60 grayscale' : 'bg-background border-border/40'}`}
+              className={`flex items-start gap-4 p-4 rounded-2xl border ${isSoldOut ? 'bg-muted/30 border-dashed opacity-60 grayscale' : 'bg-background border-border/40 hover:shadow-lg hover:scale-[1.02] transition-all duration-200'}`}
             >
               <div className="h-20 w-20 shrink-0 bg-muted/50 rounded-xl overflow-hidden flex items-center justify-center font-bold text-2xl text-muted-foreground">
                 {prize.imageUrl ? (

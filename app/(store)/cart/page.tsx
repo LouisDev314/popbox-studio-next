@@ -8,7 +8,6 @@ import { CartSummary } from '@/components/cart/cart-summary';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/hooks/use-cart';
 import { formatPrice } from '@/utils/helpers';
-import { Tooltip } from '@/components/ui/tooltip-card';
 
 export default function CartPage() {
   const items = useCartStore((state) => state.items);
