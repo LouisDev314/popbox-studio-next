@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Trash2 } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 import { CartPageItem } from '@/components/cart/cart-page-item';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/hooks/use-cart';
+import { formatPrice } from '@/utils/helpers';
+import { router } from 'next/client';
 
 export default function CartPage() {
   const items = useCartStore((state) => state.items);
@@ -58,33 +60,19 @@ export default function CartPage() {
 
   return (
     <div className="container mx-auto w-full px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-6 flex flex-col gap-4 justify-center sm:flex-row sm:items-end">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">Cart</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Review your order
+          <p className="font-semibold uppercase tracking-[0.24em] text-muted-foreground justify-self-center">Cart</p>
+          <h1 className="mt-2 text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Your cart total is {formatPrice(summary.totalCents, summary.currency)}
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-            Update quantities, remove items, and verify the estimated total before continuing to payment.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Button asChild variant="outline" className="rounded-full px-5">
-            <Link href="/products">Continue shopping</Link>
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-fit rounded-full px-4 text-muted-foreground hover:text-foreground"
-            onClick={clearCart}
-          >
-            Clear cart
+          <Button asChild size="lg" className="mt-6 h-12 w-full rounded-full text-base font-semibold">
+            <Link href='/checkout'>Check Out</Link>
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
         <section className="space-y-4" aria-label="Cart items">
           {items.map((item) => (
             <CartPageItem
@@ -101,9 +89,15 @@ export default function CartPage() {
           <CartSummary
             summary={summary}
             actionHref="/checkout"
-            actionLabel="Review & Checkout"
+            actionLabel="Check Out"
             note="Shipping is estimated with a flat storefront rate for physical orders under $100 CAD. Tax is estimated at 5% GST until checkout returns backend-authoritative totals."
           />
+        </div>
+
+        <div className="flex justify-center">
+          <Button asChild variant="outline" className="rounded-full px-5 hover:bg-primary/60">
+            <Link href="/products">Continue shopping</Link>
+          </Button>
         </div>
       </div>
     </div>

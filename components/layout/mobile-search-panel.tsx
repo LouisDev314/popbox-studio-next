@@ -1,7 +1,7 @@
 'use client';
 
 import { type FormEvent } from 'react';
-import { ArrowUpRight, ChevronRight, CircleX, Loader2, Search, X } from 'lucide-react';
+import { ArrowUpRight, ChevronRight, CircleX, Loader2, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type IProductSuggestion } from '@/interfaces/product';

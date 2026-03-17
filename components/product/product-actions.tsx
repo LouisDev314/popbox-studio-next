@@ -30,7 +30,7 @@ export function ProductActions(props: IProductActionsProps) {
   };
 
   return (
-    <div className="mt-8 rounded-[2rem] border border-border/60 bg-card/70 p-5 shadow-sm">
+    <div className="mt-8 rounded-4xl border border-border/60 bg-card/70 p-5 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-medium text-foreground">Quantity</p>
@@ -51,7 +51,7 @@ export function ProductActions(props: IProductActionsProps) {
         onClick={handleAdd}
       >
         <ShoppingBag className="mr-2 h-5 w-5" />
-        {isOutOfStock ? 'Out of Stock' : `Add to Cart - ${formatPrice(props.product.priceCents * quantity, props.product.currency)}`}
+        {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
       </Button>
     </div>
   );

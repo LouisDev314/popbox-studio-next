@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, X } from 'lucide-react';
+import { ShoppingBag, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { StorefrontImage } from '@/components/ui/storefront-image';
@@ -21,6 +21,7 @@ export function CartDrawer(props: ICartDrawerProps) {
   const triggerButtonId = props.triggerButtonId;
   const router = useRouter();
   const items = useCartStore((state) => state.items);
+  const clearCart = useCartStore((state) => state.clearCart);
   const removeItem = useCartStore((state) => state.removeItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const getCartSummary = useCartStore((state) => state.getCartSummary);
@@ -102,7 +103,6 @@ export function CartDrawer(props: ICartDrawerProps) {
             className="rounded-full"
           >
             <X className="h-5 w-5" />
-            <span className="sr-only">Close cart</span>
           </Button>
         </div>
 
@@ -122,9 +122,6 @@ export function CartDrawer(props: ICartDrawerProps) {
               <p className="mt-2 text-sm text-muted-foreground">
                 Add a few collectibles first, then return here for a quick checkout handoff.
               </p>
-              <Button onClick={onClose} variant="outline" className="mt-6 rounded-full px-5">
-                Continue Shopping
-              </Button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -143,7 +140,7 @@ export function CartDrawer(props: ICartDrawerProps) {
                         {item.product.name}
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {formatPrice(item.product.priceCents, item.product.currency)} each
+                        {formatPrice(item.product.priceCents, item.product.currency)}
                       </p>
                       <div className="mt-3 flex items-center justify-between gap-3">
                         <QuantityStepper
@@ -165,6 +162,17 @@ export function CartDrawer(props: ICartDrawerProps) {
                   </div>
                 </article>
               ))}
+              <div className='flex justify-center'>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-fit rounded-full px-4 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={clearCart}
+                >
+                  <Trash2 className="mr-1.5 h-4 w-4" />
+                  Clear cart
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -192,13 +200,13 @@ export function CartDrawer(props: ICartDrawerProps) {
                 View Cart
               </Button>
               <Button
-                className="h-12 rounded-full text-base font-semibold"
+                className="h-12 rounded-full font-semibold"
                 onClick={() => {
                   onClose();
                   router.push('/checkout');
                 }}
               >
-                Review & Checkout
+                Review & Check Out
               </Button>
             </div>
           </div>

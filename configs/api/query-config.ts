@@ -2,8 +2,8 @@ import httpClient from '@/api/http-client';
 import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IHomepageData } from '@/interfaces/home';
-import { IProduct, IProductListPage, IProductSuggestion, ICollection, ITag, productSort, productType,
-  IProductSuggestionResponse
+import { IProduct, IProductListPage, ICollection, ITag, productSort, productType,
+  IProductSuggestionResponse,
 } from '@/interfaces/product';
 import { IGuestOrderDetail, IGuestTicketView } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
