@@ -15,6 +15,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useMobileNavbarVisibility } from '@/hooks/use-mobile-navbar-visibility';
 import { type IProductSuggestion } from '@/interfaces/product';
 import { cn } from '@/utils/helpers';
+import Image from 'next/image';
 
 type TMobilePanel = 'menu' | 'search' | null;
 
@@ -141,6 +142,7 @@ export function StoreHeader() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-8">
+              {/*TODO: logo*/}
               <Link href="/home" className="truncate font-bold tracking-tight text-primary text-lg sm:text-xl">
                 PopBox Studio
               </Link>
