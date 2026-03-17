@@ -2,7 +2,7 @@
 
 import { type CSSProperties } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { ReadonlyURLSearchParams, usePathname, useSearchParams } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
 import { cn } from '@/utils/helpers';
 
@@ -35,17 +35,31 @@ const MOBILE_MENU_ITEMS: IMobileMenuItem[] = [
   },
 ];
 
-function isMenuItemActive(pathname: string, href: string) {
-  if (href.includes('?')) {
+function isMenuItemActive(pathname: string, currentSearchParams: ReadonlyURLSearchParams, href: string) {
+  const [hrefPathname, hrefQueryString] = href.split('?');
+
+  if (pathname !== hrefPathname) {
     return false;
   }
 
-  const pathnameOnlyHref = href.split('?')[0];
-  return pathname === pathnameOnlyHref;
+  const targetSearchParams = new URLSearchParams(hrefQueryString ?? '');
+
+  if ([...targetSearchParams.keys()].length === 0) {
+    return [...currentSearchParams.keys()].length === 0;
+  }
+
+  for (const [key, value] of targetSearchParams.entries()) {
+    if (currentSearchParams.get(key) !== value) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 export function MobileMenuPanel(props: IMobileMenuPanelProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   return (
     <div className="flex min-h-[calc(100dvh-5.5rem)] max-h-[calc(100dvh-5rem)] flex-col overflow-hidden border border-border/70 bg-background shadow-[0_32px_72px_-40px_hsl(var(--foreground)/0.58)]">
@@ -64,7 +78,7 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
       <nav className="flex-1 overflow-y-auto px-4 py-4">
         <div className="space-y-3">
           {MOBILE_MENU_ITEMS.map((item, index) => {
-            const isActive = isMenuItemActive(pathname, item.href);
+            const isActive = isMenuItemActive(pathname, searchParams, item.href);
             const itemStyle: CSSProperties = {
               transitionDelay: props.isOpen ? `${index * 55}ms` : '0ms',
             };
