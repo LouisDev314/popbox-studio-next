@@ -34,7 +34,7 @@ export default function SearchPageClient() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          <Button type="submit" size="lg" className="rounded-full h-12 px-8">
+          <Button type="submit" size="lg" className="rounded-full h-12 px-8 bg-primary/60">
             Search
           </Button>
         </form>

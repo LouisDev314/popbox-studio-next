@@ -41,23 +41,15 @@ export function ProductRecommendations(props: IProductRecommendationsProps) {
   }
 
   return (
-    <section className="mt-16 border-t border-border/60 pt-12">
+    <section className="mt-32 border-t border-border/60 pt-12">
       <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-            Recommended next
-          </p>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            You might also like
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            More picks from the same collection or tag without changing the current storefront API contract.
-          </p>
-        </div>
+        <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          You might also like
+        </h2>
       </div>
 
       {isPending ? (
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-4 lg:grid-cols-4">
+        <div className="mt-6 sm:mt-8 grid grid-cols-2 gap-4 sm:gap-4 lg:grid-cols-4">
           {Array.from({ length: RELATED_PRODUCTS_LIMIT }).map((_, index) => (
             <div key={index} className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-card p-4">
               <div className="aspect-square rounded-[1.4rem] bg-muted/35" />
@@ -68,7 +60,7 @@ export function ProductRecommendations(props: IProductRecommendationsProps) {
           ))}
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-4 lg:grid-cols-4">
+        <div className="mt-6 sm:mt-8 grid grid-cols-2 gap-4 sm:gap-4 lg:grid-cols-4">
           {relatedProducts.map((relatedProduct: IProductCard) => (
             <ProductCard key={relatedProduct.id} product={relatedProduct} />
           ))}

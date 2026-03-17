@@ -62,20 +62,9 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
   const searchParams = useSearchParams();
 
   return (
-    <div className="flex min-h-[calc(100dvh-5.5rem)] max-h-[calc(100dvh-5rem)] flex-col overflow-hidden border border-border/70 bg-background shadow-[0_32px_72px_-40px_hsl(var(--foreground)/0.58)]">
-      <div className="border-b border-border/60 px-5 pt-5 pb-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-          Mobile navigation
-        </p>
-        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
-          Shop PopBox Studio with less friction.
-        </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Fast access to the storefront essentials, tuned for one-handed browsing.
-        </p>
-      </div>
+    <div className="flex flex-col overflow-hidden border border-border/70 bg-background shadow-[0_32px_72px_-40px_hsl(var(--foreground)/0.58)]">
 
-      <nav className="flex-1 overflow-y-auto px-4 py-4">
+      <nav className="flex-1 overflow-y-auto px-4 py-4 mb-4">
         <div className="space-y-3">
           {MOBILE_MENU_ITEMS.map((item, index) => {
             const isActive = isMenuItemActive(pathname, searchParams, item.href);
@@ -93,7 +82,7 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
                   props.isOpen ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0',
                   isActive
                     ? 'border-primary/40 bg-primary/12 shadow-[0_18px_38px_-30px_hsl(var(--foreground)/0.45)]'
-                    : 'border-border/70 bg-gradient-to-br from-background to-muted/45 hover:-translate-y-0.5 hover:border-primary/30',
+                    : 'border-border/70 bg-gradient-to-br from-background to-muted/45 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/60',
                 )}
                 onClick={props.onNavigate}
               >
@@ -108,14 +97,14 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
         </div>
       </nav>
 
-      <div className="border-t border-border/60 px-5 py-4">
-        <div className="rounded-[24px] bg-muted/35 px-4 py-4">
-          <p className="text-sm font-semibold text-foreground">Collector-first storefront</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Premium product discovery, secure checkout, and focused navigation without adding backend complexity.
-          </p>
-        </div>
-      </div>
+      {/*<div className="border-t border-border/60 px-5 py-4">*/}
+      {/*  <div className="rounded-[24px] bg-muted/35 px-4 py-4">*/}
+      {/*    <p className="text-sm font-semibold text-foreground">Collector-first storefront</p>*/}
+      {/*    <p className="mt-2 text-sm text-muted-foreground">*/}
+      {/*      Premium product discovery, secure checkout, and focused navigation without adding backend complexity.*/}
+      {/*    </p>*/}
+      {/*  </div>*/}
+      {/*</div>*/}
     </div>
   );
 }

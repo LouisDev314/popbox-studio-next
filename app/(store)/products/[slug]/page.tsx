@@ -28,13 +28,13 @@ export default function ProductDetailPage() {
     return (
       <div className="container mx-auto w-full px-4 py-12 sm:px-6 lg:px-8 md:py-16">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] lg:gap-16">
-          <div className="aspect-square rounded-[2rem] bg-muted/35" />
+          <div className="aspect-square rounded-4xl bg-muted/35" />
           <div className="space-y-5">
             <div className="h-4 w-24 rounded-full bg-muted/35" />
             <div className="h-10 rounded-full bg-muted/35" />
             <div className="h-6 w-32 rounded-full bg-muted/25" />
-            <div className="h-28 rounded-[2rem] bg-muted/25" />
-            <div className="h-40 rounded-[2rem] bg-muted/35" />
+            <div className="h-28 rounded-4xl bg-muted/25" />
+            <div className="h-40 rounded-4xl bg-muted/35" />
           </div>
         </div>
       </div>
@@ -44,7 +44,7 @@ export default function ProductDetailPage() {
   if (isError || !product) {
     return (
       <div className="container mx-auto px-4 py-24 text-center sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-xl rounded-[2rem] border border-dashed border-border/70 bg-card px-8 py-14 shadow-sm">
+        <div className="mx-auto max-w-xl rounded-4xl border border-dashed border-border/70 bg-card px-8 py-14 shadow-sm">
           <h1 className="text-3xl font-bold text-destructive">Product Not Found</h1>
           <p className="mt-3 text-base text-muted-foreground">
             We couldn&apos;t find the requested product. It may have moved, sold out, or been removed from the storefront.
@@ -71,18 +71,13 @@ export default function ProductDetailPage() {
                 {product.collection.name}
               </div>
             ) : null}
-            {product.productType === 'kuji' ? (
-              <div className="rounded-full bg-secondary/18 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-secondary-foreground">
-                Ichiban Kuji
-              </div>
-            ) : null}
           </div>
 
           <h1 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl">
             {product.name}
           </h1>
 
-          <div className="mt-5 flex flex-wrap items-end gap-3">
+          <div className="mt-5 flex flex-wrap items-end gap-2">
             <span className="text-3xl font-bold text-foreground">
               {formatPrice(product.priceCents, product.currency)}
             </span>
@@ -91,19 +86,12 @@ export default function ProductDetailPage() {
             ) : null}
           </div>
 
-          <div className="mt-8 rounded-[2rem] border border-border/60 bg-card/70 p-5 shadow-sm">
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">Product details</p>
-            <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
-              {product.description || 'No description available.'}
-            </p>
-          </div>
-
           <ProductActions product={product} />
 
           {product.productType === 'kuji' ? (
-            <div className="mt-8 rounded-[1.75rem] border border-secondary/25 bg-secondary/10 p-5">
+            <div className="mt-12 rounded-[1.75rem] border border-secondary/25 bg-secondary/10 p-5">
               <p className="text-sm font-medium text-secondary-foreground">
-                <span className="mb-1 block font-bold uppercase tracking-[0.22em]">How Ichiban Kuji Works</span>
+                <span className="mb-1 block font-bold uppercase tracking-wider">How Ichiban Kuji Works</span>
                 Each ticket guarantees a prize from this lineup. Purchase the quantity of tickets you want, check out,
                 and reveal your prizes after payment.
               </p>
@@ -115,6 +103,13 @@ export default function ProductDetailPage() {
       {product.productType === 'kuji' && product.kujiPrizes ? (
         <KujiPrizesView prizes={product.kujiPrizes} />
       ) : null}
+
+      <div className="mt-12 rounded-4xl border border-border/60 bg-card/70 p-5 shadow-sm">
+        <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Product details</p>
+        <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
+          {product.description || 'No description available.'}
+        </p>
+      </div>
 
       <ProductRecommendations product={product} />
     </div>

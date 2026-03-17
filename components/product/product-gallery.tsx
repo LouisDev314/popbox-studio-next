@@ -23,7 +23,7 @@ export function ProductGallery(props: IProductGalleryProps) {
           imageClassName="transition-transform duration-500 ease-out"
         />
         {props.product.productType === 'kuji' && (
-          <div className="absolute top-4 left-4 z-20 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold tracking-[0.2em] text-secondary-foreground shadow-sm">
+          <div className="absolute top-4 left-4 z-20 rounded-full bg-primary/60 px-3 py-1.5 text-xs font-bold tracking-wider text-secondary-foreground shadow-sm">
             Ichiban Kuji
           </div>
         )}
