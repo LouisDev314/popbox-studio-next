@@ -11,16 +11,40 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+const VALID_PRODUCT_TYPES = ['standard', 'kuji'] as const satisfies readonly productType[];
+const VALID_PRODUCT_SORTS = ['newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'] as const satisfies readonly productSort[];
+
+const PRODUCT_TYPE_ITEMS = [
+  { label: 'All Types', value: '' },
+  { label: 'Standard', value: 'standard' },
+  { label: 'Kuji', value: 'kuji' },
+] as const;
+
+const PRODUCT_SORT_ITEMS = [
+  { label: 'Newest', value: 'newest' },
+  { label: 'Price: Low to High', value: 'price_asc' },
+  { label: 'Price: High to Low', value: 'price_desc' },
+  { label: 'Name (A-Z)', value: 'name_asc' },
+  { label: 'Name (Z-A)', value: 'name_desc' },
+] as const satisfies readonly { label: string; value: productSort }[];
+
+function isProductType(value: string | null): value is productType {
+  return value !== null && VALID_PRODUCT_TYPES.includes(value as productType);
+}
+
+function isProductSort(value: string | null): value is productSort {
+  return value !== null && VALID_PRODUCT_SORTS.includes(value as productSort);
+}
+
 export default function ProductsPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const typeParam = searchParams.get('type') as productType | undefined;
+  const rawTypeParam = searchParams.get('type');
+  const typeParam = isProductType(rawTypeParam) ? rawTypeParam : undefined;
   const collectionParam = searchParams.get('collection') ?? undefined;
-  
-  const validSorts: productSort[] = ['newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'];
   const rawSort = searchParams.get('sort');
-  const sortParam = (validSorts.includes(rawSort as productSort) ? rawSort : 'newest') as productSort;
+  const sortParam = isProductSort(rawSort) ? rawSort : 'newest';
 
   const productsQuery = useInfiniteQuery({
     queryKey: ['products', typeParam ?? null, collectionParam ?? null, sortParam],
@@ -53,8 +77,10 @@ export default function ProductsPageClient() {
     router.replace(nextUrl, { scroll: false });
   };
 
-  const handleSortChange = (newSort: productSort | null) => {
-    if (!newSort) return;
+  const handleSortChange = (newSort: string | null) => {
+    if (!isProductSort(newSort)) {
+      return;
+    }
 
     handleSearchParamReplace((params) => {
       params.set('sort', newSort);
@@ -63,7 +89,7 @@ export default function ProductsPageClient() {
 
   const handleTypeChange = (newType: string | null) => {
     handleSearchParamReplace((params) => {
-      if (newType) {
+      if (isProductType(newType)) {
         params.set('type', newType);
       } else {
         params.delete('type');
@@ -76,25 +102,11 @@ export default function ProductsPageClient() {
   const isLoadingMore = productsQuery.isFetchingNextPage;
   const hasNextPage = Boolean(productsQuery.hasNextPage);
 
-  const productTypeItems = [
-    { label: 'All Types', value: '' },
-    { label: 'Standard', value: 'standard' },
-    { label: 'Kuji', value: 'kuji' },
-  ];
-
-  const productSortItems: { label: string; value: productSort }[] = [
-    { label: 'Newest', value: 'newest' },
-    { label: 'Price: Low to High', value: 'price_asc' },
-    { label: 'Price: High to Low', value: 'price_desc' },
-    { label: 'Name (A-Z)', value: 'name_asc' },
-    { label: 'Name (Z-A)', value: 'name_desc' },
-  ];
-
   const selectedProductTypeLabel =
-    productTypeItems.find((item) => item.value === (typeParam ?? ''))?.label ?? 'All Types';
+    PRODUCT_TYPE_ITEMS.find((item) => item.value === (typeParam ?? ''))?.label ?? 'All Types';
 
   const selectedSortLabel =
-    productSortItems.find((item) => item.value === sortParam)?.label ?? 'Newest';
+    PRODUCT_SORT_ITEMS.find((item) => item.value === sortParam)?.label ?? 'Newest';
 
   return (
     <div className="container mx-auto w-full px-4 py-8 sm:px-6 lg:px-8">
@@ -113,7 +125,7 @@ export default function ProductsPageClient() {
         <div className="flex flex-col gap-4 sm:flex-row">
           <Select
             value={typeParam ?? ''}
-            onValueChange={(value) => handleTypeChange(value === '' ? null : value)}
+            onValueChange={handleTypeChange}
             modal={false}
           >
             <SelectTrigger className="min-w-[180px] min-h-[40px]" aria-label="Filter by product type">
@@ -121,7 +133,7 @@ export default function ProductsPageClient() {
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
               <SelectGroup>
-                {productTypeItems.map((item) => (
+                {PRODUCT_TYPE_ITEMS.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
                   </SelectItem>
@@ -140,7 +152,7 @@ export default function ProductsPageClient() {
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
               <SelectGroup>
-                {productSortItems.map((item) => (
+                {PRODUCT_SORT_ITEMS.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
                   </SelectItem>

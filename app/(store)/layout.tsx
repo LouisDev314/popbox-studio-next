@@ -1,6 +1,6 @@
 import { StoreHeader } from '@/components/layout/store-header';
 import { StoreFooter } from '@/components/layout/store-footer';
-import { type ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 
 interface IStoreLayoutProps {
   children: ReactNode;
@@ -9,7 +9,9 @@ interface IStoreLayoutProps {
 export default function StoreLayout(props: IStoreLayoutProps) {
   return (
     <>
-      <StoreHeader />
+      <Suspense fallback={<div aria-hidden="true" className="h-16" />}>
+        <StoreHeader />
+      </Suspense>
       <main className="flex-1 w-full flex flex-col">
         {props.children}
       </main>

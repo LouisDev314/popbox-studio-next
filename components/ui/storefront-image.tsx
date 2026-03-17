@@ -28,14 +28,15 @@ function buildFallbackLabel(label: string) {
 export function StorefrontImage(props: IStorefrontImageProps) {
   if (props.src) {
     return (
-      <Image
-        src={props.src}
-        alt={props.alt}
-        height={500}
-        width={500}
-        className={cn('h-full w-full object-cover', props.imageClassName, props.className)}
-        loading="lazy"
-      />
+      <img src={props.src} alt={props.alt} className={cn('h-full w-full object-cover', props.imageClassName, props.className)} />
+      // <Image
+      //   src={props.src}
+      //   alt={props.alt}
+      //   height={500}
+      //   width={500}
+      //   className={cn('h-full w-full object-cover', props.imageClassName, props.className)}
+      //   loading="lazy"
+      // />
     );
   }
 

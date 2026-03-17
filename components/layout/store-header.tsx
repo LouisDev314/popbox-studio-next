@@ -15,7 +15,6 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useMobileNavbarVisibility } from '@/hooks/use-mobile-navbar-visibility';
 import { type IProductSuggestion, IProductSuggestionResponse } from '@/interfaces/product';
 import { cn, isActiveLink } from '@/lib/utils';
-import Image from 'next/image';
 
 type TMobilePanel = 'menu' | 'search' | null;
 
@@ -23,6 +22,10 @@ const MOBILE_CART_BUTTON_ID = 'store-mobile-cart-trigger';
 const MOBILE_MENU_BUTTON_ID = 'store-mobile-menu-trigger';
 const MOBILE_SEARCH_BUTTON_ID = 'store-mobile-search-trigger';
 const MOBILE_SEARCH_INPUT_ID = 'store-mobile-search-input';
+
+function isShopAllNavActive(pathname: string, typeParam: string | null) {
+  return pathname === '/products' && typeParam !== 'kuji';
+}
 
 export function StoreHeader() {
   const router = useRouter();
@@ -61,6 +64,8 @@ export function StoreHeader() {
   const autocompleteSuggestions = shouldFetchAutocomplete
     ? autocompleteResponse?.data?.data?.items ?? []
     : [];
+  const isShopAllActive = isShopAllNavActive(pathname, searchParams.get('type'));
+  const isKujiActive = isActiveLink('/products?type=kuji', pathname, searchParams);
 
   useEffect(() => {
     if (!isSearchOpen) {
@@ -150,35 +155,36 @@ export function StoreHeader() {
               <Link href="/home" className="truncate font-bold tracking-tight text-primary text-lg sm:text-xl">
                 PopBox Studio
               </Link>
-              <nav className="hidden md:flex md:items-center md:space-x-8">
-                <Link 
-                  href="/products" 
-                  className={cn(
-                    "relative text-sm transition-colors duration-200 py-1",
-                    isActiveLink('/products', pathname, searchParams) 
-                      ? "text-primary font-medium" 
-                      : "text-foreground hover:text-primary"
-                  )}
-                >
-                  Shop All
-                  {isActiveLink('/products', pathname, searchParams) && (
-                    <span className="absolute left-0 -bottom-1 w-full h-0.5 bg-primary rounded-full" />
-                  )}
-                </Link>
-                <Link 
-                  href="/products?type=kuji" 
-                  className={cn(
-                    "relative text-sm transition-colors duration-200 py-1",
-                    isActiveLink('/products?type=kuji', pathname, searchParams) 
-                      ? "text-primary font-medium" 
-                      : "text-foreground hover:text-primary"
-                  )}
-                >
-                  Ichiban Kuji
-                  {isActiveLink('/products?type=kuji', pathname, searchParams) && (
-                    <span className="absolute left-0 -bottom-1 w-full h-0.5 bg-primary rounded-full" />
-                  )}
-                </Link>
+              <nav className="hidden md:flex md:items-center md:space-x-3">
+                {[
+                  { href: '/products', isActive: isShopAllActive, label: 'Shop All' },
+                  { href: '/products?type=kuji', isActive: isKujiActive, label: 'Ichiban Kuji' },
+                ].map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={item.isActive ? 'page' : undefined}
+                    className={cn(
+                      'group relative inline-flex items-center rounded-full px-3 py-2 text-sm font-medium tracking-tight transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]',
+                      item.isActive
+                        ? 'bg-primary/12 text-foreground shadow-[0_10px_24px_-20px_hsl(var(--foreground)/0.55)]'
+                        : 'text-muted-foreground hover:-translate-y-px hover:bg-primary/8 hover:text-foreground',
+                    )}
+                  >
+                    <span className={cn('relative z-10', item.isActive ? 'font-semibold' : '')}>
+                      {item.label}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        'absolute inset-x-3 bottom-1 h-0.5 origin-left rounded-full bg-primary transition-all duration-300 ease-out',
+                        item.isActive
+                          ? 'scale-x-100 opacity-100'
+                          : 'scale-x-0 opacity-70 group-hover:scale-x-100',
+                      )}
+                    />
+                  </Link>
+                ))}
               </nav>
             </div>
 

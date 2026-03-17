@@ -27,6 +27,9 @@
 }
 
 :root {
+  --font-geist-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-geist-mono: "SFMono-Regular", "SF Mono", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+
   /* Blush-white / soft pink neutrals */
   --background: 330 30% 98%;
   --foreground: 330 5% 10%;
@@ -76,4 +79,3 @@ body {
   @apply bg-background text-foreground;
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
-

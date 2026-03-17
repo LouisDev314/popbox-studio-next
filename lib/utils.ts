@@ -9,10 +9,10 @@ export function cn(...inputs: ClassValue[]) {
 export function isActiveLink(
   href: string,
   pathname: string,
-  currentSearchParams?: URLSearchParams | ReadonlyURLSearchParams
+  currentSearchParams?: URLSearchParams | ReadonlyURLSearchParams,
 ): boolean {
   if (!href) return false;
-  
+
   const [hrefPathname, hrefQueryString] = href.split('?');
 
   if (pathname !== hrefPathname) {
@@ -22,13 +22,12 @@ export function isActiveLink(
   const targetSearchParams = new URLSearchParams(hrefQueryString ?? '');
 
   if ([...targetSearchParams.keys()].length === 0) {
-    if (currentSearchParams && currentSearchParams.has('type')) {
-       return false;
-    }
     return true;
   }
 
-  if (!currentSearchParams) return true;
+  if (!currentSearchParams) {
+    return false;
+  }
 
   for (const [key, value] of targetSearchParams.entries()) {
     if (currentSearchParams.get(key) !== value) {
@@ -39,21 +38,64 @@ export function isActiveLink(
   return true;
 }
 
-export function getStockColor(count: number, total: number): string {
-  if (count === 0) return 'text-destructive';
-  if (count === 1) return 'text-red-500 font-bold font-semibold';
-  
-  const percentage = count / total;
-  if (percentage <= 0.2 || count <= 5) return 'text-amber-500 font-medium';
-  
-  return 'text-pink-600 font-medium'; 
+export function getPrizeStockLabel(count: number, total: number): string {
+  if (count <= 0) {
+    return 'Sold out';
+  }
+
+  if (count === 1) {
+    return 'Last one left';
+  }
+
+  if (total <= 0) {
+    return `${count} left`;
+  }
+
+  return `${count} / ${total} left`;
 }
 
-export function getPrizeBadgeColor(prizeCode: string): string {
+export function getPrizeStockClasses(count: number, total: number): string {
+  if (count <= 0) {
+    return 'border-rose-200/80 bg-rose-100/90 text-rose-700';
+  }
+
+  const percentage = total > 0 ? count / total : 0;
+
+  if (count === 1 || percentage <= 0.15) {
+    return 'border-orange-200/80 bg-orange-100/90 text-orange-800';
+  }
+
+  if (percentage <= 0.4 || count <= 5) {
+    return 'border-amber-200/80 bg-amber-100/90 text-amber-800';
+  }
+
+  return 'border-pink-200/80 bg-pink-100/90 text-pink-700';
+}
+
+export function getPrizeBadgeLabel(prizeCode: string): string {
   const code = prizeCode.toUpperCase();
-  if (code.includes('LAST')) return 'bg-amber-200 text-amber-700';
-  if (code === 'A') return 'bg-pink-200 text-pink-700';
-  if (code === 'B') return 'bg-purple-200 text-purple-700';
-  
-  return 'bg-secondary/20 text-secondary-foreground';
+
+  if (code.includes('LAST')) {
+    return 'Last Prize';
+  }
+
+  return `Prize ${prizeCode}`;
+}
+
+export function getPrizeBadgeClasses(prizeCode: string): string {
+  const code = prizeCode.toUpperCase();
+
+  if (code.includes('LAST')) {
+    return 'border-amber-200/80 bg-[linear-gradient(135deg,rgba(253,230,138,0.92),rgba(251,207,232,0.82))] text-amber-900';
+  }
+
+  if (code === 'A') {
+    return 'border-pink-200/80 bg-[linear-gradient(135deg,rgba(252,231,243,0.96),rgba(254,205,211,0.82))] text-rose-800';
+  }
+
+  if (code === 'B') {
+    return 'border-violet-200/80 bg-[linear-gradient(135deg,rgba(245,243,255,0.96),rgba(243,232,255,0.92))] text-violet-800';
+  }
+
+  return 'border-secondary/20 bg-secondary/10 text-secondary-foreground';
 }
