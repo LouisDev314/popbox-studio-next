@@ -18,7 +18,6 @@ interface IMobileSearchPanelProps {
   autocompleteSuggestions: IProductSuggestion[];
   isAutocompleteError: boolean;
   isAutocompletePending: boolean;
-  onClose: () => void;
   onNavigate: (href: string) => void;
   onSearchQueryChange: (value: string) => void;
   onSearchSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -36,17 +35,17 @@ const MOBILE_SEARCH_QUICK_LINKS: IMobileSearchQuickLink[] = [
   {
     label: 'Ichiban Kuji',
     href: '/products?type=kuji',
-    description: 'Ticket drops, prize lines, and limited runs.',
+    description: 'A Japanese lottery where every ticket wins a random collectible prize.',
   },
   {
     label: 'One Piece',
     query: 'One Piece',
-    description: 'Popular figures, prizes, and character lines.',
+    description: 'Top-hit anime with popular figures and merch.',
   },
   {
     label: 'Dragon Ball',
     query: 'Dragon Ball',
-    description: 'Fast access to a high-interest collector search.',
+    description: 'Original high-interest collector search.',
   },
 ];
 
@@ -54,7 +53,6 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
   const autocompleteSuggestions = props.autocompleteSuggestions;
   const isAutocompleteError = props.isAutocompleteError;
   const isAutocompletePending = props.isAutocompletePending;
-  const onClose = props.onClose;
   const onNavigate = props.onNavigate;
   const onSearchQueryChange = props.onSearchQueryChange;
   const onSearchSubmit = props.onSearchSubmit;
@@ -78,57 +76,36 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
     <div className="overflow-hidden rounded-none border-x-0 border-t-0 border border-border/70 bg-background md:bg-background/90 md:backdrop-blur-2xl shadow-[0_32px_70px_-38px_hsl(var(--foreground)/0.55)]">
       <div className="container mx-auto max-w-4xl">
         <div className="border-b border-border/60 px-4 py-4 md:py-6 md:px-8">
-          <div className="flex items-center gap-3">
-            <form className="min-w-0 flex-1" onSubmit={onSearchSubmit}>
-              <div className="flex items-center rounded-[22px] border border-border/70 bg-muted/50 px-3 shadow-inner">
-                <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <Input
-                  id={searchInputId}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  enterKeyHint="search"
-                  placeholder="Search figures, kuji, or series..."
-                  value={searchQuery}
-                  className="h-12 border-0 bg-transparent px-3 text-base shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                  onChange={(event) => onSearchQueryChange(event.target.value)}
-                />
-                <button
-                  type="submit"
-                  className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                Search
-                </button>
-              </div>
-            </form>
-            <button
-              type="button"
-              className="rounded-full border border-border/70 bg-background p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              onClick={onClose}
-            >
-              <span className="sr-only">Close search</span>
-              <X className="h-4 w-4 md:h-5 md:w-5" />
-            </button>
-          </div>
+          <form className="min-w-0 flex-1" onSubmit={onSearchSubmit}>
+            <div className="flex items-center rounded-[22px] border border-border/70 bg-muted/50 px-3 shadow-inner">
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <Input
+                id={searchInputId}
+                autoComplete="off"
+                autoCorrect="off"
+                enterKeyHint="search"
+                placeholder="Search figures, kuji, or series..."
+                value={searchQuery}
+                className="h-12 border-0 bg-transparent px-3 text-base shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                onChange={(event) => onSearchQueryChange(event.target.value)}
+              />
+            </div>
+          </form>
         </div>
 
         <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto px-4 py-4 md:px-8 md:py-8">
           {!trimmedQuery ? (
             <div className="space-y-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                Quick picks
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                Jump into curated storefront paths or start with a collector-favorite series.
-                </p>
-              </div>
+              <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground ml-2">
+                Quick Picks
+              </p>
 
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 gap-3 mb-4">
                 {MOBILE_SEARCH_QUICK_LINKS.map((quickLink) => (
                   <button
                     key={quickLink.label}
                     type="button"
-                    className="group flex items-center justify-between rounded-[24px] border border-border/70 bg-gradient-to-br from-background to-muted/55 px-4 py-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_18px_40px_-28px_hsl(var(--foreground)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="group flex items-center justify-between rounded-[24px] border border-border/70 bg-gradient-to-br from-background to-muted/55 px-4 py-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_18px_40px_-28px_hsl(var(--foreground)/0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-primary"
                     onClick={() => handleQuickLinkSelect(quickLink)}
                   >
                     <div className="min-w-0">
@@ -144,11 +121,8 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                  <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground ml-2">
                   Suggestions
-                  </p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                  Autocomplete is powered by the current storefront API contract.
                   </p>
                 </div>
                 {isAutocompletePending ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : null}

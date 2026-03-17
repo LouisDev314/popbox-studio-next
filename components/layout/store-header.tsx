@@ -233,7 +233,6 @@ export function StoreHeader() {
           autocompleteSuggestions={autocompleteSuggestions}
           isAutocompleteError={isAutocompleteError}
           isAutocompletePending={isAutocompletePending}
-          onClose={closeMobilePanel}
           onNavigate={navigateWithMobileClose}
           onSearchQueryChange={setSearchQuery}
           onSearchSubmit={handleSearchSubmit}
