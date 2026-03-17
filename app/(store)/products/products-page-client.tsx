@@ -93,7 +93,7 @@ export default function ProductsPageClient() {
 
   return (
     <div className="container mx-auto w-full px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+      <div className="mb-6 sm:mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <h1 className="text-4xl font-extrabold tracking-tight text-foreground">
             {typeParam === 'kuji' ? 'Ichiban Kuji' : 'All Products'}
@@ -109,9 +109,10 @@ export default function ProductsPageClient() {
           <Select
             value={typeParam ?? ''}
             onValueChange={(value) => handleTypeChange(value === '' ? null : value)}
+            modal={false}
           >
-            <SelectTrigger className="min-w-[180px]" aria-label="Filter by product type">
-              <SelectValue>{selectedProductTypeLabel}</SelectValue>
+            <SelectTrigger className="min-w-[180px] min-h-[40px]" aria-label="Filter by product type">
+              <SelectValue className='text-[#1B181A]'>{selectedProductTypeLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
               <SelectGroup>
@@ -127,8 +128,9 @@ export default function ProductsPageClient() {
           <Select
             value={sortParam}
             onValueChange={handleSortChange}
+            modal={false}
           >
-            <SelectTrigger className="min-w-[180px]" aria-label="Sort products">
+            <SelectTrigger className="min-w-[180px] min-h-[40px]" aria-label="Sort products">
               <SelectValue>{selectedSortLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
@@ -156,7 +158,7 @@ export default function ProductsPageClient() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:gap-4 lg:grid-cols-4">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
