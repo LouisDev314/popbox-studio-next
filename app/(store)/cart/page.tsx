@@ -5,6 +5,7 @@ import { ShoppingBag } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 import { CartPageItem } from '@/components/cart/cart-page-item';
 import { CartSummary } from '@/components/cart/cart-summary';
+import { CheckoutButton } from '@/components/cart/checkout-button';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/hooks/use-cart';
 import { formatPrice } from '@/utils/helpers';
@@ -64,9 +65,10 @@ export default function CartPage() {
           <h1 className="mt-2 text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Your cart total is {formatPrice(summary.totalCents, summary.currency)}
           </h1>
-          <Button asChild size="lg" className="mt-6 h-12 w-full rounded-full text-base font-semibold">
-            <Link href='/checkout'>Check Out</Link>
-          </Button>
+          <CheckoutButton
+            size="lg"
+            className="mt-6 h-12 w-full rounded-full text-base font-semibold"
+          />
         </div>
       </div>
 
@@ -86,9 +88,11 @@ export default function CartPage() {
         <div className="lg:sticky lg:top-24">
           <CartSummary
             summary={summary}
-            actionHref="/checkout"
-            actionLabel="Check Out"
             note=""
+          />
+          <CheckoutButton
+            size="lg"
+            className="mt-6 h-12 w-full rounded-full text-base font-semibold"
           />
         </div>
 

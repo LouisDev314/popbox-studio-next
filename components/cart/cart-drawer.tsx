@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShoppingBag, Trash2, X } from 'lucide-react';
+import { CheckoutButton } from '@/components/cart/checkout-button';
 import { Button } from '@/components/ui/button';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { StorefrontImage } from '@/components/ui/storefront-image';
@@ -199,15 +200,10 @@ export function CartDrawer(props: ICartDrawerProps) {
               >
                 View Cart
               </Button>
-              <Button
-                className="h-12 rounded-full font-semibold"
-                onClick={() => {
-                  onClose();
-                  router.push('/checkout');
-                }}
-              >
-                Review & Check Out
-              </Button>
+              <CheckoutButton
+                className="h-12 w-full rounded-full font-semibold"
+                label="Check Out"
+              />
             </div>
           </div>
         ) : null}
