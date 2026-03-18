@@ -174,15 +174,16 @@ export function StoreHeader() {
                     <span className={cn('relative z-10', item.isActive ? 'font-semibold' : '')}>
                       {item.label}
                     </span>
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        'absolute inset-x-3 bottom-1 h-0.5 origin-left rounded-full bg-primary transition-all duration-300 ease-out',
-                        item.isActive
-                          ? 'scale-x-100 opacity-100'
-                          : 'scale-x-0 opacity-70 group-hover:scale-x-100',
-                      )}
-                    />
+                    {/* TODO: usable for underline animation */}
+                    {/*<span*/}
+                    {/*  aria-hidden="true"*/}
+                    {/*  className={cn(*/}
+                    {/*    'absolute inset-x-3 bottom-1 h-0.5 origin-left rounded-full bg-primary transition-all duration-300 ease-out',*/}
+                    {/*    item.isActive*/}
+                    {/*      ? 'scale-x-100 opacity-100'*/}
+                    {/*      : 'scale-x-0 opacity-70 group-hover:scale-x-100',*/}
+                    {/*  )}*/}
+                    {/*/>*/}
                   </Link>
                 ))}
               </nav>

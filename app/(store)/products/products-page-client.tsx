@@ -16,8 +16,8 @@ const VALID_PRODUCT_SORTS = ['newest', 'price_asc', 'price_desc', 'name_asc', 'n
 
 const PRODUCT_TYPE_ITEMS = [
   { label: 'All Types', value: '' },
-  { label: 'Standard', value: 'standard' },
-  { label: 'Kuji', value: 'kuji' },
+  { label: 'Figures & Merchandise', value: 'standard' },
+  { label: 'Ichiban Kuji', value: 'kuji' },
 ] as const;
 
 const PRODUCT_SORT_ITEMS = [
@@ -108,12 +108,23 @@ export default function ProductsPageClient() {
   const selectedSortLabel =
     PRODUCT_SORT_ITEMS.find((item) => item.value === sortParam)?.label ?? 'Newest';
 
+  const pageTitle = () => {
+    switch (typeParam) {
+      case 'kuji':
+        return 'Ichiban Kuji'
+      case 'standard':
+        return 'Figures & Merchandise'
+      default:
+        return 'All Products'
+    }
+  }
+
   return (
     <div className="container mx-auto w-full px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 sm:mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <h1 className="text-4xl font-extrabold tracking-tight text-foreground">
-            {typeParam === 'kuji' ? 'Ichiban Kuji' : 'All Products'}
+            {pageTitle()}
           </h1>
           <p className="mt-2 text-lg text-muted-foreground">
             {typeParam === 'kuji'
@@ -128,7 +139,7 @@ export default function ProductsPageClient() {
             onValueChange={handleTypeChange}
             modal={false}
           >
-            <SelectTrigger className="min-w-[180px] min-h-[40px]" aria-label="Filter by product type">
+            <SelectTrigger className="min-w-45 min-h-10" aria-label="Filter by product type">
               <SelectValue className='text-[#1B181A]'>{selectedProductTypeLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
