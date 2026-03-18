@@ -15,7 +15,7 @@ const VALID_PRODUCT_TYPES = ['standard', 'kuji'] as const satisfies readonly pro
 const VALID_PRODUCT_SORTS = ['newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'] as const satisfies readonly productSort[];
 
 const PRODUCT_TYPE_ITEMS = [
-  { label: 'All Types', value: '' },
+  { label: 'All Products', value: '' },
   { label: 'Figures & Merchandise', value: 'standard' },
   { label: 'Ichiban Kuji', value: 'kuji' },
 ] as const;
