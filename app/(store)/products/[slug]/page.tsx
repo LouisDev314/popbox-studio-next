@@ -10,7 +10,7 @@ import { ProductRecommendations } from '@/components/product/product-recommendat
 import QueryConfigs from '@/configs/api/query-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { type IProduct } from '@/interfaces/product';
-import { formatPrice } from '@/utils/helpers';
+import { formatPrice } from '@/lib/utils';
 
 export default function ProductDetailPage() {
   const params = useParams();

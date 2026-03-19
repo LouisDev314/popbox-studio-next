@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/utils/helpers';
+import { cn } from '@/lib/utils';
 import { IProductCard } from '@/interfaces/product';
 
 interface IStorefrontCarouselProps {

@@ -6,7 +6,7 @@ import QueryConfigs from '@/configs/api/query-config';
 import { IGuestOrderDetail } from '@/interfaces/order';
 import { Loader2, Package, Truck, ArrowLeft, Ticket } from 'lucide-react';
 import Link from 'next/link';
-import { formatPrice } from '@/utils/helpers';
+import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 export default function GuestOrderPage() {

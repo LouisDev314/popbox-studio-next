@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type ICartItem } from '@/interfaces/cart';
-import { formatPrice } from '@/utils/helpers';
+import { formatPrice } from '@/lib/utils';
 
 interface ICartPageItemProps {
   item: ICartItem;

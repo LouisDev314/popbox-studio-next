@@ -167,8 +167,8 @@ export function StoreHeader() {
                     className={cn(
                       'group relative inline-flex items-center rounded-full px-3 py-2 text-sm font-medium tracking-tight transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]',
                       item.isActive
-                        ? 'bg-primary/12 text-foreground shadow-[0_10px_24px_-20px_hsl(var(--foreground)/0.55)]'
-                        : 'text-muted-foreground hover:-translate-y-px hover:bg-primary/8 hover:text-foreground',
+                        ? 'bg-primary/60 text-foreground shadow-[0_10px_24px_-20px_hsl(var(--foreground)/0.55)]'
+                        : 'text-muted-foreground hover:-translate-y-px hover:bg-primary/60 hover:text-foreground',
                     )}
                   >
                     <span className={cn('relative z-10', item.isActive ? 'font-semibold' : '')}>

@@ -1,13 +1,14 @@
 'use client';
 
 import { type ComponentPropsWithoutRef } from 'react';
-import { Loader2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { useCartStore } from '@/hooks/use-cart';
 import { ICheckoutRequest, ICheckoutSession } from '@/interfaces/checkout';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
 
 interface ICheckoutButtonProps extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick'> {
   label?: string;
@@ -18,7 +19,7 @@ export function CheckoutButton({
   className,
   disabled,
   label = 'Check Out',
-  pendingLabel = 'Redirecting...',
+  pendingLabel = 'Processing...',
   ...buttonProps
 }: ICheckoutButtonProps) {
   const items = useCartStore((state) => state.items);
@@ -78,12 +79,12 @@ export function CheckoutButton({
     <div className="space-y-3">
       <Button
         type="button"
-        className={className}
+        className={cn(className, 'gap-1.5')}
         disabled={disabled || !items.length || isPending}
         onClick={handleCheckout}
         {...buttonProps}
       >
-        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        {isPending ? <Spinner data-icon="inline-start" /> : null}
         {isPending ? pendingLabel : label}
       </Button>
       {isError ? (

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type IProductCard } from '@/interfaces/product';
-import { formatPrice } from '@/utils/helpers';
+import { formatPrice } from '@/lib/utils';
 
 interface IProductCardProps {
   product: IProductCard;

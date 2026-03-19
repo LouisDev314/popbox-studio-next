@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { type ICartSummary } from '@/interfaces/cart';
-import { cn, formatPrice } from '@/utils/helpers';
+import { cn, formatPrice } from '@/lib/utils';
 import { Tooltip } from '@/components/ui/tooltip-card';
 import { CircleQuestionMark } from 'lucide-react';
 

@@ -5,7 +5,7 @@ import { ArrowUpRight, ChevronRight, CircleX, Loader2, Search } from 'lucide-rea
 import { Input } from '@/components/ui/input';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type IProductSuggestion } from '@/interfaces/product';
-import { formatPrice } from '@/utils/helpers';
+import { formatPrice } from '@/lib/utils';
 
 interface IMobileSearchQuickLink {
   description: string;

@@ -1,7 +1,7 @@
 'use client';
 
 import { type ReactNode, useEffect, useRef } from 'react';
-import { cn } from '@/utils/helpers';
+import { cn } from '@/lib/utils';
 
 interface IMobileNavOverlayProps {
   ariaLabel: string;

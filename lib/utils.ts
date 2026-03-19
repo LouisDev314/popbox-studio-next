@@ -99,3 +99,10 @@ export function getPrizeBadgeClasses(prizeCode: string): string {
 
   return 'border-secondary/20 bg-secondary/10 text-secondary-foreground';
 }
+
+export function formatPrice(cents: number, currency: string = 'CAD'): string {
+  return new Intl.NumberFormat('en-CA', {
+    style: 'currency',
+    currency,
+  }).format(cents / 100);
+}

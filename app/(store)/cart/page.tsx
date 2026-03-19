@@ -8,7 +8,7 @@ import { CartSummary } from '@/components/cart/cart-summary';
 import { CheckoutButton } from '@/components/cart/checkout-button';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/hooks/use-cart';
-import { formatPrice } from '@/utils/helpers';
+import { formatPrice } from '@/lib/utils';
 
 export default function CartPage() {
   const items = useCartStore((state) => state.items);
@@ -29,10 +29,10 @@ export default function CartPage() {
         <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
           <div className="space-y-4">
             <div className="h-8 w-40 rounded-full bg-muted/40" />
-            <div className="h-40 rounded-[2rem] bg-muted/35" />
-            <div className="h-40 rounded-[2rem] bg-muted/25" />
+            <div className="h-40 rounded-4xl bg-muted/35" />
+            <div className="h-40 rounded-4xl bg-muted/25" />
           </div>
-          <div className="h-72 rounded-[2rem] bg-muted/35" />
+          <div className="h-72 rounded-4xl bg-muted/35" />
         </div>
       </div>
     );
@@ -41,7 +41,7 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="container mx-auto flex flex-1 px-4 py-20 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-xl flex-col items-center rounded-[2rem] border border-dashed border-border/70 bg-card px-8 py-14 text-center shadow-sm">
+        <div className="mx-auto flex max-w-xl flex-col items-center rounded-4xl border border-dashed border-border/70 bg-card px-8 py-14 text-center shadow-sm">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted/60">
             <ShoppingBag className="h-7 w-7 text-muted-foreground" />
           </div>

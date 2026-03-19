@@ -2,7 +2,7 @@
 
 import { Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/utils/helpers';
+import { cn } from '@/lib/utils';
 
 type TQuantityStepperSize = 'default' | 'sm';
 

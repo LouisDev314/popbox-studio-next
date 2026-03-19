@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { useCartStore } from '@/hooks/use-cart';
-import { cn, formatPrice } from '@/utils/helpers';
+import { cn, formatPrice } from '@/lib/utils';
 
 interface ICartDrawerProps {
   isOpen: boolean;

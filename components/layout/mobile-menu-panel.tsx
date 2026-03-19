@@ -4,7 +4,7 @@ import { type CSSProperties } from 'react';
 import Link from 'next/link';
 import { ReadonlyURLSearchParams, usePathname, useSearchParams } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
-import { cn } from '@/utils/helpers';
+import { cn } from '@/lib/utils';
 
 interface IMobileMenuItem {
   description: string;

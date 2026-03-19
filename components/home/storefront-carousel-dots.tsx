@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@/utils/helpers';
+import { cn } from '@/lib/utils';
 
 interface IStorefrontCarouselDotsProps {
   selectedIndex: number;

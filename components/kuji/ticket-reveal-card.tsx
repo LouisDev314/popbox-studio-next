@@ -2,7 +2,7 @@
 
 import { IOrderTicket } from '@/interfaces/order';
 import { Sparkles, HelpCircle } from 'lucide-react';
-import { cn } from '@/utils/helpers';
+import { cn } from '@/lib/utils';
 
 interface ITicketRevealCardProps {
   ticket: IOrderTicket;
