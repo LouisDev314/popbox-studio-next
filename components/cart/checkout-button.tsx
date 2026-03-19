@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { useCartStore } from '@/hooks/use-cart';
+import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { ICheckoutRequest, ICheckoutSession } from '@/interfaces/checkout';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -15,16 +16,20 @@ interface ICheckoutButtonProps extends Omit<ComponentPropsWithoutRef<typeof Butt
   pendingLabel?: string;
 }
 
-export function CheckoutButton({
-  className,
-  disabled,
-  label = 'Check Out',
-  pendingLabel = 'Processing...',
-  ...buttonProps
-}: ICheckoutButtonProps) {
-  const items = useCartStore((state) => state.items);
+export function CheckoutButton(props: ICheckoutButtonProps) {
+  const {
+    className,
+    disabled,
+    label = 'Check Out',
+    pendingLabel = 'Processing...',
+    ...buttonProps
+  } = props;
 
-  const { mutation: createCheckoutSession, isPending, isError } = useCustomizeMutation<
+  const items = useCartStore((state) => state.items);
+  const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
+  const setIsCheckingOut = useCheckoutUiStore((state) => state.setIsCheckingOut);
+
+  const { mutation: createCheckoutSession, isError } = useCustomizeMutation<
     ICheckoutSession,
     { data: ICheckoutRequest; key: string }
   >({
@@ -32,31 +37,17 @@ export function CheckoutButton({
   });
 
   const handleCheckout = () => {
-    if (!items.length) {
+    if (!items.length || isCheckingOut) {
       return;
     }
 
+    setIsCheckingOut(true);
+
     const requestData: ICheckoutRequest = {
-      email: '',
-      firstName: null,
-      lastName: null,
-      phone: null,
       items: items.map((item) => ({
         productId: item.product.id,
         quantity: item.quantity,
       })),
-      shippingAddress: {
-        fullName: null,
-        line1: null,
-        line2: null,
-        city: null,
-        province: null,
-        postalCode: null,
-        countryCode: null,
-        phone: null,
-      },
-      billingAddress: null,
-      billingSameAsShipping: true,
     };
 
     createCheckoutSession(
@@ -66,10 +57,14 @@ export function CheckoutButton({
           const checkoutUrl = response.data.data?.checkoutUrl;
 
           if (!checkoutUrl) {
+            setIsCheckingOut(false);
             return;
           }
 
           window.location.assign(checkoutUrl);
+        },
+        onError: () => {
+          setIsCheckingOut(false);
         },
       },
     );
@@ -80,13 +75,14 @@ export function CheckoutButton({
       <Button
         type="button"
         className={cn(className, 'gap-1.5')}
-        disabled={disabled || !items.length || isPending}
+        disabled={disabled || !items.length || isCheckingOut}
         onClick={handleCheckout}
         {...buttonProps}
       >
-        {isPending ? <Spinner data-icon="inline-start" /> : null}
-        {isPending ? pendingLabel : label}
+        {isCheckingOut ? <Spinner data-icon="inline-start" /> : null}
+        {isCheckingOut ? pendingLabel : label}
       </Button>
+
       {isError ? (
         <p className="text-sm font-medium text-destructive">
           We couldn&apos;t start Stripe Checkout. Please try again.

@@ -17,14 +17,7 @@ export interface ICheckoutItem {
 }
 
 export interface ICheckoutRequest {
-  email: string;
-  firstName: string | null;
-  lastName: string | null;
-  phone: string | null;
   items: ICheckoutItem[];
-  shippingAddress: IAddress;
-  billingAddress: IAddress | null;
-  billingSameAsShipping: boolean;
 }
 
 export interface ICheckoutSession {
