@@ -20,7 +20,9 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
     queryKey: ['checkout-success', props.sessionId],
     queryFn: () => QueryConfigs.fetchCheckoutSuccess(props.sessionId!),
     enabled: !!props.sessionId,
-    staleTime: 0,
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
   });
 
   const successData = response?.data?.data;
@@ -57,6 +59,7 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
       <div className="container mx-auto px-4 py-32 text-center flex flex-col items-center">
         <h1 className="text-3xl font-bold text-destructive mb-4">Verification Error</h1>
         <p className="text-muted-foreground mb-8">We could not verify your checkout completion. If you were charged, please contact support.</p>
+        {/* TODO: embed support form */}
         <Button asChild size="lg" className="rounded-full">
           <Link href="/">Return to Home</Link>
         </Button>
@@ -84,7 +87,7 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
       <div className="bg-card w-full border border-border/50 rounded-2xl p-6 md:p-8 mb-8 text-left shadow-sm">
         <h2 className="text-lg font-semibold mb-4 border-b border-border/50 pb-4">Order Details</h2>
         <div className="grid grid-cols-2 gap-y-4 text-sm">
-          <div className="text-muted-foreground">Order ID</div>
+          <div className="text-muted-foreground">Order Number</div>
           <div className="font-medium text-right text-foreground">{order.publicId}</div>
 
           <div className="text-muted-foreground">Status</div>
