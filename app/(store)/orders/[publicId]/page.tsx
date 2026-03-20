@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import QueryConfigs from '@/configs/api/query-config';
@@ -8,13 +9,12 @@ import { Loader2, Package, Truck, ArrowLeft, Ticket } from 'lucide-react';
 import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { StorefrontImage } from '@/components/ui/storefront-image';
 
 export default function GuestOrderPage() {
   const params = useParams();
   const publicId = Array.isArray(params.publicId) ? params.publicId[0] : params.publicId;
 
-  // We only show this via query directly since auth is not required for /access if they have the link
-  // The system uses standard UUID urls so we'll just fetch the order directly.
   const { data: response, isPending, isError } = useCustomizeQuery<IGuestOrderDetail>({
     queryKey: ['guest-order', publicId],
     queryFn: () => QueryConfigs.fetchGuestOrder(publicId!),
@@ -35,61 +35,87 @@ export default function GuestOrderPage() {
   if (isError || !response?.data?.data) {
     return (
       <div className="container mx-auto px-4 py-32 text-center">
-        <h1 className="text-3xl font-bold text-destructive mb-4">Order Not Found</h1>
-        <p className="text-muted-foreground mb-8">This order might not exist or you don&apos;t have permission to view it.</p>
-        <Link href="/" className="text-primary hover:underline">Return to Home</Link>
+        <h1 className="mb-4 text-3xl font-bold text-destructive">Order Not Found</h1>
+        <p className="mb-8 text-muted-foreground">
+          This order might not exist or you don&apos;t have permission to view it.
+        </p>
+        <Link href="/" className="text-primary hover:underline">
+          Return to Home
+        </Link>
       </div>
     );
   }
 
   const order = response.data.data;
-  const hasKujiTickets = order.tickets && order.tickets.length > 0;
+  const hasKujiTickets = order.tickets.length > 0;
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 max-w-4xl">
+    <div className="container mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mb-8 flex items-center gap-4 text-sm text-muted-foreground">
-        <Link href="/" className="hover:text-foreground inline-flex items-center">
-          <ArrowLeft className="h-4 w-4 mr-1" />
+        <Link href="/" className="inline-flex items-center hover:text-foreground">
+          <ArrowLeft className="mr-1 h-4 w-4" />
           Continue Shopping
         </Link>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+      <div className="mb-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Order {order.publicId}</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-5xl font-black">Thank you for your purchase!</h1>
+          <p className="text-lg">
+            Your order will be processed within 24 hours during business days. We will notify you
+            by email once your order has been shipped.
+          </p>
+          <p className="text-3xl font-extrabold tracking-tight text-foreground">
+            Order Number {order.publicId}
+          </p>
+          <p className="mt-2 text-muted-foreground">
             Placed on {order.placedAt ? new Date(order.placedAt).toLocaleDateString() : 'N/A'}
           </p>
         </div>
+
         {hasKujiTickets && (
-          <Button asChild size="lg" className="rounded-full shadow-md font-semibold text-base py-6 px-8">
+          <Button
+            asChild
+            size="lg"
+            className="rounded-full px-8 py-6 text-base font-semibold shadow-md"
+          >
             <Link href={`/orders/${order.publicId}/tickets`}>
-              <Ticket className="h-5 w-5 mr-2" />
+              <Ticket className="mr-2 h-5 w-5" />
               Go to My Tickets
             </Link>
           </Button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-        <div className="md:col-span-2 space-y-8">
-          <div className="bg-card border border-border/50 rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold flex items-center gap-2 mb-6">
+      <div className="mb-12 grid grid-cols-1 gap-8 md:grid-cols-3">
+        <div className="space-y-8 md:col-span-2">
+          <div className="rounded-2xl border border-border/50 bg-card p-6 shadow-sm">
+            <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold">
               <Package className="h-5 w-5 text-muted-foreground" />
               Order Items
             </h2>
+
             <div className="space-y-4">
               {order.items.map((item) => (
-                <div key={item.id} className="flex justify-between items-start py-4 border-b border-border/30 last:border-0 last:pb-0">
+                <div
+                  key={item.id}
+                  className="flex items-start justify-between border-b border-border/30 py-4 last:border-0 last:pb-0"
+                >
                   <div className="flex gap-4">
-                    <div className="h-16 w-16 bg-muted/30 rounded-lg shrink-0 flex items-center justify-center font-bold text-muted-foreground">
-                      {item.productType === 'kuji' ? 'KUJI' : 'ITEM'}
+                    <div className="h-16 w-16 overflow-hidden rounded-lg">
+                      <StorefrontImage
+                        src={item.imageUrl}
+                        alt={item.productName}
+                        label={item.productName}
+                      />
                     </div>
+
                     <div>
                       <h3 className="font-medium text-foreground">{item.productName}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">Qty: {item.quantity}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">Qty: {item.quantity}</p>
                     </div>
                   </div>
+
                   <div className="font-medium text-foreground">
                     {formatPrice(item.lineTotalCents, order.currency)}
                   </div>
@@ -98,28 +124,32 @@ export default function GuestOrderPage() {
             </div>
           </div>
 
-          <div className="bg-card border border-border/50 rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold flex items-center gap-2 mb-6">
+          <div className="rounded-2xl border border-border/50 bg-card p-6 shadow-sm">
+            <h2 className="mb-6 flex items-center gap-2 text-lg font-semibold">
               <Truck className="h-5 w-5 text-muted-foreground" />
               Shipping Information
             </h2>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
               <div>
-                <h3 className="text-sm font-medium text-foreground mb-2">Delivery Address</h3>
-                <address className="not-italic text-sm text-muted-foreground space-y-1">
+                <h3 className="mb-2 text-sm font-medium text-foreground">Delivery Address</h3>
+                <address className="space-y-1 not-italic text-sm text-muted-foreground">
                   <p>{order.shippingAddress.fullName}</p>
                   <p>{order.shippingAddress.line1}</p>
                   {order.shippingAddress.line2 && <p>{order.shippingAddress.line2}</p>}
-                  <p>{order.shippingAddress.city}, {order.shippingAddress.province} {order.shippingAddress.postalCode}</p>
+                  <p>
+                    {order.shippingAddress.city}, {order.shippingAddress.province}{' '}
+                    {order.shippingAddress.postalCode}
+                  </p>
                 </address>
               </div>
+
               <div>
-                <h3 className="text-sm font-medium text-foreground mb-2">Shipment Status</h3>
-                <p className="text-sm text-muted-foreground capitalize">
-                  {order.status.replace('_', ' ')}
+                <h3 className="mb-2 text-sm font-medium text-foreground">Shipment Status</h3>
+                <p className="text-sm capitalize text-muted-foreground">
+                  {order.status.replaceAll('_', ' ')}
                   {order.shipment?.trackingNumber && (
-                    <span className="block mt-2 font-medium text-primary">
+                    <span className="mt-2 block font-medium text-primary">
                       Tracking: {order.shipment.trackingNumber}
                     </span>
                   )}
@@ -129,24 +159,36 @@ export default function GuestOrderPage() {
           </div>
         </div>
 
-        <div className="md:col-span-1 border border-border/50 rounded-2xl p-6 shadow-sm bg-card h-fit sticky top-24">
-          <h2 className="text-lg font-semibold mb-6">Order Summary</h2>
-          <div className="space-y-3 pt-4 border-t border-border/30">
+        <div className="sticky top-24 h-fit rounded-2xl border border-border/50 bg-card p-6 shadow-sm md:col-span-1">
+          <h2 className="mb-6 text-lg font-semibold">Order Summary</h2>
+
+          <div className="space-y-3 border-t border-border/30 pt-4">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Subtotal</span>
-              <span className="font-medium text-foreground">{formatPrice(order.subtotalCents, order.currency)}</span>
+              <span className="font-medium text-foreground">
+                {formatPrice(order.subtotalCents, order.currency)}
+              </span>
             </div>
+
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Shipping</span>
-              <span className="font-medium text-foreground">{formatPrice(order.shippingCents, order.currency)}</span>
+              <span className="font-medium text-foreground">
+                {formatPrice(order.shippingCents, order.currency)}
+              </span>
             </div>
+
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Taxes</span>
-              <span className="font-medium text-foreground">{formatPrice(order.taxCents, order.currency)}</span>
+              <span className="font-medium text-foreground">
+                {formatPrice(order.taxCents, order.currency)}
+              </span>
             </div>
-            <div className="border-t border-border/30 pt-4 mt-2 flex justify-between">
+
+            <div className="mt-2 flex justify-between border-t border-border/30 pt-4">
               <span className="text-base font-bold text-foreground">Total</span>
-              <span className="text-base font-bold text-foreground">{formatPrice(order.totalCents, order.currency)}</span>
+              <span className="text-base font-bold text-foreground">
+                {formatPrice(order.totalCents, order.currency)}
+              </span>
             </div>
           </div>
         </div>

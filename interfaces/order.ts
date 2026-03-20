@@ -27,6 +27,8 @@ export interface IOrderItem {
   quantity: number;
   lineTotalCents: number;
   metadata: Record<string, unknown> | null;
+  imageUrl: string | null;
+  imageAltText: string | null;
 }
 
 export interface IShipment {
@@ -43,11 +45,13 @@ export interface IOrderTicket {
   revealedAt: string | null;
   voidedAt: string | null;
   voidReason: string | null;
-  prize: (Pick<IKujiPrize, 'id' | 'name' | 'description' | 'imageUrl' | 'prizeCode'>) | null;
+  prize: Pick<IKujiPrize, 'id' | 'name' | 'description' | 'imageUrl' | 'prizeCode'> | null;
   kujiProduct: {
     id: string;
     name: string;
     slug: string;
+    imageUrl: string | null;
+    imageAltText: string | null;
   };
   createdAt: string;
 }

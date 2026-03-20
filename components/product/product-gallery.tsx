@@ -15,7 +15,7 @@ export function ProductGallery(props: IProductGalleryProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative aspect-square w-full overflow-hidden rounded-[2rem] border border-border/50 bg-muted/20">
+      <div className="relative aspect-square w-full overflow-hidden rounded-4xl border border-border/50 bg-muted/20">
         <StorefrontImage
           src={activeImageData?.url}
           alt={activeImageData?.altText || props.product.name}

@@ -9,7 +9,9 @@ interface IStorefrontImageProps {
   fallbackClassName?: string;
   imageClassName?: string;
   label?: string;
+  sizes?: string;
   src?: string | null;
+  priority?: boolean;
 }
 
 function buildFallbackLabel(label: string) {
@@ -28,15 +30,16 @@ function buildFallbackLabel(label: string) {
 export function StorefrontImage(props: IStorefrontImageProps) {
   if (props.src) {
     return (
-      <img src={props.src} alt={props.alt} className={cn('h-full w-full object-cover', props.imageClassName, props.className)} />
-      // <Image
-      //   src={props.src}
-      //   alt={props.alt}
-      //   height={500}
-      //   width={500}
-      //   className={cn('h-full w-full object-cover', props.imageClassName, props.className)}
-      //   loading="lazy"
-      // />
+      <div className={cn('relative h-full w-full', props.className)}>
+        <Image
+          src={props.src}
+          alt={props.alt}
+          fill
+          sizes={props.sizes ?? '100vw'}
+          className={cn('object-cover', props.imageClassName)}
+          priority={props.priority ?? false}
+        />
+      </div>
     );
   }
 
