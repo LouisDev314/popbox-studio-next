@@ -4,7 +4,7 @@ import { requestInterceptor, responseInterceptor } from '@/api/interceptors';
 
 const baseURL = getEnvConfig().apiBaseUrl;
 
-const httpClient = axios.create({ baseURL });
+const httpClient = axios.create({ baseURL, withCredentials: true });
 
 requestInterceptor(httpClient);
 responseInterceptor(httpClient);
