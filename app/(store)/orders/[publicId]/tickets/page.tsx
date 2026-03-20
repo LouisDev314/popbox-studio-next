@@ -25,6 +25,9 @@ export default function OrderTicketsPage() {
     queryKey: ['order-tickets', publicId],
     queryFn: () => QueryConfigs.fetchGuestTickets(publicId!),
     enabled: !!publicId,
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
   });
 
   const { mutation: revealSingle } = useCustomizeMutation<IOrderTicket, { publicId: string; ticketId: string }>({

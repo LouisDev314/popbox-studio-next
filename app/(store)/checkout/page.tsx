@@ -17,7 +17,7 @@ export default function CheckoutPage() {
   if (!isHydrated) {
     return (
       <div className="container mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-4 py-16 sm:px-6 lg:px-8">
-        <div className="h-72 w-full rounded-[2rem] bg-muted/35" />
+        <div className="h-72 w-full rounded-4xl bg-muted/35" />
       </div>
     );
   }
@@ -36,7 +36,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="container mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6 lg:px-8">
-      <div className="w-full rounded-[2rem] border border-border/60 bg-card px-8 py-12 shadow-sm">
+      <div className="w-full rounded-4xl border border-border/60 bg-card px-8 py-12 shadow-sm">
         <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Continue to Stripe Checkout</h1>
         <p className="mt-4 text-base leading-7 text-muted-foreground">
           Stripe handles the payment form, shipping details, and final confirmation. If you returned from a canceled

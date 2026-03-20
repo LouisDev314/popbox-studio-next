@@ -19,6 +19,9 @@ export default function GuestOrderPage() {
     queryKey: ['guest-order', publicId],
     queryFn: () => QueryConfigs.fetchGuestOrder(publicId!),
     enabled: !!publicId,
+    staleTime: Infinity,
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: false,
   });
 
   if (isPending) {
