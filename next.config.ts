@@ -1,6 +1,16 @@
 import type { NextConfig } from 'next';
+import getEnvConfig from '@/configs/env';
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${getEnvConfig().apiBaseUrl}/api/:path*`,
+      },
+    ];
+  },
+
   images: {
     remotePatterns: [
       {
