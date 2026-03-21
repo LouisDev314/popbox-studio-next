@@ -1,51 +1,34 @@
-import axios from 'axios';
+import type { AxiosRequestConfig } from 'axios';
 import { createClient } from '@/lib/supabase/client';
-import getEnvConfig from '@/configs/env';
 
-const API_BASE_URL = getEnvConfig().apiBaseUrl;
+export async function getAdminAuthHeaders(): Promise<Record<string, string>> {
+  if (typeof window === 'undefined') {
+    return {};
+  }
 
-/**
- * Axios instance pre-configured for admin API routes.
- * Handles attaching the Supabase access_token and redirecting on 401.
- */
-export const adminClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Attach Authorization header if session exists
-adminClient.interceptors.request.use(async (config) => {
-  const supabase = createClient();
   const {
     data: { session },
-  } = await supabase.auth.getSession();
+  } = await createClient().auth.getSession();
 
-  if (session?.access_token) {
-    config.headers.Authorization = `Bearer ${session.access_token}`;
+  if (!session?.access_token) {
+    return {};
   }
 
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
+  return {
+    Authorization: `Bearer ${session.access_token}`,
+  };
+}
 
-// Handle 401 and 403 responses
-adminClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response) {
-      if (error.response.status === 401) {
-        // Redirect to login if unauthorized
-        if (typeof window !== 'undefined') {
-          window.location.href = '/admin/login';
-        }
-      } else if (error.response.status === 403) {
-        // Standardize "No admin access" error to be caught by UI
-        console.error('No admin access');
-      }
-    }
-    return Promise.reject(error);
-  }
-);
+export async function withAdminAuth(
+  config: AxiosRequestConfig = {},
+): Promise<AxiosRequestConfig> {
+  const headers = await getAdminAuthHeaders();
+
+  return {
+    ...config,
+    headers: {
+      ...(config.headers ?? {}),
+      ...headers,
+    },
+  };
+}

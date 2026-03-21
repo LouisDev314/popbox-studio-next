@@ -1,58 +1,81 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState, type ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { AdminHeader } from '@/components/admin/admin-header';
+import { AdminSidebar } from '@/components/admin/admin-sidebar';
 
-export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#F7F9FB]">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-900" />
+    </div>
+  );
+}
+
+export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClient();
-  
+  const supabase = typeof window === 'undefined' ? null : createClient();
   const isLoginPage = pathname === '/admin/login';
 
   useEffect(() => {
-    let mounted = true;
+    if (!supabase) {
+      return;
+    }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
+    let isActive = true;
+
+    setIsLoading(true);
+
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isActive) return;
+
       if (!session && !isLoginPage) {
-        router.push('/admin/login');
-      } else if (session && isLoginPage) {
-        router.push('/admin/products');
-      } else {
-        setIsLoading(false);
+        router.replace('/admin/login');
+        return;
       }
+
+      if (session && isLoginPage) {
+        router.replace('/admin/products');
+        return;
+      }
+
+      setIsLoading(false);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
+      if (!isActive) return;
+
       if (!session && !isLoginPage) {
-        router.push('/admin/login');
+        setIsLoading(true);
+        router.replace('/admin/login');
+        return;
       }
+
+      if (session && isLoginPage) {
+        setIsLoading(true);
+        router.replace('/admin/products');
+        return;
+      }
+
+      setIsLoading(false);
     });
 
     return () => {
-      mounted = false;
+      isActive = false;
       subscription.unsubscribe();
     };
-  }, [router, supabase.auth, isLoginPage]);
+  }, [isLoginPage, router, supabase]);
 
-  // Prevent flash of unauthenticated content
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F9FB]">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-900" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
-  // If we are on the login page, strip the sidebar and header
   if (isLoginPage) {
     return <>{children}</>;
   }
@@ -61,7 +84,6 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen bg-[#F7F9FB]">
       <AdminSidebar />
 
-      {/* Main content area — offset by sidebar width on desktop */}
       <div className="flex flex-1 flex-col md:ml-60">
         <AdminHeader />
 

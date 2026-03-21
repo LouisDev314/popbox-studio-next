@@ -10,10 +10,16 @@ export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = typeof window === 'undefined' ? null : createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!supabase) {
+      setError('Admin authentication is unavailable in this environment.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -28,7 +34,7 @@ export default function AdminLoginPage() {
       return;
     }
 
-    router.push('/admin/products');
+    router.replace('/admin/products');
   };
 
   return (

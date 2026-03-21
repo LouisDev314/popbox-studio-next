@@ -9,24 +9,25 @@ import { createClient } from '@/lib/supabase/client';
  */
 export default function AdminPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = typeof window === 'undefined' ? null : createClient();
 
   useEffect(() => {
-    let mounted = true;
-    
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      if (session) {
-        router.replace('/admin/products');
-      } else {
-        router.replace('/admin/login');
-      }
+    if (!supabase) {
+      return;
+    }
+
+    let isActive = true;
+
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isActive) return;
+
+      router.replace(session ? '/admin/products' : '/admin/login');
     });
 
     return () => {
-      mounted = false;
+      isActive = false;
     };
-  }, [router, supabase.auth]);
+  }, [router, supabase]);
 
   return null;
 }
