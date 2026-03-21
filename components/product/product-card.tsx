@@ -36,7 +36,7 @@ export function ProductCard(props: IProductCardProps) {
       </div>
 
       <div className="z-20 flex flex-col gap-1">
-        <h3 className="line-clamp-2 min-h-[2.75rem] text-base font-semibold text-foreground transition-colors sm:min-h-[1.75rem] sm:text-lg">
+        <h3 className="line-clamp-2 min-h-11 text-base font-semibold text-foreground transition-colors sm:min-h-7 sm:text-lg">
           {props.product.name}
         </h3>
         {props.product.collection && (
@@ -46,7 +46,7 @@ export function ProductCard(props: IProductCardProps) {
         )}
       </div>
 
-      <p className="text-base text-primary font-bold text-foreground sm:text-lg">
+      <p className="text-base text-primary font-bold sm:text-lg">
         {formatPrice(props.product.priceCents, props.product.currency)}
       </p>
     </div>

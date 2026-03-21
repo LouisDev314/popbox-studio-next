@@ -5,9 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
-import { Input } from '@/components/ui/input';
 import { IAdminProduct } from '@/interfaces/product';
-import { handleNumericInputChange } from '@/utils/admin';
 import { NumericInput } from '@/components/ui/numeric-input';
 
 type ProductInventoryFormData = {
@@ -30,6 +28,9 @@ export function ProductInventoryForm({ product }: { product: IAdminProduct }) {
     mutationFn: MutationConfigs.updateAdminProductInventory,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+    },
+    onError: (e) => {
+      alert(`Failed to update product ${e}`);
     },
   });
 

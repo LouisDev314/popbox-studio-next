@@ -102,7 +102,7 @@ export function ProductCoreForm({ product }: { product: IAdminProduct }) {
         <div className="sm:col-span-2">
           <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Description</label>
           <textarea
-            className={inputClasses + ' min-h-[100px] resize-y py-3'}
+            className={inputClasses + ' min-h-25 resize-y py-3'}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
