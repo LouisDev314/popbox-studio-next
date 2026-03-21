@@ -87,7 +87,7 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
       <div className="bg-card w-full border border-border/50 rounded-2xl p-6 md:p-8 mb-8 text-left shadow-sm">
         <h2 className="text-lg font-semibold mb-4 border-b border-border/50 pb-4">Order Details</h2>
         <div className="grid grid-cols-2 gap-y-4 text-sm">
-          <div className="text-muted-foreground">Order Reference</div>
+          <div className="text-muted-foreground">Order Number</div>
           <div className="font-medium text-right text-foreground">{order.publicId}</div>
 
           <div className="text-muted-foreground">Status</div>
