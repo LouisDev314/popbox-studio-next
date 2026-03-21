@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
 import { Upload, Trash, ArrowUp, ArrowDown } from 'lucide-react';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -76,7 +77,7 @@ export function ProductMediaForm({ product }: { product: IAdminProduct }) {
           <button
             type="button"
             disabled={isUploading}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#E6E8EA] px-3 text-sm font-medium text-[#191C1E] transition-colors hover:bg-[#D5C1C9] disabled:opacity-50"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-[#191C1E] transition-colors hover:bg-primary/60 disabled:opacity-50"
           >
             <Upload className="h-3.5 w-3.5" />
             {isUploading ? 'Uploading...' : 'Upload Image'}
@@ -92,7 +93,13 @@ export function ProductMediaForm({ product }: { product: IAdminProduct }) {
         <div className="space-y-3">
           {images.map((img, idx) => (
             <div key={img.id} className="flex items-center gap-4 rounded-lg border border-[#D5C1C9]/50 p-3 transition-colors hover:bg-slate-50">
-              <img src={img.url} alt={img.altText || ''} className="h-16 w-16 rounded object-cover shadow-sm bg-[#E6E8EA] shrink-0" />
+              <Image
+                src={img.url}
+                alt={img.altText || ''}
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded object-cover shadow-sm bg-[#E6E8EA] shrink-0"
+              />
               
               <div className="flex-1 min-w-0">
                 <p className="truncate text-sm font-medium text-[#191C1E]">{img.storageKey.split('/').pop() || 'Image'}</p>

@@ -202,7 +202,7 @@ export default function AdminProductsPage() {
         </div>
         <Link
           href="/admin/products/new"
-          className="inline-flex h-9 items-center gap-2 rounded-lg bg-gradient-to-br from-[#8A486F] to-[#F9A8D4] px-4 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/60 active:bg-[#6A3553]"
         >
           <Plus className="h-4 w-4" />
           New Product

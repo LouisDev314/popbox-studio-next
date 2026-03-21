@@ -19,9 +19,16 @@ const STATUS_CONFIG: Record<IOrderStatus, { label: string; bg: string; text: str
 };
 
 function OrderStatusBadge({ status }: { status: IOrderStatus }) {
-  const config = STATUS_CONFIG[status] || { label: status, bg: 'bg-gray-100', text: 'text-gray-800' };
+  const config = STATUS_CONFIG[status] || {
+    label: status,
+    bg: 'bg-gray-100',
+    text: 'text-gray-800',
+  };
+
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-wide ${config.bg} ${config.text}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium tracking-wide ${config.bg} ${config.text}`}
+    >
       {config.label}
     </span>
   );
@@ -35,11 +42,11 @@ export default function AdminOrdersPageClient() {
     queryFn: QueryConfigs.fetchAdminOrders,
   });
 
-  const orders = fetchRes?.data?.data?.items || [];
+  const orders = fetchRes?.data?.data?.items ?? [];
 
   return (
     <div>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[#191C1E]">Orders</h1>
           <p className="mt-1 text-sm text-[#514349]">Monitor and process customer transactions.</p>
@@ -64,35 +71,42 @@ export default function AdminOrdersPageClient() {
                   <th className="px-5 py-4">Order ID</th>
                   <th className="px-5 py-4">Customer</th>
                   <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4">Items</th>
                   <th className="px-5 py-4">Total</th>
                   <th className="px-5 py-4">Date</th>
                 </tr>
               </thead>
+
               <tbody className="divide-y divide-[#D5C1C9]/30">
-                {orders.map((o) => {
-                  const customerName = [o.customer.firstName, o.customer.lastName].filter(Boolean).join(' ');
-                  const itemCount = o.items.reduce((sum, item) => sum + item.quantity, 0);
+                {orders.map((order) => {
+                  const customerName = [order.customer.firstName, order.customer.lastName]
+                    .filter(Boolean)
+                    .join(' ');
+
                   return (
-                    <tr 
-                      key={o.id} 
-                      className="transition-colors hover:bg-slate-50 cursor-pointer"
-                      onClick={() => router.push(`/admin/orders/${o.publicId}`)}
+                    <tr
+                      key={order.id}
+                      className="cursor-pointer transition-colors hover:bg-slate-50"
+                      onClick={() => router.push(`/admin/orders/${order.id}`)}
                     >
-                      <td className="px-5 py-4 font-mono text-sm text-[#191C1E] font-medium">{o.publicId}</td>
+                      <td className="px-5 py-4 font-mono text-sm font-medium text-[#191C1E]">
+                        {order.publicId}
+                      </td>
+
                       <td className="px-5 py-4">
                         <div className="font-medium text-[#191C1E]">{customerName || 'Guest'}</div>
-                        <div className="text-xs text-[#514349]">{o.customer.email}</div>
+                        <div className="text-xs text-[#514349]">{order.customer.email}</div>
                       </td>
+
                       <td className="px-5 py-4">
-                        <OrderStatusBadge status={o.status} />
+                        <OrderStatusBadge status={order.status} />
                       </td>
-                      <td className="px-5 py-4 text-[#514349]">{itemCount} {itemCount === 1 ? 'item' : 'items'}</td>
+
                       <td className="px-5 py-4 font-medium text-[#191C1E]">
-                        {formatPrice(o.totalCents, o.currency)}
+                        {formatPrice(order.totalCents, order.currency)}
                       </td>
-                      <td className="px-5 py-4 text-[#514349] text-xs">
-                        {o.placedAt ? new Date(o.placedAt).toLocaleString() : '—'}
+
+                      <td className="px-5 py-4 text-xs text-[#514349]">
+                        {order.placedAt ? new Date(order.placedAt).toLocaleString() : '—'}
                       </td>
                     </tr>
                   );

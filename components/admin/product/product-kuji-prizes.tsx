@@ -8,11 +8,15 @@ import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { Input } from '@/components/ui/input';
-import { IAdminProduct, IKujiPrize } from '@/interfaces/product';
+import { IAdminProduct } from '@/interfaces/product';
 
 export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
   const queryClient = useQueryClient();
-  const [newPrize, setNewPrize] = useState({ prizeCode: '', name: '', initialQuantity: 1 });
+  const [newPrize, setNewPrize] = useState({
+    prizeCode: '',
+    name: '',
+    initialQuantity: '1',
+  });
 
   const { data: prizesRes, isPending, refetch } = useCustomizeQuery({
     queryKey: ['admin', 'prizes', product.id],
@@ -26,14 +30,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
     mutationFn: MutationConfigs.createAdminProductKujiPrize,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
-      setNewPrize({ prizeCode: '', name: '', initialQuantity: 1 });
-    },
-  });
-
-  const { mutation: updatePrize, isPending: isUpdating } = useCustomizeMutation({
-    mutationFn: MutationConfigs.updateAdminProductKujiPrize,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
+      setNewPrize({ prizeCode: '', name: '', initialQuantity: '1' });
     },
   });
 
@@ -51,7 +48,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
       data: {
         prizeCode: newPrize.prizeCode.toUpperCase(),
         name: newPrize.name,
-        initialQuantity: newPrize.initialQuantity,
+        initialQuantity: Math.max(1, parseInt(newPrize.initialQuantity || '1', 10)),
       },
     });
   };
@@ -106,7 +103,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
                     <td className="px-3 py-2 text-right">
                       <button
                         type="button"
-                        disabled={isDeleting || isUpdating}
+                        disabled={isDeleting}
                         onClick={() => deletePrize({ productId: product.id, prizeId: prize.id })}
                         className="text-red-500 hover:text-red-600 p-1 opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
                         title="Delete Prize"
@@ -136,7 +133,25 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
           <div className="flex gap-2 items-end">
             <div className="flex-1">
               <label className="mb-1 block text-xs font-medium text-[#514349]">Qty</label>
-              <Input type="number" min="1" required value={newPrize.initialQuantity} onChange={e => setNewPrize(p => ({ ...p, initialQuantity: parseInt(e.target.value) || 1 }))} className="h-8 text-sm" />
+              <Input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                required
+                value={newPrize.initialQuantity}
+                onChange={(e) => {
+                  const value = e.target.value;
+
+                  if (!/^\d*$/.test(value)) return;
+
+                  setNewPrize((p) => ({
+                    ...p,
+                    initialQuantity: value,
+                  }));
+                }}
+                className="h-8 text-sm"
+                placeholder="1"
+              />
             </div>
             <button
               type="submit"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
@@ -10,30 +10,21 @@ import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { Input } from '@/components/ui/input';
 import { IAdminProduct, ICollection, ITag, productStatus } from '@/interfaces/product';
 
-export function ProductCoreForm({ product }: { product: IAdminProduct }) {
-  const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({
+function createInitialFormData(product: IAdminProduct) {
+  return {
     name: product.name,
     description: product.description || '',
     status: product.status,
     priceStr: (product.priceCents / 100).toFixed(2),
     sku: product.sku || '',
     collectionId: product.collectionId || '',
-    tagIds: product.tags?.map((t) => t.id) || [],
-  });
+    tagIds: product.tags?.map((tag) => tag.id) || [],
+  };
+}
 
-  // Re-sync if product changes externally
-  useEffect(() => {
-    setFormData({
-      name: product.name,
-      description: product.description || '',
-      status: product.status,
-      priceStr: (product.priceCents / 100).toFixed(2),
-      sku: product.sku || '',
-      collectionId: product.collectionId || '',
-      tagIds: product.tags?.map((t) => t.id) || [],
-    });
-  }, [product]);
+export function ProductCoreForm({ product }: { product: IAdminProduct }) {
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState(() => createInitialFormData(product));
 
   const { data: collectionsRes } = useCustomizeQuery<ICollection[]>({
     queryKey: ['admin', 'collections'],
@@ -91,7 +82,7 @@ export function ProductCoreForm({ product }: { product: IAdminProduct }) {
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#E6E8EA] px-3 text-sm font-medium text-[#191C1E] transition-colors hover:bg-[#D5C1C9] disabled:opacity-50"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-[#191C1E] transition-colors hover:bg-primary/60 disabled:opacity-50"
         >
           <Save className="h-3.5 w-3.5" />
           {isPending ? 'Saving...' : 'Save Info'}
@@ -135,13 +126,23 @@ export function ProductCoreForm({ product }: { product: IAdminProduct }) {
           <div className="relative">
             <span className="absolute left-3 top-2.5 text-sm text-[#514349]">$</span>
             <Input
-              type="number"
-              step="0.01"
-              min="0"
+              type="text"
+              inputMode="decimal"
               required
               className="pl-7"
               value={formData.priceStr}
-              onChange={(e) => setFormData({ ...formData, priceStr: e.target.value })}
+              onChange={(e) => {
+                const value = e.target.value;
+
+                // allow numbers + optional decimal
+                if (!/^\d*\.?\d*$/.test(value)) return;
+
+                setFormData((prev) => ({
+                  ...prev,
+                  priceStr: value,
+                }));
+              }}
+              placeholder="0.00"
             />
           </div>
         </div>

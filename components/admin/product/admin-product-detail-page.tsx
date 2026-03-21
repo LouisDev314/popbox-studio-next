@@ -26,6 +26,8 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
   if (isError) return <div className="p-12 text-center text-red-500">Failed to load product.</div>;
   if (!product) return <div className="p-12 text-center text-[#514349]">Product not found.</div>;
 
+  const productViewKey = `${product.id}:${product.updatedAt}`;
+
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       {/* Header */}
@@ -45,13 +47,13 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Main Forms */}
         <div className="lg:col-span-2 space-y-8">
-          <ProductCoreForm product={product} />
+          <ProductCoreForm key={`core:${productViewKey}`} product={product} />
           {product.productType === 'standard' && (
-            <ProductInventoryForm product={product} />
+            <ProductInventoryForm key={`inventory:${productViewKey}`} product={product} />
           )}
-          <ProductMediaForm product={product} />
+          <ProductMediaForm key={`media:${productViewKey}`} product={product} />
           {product.productType === 'kuji' && (
-            <ProductKujiPrizes product={product} />
+            <ProductKujiPrizes key={`prizes:${productViewKey}`} product={product} />
           )}
         </div>
         

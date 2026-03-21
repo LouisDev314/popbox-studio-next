@@ -90,8 +90,27 @@ export interface IGuestTicketView {
   };
 }
 
+interface IAdminOrderListCustomer {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+}
+
+export interface IAdminOrderListItem {
+  id: string;
+  publicId: string;
+  status: IOrderStatus;
+  totalCents: number;
+  currency: string;
+  placedAt: string | null;
+  createdAt: string;
+  customer: IAdminOrderListCustomer;
+}
+
 export interface IAdminOrderListResponse {
-  items: IOrderDetail[];
+  items: IAdminOrderListItem[];
+  nextCursor: string | null;
 }
 
 export interface IAdminOrderStatusUpdate {

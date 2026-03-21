@@ -10,17 +10,18 @@ import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { ICollection } from '@/interfaces/product';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { NumericInput } from '@/components/ui/numeric-input';
 
 type FormState = {
   id?: string;
   name: string;
   slug: string;
   description: string;
-  sortOrder: number;
+  sortOrder: string;
   isActive: boolean;
 };
 
-const DEFAULT_FORM: FormState = { name: '', slug: '', description: '', sortOrder: 0, isActive: true };
+const DEFAULT_FORM: FormState = { name: '', slug: '', description: '', sortOrder: '0', isActive: true };
 
 export default function AdminCollectionsPageClient() {
   const queryClient = useQueryClient();
@@ -62,7 +63,7 @@ export default function AdminCollectionsPageClient() {
       name: collection.name,
       slug: collection.slug,
       description: collection.description || '',
-      sortOrder: collection.sortOrder,
+      sortOrder: String(collection.sortOrder),
       isActive: collection.isActive,
     });
     setIsDialogOpen(true);
@@ -74,7 +75,7 @@ export default function AdminCollectionsPageClient() {
       name: formData.name,
       slug: formData.slug || formData.name.toLowerCase().replace(/[\s_]+/g, '-').replace(/[^\w-]/g, ''),
       description: formData.description || null,
-      sortOrder: formData.sortOrder,
+      sortOrder: parseInt(formData.sortOrder || '0', 10),
       isActive: formData.isActive,
     };
 
@@ -94,7 +95,7 @@ export default function AdminCollectionsPageClient() {
         </div>
         <button
           onClick={openCreateDialog}
-          className="inline-flex h-9 items-center gap-2 rounded-lg bg-gradient-to-br from-[#8A486F] to-[#F9A8D4] px-4 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/60 active:bg-[#6A3553]"
         >
           <Plus className="h-4 w-4" />
           New Collection
@@ -175,7 +176,17 @@ export default function AdminCollectionsPageClient() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Sort Order</label>
-                <Input type="number" required value={formData.sortOrder} onChange={e => setFormData(p => ({ ...p, sortOrder: parseInt(e.target.value) || 0 }))} />
+                <NumericInput
+                  required
+                  value={formData.sortOrder}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      sortOrder: value,
+                    }))
+                  }
+                  placeholder="0"
+                />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Status</label>

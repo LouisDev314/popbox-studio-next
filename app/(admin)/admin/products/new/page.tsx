@@ -10,6 +10,7 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { Input } from '@/components/ui/input';
 import { ICollection, ITag, productStatus, productType, IAdminProduct } from '@/interfaces/product';
+import { handleNumericInputChange } from '@/utils/admin';
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -23,8 +24,8 @@ export default function NewProductPage() {
     sku: '',
     collectionId: '',
     tagIds: [] as string[],
-    onHand: 0,
-    lowStockThreshold: 0,
+    onHand: '',
+    lowStockThreshold: '',
   });
 
   const { data: collectionsRes } = useCustomizeQuery<ICollection[]>({
@@ -56,7 +57,10 @@ export default function NewProductPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     const priceCents = Math.round(parseFloat(formData.priceStr || '0') * 100);
+    const onHand = parseInt(formData.onHand || '0', 10);
+    const lowStockThreshold = parseInt(formData.lowStockThreshold || '0', 10);
 
     createProduct({
       name: formData.name,
@@ -67,10 +71,13 @@ export default function NewProductPage() {
       sku: formData.sku || null,
       collectionId: formData.collectionId || null,
       tagIds: formData.tagIds,
-      inventory: formData.productType === 'standard' ? {
-        onHand: formData.onHand,
-        lowStockThreshold: formData.lowStockThreshold,
-      } : null,
+      inventory:
+        formData.productType === 'standard'
+          ? {
+            onHand,
+            lowStockThreshold,
+          }
+          : null,
     });
   };
 
@@ -111,7 +118,7 @@ export default function NewProductPage() {
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex h-9 items-center gap-2 rounded-lg bg-gradient-to-br from-[#8A486F] to-[#F9A8D4] px-4 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/60 active:bg-[#6A3553]"
           >
             <Save className="h-4 w-4" />
             {isPending ? 'Saving...' : 'Save Product'}
@@ -156,13 +163,22 @@ export default function NewProductPage() {
                 <div className="relative">
                   <span className="absolute left-3 top-2.5 text-sm text-[#514349]">$</span>
                   <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     required
                     className="pl-7"
                     value={formData.priceStr}
-                    onChange={(e) => setFormData({ ...formData, priceStr: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value;
+
+                      // allow numbers + optional decimal
+                      if (!/^\d*\.?\d*$/.test(value)) return;
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        priceStr: value,
+                      }));
+                    }}
                     placeholder="0.00"
                   />
                 </div>
@@ -181,21 +197,25 @@ export default function NewProductPage() {
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Stock on Hand</label>
                     <Input
-                      type="number"
-                      min="0"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       required
                       value={formData.onHand}
-                      onChange={(e) => setFormData({ ...formData, onHand: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => handleNumericInputChange('onHand', e.target.value, setFormData)}
+                      placeholder="0"
                     />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Low Stock Threshold</label>
                     <Input
-                      type="number"
-                      min="0"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       required
                       value={formData.lowStockThreshold}
-                      onChange={(e) => setFormData({ ...formData, lowStockThreshold: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => handleNumericInputChange('lowStockThreshold', e.target.value, setFormData)}
+                      placeholder="0"
                     />
                   </div>
                 </>

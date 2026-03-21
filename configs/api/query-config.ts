@@ -77,11 +77,11 @@ const QueryConfigs = {
       params: { token },
     });
   },
-  fetchGuestOrder: (publicId: string): Promise<AxiosResponse<IBaseApiResponse<IGuestOrderDetail>>> => {
-    return httpClient.get(`/api/v1/orders/${publicId}`);
+  fetchGuestOrder: (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestOrderDetail>>> => {
+    return httpClient.get(`/api/v1/orders/${id}`);
   },
-  fetchGuestTickets: (publicId: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
-    return httpClient.get(`/api/v1/orders/${publicId}/tickets`);
+  fetchGuestTickets: (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
+    return httpClient.get(`/api/v1/orders/${id}/tickets`);
   },
   fetchAdminProducts: (status?: productStatus): Promise<AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>> => {
     return httpClient.get('/api/v1/admin/products', {
