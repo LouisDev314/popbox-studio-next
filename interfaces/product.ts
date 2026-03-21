@@ -117,3 +117,33 @@ export interface IAdminProductListResponse {
 export interface IAdminProductStatusUpdate {
   status: productStatus;
 }
+
+export interface IAdminProductCreate {
+  name: string;
+  description: string | null;
+  productType: productType;
+  status: productStatus;
+  priceCents: number;
+  sku: string | null;
+  collectionId: string | null;
+  tagIds: string[];
+  inventory: {
+    onHand: number;
+    lowStockThreshold: number;
+  } | null;
+}
+
+export interface IAdminProductUpdate {
+  name?: string;
+  description?: string | null;
+  status?: productStatus;
+  priceCents?: number;
+  sku?: string | null;
+  collectionId?: string | null;
+  tagIds?: string[];
+}
+
+export interface IAdminProductInventoryUpdate {
+  onHand: number;
+  lowStockThreshold: number;
+}

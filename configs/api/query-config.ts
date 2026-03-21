@@ -3,10 +3,11 @@ import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IHomepageData } from '@/interfaces/home';
 import { IProduct, IProductListPage, ICollection, ITag, productSort, productType,
-  IProductSuggestionResponse, IAdminProductListResponse, productStatus,
+  IProductSuggestionResponse, IAdminProductListResponse, productStatus, IKujiPrize,
 } from '@/interfaces/product';
-import { IGuestOrderDetail, IGuestTicketView } from '@/interfaces/order';
+import { IGuestOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
+import { IAdminCustomerListResponse } from '@/interfaces/customer';
 
 const QueryConfigs = {
   fetchHomePage: (): Promise<AxiosResponse<IBaseApiResponse<IHomepageData>>> => {
@@ -86,6 +87,24 @@ const QueryConfigs = {
     return httpClient.get('/api/v1/admin/products', {
       params: status ? { status } : undefined,
     });
+  },
+  fetchAdminOrders: (): Promise<AxiosResponse<IBaseApiResponse<IAdminOrderListResponse>>> => {
+    return httpClient.get('/api/v1/admin/orders');
+  },
+  fetchAdminOrder: (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestOrderDetail>>> => {
+    return httpClient.get(`/api/v1/admin/orders/${id}`);
+  },
+  fetchAdminCustomers: (): Promise<AxiosResponse<IBaseApiResponse<IAdminCustomerListResponse>>> => {
+    return httpClient.get('/api/v1/admin/customers');
+  },
+  fetchAdminCollections: (): Promise<AxiosResponse<IBaseApiResponse<ICollection[]>>> => {
+    return httpClient.get('/api/v1/admin/collections');
+  },
+  fetchAdminTags: (): Promise<AxiosResponse<IBaseApiResponse<ITag[]>>> => {
+    return httpClient.get('/api/v1/admin/tags');
+  },
+  fetchAdminProductKujiPrizes: (productId: string): Promise<AxiosResponse<IBaseApiResponse<IKujiPrize[]>>> => {
+    return httpClient.get(`/api/v1/admin/products/${productId}/prizes`);
   },
 };
 

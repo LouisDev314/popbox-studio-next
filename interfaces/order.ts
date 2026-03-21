@@ -89,3 +89,21 @@ export interface IGuestTicketView {
     unrevealed: number;
   };
 }
+
+export interface IAdminOrderListResponse {
+  items: IOrderDetail[];
+}
+
+export interface IAdminOrderStatusUpdate {
+  status: IOrderStatus;
+}
+
+export interface IAdminOrderShipmentUpdate {
+  carrierName: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+}
+
+export interface IAdminOrderRefundRequest {
+  reason: string;
+}

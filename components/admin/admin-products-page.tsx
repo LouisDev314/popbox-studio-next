@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
@@ -18,8 +19,7 @@ import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { AdminProductStatusBadge } from '@/components/admin/admin-product-status-badge';
-import { formatPrice } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { formatPrice, cn } from '@/lib/utils';
 import type { IAdminProduct, IAdminProductListResponse, productStatus } from '@/interfaces/product';
 
 // --- Constants ---
@@ -346,9 +346,11 @@ function ProductThumbnail({ product }: { product: IAdminProduct }) {
 
   if (firstImage?.url) {
     return (
-      <img
+      <Image
         src={firstImage.url}
         alt={firstImage.altText ?? product.name}
+        width={36}
+        height={36}
         className="h-9 w-9 shrink-0 rounded-lg object-cover"
       />
     );
