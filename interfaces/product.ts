@@ -86,3 +86,34 @@ export interface IProductSuggestionResponse {
 export type productSort = 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc';
 
 export type productType = 'standard' | 'kuji';
+
+export type productStatus = 'draft' | 'active' | 'archived';
+
+// --- Admin-specific types ---
+
+export interface IAdminProduct {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  productType: productType;
+  status: productStatus;
+  priceCents: number;
+  currency: string;
+  sku: string | null;
+  collectionId: string | null;
+  collection: Pick<ICollection, 'id' | 'name'> | null;
+  tags: ITag[];
+  images: IProductImage[];
+  inventory: IProductInventory | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IAdminProductListResponse {
+  items: IAdminProduct[];
+}
+
+export interface IAdminProductStatusUpdate {
+  status: productStatus;
+}

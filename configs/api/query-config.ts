@@ -3,7 +3,7 @@ import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IHomepageData } from '@/interfaces/home';
 import { IProduct, IProductListPage, ICollection, ITag, productSort, productType,
-  IProductSuggestionResponse,
+  IProductSuggestionResponse, IAdminProductListResponse, productStatus,
 } from '@/interfaces/product';
 import { IGuestOrderDetail, IGuestTicketView } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
@@ -81,6 +81,11 @@ const QueryConfigs = {
   },
   fetchGuestTickets: (publicId: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
     return httpClient.get(`/api/v1/orders/${publicId}/tickets`);
+  },
+  fetchAdminProducts: (status?: productStatus): Promise<AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>> => {
+    return httpClient.get('/api/v1/admin/products', {
+      params: status ? { status } : undefined,
+    });
   },
 };
 

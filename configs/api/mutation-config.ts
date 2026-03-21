@@ -3,6 +3,7 @@ import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { ICheckoutRequest, ICheckoutSession } from '@/interfaces/checkout';
 import { IOrderTicket, IGuestTicketView } from '@/interfaces/order';
+import { IAdminProduct, IAdminProductStatusUpdate } from '@/interfaces/product';
 
 const MutationConfigs = {
   createCheckoutSession: (
@@ -26,6 +27,15 @@ const MutationConfigs = {
   },
   revealAllTickets: (publicId: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
     return httpClient.post(`/api/v1/orders/${publicId}/tickets/reveal-all`);
+  },
+  patchAdminProductStatus: ({
+    productId,
+    status,
+  }: {
+    productId: string;
+    status: IAdminProductStatusUpdate['status'];
+  }): Promise<AxiosResponse<IBaseApiResponse<IAdminProduct>>> => {
+    return httpClient.patch(`/api/v1/admin/products/${productId}`, { status });
   },
 };
 
