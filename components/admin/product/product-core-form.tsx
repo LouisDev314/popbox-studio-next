@@ -8,6 +8,7 @@ import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { IAdminProduct, ICollection, ITag, productStatus } from '@/interfaces/product';
 
 function createInitialFormData(product: IAdminProduct) {
@@ -17,8 +18,8 @@ function createInitialFormData(product: IAdminProduct) {
     status: product.status,
     priceStr: (product.priceCents / 100).toFixed(2),
     sku: product.sku || '',
-    collectionId: product.collectionId || '',
-    tagIds: product.tags?.map((tag) => tag.id) || [],
+    collectionId: product.collectionId || product.collection?.id || '',
+    tagIds: product.tags?.map((tag) => String(tag.id) || []),
   };
 }
 
@@ -59,7 +60,7 @@ export function ProductCoreForm({ product }: { product: IAdminProduct }) {
         priceCents,
         sku: formData.sku || null,
         collectionId: formData.collectionId || null,
-        tagIds: formData.tagIds,
+        tagIds: formData.tagIds as string[],
       },
     });
   };
@@ -79,14 +80,14 @@ export function ProductCoreForm({ product }: { product: IAdminProduct }) {
     <form onSubmit={handleSubmit} className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-[#191C1E] uppercase tracking-wider">Core Information</h2>
-        <button
+        <Button
           type="submit"
           disabled={isPending}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-[#191C1E] transition-colors hover:bg-primary/60 disabled:opacity-50"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors"
         >
           <Save className="h-3.5 w-3.5" />
           {isPending ? 'Saving...' : 'Save Info'}
-        </button>
+        </Button>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2">

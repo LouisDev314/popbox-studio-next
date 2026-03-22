@@ -6,6 +6,7 @@ import { Save } from 'lucide-react';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { IAdminProduct } from '@/interfaces/product';
+import { Button } from '@/components/ui/button';
 import { NumericInput } from '@/components/ui/numeric-input';
 
 type ProductInventoryFormData = {
@@ -50,14 +51,14 @@ export function ProductInventoryForm({ product }: { product: IAdminProduct }) {
     <form onSubmit={handleSubmit} className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-[#191C1E]">Inventory Tracking</h2>
-        <button
+        <Button
           type="submit"
           disabled={isPending}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-[#191C1E] transition-colors hover:bg-primary/60 disabled:opacity-50"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors"
         >
           <Save className="h-3.5 w-3.5" />
           {isPending ? 'Saving...' : 'Save Inventory'}
-        </button>
+        </Button>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-3">

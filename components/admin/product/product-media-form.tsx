@@ -3,10 +3,13 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
-import { Upload, Trash, ArrowUp, ArrowDown } from 'lucide-react';
+import { Trash, ArrowUp, ArrowDown } from 'lucide-react';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { IAdminProduct } from '@/interfaces/product';
+import { FileUpload } from '@/components/ui/file-upload';
+import { Button } from '@/components/ui/button';
+import getEnvConfig from '@/configs/env';
 
 export function ProductMediaForm({ product }: { product: IAdminProduct }) {
   const queryClient = useQueryClient();
@@ -36,14 +39,15 @@ export function ProductMediaForm({ product }: { product: IAdminProduct }) {
     },
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.length) return;
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
-
+  const handleFileChange = (files: File[]) => {
+    if (!files.length) return;
     setIsUploading(true);
-    uploadImage({ productId: product.id, formData });
+
+    files.forEach((file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      uploadImage({ productId: product.id, formData });
+    });
   };
 
   const handleMove = (index: number, direction: 'up' | 'down') => {
@@ -64,24 +68,15 @@ export function ProductMediaForm({ product }: { product: IAdminProduct }) {
 
   return (
     <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-[#191C1E] uppercase tracking-wider">Media & Images</h2>
-        <div className="relative">
-          <input
-            type="file"
-            accept="image/*"
-            className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-            onChange={handleFileChange}
-            disabled={isUploading}
-          />
-          <button
-            type="button"
-            disabled={isUploading}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-[#191C1E] transition-colors hover:bg-primary/60 disabled:opacity-50"
-          >
-            <Upload className="h-3.5 w-3.5" />
-            {isUploading ? 'Uploading...' : 'Upload Image'}
-          </button>
+      <div className="mb-6">
+        <h2 className="text-sm font-semibold text-[#191C1E] uppercase tracking-wider mb-4">Media & Images</h2>
+        <div className="relative border border-[#D5C1C9]/50 rounded-lg overflow-hidden transition-colors hover:border-primary/50">
+          {isUploading && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-[1px]">
+              <span className="text-sm font-medium text-primary shadow-sm bg-white px-3 py-1.5 rounded-full border border-primary/20">Uploading...</span>
+            </div>
+          )}
+          <FileUpload onChange={handleFileChange} />
         </div>
       </div>
 
@@ -91,53 +86,67 @@ export function ProductMediaForm({ product }: { product: IAdminProduct }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {images.map((img, idx) => (
-            <div key={img.id} className="flex items-center gap-4 rounded-lg border border-[#D5C1C9]/50 p-3 transition-colors hover:bg-slate-50">
-              <Image
-                src={img.url}
-                alt={img.altText || ''}
-                width={64}
-                height={64}
-                className="h-16 w-16 rounded object-cover shadow-sm bg-[#E6E8EA] shrink-0"
-              />
-              
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-medium text-[#191C1E]">{img.storageKey.split('/').pop() || 'Image'}</p>
-                {img.altText && <p className="truncate text-xs text-[#514349] mt-0.5">{img.altText}</p>}
-              </div>
+          {images.map((img, idx) => {
+            let imgSrc = img.url;
+            if (!imgSrc || !imgSrc.startsWith('http')) {
+              imgSrc = `${getEnvConfig().supabaseUrl}/storage/v1/object/public/${img.storageKey}`;
+            }
 
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  title="Move Up"
-                  disabled={idx === 0 || isReordering}
-                  onClick={() => handleMove(idx, 'up')}
-                  className="p-1.5 rounded text-[#514349] hover:bg-white hover:text-[#191C1E] disabled:opacity-30 disabled:hover:bg-transparent"
-                >
-                  <ArrowUp className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  title="Move Down"
-                  disabled={idx === images.length - 1 || isReordering}
-                  onClick={() => handleMove(idx, 'down')}
-                  className="p-1.5 rounded text-[#514349] hover:bg-white hover:text-[#191C1E] disabled:opacity-30 disabled:hover:bg-transparent"
-                >
-                  <ArrowDown className="w-4 h-4" />
-                </button>
-                <div className="mx-1 h-5 w-px bg-[#D5C1C9]/50" />
-                <button
-                  type="button"
-                  title="Delete"
-                  disabled={isDeleting}
-                  onClick={() => deleteImage({ productId: product.id, imageId: img.id })}
-                  className="p-1.5 rounded text-red-500 hover:bg-red-50 disabled:opacity-50"
-                >
-                  <Trash className="w-4 h-4" />
-                </button>
+            return (
+              <div key={img.id} className="flex items-center gap-4 rounded-lg border border-[#D5C1C9]/50 p-3 transition-colors hover:bg-slate-50">
+                <Image
+                  src={imgSrc}
+                  alt={img.altText || 'Product image'}
+                  width={64}
+                  height={64}
+                  className="h-16 w-16 rounded object-cover shadow-sm bg-[#E6E8EA] shrink-0"
+                  unoptimized={imgSrc.includes('supabase')}
+                />
+                
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-sm font-medium text-[#191C1E]">{img.storageKey.split('/').pop() || 'Image'}</p>
+                  {img.altText && <p className="truncate text-xs text-[#514349] mt-0.5">{img.altText}</p>}
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    title="Move Up"
+                    disabled={idx === 0 || isReordering}
+                    onClick={() => handleMove(idx, 'up')}
+                    className="h-8 w-8 text-[#514349]"
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    title="Move Down"
+                    disabled={idx === images.length - 1 || isReordering}
+                    onClick={() => handleMove(idx, 'down')}
+                    className="h-8 w-8 text-[#514349]"
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </Button>
+                  <div className="mx-1 h-5 w-px bg-[#D5C1C9]/50" />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    title="Delete"
+                    disabled={isDeleting}
+                    onClick={() => deleteImage({ productId: product.id, imageId: img.id })}
+                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                  >
+                    <Trash className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

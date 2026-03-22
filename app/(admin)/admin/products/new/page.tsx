@@ -9,6 +9,7 @@ import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { ICollection, ITag, productStatus, productType, IAdminProduct } from '@/interfaces/product';
 import { handleNumericInputChange } from '@/utils/admin';
 
@@ -115,14 +116,14 @@ export default function NewProductPage() {
           >
             Cancel
           </Link>
-          <button
+          <Button
             type="submit"
             disabled={isPending}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/60 active:bg-[#6A3553]"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-4 text-sm font-medium shadow-sm transition-colors"
           >
             <Save className="h-4 w-4" />
             {isPending ? 'Saving...' : 'Save Product'}
-          </button>
+          </Button>
         </div>
       </div>
 
