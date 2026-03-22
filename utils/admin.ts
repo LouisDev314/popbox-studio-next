@@ -3,9 +3,61 @@ import {
   IAdminProductDetail,
   IAdminProductEditor,
   IAdminProductImage,
+  IAdminProductImagePatch,
   IAdminProductImageUploadResponse,
   ITag,
 } from '@/interfaces/product';
+
+const hasOwn = <Key extends PropertyKey>(
+  value: object,
+  key: Key,
+): value is Record<Key, unknown> => Object.prototype.hasOwnProperty.call(value, key);
+
+const normalizeOptionalString = (value: unknown) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue === '' ? null : trimmedValue;
+};
+
+const normalizeSortOrder = (value: unknown, fallback: number) => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  return fallback;
+};
+
+const toAdminImageSourceList = (
+  images?: IAdminProductImage[] | IAdminProductImageUploadResponse | null,
+) => {
+  if (!images) {
+    return [] as IAdminProductImagePatch[];
+  }
+
+  return Array.isArray(images) ? images : [images];
+};
+
+const normalizeAdminImage = (
+  image: IAdminProductImagePatch,
+  fallbackSortOrder: number,
+): IAdminProductImage | null => {
+  const id = normalizeOptionalString(image.id);
+
+  if (!id) {
+    return null;
+  }
+
+  return {
+    id,
+    storageKey: normalizeOptionalString(image.storageKey),
+    altText: hasOwn(image, 'altText') ? normalizeOptionalString(image.altText) : null,
+    sortOrder: normalizeSortOrder(image.sortOrder, fallbackSortOrder),
+    url: hasOwn(image, 'url') ? normalizeOptionalString(image.url) : null,
+  };
+};
 
 export const parsePriceToCents = (value: string) => {
   const trimmedValue = value.trim();
@@ -46,20 +98,9 @@ export const extractTagIds = (tags?: Pick<ITag, 'id'>[] | null) =>
 export const normalizeAdminImages = (
   images?: IAdminProductImage[] | IAdminProductImageUploadResponse | null,
 ) => {
-  if (!images) {
-    return [] as IAdminProductImage[];
-  }
-
-  const imageList = Array.isArray(images) ? images : [images];
-
-  return imageList
-    .map((image) => ({
-      id: image.id,
-      storageKey: image.storageKey,
-      altText: image.altText ?? null,
-      sortOrder: image.sortOrder,
-      url: image.url ?? null,
-    }))
+  return toAdminImageSourceList(images)
+    .map((image, index) => normalizeAdminImage(image, index))
+    .filter((image): image is IAdminProductImage => image !== null)
     .sort((left, right) => left.sortOrder - right.sortOrder);
 };
 
@@ -67,28 +108,49 @@ export const mergeAdminImages = (
   currentImages: IAdminProductImage[],
   nextImages?: IAdminProductImage[] | IAdminProductImageUploadResponse | null,
 ) => {
+  const normalizedCurrentImages = normalizeAdminImages(currentImages);
+
   if (nextImages === undefined) {
-    return currentImages;
+    return normalizedCurrentImages;
   }
 
-  const normalizedImages = normalizeAdminImages(nextImages);
-  const currentImageMap = new Map(currentImages.map((image) => [image.id, image]));
+  const currentImageMap = new Map(normalizedCurrentImages.map((image) => [image.id, image]));
 
-  return normalizedImages.map((image) => {
-    const currentImage = currentImageMap.get(image.id);
+  return toAdminImageSourceList(nextImages)
+    .map((image, index) => {
+      const normalizedId = normalizeOptionalString(image.id);
 
-    return {
-      ...currentImage,
-      ...image,
-      url: image.url ?? currentImage?.url ?? null,
-    };
-  });
+      if (!normalizedId) {
+        return null;
+      }
+
+      const currentImage = currentImageMap.get(normalizedId);
+      const normalizedImage = normalizeAdminImage(
+        image,
+        currentImage?.sortOrder ?? index,
+      );
+
+      if (!normalizedImage) {
+        return null;
+      }
+
+      return {
+        ...normalizedImage,
+        storageKey: hasOwn(image, 'storageKey')
+          ? normalizeOptionalString(image.storageKey)
+          : currentImage?.storageKey ?? null,
+        altText: hasOwn(image, 'altText')
+          ? normalizeOptionalString(image.altText)
+          : currentImage?.altText ?? null,
+        sortOrder: normalizeSortOrder(image.sortOrder, normalizedImage.sortOrder),
+        url: hasOwn(image, 'url')
+          ? normalizeOptionalString(image.url)
+          : currentImage?.url ?? null,
+      };
+    })
+    .filter((image): image is IAdminProductImage => image !== null)
+    .sort((left, right) => left.sortOrder - right.sortOrder);
 };
-
-const hasOwn = <Key extends PropertyKey>(
-  value: object,
-  key: Key,
-): value is Record<Key, unknown> => Object.prototype.hasOwnProperty.call(value, key);
 
 export const mergeAdminProductIntoEditor = (
   currentProduct: IAdminProductEditor,

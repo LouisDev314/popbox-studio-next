@@ -27,19 +27,21 @@ export interface IProductImage {
 
 export interface IAdminProductImage {
   id: string;
-  storageKey: string;
+  storageKey: string | null;
   altText: string | null;
   sortOrder: number;
   url: string | null;
 }
 
-export interface IAdminProductImageUpload {
+export interface IAdminProductImagePatch {
   id: string;
-  storageKey: string;
-  altText: string | null;
-  sortOrder: number;
+  storageKey?: string | null;
+  altText?: string | null;
+  sortOrder?: number | null;
   url?: string | null;
 }
+
+export type IAdminProductImageUpload = IAdminProductImagePatch;
 
 export interface IProductInventory {
   onHand: number;

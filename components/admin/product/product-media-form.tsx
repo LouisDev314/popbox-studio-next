@@ -10,7 +10,7 @@ import { IAdminProductEditor } from '@/interfaces/product';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Button } from '@/components/ui/button';
 import getEnvConfig from '@/configs/env';
-import { mergeAdminImages, normalizeAdminImages } from '@/utils/admin';
+import { mergeAdminImages } from '@/utils/admin';
 
 interface IProductMediaFormProps {
   product: IAdminProductEditor;
@@ -27,7 +27,9 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
   const { mutation: uploadImage } = useCustomizeMutation({
     mutationFn: MutationConfigs.uploadAdminProductImage,
     onSuccess: (response) => {
-      const uploadedImages = normalizeAdminImages(response.data.data);
+      const uploadedImages = Array.isArray(response.data.data)
+        ? response.data.data
+        : [response.data.data];
 
       onProductChange((currentProduct) => {
         if (!currentProduct) {
@@ -135,6 +137,31 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
     deleteImage({ productId: product.id, imageId });
   };
 
+  const getImagePreviewSrc = (url: string | null, storageKey: string | null) => {
+    if (url) {
+      return url;
+    }
+
+    if (!storageKey) {
+      return null;
+    }
+
+    return `${getEnvConfig().supabaseUrl}/storage/v1/object/public/${storageKey}`;
+  };
+
+  const getImageLabel = (storageKey: string | null, url: string | null, index: number) => {
+    const candidate = storageKey ?? url;
+
+    if (!candidate) {
+      return `Image ${index + 1}`;
+    }
+
+    const normalizedCandidate = candidate.split('?')[0]?.split('#')[0] ?? candidate;
+    const lastSegment = normalizedCandidate.split('/').filter(Boolean).pop();
+
+    return lastSegment || `Image ${index + 1}`;
+  };
+
   return (
     <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
       <div className="mb-6 space-y-4">
@@ -160,26 +187,30 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
       ) : (
         <div className="grid gap-3">
           {images.map((img, idx) => {
-            let imgSrc = img.url;
-            if (!imgSrc || !imgSrc.startsWith('http')) {
-              imgSrc = `${getEnvConfig().supabaseUrl}/storage/v1/object/public/${img.storageKey}`;
-            }
+            const imgSrc = getImagePreviewSrc(img.url, img.storageKey);
+            const imageLabel = getImageLabel(img.storageKey, img.url, idx);
 
             return (
               <div key={img.id} className="flex items-center gap-4 rounded-xl border border-[#D5C1C9]/50 bg-[#FBFAFB] p-3 transition-colors hover:bg-white">
                 <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-[#E6E8EA] shadow-sm">
-                  <Image
-                    src={imgSrc}
-                    alt={img.altText || 'Product image'}
-                    fill
-                    sizes="72px"
-                    className="object-cover"
-                    unoptimized={imgSrc.includes('supabase')}
-                  />
+                  {imgSrc ? (
+                    <Image
+                      src={imgSrc}
+                      alt={img.altText || 'Product image'}
+                      fill
+                      sizes="72px"
+                      className="object-cover"
+                      unoptimized={imgSrc.includes('supabase')}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] font-medium uppercase tracking-wider text-[#514349]/60">
+                      No preview
+                    </div>
+                  )}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-[#191C1E]">{img.storageKey.split('/').pop() || 'Image'}</p>
+                  <p className="truncate text-sm font-medium text-[#191C1E]">{imageLabel}</p>
                   {img.altText && <p className="mt-0.5 truncate text-xs text-[#514349]">{img.altText}</p>}
                   <p className="mt-1 text-[11px] uppercase tracking-wider text-[#514349]/60">Position {idx + 1}</p>
                 </div>

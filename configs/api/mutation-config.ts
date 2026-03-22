@@ -5,7 +5,7 @@ import { ICheckoutRequest, ICheckoutSession } from '@/interfaces/checkout';
 import { IOrderTicket, IGuestTicketView, IAdminOrderStatusUpdate, IAdminOrderShipmentUpdate, IAdminOrderRefundRequest, IOrderDetail } from '@/interfaces/order';
 import {
   IAdminProduct,
-  IAdminProductImage,
+  IAdminProductImagePatch,
   IAdminProductImageUploadResponse,
   IAdminProductStatusUpdate,
   IAdminProductCreate,
@@ -63,7 +63,7 @@ const MutationConfigs = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }));
   },
-  reorderAdminProductImages: async ({ productId, imageIds }: { productId: string; imageIds: string[] }): Promise<AxiosResponse<IBaseApiResponse<IAdminProductImage[]>>> => {
+  reorderAdminProductImages: async ({ productId, imageIds }: { productId: string; imageIds: string[] }): Promise<AxiosResponse<IBaseApiResponse<IAdminProductImagePatch[]>>> => {
     return httpClient.patch(`/api/v1/admin/products/${productId}/images/reorder`, { imageIds }, await withAdminAuth());
   },
   deleteAdminProductImage: async ({ productId, imageId }: { productId: string; imageId: string }): Promise<AxiosResponse<IBaseApiResponse<void>>> => {
