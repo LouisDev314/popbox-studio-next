@@ -10,8 +10,11 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { ICollection, ITag, productStatus, productType, IAdminProduct } from '@/interfaces/product';
-import { handleNumericInputChange } from '@/utils/admin';
+import { normalizeTagId, parsePriceToCents, parseWholeNumber, toNullableText } from '@/utils/admin';
+
+const DEFAULT_CURRENCY = 'CAD';
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -59,35 +62,33 @@ export default function NewProductPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const priceCents = Math.round(parseFloat(formData.priceStr || '0') * 100);
-    const onHand = parseInt(formData.onHand || '0', 10);
-    const lowStockThreshold = parseInt(formData.lowStockThreshold || '0', 10);
+    const priceCents = parsePriceToCents(formData.priceStr);
+    const onHand = formData.productType === 'standard' ? parseWholeNumber(formData.onHand) : 0;
+    const lowStockThreshold = formData.productType === 'standard' ? parseWholeNumber(formData.lowStockThreshold) : 0;
 
     createProduct({
+      collectionId: formData.collectionId || null,
       name: formData.name,
-      description: formData.description || null,
+      description: toNullableText(formData.description),
       productType: formData.productType,
       status: formData.status,
       priceCents,
-      sku: formData.sku || null,
-      collectionId: formData.collectionId || null,
+      currency: DEFAULT_CURRENCY,
+      sku: toNullableText(formData.sku),
       tagIds: formData.tagIds,
-      inventory:
-        formData.productType === 'standard'
-          ? {
-            onHand,
-            lowStockThreshold,
-          }
-          : null,
+      lowStockThreshold,
+      onHand,
     });
   };
 
   const toggleTag = (tagId: string) => {
+    const normalizedTagId = normalizeTagId(tagId);
+
     setFormData((prev) => ({
       ...prev,
-      tagIds: prev.tagIds.includes(tagId)
-        ? prev.tagIds.filter((id) => id !== tagId)
-        : [...prev.tagIds, tagId],
+      tagIds: prev.tagIds.includes(normalizedTagId)
+        ? prev.tagIds.filter((id) => id !== normalizedTagId)
+        : [...prev.tagIds, normalizedTagId],
     }));
   };
 
@@ -95,27 +96,22 @@ export default function NewProductPage() {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-8">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link
-            href="/admin/products"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#D5C1C9]/50 bg-white text-[#514349] transition-colors hover:bg-[#F2F4F6]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
+          <Button asChild type="button" variant="outline" size="icon" className="h-9 w-9 rounded-lg border-[#D5C1C9]/50 text-[#514349]">
+            <Link href="/admin/products" aria-label="Back to products">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-[#191C1E]">Create Product</h1>
             <p className="mt-1 text-sm text-[#514349]">Add a new product to your catalog.</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Link
-            href="/admin/products"
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-[#D5C1C9]/50 bg-white px-4 text-sm font-medium text-[#191C1E] transition-colors hover:bg-[#F2F4F6]"
-          >
-            Cancel
-          </Link>
+          <Button asChild type="button" variant="outline" className="h-9 rounded-lg border-[#D5C1C9]/50 text-[#191C1E]">
+            <Link href="/admin/products">Cancel</Link>
+          </Button>
           <Button
             type="submit"
             disabled={isPending}
@@ -127,10 +123,8 @@ export default function NewProductPage() {
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Core Info */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="space-y-6">
           <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold text-[#191C1E] uppercase tracking-wider">Core Information</h2>
             <div className="space-y-4">
@@ -155,7 +149,6 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          {/* Pricing & Inventory */}
           <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold text-[#191C1E] uppercase tracking-wider">Pricing & Inventory</h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -197,25 +190,19 @@ export default function NewProductPage() {
                 <>
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Stock on Hand</label>
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
+                    <NumericInput
                       required
                       value={formData.onHand}
-                      onChange={(e) => handleNumericInputChange('onHand', e.target.value, setFormData)}
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, onHand: value }))}
                       placeholder="0"
                     />
                   </div>
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Low Stock Threshold</label>
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
+                    <NumericInput
                       required
                       value={formData.lowStockThreshold}
-                      onChange={(e) => handleNumericInputChange('lowStockThreshold', e.target.value, setFormData)}
+                      onValueChange={(value) => setFormData((prev) => ({ ...prev, lowStockThreshold: value }))}
                       placeholder="0"
                     />
                   </div>
@@ -224,8 +211,7 @@ export default function NewProductPage() {
             </div>
           </div>
 
-          {/* Pending Sections */}
-          <div className="rounded-xl border border-dashed border-[#D5C1C9] bg-white p-8 text-center shadow-sm">
+          <div className="rounded-xl border border-dashed border-[#D5C1C9] bg-[#FBFAFB] p-8 text-center shadow-sm">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
               <ImageIcon className="h-6 w-6 text-primary" />
             </div>
@@ -234,7 +220,7 @@ export default function NewProductPage() {
           </div>
 
           {formData.productType === 'kuji' && (
-            <div className="rounded-xl border border-dashed border-[#D5C1C9] bg-white p-8 text-center shadow-sm">
+            <div className="rounded-xl border border-dashed border-[#D5C1C9] bg-[#FBFAFB] p-8 text-center shadow-sm">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-secondary/10">
                 <Boxes className="h-6 w-6 text-secondary" />
               </div>
@@ -244,7 +230,6 @@ export default function NewProductPage() {
           )}
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-6">
           <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold text-[#191C1E] uppercase tracking-wider">Organization</h2>
@@ -290,22 +275,36 @@ export default function NewProductPage() {
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Tags (Optional)</label>
-                <div className="max-h-48 overflow-y-auto rounded-md border border-input p-2">
+                <div className="flex max-h-56 flex-wrap gap-2 overflow-y-auto rounded-xl border border-input bg-[#FBFAFB] p-3">
                   {tags.length === 0 ? (
                     <p className="p-2 text-xs text-muted-foreground">No tags available.</p>
                   ) : (
-                    tags.map((tag) => (
-                      <label key={tag.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted md:cursor-pointer">
+                    tags.map((tag) => {
+                      const normalizedTagId = normalizeTagId(tag.id);
+                      const isSelected = formData.tagIds.includes(normalizedTagId);
+
+                      return (
+                      <label
+                        key={tag.id}
+                        className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors md:cursor-pointer ${
+                          isSelected
+                            ? 'border-primary/30 bg-primary/10 text-primary shadow-sm'
+                            : 'border-[#D5C1C9]/50 bg-white text-[#514349] hover:border-[#D5C1C9] hover:bg-[#F7F4F6]'
+                        }`}
+                      >
                         <input
                           type="checkbox"
-                          checked={formData.tagIds.includes(tag.id)}
-                          onChange={() => toggleTag(tag.id)}
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                          checked={isSelected}
+                          onChange={() => toggleTag(normalizedTagId)}
+                          className="hidden"
                         />
-                        <span className="text-sm text-[#514349]">{tag.name}</span>
-                        <span className="ml-auto text-[10px] uppercase tracking-widest text-muted-foreground">{tag.tagType}</span>
+                        <span>{tag.name}</span>
+                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${isSelected ? 'bg-primary/10 text-primary' : 'bg-[#F2F4F6] text-[#514349]/70'}`}>
+                          {tag.tagType}
+                        </span>
                       </label>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>

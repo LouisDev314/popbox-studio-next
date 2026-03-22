@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
-import { IAdminProductListResponse } from '@/interfaces/product';
+import { Button } from '@/components/ui/button';
+import { IAdminProductEditor, IAdminProductListResponse } from '@/interfaces/product';
+import { mergeAdminProductEditor } from '@/utils/admin';
 
 import { ProductCoreForm } from './product-core-form';
 import { ProductInventoryForm } from './product-inventory-form';
@@ -16,51 +18,55 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
   const { data: productsRes, isPending, isError } = useCustomizeQuery<IAdminProductListResponse>({
     queryKey: ['admin', 'products'],
     queryFn: () => QueryConfigs.fetchAdminProducts(),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
+  const [product, setProduct] = useState<IAdminProductEditor | null>(null);
 
-  const product = useMemo(() => {
-    return productsRes?.data?.data?.items?.find((p) => p.id === productId);
-  }, [productsRes, productId]);
+  const matchedProduct = productsRes?.data?.data?.items?.find((candidate) => candidate.id === productId);
+
+  useEffect(() => {
+    if (!matchedProduct) {
+      return;
+    }
+
+    // TODO: replace this list-based editor hydration when the backend exposes GET /api/v1/admin/products/:id.
+    setProduct((currentProduct) => mergeAdminProductEditor(currentProduct, matchedProduct));
+  }, [matchedProduct]);
 
   if (isPending) return <div className="p-12 text-center text-[#514349]">Loading product details...</div>;
   if (isError) return <div className="p-12 text-center text-red-500">Failed to load product.</div>;
   if (!product) return <div className="p-12 text-center text-[#514349]">Product not found.</div>;
 
-  const productViewKey = `${product.id}:${product.updatedAt}`;
-
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          href="/admin/products"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#D5C1C9]/50 bg-white text-[#514349] transition-colors hover:bg-[#F2F4F6]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex items-start gap-4">
+        <Button asChild type="button" variant="outline" size="icon" className="h-9 w-9 rounded-lg border-[#D5C1C9]/50 text-[#514349]">
+          <Link href="/admin/products" aria-label="Back to products">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[#191C1E]">{product.name}</h1>
-          <p className="mt-1 text-sm text-[#514349]">Manage product details, inventory, and media.</p>
+          <p className="mt-1 text-sm text-[#514349]">Manage product details, inventory, media, and tags.</p>
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        {/* Main Forms */}
-        <div className="lg:col-span-2 space-y-8">
-          <ProductCoreForm key={`core:${productViewKey}`} product={product} />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="space-y-6">
+          <ProductCoreForm product={product} onProductChange={setProduct} />
           {product.productType === 'standard' && (
-            <ProductInventoryForm key={`inventory:${productViewKey}`} product={product} />
+            <ProductInventoryForm product={product} onProductChange={setProduct} />
           )}
-          <ProductMediaForm key={`media:${productViewKey}`} product={product} />
+          <ProductMediaForm product={product} onProductChange={setProduct} />
           {product.productType === 'kuji' && (
-            <ProductKujiPrizes key={`prizes:${productViewKey}`} product={product} />
+            <ProductKujiPrizes product={product} />
           )}
         </div>
-        
-        {/* Sidebar info */}
-        <div className="space-y-8 flex flex-col">
+
+        <div className="space-y-6">
           <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-xs font-semibold text-[#514349] uppercase tracking-wider">Summary</h2>
+            <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-[#514349]">Summary</h2>
             <dl className="space-y-4 text-sm">
               <div>
                 <dt className="text-[#514349]/70 mb-1">Type</dt>
@@ -69,6 +75,18 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
               <div>
                 <dt className="text-[#514349]/70 mb-1">Status</dt>
                 <dd className="font-medium text-[#191C1E] capitalize">{product.status}</dd>
+              </div>
+              <div>
+                <dt className="text-[#514349]/70 mb-1">Collection</dt>
+                <dd className="font-medium text-[#191C1E]">{product.collection?.name ?? 'None'}</dd>
+              </div>
+              <div>
+                <dt className="text-[#514349]/70 mb-1">Images</dt>
+                <dd className="font-medium text-[#191C1E]">{product.images.length}</dd>
+              </div>
+              <div>
+                <dt className="text-[#514349]/70 mb-1">Tags</dt>
+                <dd className="font-medium text-[#191C1E]">{product.tagIds.length}</dd>
               </div>
               <div>
                 <dt className="text-[#514349]/70 mb-1">Created</dt>

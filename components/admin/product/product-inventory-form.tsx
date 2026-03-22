@@ -1,33 +1,65 @@
 'use client';
 
-import { useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
-import { IAdminProduct } from '@/interfaces/product';
+import { IAdminProductEditor } from '@/interfaces/product';
 import { Button } from '@/components/ui/button';
 import { NumericInput } from '@/components/ui/numeric-input';
+import { parseWholeNumber } from '@/utils/admin';
 
 type ProductInventoryFormData = {
   onHand: string;
   lowStockThreshold: string;
 };
 
-function createInitialFormData(product: IAdminProduct): ProductInventoryFormData {
+function createInitialFormData(product: IAdminProductEditor): ProductInventoryFormData {
   return {
     onHand: String(product.inventory?.onHand ?? 0),
     lowStockThreshold: String(product.inventory?.lowStockThreshold ?? 0),
   };
 }
 
-export function ProductInventoryForm({ product }: { product: IAdminProduct }) {
+interface IProductInventoryFormProps {
+  product: IAdminProductEditor;
+  onProductChange: Dispatch<SetStateAction<IAdminProductEditor | null>>;
+}
+
+export function ProductInventoryForm({ product, onProductChange }: IProductInventoryFormProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<ProductInventoryFormData>(() => createInitialFormData(product));
 
+  useEffect(() => {
+    setFormData(createInitialFormData(product));
+  }, [product.id, product.inventory?.lowStockThreshold, product.inventory?.onHand, product.updatedAt]);
+
   const { mutation: updateInventory, isPending } = useCustomizeMutation({
     mutationFn: MutationConfigs.updateAdminProductInventory,
-    onSuccess: () => {
+    onSuccess: (response) => {
+      const nextOnHand = parseWholeNumber(formData.onHand);
+      const nextLowStockThreshold = parseWholeNumber(formData.lowStockThreshold);
+
+      onProductChange((currentProduct) => {
+        if (!currentProduct) {
+          return currentProduct;
+        }
+
+        const reserved = currentProduct.inventory?.reserved ?? 0;
+
+        return {
+          ...currentProduct,
+          ...response.data.data,
+          inventory: {
+            onHand: nextOnHand,
+            reserved,
+            available: Math.max(nextOnHand - reserved, 0),
+            lowStockThreshold: nextLowStockThreshold,
+          },
+        };
+      });
+
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
     },
     onError: (e) => {
@@ -41,8 +73,8 @@ export function ProductInventoryForm({ product }: { product: IAdminProduct }) {
     updateInventory({
       productId: product.id,
       data: {
-        onHand: parseInt(formData.onHand || '0', 10),
-        lowStockThreshold: parseInt(formData.lowStockThreshold || '0', 10),
+        onHand: parseWholeNumber(formData.onHand),
+        lowStockThreshold: parseWholeNumber(formData.lowStockThreshold),
       },
     });
   };

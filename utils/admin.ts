@@ -1,28 +1,117 @@
-import { Dispatch, SetStateAction } from 'react';
-import { productStatus, productType } from '@/interfaces/product';
+import {
+  IAdminProduct,
+  IAdminProductEditor,
+  IAdminProductImage,
+  IAdminProductImageUploadResponse,
+  ITag,
+} from '@/interfaces/product';
 
-type StateAction = {
-  name: string;
-  description: string;
-  productType: productType;
-  status: productStatus;
-  priceStr: string;
-  sku: string;
-  collectionId: string;
-  tagIds: string[];
-  onHand: string;
-  lowStockThreshold: string;
+export const parsePriceToCents = (value: string) => {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return 0;
+  }
+
+  const parsedValue = Number.parseFloat(trimmedValue);
+
+  if (!Number.isFinite(parsedValue)) {
+    return 0;
+  }
+
+  return Math.round(parsedValue * 100);
 };
 
-export const handleNumericInputChange = (
-  key: 'onHand' | 'lowStockThreshold',
-  value: string,
-  setFormData: Dispatch<SetStateAction<StateAction>>,
-) => {
-  if (!/^\d*$/.test(value)) return;
+export const parseWholeNumber = (value: string) => {
+  if (!value) {
+    return 0;
+  }
 
-  setFormData((prev) => ({
-    ...prev,
-    [key]: value,
-  }));
+  const parsedValue = Number.parseInt(value, 10);
+
+  return Number.isNaN(parsedValue) ? 0 : parsedValue;
+};
+
+export const toNullableText = (value: string) => {
+  const trimmedValue = value.trim();
+  return trimmedValue === '' ? null : trimmedValue;
+};
+
+export const normalizeTagId = (value: string | number) => String(value);
+
+export const extractTagIds = (tags?: Pick<ITag, 'id'>[] | null) =>
+  tags?.map((tag) => normalizeTagId(tag.id)) ?? [];
+
+export const normalizeAdminImages = (
+  images?: IAdminProductImage[] | IAdminProductImageUploadResponse | null,
+) => {
+  if (!images) {
+    return [] as IAdminProductImage[];
+  }
+
+  const imageList = Array.isArray(images) ? images : [images];
+
+  return imageList
+    .map((image) => ({
+      id: image.id,
+      storageKey: image.storageKey,
+      altText: image.altText ?? null,
+      sortOrder: image.sortOrder,
+      url: image.url ?? null,
+    }))
+    .sort((left, right) => left.sortOrder - right.sortOrder);
+};
+
+export const mergeAdminImages = (
+  currentImages: IAdminProductImage[],
+  nextImages?: IAdminProductImage[] | IAdminProductImageUploadResponse | null,
+) => {
+  if (nextImages === undefined) {
+    return currentImages;
+  }
+
+  const normalizedImages = normalizeAdminImages(nextImages);
+  const currentImageMap = new Map(currentImages.map((image) => [image.id, image]));
+
+  return normalizedImages.map((image) => {
+    const currentImage = currentImageMap.get(image.id);
+
+    return {
+      ...currentImage,
+      ...image,
+      url: image.url ?? currentImage?.url ?? null,
+    };
+  });
+};
+
+export const buildAdminProductEditor = (product: IAdminProduct): IAdminProductEditor => ({
+  ...product,
+  description: product.description ?? null,
+  collection: product.collection ?? null,
+  tags: product.tags,
+  tagIds: extractTagIds(product.tags),
+  images: normalizeAdminImages(product.images),
+  inventory: product.inventory ?? null,
+});
+
+export const mergeAdminProductEditor = (
+  currentProduct: IAdminProductEditor | null,
+  nextProduct: IAdminProduct,
+): IAdminProductEditor => {
+  const normalizedNextProduct = buildAdminProductEditor(nextProduct);
+
+  if (!currentProduct) {
+    return normalizedNextProduct;
+  }
+
+  return {
+    ...currentProduct,
+    ...normalizedNextProduct,
+    description: nextProduct.description ?? currentProduct.description,
+    collection: nextProduct.collection ?? currentProduct.collection ?? null,
+    tags: nextProduct.tags ?? currentProduct.tags ?? [],
+    tagIds: nextProduct.tags !== undefined ? extractTagIds(nextProduct.tags) : currentProduct.tagIds,
+    images: mergeAdminImages(currentProduct.images, nextProduct.images),
+    inventory: nextProduct.inventory ?? currentProduct.inventory,
+  };
 };

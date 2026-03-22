@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
@@ -9,23 +9,53 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { IAdminProduct, ICollection, ITag, productStatus } from '@/interfaces/product';
+import { IAdminProductEditor, ICollection, ITag, productStatus } from '@/interfaces/product';
+import { extractTagIds, normalizeTagId, parsePriceToCents, toNullableText } from '@/utils/admin';
 
-function createInitialFormData(product: IAdminProduct) {
+type ProductCoreFormData = {
+  name: string;
+  description: string;
+  status: productStatus;
+  priceStr: string;
+  sku: string;
+  collectionId: string;
+  tagIds: string[];
+};
+
+function createInitialFormData(product: IAdminProductEditor): ProductCoreFormData {
   return {
     name: product.name,
-    description: product.description || '',
+    description: product.description ?? '',
     status: product.status,
     priceStr: (product.priceCents / 100).toFixed(2),
-    sku: product.sku || '',
-    collectionId: product.collectionId || product.collection?.id || '',
-    tagIds: product.tags?.map((tag) => String(tag.id) || []),
+    sku: product.sku ?? '',
+    collectionId: product.collectionId ?? product.collection?.id ?? '',
+    tagIds: product.tagIds,
   };
 }
 
-export function ProductCoreForm({ product }: { product: IAdminProduct }) {
+interface IProductCoreFormProps {
+  product: IAdminProductEditor;
+  onProductChange: Dispatch<SetStateAction<IAdminProductEditor | null>>;
+}
+
+export function ProductCoreForm({ product, onProductChange }: IProductCoreFormProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState(() => createInitialFormData(product));
+
+  useEffect(() => {
+    setFormData(createInitialFormData(product));
+  }, [
+    product.collection?.id,
+    product.collectionId,
+    product.description,
+    product.id,
+    product.priceCents,
+    product.sku,
+    product.status,
+    product.tagIds,
+    product.updatedAt,
+  ]);
 
   const { data: collectionsRes } = useCustomizeQuery<ICollection[]>({
     queryKey: ['admin', 'collections'],
@@ -42,35 +72,67 @@ export function ProductCoreForm({ product }: { product: IAdminProduct }) {
 
   const { mutation: updateProduct, isPending } = useCustomizeMutation({
     mutationFn: MutationConfigs.updateAdminProduct,
-    onSuccess: () => {
+    onSuccess: (response) => {
+      const normalizedCollectionId = formData.collectionId || null;
+      const nextTagIds = [...formData.tagIds];
+      const selectedCollection = collections.find((collection) => collection.id === normalizedCollectionId) ?? null;
+      const selectedTags = tags.filter((tag) => nextTagIds.includes(normalizeTagId(tag.id)));
+      const updatedProduct = response.data.data;
+
+      onProductChange((currentProduct) => {
+        if (!currentProduct) {
+          return currentProduct;
+        }
+
+        return {
+          ...currentProduct,
+          ...updatedProduct,
+          description: toNullableText(formData.description),
+          sku: toNullableText(formData.sku),
+          collectionId: normalizedCollectionId,
+          collection: selectedCollection
+            ? {
+              id: selectedCollection.id,
+              name: selectedCollection.name,
+            }
+            : null,
+          tags: selectedTags,
+          tagIds: nextTagIds,
+          currency: updatedProduct.currency ?? currentProduct.currency,
+        };
+      });
+
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const priceCents = Math.round(parseFloat(formData.priceStr || '0') * 100);
+    const priceCents = parsePriceToCents(formData.priceStr);
 
     updateProduct({
       productId: product.id,
       data: {
         name: formData.name,
-        description: formData.description || null,
+        description: toNullableText(formData.description),
         status: formData.status,
         priceCents,
-        sku: formData.sku || null,
+        currency: product.currency,
+        sku: toNullableText(formData.sku),
         collectionId: formData.collectionId || null,
-        tagIds: formData.tagIds as string[],
+        tagIds: formData.tagIds,
       },
     });
   };
 
   const toggleTag = (tagId: string) => {
+    const normalizedTagId = normalizeTagId(tagId);
+
     setFormData((prev) => ({
       ...prev,
-      tagIds: prev.tagIds.includes(tagId)
-        ? prev.tagIds.filter((id) => id !== tagId)
-        : [...prev.tagIds, tagId],
+      tagIds: prev.tagIds.includes(normalizedTagId)
+        ? prev.tagIds.filter((id) => id !== normalizedTagId)
+        : [...prev.tagIds, normalizedTagId],
     }));
   };
 
@@ -172,23 +234,48 @@ export function ProductCoreForm({ product }: { product: IAdminProduct }) {
 
         <div className="sm:col-span-2">
           <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Tags</label>
-          <div className="max-h-40 overflow-y-auto rounded-md border border-input p-2 flex flex-wrap gap-2">
+          <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto rounded-xl border border-input bg-[#FBFAFB] p-3">
             {tags.length === 0 ? (
               <p className="p-2 text-xs text-muted-foreground">No tags available.</p>
             ) : (
-              tags.map((tag) => (
-                <label key={tag.id} className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium md:cursor-pointer transition-colors ${formData.tagIds.includes(tag.id) ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-[#E6E8EA] text-[#514349] border border-transparent hover:bg-[#D5C1C9]'}`}>
+              tags.map((tag) => {
+                const normalizedTagId = normalizeTagId(tag.id);
+                const isSelected = formData.tagIds.includes(normalizedTagId);
+
+                return (
+                <label
+                  key={tag.id}
+                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors md:cursor-pointer ${
+                    isSelected
+                      ? 'border-primary/30 bg-primary/10 text-primary shadow-sm'
+                      : 'border-[#D5C1C9]/50 bg-white text-[#514349] hover:border-[#D5C1C9] hover:bg-[#F7F4F6]'
+                  }`}
+                >
                   <input
                     type="checkbox"
-                    checked={formData.tagIds.includes(tag.id)}
-                    onChange={() => toggleTag(tag.id)}
+                    checked={isSelected}
+                    onChange={() => toggleTag(normalizedTagId)}
                     className="hidden"
                   />
-                  {tag.name}
+                  <span>{tag.name}</span>
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${isSelected ? 'bg-primary/10 text-primary' : 'bg-[#F2F4F6] text-[#514349]/70'}`}>
+                    {tag.tagType}
+                  </span>
                 </label>
-              ))
+                );
+              })
             )}
           </div>
+          {product.tags === undefined && product.tagIds.length === 0 && (
+            <p className="mt-2 text-xs text-[#514349]">
+              Existing tag links cannot be hydrated reliably until the admin API exposes a dedicated product detail response.
+            </p>
+          )}
+          {product.tags !== undefined && product.tagIds.length > 0 && (
+            <p className="mt-2 text-xs text-[#514349]">
+              {extractTagIds(product.tags).length} existing tag{extractTagIds(product.tags).length === 1 ? '' : 's'} loaded from the current admin response.
+            </p>
+          )}
         </div>
       </div>
     </form>

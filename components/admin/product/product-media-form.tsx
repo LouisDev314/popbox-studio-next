@@ -1,28 +1,53 @@
 'use client';
 
-import { useState } from 'react';
+import { Dispatch, SetStateAction, useState } from 'react';
 import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
 import { Trash, ArrowUp, ArrowDown } from 'lucide-react';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
-import { IAdminProduct } from '@/interfaces/product';
+import { IAdminProductEditor } from '@/interfaces/product';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Button } from '@/components/ui/button';
 import getEnvConfig from '@/configs/env';
+import { mergeAdminImages, normalizeAdminImages } from '@/utils/admin';
 
-export function ProductMediaForm({ product }: { product: IAdminProduct }) {
+interface IProductMediaFormProps {
+  product: IAdminProductEditor;
+  onProductChange: Dispatch<SetStateAction<IAdminProductEditor | null>>;
+}
+
+export function ProductMediaForm({ product, onProductChange }: IProductMediaFormProps) {
   const queryClient = useQueryClient();
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadingCount, setUploadingCount] = useState(0);
 
-  const images = [...(product.images || [])].sort((a, b) => a.sortOrder - b.sortOrder);
+  const images = [...product.images].sort((a, b) => a.sortOrder - b.sortOrder);
+  const isUploading = uploadingCount > 0;
 
   const { mutation: uploadImage } = useCustomizeMutation({
     mutationFn: MutationConfigs.uploadAdminProductImage,
-    onSuccess: () => {
+    onSuccess: (response) => {
+      const uploadedImages = normalizeAdminImages(response.data.data);
+
+      onProductChange((currentProduct) => {
+        if (!currentProduct) {
+          return currentProduct;
+        }
+
+        return {
+          ...currentProduct,
+          images: mergeAdminImages(currentProduct.images, [
+            ...currentProduct.images,
+            ...uploadedImages,
+          ]),
+        };
+      });
+
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
     },
-    onSettled: () => setIsUploading(false),
+    onSettled: () => {
+      setUploadingCount((currentCount) => Math.max(currentCount - 1, 0));
+    },
   });
 
   const { mutation: deleteImage, isPending: isDeleting } = useCustomizeMutation({
@@ -34,14 +59,25 @@ export function ProductMediaForm({ product }: { product: IAdminProduct }) {
 
   const { mutation: reorderImages, isPending: isReordering } = useCustomizeMutation({
     mutationFn: MutationConfigs.reorderAdminProductImages,
-    onSuccess: () => {
+    onSuccess: (response) => {
+      onProductChange((currentProduct) => {
+        if (!currentProduct) {
+          return currentProduct;
+        }
+
+        return {
+          ...currentProduct,
+          images: mergeAdminImages(currentProduct.images, response.data.data),
+        };
+      });
+
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
     },
   });
 
   const handleFileChange = (files: File[]) => {
     if (!files.length) return;
-    setIsUploading(true);
+    setUploadingCount((currentCount) => currentCount + files.length);
 
     files.forEach((file) => {
       const formData = new FormData();
@@ -61,31 +97,65 @@ export function ProductMediaForm({ product }: { product: IAdminProduct }) {
     const newImages = [...images];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     [newImages[index], newImages[targetIndex]] = [newImages[targetIndex], newImages[index]];
+    const optimisticImages = newImages.map((image, imageIndex) => ({
+      ...image,
+      sortOrder: imageIndex,
+    }));
+
+    onProductChange((currentProduct) => {
+      if (!currentProduct) {
+        return currentProduct;
+      }
+
+      return {
+        ...currentProduct,
+        images: optimisticImages,
+      };
+    });
 
     const imageIds = newImages.map((img) => img.id);
     reorderImages({ productId: product.id, imageIds });
   };
 
+  const handleDelete = (imageId: string) => {
+    onProductChange((currentProduct) => {
+      if (!currentProduct) {
+        return currentProduct;
+      }
+
+      return {
+        ...currentProduct,
+        images: currentProduct.images.filter((image) => image.id !== imageId),
+      };
+    });
+
+    deleteImage({ productId: product.id, imageId });
+  };
+
   return (
     <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
-      <div className="mb-6">
-        <h2 className="text-sm font-semibold text-[#191C1E] uppercase tracking-wider mb-4">Media & Images</h2>
+      <div className="mb-6 space-y-4">
+        <div>
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-[#191C1E]">Media & Images</h2>
+          <p className="text-sm text-[#514349]">Upload multiple images. New uploads appear here immediately.</p>
+        </div>
         <div className="relative border border-[#D5C1C9]/50 rounded-lg overflow-hidden transition-colors hover:border-primary/50">
           {isUploading && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-[1px]">
               <span className="text-sm font-medium text-primary shadow-sm bg-white px-3 py-1.5 rounded-full border border-primary/20">Uploading...</span>
             </div>
           )}
-          <FileUpload onChange={handleFileChange} />
+          <FileUpload onChange={handleFileChange} multiple />
         </div>
       </div>
 
       {images.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#D5C1C9] bg-white p-8 text-center shadow-sm">
-          <p className="text-sm text-[#514349]">No images uploaded yet.</p>
+        <div className="rounded-xl border border-dashed border-[#D5C1C9] bg-[#FBFAFB] p-8 text-center shadow-sm">
+          <p className="text-sm font-medium text-[#191C1E]">No images uploaded yet.</p>
+          <p className="mt-1 text-sm text-[#514349]">Upload product photography, packaging shots, or promo art.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3">
           {images.map((img, idx) => {
             let imgSrc = img.url;
             if (!imgSrc || !imgSrc.startsWith('http')) {
@@ -93,19 +163,22 @@ export function ProductMediaForm({ product }: { product: IAdminProduct }) {
             }
 
             return (
-              <div key={img.id} className="flex items-center gap-4 rounded-lg border border-[#D5C1C9]/50 p-3 transition-colors hover:bg-slate-50">
-                <Image
-                  src={imgSrc}
-                  alt={img.altText || 'Product image'}
-                  width={64}
-                  height={64}
-                  className="h-16 w-16 rounded object-cover shadow-sm bg-[#E6E8EA] shrink-0"
-                  unoptimized={imgSrc.includes('supabase')}
-                />
-                
-                <div className="flex-1 min-w-0">
+              <div key={img.id} className="flex items-center gap-4 rounded-xl border border-[#D5C1C9]/50 bg-[#FBFAFB] p-3 transition-colors hover:bg-white">
+                <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-[#E6E8EA] shadow-sm">
+                  <Image
+                    src={imgSrc}
+                    alt={img.altText || 'Product image'}
+                    fill
+                    sizes="72px"
+                    className="object-cover"
+                    unoptimized={imgSrc.includes('supabase')}
+                  />
+                </div>
+
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-[#191C1E]">{img.storageKey.split('/').pop() || 'Image'}</p>
-                  {img.altText && <p className="truncate text-xs text-[#514349] mt-0.5">{img.altText}</p>}
+                  {img.altText && <p className="mt-0.5 truncate text-xs text-[#514349]">{img.altText}</p>}
+                  <p className="mt-1 text-[11px] uppercase tracking-wider text-[#514349]/60">Position {idx + 1}</p>
                 </div>
 
                 <div className="flex items-center gap-1">
@@ -138,7 +211,7 @@ export function ProductMediaForm({ product }: { product: IAdminProduct }) {
                     size="icon"
                     title="Delete"
                     disabled={isDeleting}
-                    onClick={() => deleteImage({ productId: product.id, imageId: img.id })}
+                    onClick={() => handleDelete(img.id)}
                     className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
                   >
                     <Trash className="w-4 h-4" />

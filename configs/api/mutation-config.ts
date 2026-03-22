@@ -3,7 +3,18 @@ import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { ICheckoutRequest, ICheckoutSession } from '@/interfaces/checkout';
 import { IOrderTicket, IGuestTicketView, IAdminOrderStatusUpdate, IAdminOrderShipmentUpdate, IAdminOrderRefundRequest, IOrderDetail } from '@/interfaces/order';
-import { IAdminProduct, IAdminProductStatusUpdate, IAdminProductCreate, IAdminProductUpdate, IAdminProductInventoryUpdate, IProductImage, IKujiPrize, ICollection, ITag } from '@/interfaces/product';
+import {
+  IAdminProduct,
+  IAdminProductImage,
+  IAdminProductImageUploadResponse,
+  IAdminProductStatusUpdate,
+  IAdminProductCreate,
+  IAdminProductUpdate,
+  IAdminProductInventoryUpdate,
+  IKujiPrize,
+  ICollection,
+  ITag,
+} from '@/interfaces/product';
 import { withAdminAuth } from '@/lib/api/admin-client';
 
 const MutationConfigs = {
@@ -47,12 +58,12 @@ const MutationConfigs = {
   updateAdminProductInventory: async ({ productId, data }: { productId: string; data: IAdminProductInventoryUpdate }): Promise<AxiosResponse<IBaseApiResponse<IAdminProduct>>> => {
     return httpClient.patch(`/api/v1/admin/products/${productId}/inventory`, data, await withAdminAuth());
   },
-  uploadAdminProductImage: async ({ productId, formData }: { productId: string; formData: FormData }): Promise<AxiosResponse<IBaseApiResponse<IProductImage>>> => {
+  uploadAdminProductImage: async ({ productId, formData }: { productId: string; formData: FormData }): Promise<AxiosResponse<IBaseApiResponse<IAdminProductImageUploadResponse>>> => {
     return httpClient.post(`/api/v1/admin/products/${productId}/images`, formData, await withAdminAuth({
       headers: { 'Content-Type': 'multipart/form-data' },
     }));
   },
-  reorderAdminProductImages: async ({ productId, imageIds }: { productId: string; imageIds: string[] }): Promise<AxiosResponse<IBaseApiResponse<IProductImage[]>>> => {
+  reorderAdminProductImages: async ({ productId, imageIds }: { productId: string; imageIds: string[] }): Promise<AxiosResponse<IBaseApiResponse<IAdminProductImage[]>>> => {
     return httpClient.patch(`/api/v1/admin/products/${productId}/images/reorder`, { imageIds }, await withAdminAuth());
   },
   deleteAdminProductImage: async ({ productId, imageId }: { productId: string; imageId: string }): Promise<AxiosResponse<IBaseApiResponse<void>>> => {

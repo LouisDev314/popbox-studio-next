@@ -25,6 +25,14 @@ export interface IProductImage {
   url: string;
 }
 
+export interface IAdminProductImage {
+  id: string;
+  storageKey: string;
+  altText: string | null;
+  sortOrder: number;
+  url?: string | null;
+}
+
 export interface IProductInventory {
   onHand: number;
   reserved: number;
@@ -102,12 +110,19 @@ export interface IAdminProduct {
   currency: string;
   sku: string | null;
   collectionId: string | null;
-  collection: Pick<ICollection, 'id' | 'name'> | null;
-  tags: ITag[];
-  images: IProductImage[];
-  inventory: IProductInventory | null;
+  // Admin list/create/update responses are not a reliable full detail shape yet.
+  collection?: Pick<ICollection, 'id' | 'name'> | null;
+  tags?: ITag[];
+  images?: IAdminProductImage[];
+  inventory?: IProductInventory | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface IAdminProductEditor extends IAdminProduct {
+  images: IAdminProductImage[];
+  inventory: IProductInventory | null;
+  tagIds: string[];
 }
 
 export interface IAdminProductListResponse {
@@ -119,31 +134,35 @@ export interface IAdminProductStatusUpdate {
 }
 
 export interface IAdminProductCreate {
+  collectionId: string | null;
   name: string;
   description: string | null;
   productType: productType;
   status: productStatus;
   priceCents: number;
+  currency: string;
   sku: string | null;
-  collectionId: string | null;
   tagIds: string[];
-  inventory: {
-    onHand: number;
-    lowStockThreshold: number;
-  } | null;
+  lowStockThreshold: number;
+  onHand: number;
 }
 
 export interface IAdminProductUpdate {
   name?: string;
   description?: string | null;
+  productType?: productType;
   status?: productStatus;
   priceCents?: number;
+  currency?: string;
   sku?: string | null;
   collectionId?: string | null;
   tagIds?: string[];
+  lowStockThreshold?: number;
 }
 
 export interface IAdminProductInventoryUpdate {
   onHand: number;
   lowStockThreshold: number;
 }
+
+export type IAdminProductImageUploadResponse = IAdminProductImage | IAdminProductImage[];

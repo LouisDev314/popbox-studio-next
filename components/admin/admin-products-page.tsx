@@ -19,6 +19,7 @@ import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { AdminProductStatusBadge } from '@/components/admin/admin-product-status-badge';
+import { Button } from '@/components/ui/button';
 import { formatPrice, cn } from '@/lib/utils';
 import type { IAdminProduct, IAdminProductListResponse, productStatus } from '@/interfaces/product';
 
@@ -89,17 +90,19 @@ function RowActions({ product, onStatusChange, isUpdating }: IRowActionsProps) {
 
   return (
     <div className="relative">
-      <button
+      <Button
         type="button"
         aria-label="Product actions"
-        className="rounded-md p-1.5 text-[#514349]/60 transition-colors hover:bg-[#E6E8EA]/60 hover:text-[#191C1E]"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 rounded-md p-0 text-[#514349]/60 hover:bg-[#E6E8EA]/60 hover:text-[#191C1E]"
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
       >
         <MoreHorizontal className="h-4 w-4" />
-      </button>
+      </Button>
 
       {isOpen && (
         <>
@@ -117,10 +120,11 @@ function RowActions({ product, onStatusChange, isUpdating }: IRowActionsProps) {
               <Pencil className="h-3.5 w-3.5" />
               Edit
             </Link>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               disabled={isUpdating}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-[#514349] transition-colors hover:bg-[#F2F4F6] disabled:opacity-50"
+              className="flex h-auto w-full justify-start gap-2.5 rounded-none px-3 py-2 text-sm font-normal text-[#514349] hover:bg-[#F2F4F6] hover:text-[#514349]"
               onClick={(e) => {
                 e.stopPropagation();
                 onStatusChange(product.id, toggleAction.newStatus);
@@ -129,7 +133,7 @@ function RowActions({ product, onStatusChange, isUpdating }: IRowActionsProps) {
             >
               <toggleAction.icon className="h-3.5 w-3.5" />
               {toggleAction.label}
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -200,23 +204,23 @@ export default function AdminProductsPage() {
             Manage your product catalog, inventory, and pricing.
           </p>
         </div>
-        <Link
-          href="/admin/products/new"
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/60 active:bg-[#6A3553]"
-        >
-          <Plus className="h-4 w-4" />
-          New Product
-        </Link>
+        <Button asChild className="h-9 rounded-lg px-4 text-sm shadow-sm">
+          <Link href="/admin/products/new">
+            <Plus className="h-4 w-4" />
+            New Product
+          </Link>
+        </Button>
       </div>
 
       {/* Status filter tabs */}
       <div className="mt-6 flex gap-1 border-b border-[#D5C1C9]/20">
         {STATUS_TABS.map((tab) => (
-          <button
+          <Button
             key={tab.value}
             type="button"
+            variant="ghost"
             className={cn(
-              'relative px-4 py-2.5 text-sm font-medium transition-colors',
+              'relative h-auto rounded-none px-4 py-2.5 text-sm font-medium transition-colors',
               activeTab === tab.value
                 ? 'text-[#191C1E]'
                 : 'text-[#514349]/70 hover:text-[#191C1E]',
@@ -227,7 +231,7 @@ export default function AdminProductsPage() {
             {activeTab === tab.value && (
               <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
             )}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -375,13 +379,12 @@ function EmptyState({ statusFilter }: { statusFilter?: productStatus }) {
       </div>
       <p className="text-sm text-[#514349]">{message}</p>
       {!statusFilter && (
-        <Link
-          href="/admin/products/new"
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-[#8A486F] to-[#F9A8D4] px-4 py-2 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" />
-          Create your first product
-        </Link>
+        <Button asChild className="mt-4 rounded-lg bg-gradient-to-br from-[#8A486F] to-[#F9A8D4] text-sm text-white hover:opacity-90">
+          <Link href="/admin/products/new">
+            <Plus className="h-4 w-4" />
+            Create your first product
+          </Link>
+        </Button>
       )}
     </div>
   );
