@@ -63,7 +63,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
         <button
           type="button"
           onClick={() => refetch()}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#E6E8EA] px-3 text-sm font-medium text-[#191C1E] transition-colors hover:bg-[#D5C1C9]"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-[#191C1E] transition-colors hover:bg-primary/60"
         >
           <RotateCw className="h-3.5 w-3.5" />
           Refresh Pool
@@ -150,7 +150,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
                   }));
                 }}
                 className="h-8 text-sm"
-                placeholder="1"
+                placeholder="0"
               />
             </div>
             <button

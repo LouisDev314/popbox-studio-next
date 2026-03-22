@@ -70,13 +70,13 @@ const MutationConfigs = {
     return httpClient.delete(`/api/v1/admin/products/${productId}/images/${imageId}`, await withAdminAuth());
   },
   createAdminProductKujiPrize: async ({ productId, data }: { productId: string; data: Partial<IKujiPrize> }): Promise<AxiosResponse<IBaseApiResponse<IKujiPrize>>> => {
-    return httpClient.post(`/api/v1/admin/products/${productId}/prizes`, data, await withAdminAuth());
+    return httpClient.post(`/api/v1/admin/products/${productId}/kuji-prizes`, data, await withAdminAuth());
   },
   updateAdminProductKujiPrize: async ({ productId, prizeId, data }: { productId: string; prizeId: string; data: Partial<IKujiPrize> }): Promise<AxiosResponse<IBaseApiResponse<IKujiPrize>>> => {
-    return httpClient.patch(`/api/v1/admin/products/${productId}/prizes/${prizeId}`, data, await withAdminAuth());
+    return httpClient.patch(`/api/v1/admin/products/${productId}/kuji-prizes/${prizeId}`, data, await withAdminAuth());
   },
   deleteAdminProductKujiPrize: async ({ productId, prizeId }: { productId: string; prizeId: string }): Promise<AxiosResponse<IBaseApiResponse<void>>> => {
-    return httpClient.delete(`/api/v1/admin/products/${productId}/prizes/${prizeId}`, await withAdminAuth());
+    return httpClient.delete(`/api/v1/admin/products/${productId}/kuji-prizes/${prizeId}`, await withAdminAuth());
   },
   createAdminCollection: async (data: Partial<ICollection>): Promise<AxiosResponse<IBaseApiResponse<ICollection>>> => {
     return httpClient.post('/api/v1/admin/collections', data, await withAdminAuth());

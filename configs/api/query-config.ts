@@ -108,7 +108,7 @@ const QueryConfigs = {
     return httpClient.get('/api/v1/admin/tags', await withAdminAuth());
   },
   fetchAdminProductKujiPrizes: async (productId: string): Promise<AxiosResponse<IBaseApiResponse<IKujiPrize[]>>> => {
-    return httpClient.get(`/api/v1/admin/products/${productId}/prizes`, await withAdminAuth());
+    return httpClient.get(`/api/v1/admin/products/${productId}/kuji-prizes`, await withAdminAuth());
   },
 };
 
