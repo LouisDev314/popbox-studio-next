@@ -1,5 +1,5 @@
 import {
-  IAdminProduct,
+  IAdminProductDetail,
   IAdminProductEditor,
   IAdminProductImage,
   IAdminProductImageUploadResponse,
@@ -84,34 +84,14 @@ export const mergeAdminImages = (
   });
 };
 
-export const buildAdminProductEditor = (product: IAdminProduct): IAdminProductEditor => ({
+export const mapAdminProductDetailToEditor = (product: IAdminProductDetail): IAdminProductEditor => ({
   ...product,
   description: product.description ?? null,
+  collectionId: product.collection?.id ?? null,
   collection: product.collection ?? null,
-  tags: product.tags,
+  tags: product.tags ?? [],
   tagIds: extractTagIds(product.tags),
   images: normalizeAdminImages(product.images),
   inventory: product.inventory ?? null,
+  kujiPrizes: product.kujiPrizes ?? [],
 });
-
-export const mergeAdminProductEditor = (
-  currentProduct: IAdminProductEditor | null,
-  nextProduct: IAdminProduct,
-): IAdminProductEditor => {
-  const normalizedNextProduct = buildAdminProductEditor(nextProduct);
-
-  if (!currentProduct) {
-    return normalizedNextProduct;
-  }
-
-  return {
-    ...currentProduct,
-    ...normalizedNextProduct,
-    description: nextProduct.description ?? currentProduct.description,
-    collection: nextProduct.collection ?? currentProduct.collection ?? null,
-    tags: nextProduct.tags ?? currentProduct.tags ?? [],
-    tagIds: nextProduct.tags !== undefined ? extractTagIds(nextProduct.tags) : currentProduct.tagIds,
-    images: mergeAdminImages(currentProduct.images, nextProduct.images),
-    inventory: nextProduct.inventory ?? currentProduct.inventory,
-  };
-};

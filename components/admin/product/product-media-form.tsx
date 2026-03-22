@@ -44,6 +44,7 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
       });
 
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
     },
     onSettled: () => {
       setUploadingCount((currentCount) => Math.max(currentCount - 1, 0));
@@ -54,6 +55,7 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
     mutationFn: MutationConfigs.deleteAdminProductImage,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
     },
   });
 
@@ -72,6 +74,7 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
       });
 
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
     },
   });
 

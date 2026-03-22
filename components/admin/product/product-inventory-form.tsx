@@ -33,13 +33,14 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
 
   useEffect(() => {
     setFormData(createInitialFormData(product));
-  }, [product.id, product.inventory?.lowStockThreshold, product.inventory?.onHand, product.updatedAt]);
+  }, [product.id, product.inventory?.lowStockThreshold, product.inventory?.onHand]);
 
   const { mutation: updateInventory, isPending } = useCustomizeMutation({
     mutationFn: MutationConfigs.updateAdminProductInventory,
     onSuccess: (response) => {
       const nextOnHand = parseWholeNumber(formData.onHand);
       const nextLowStockThreshold = parseWholeNumber(formData.lowStockThreshold);
+      const updatedProduct = response.data.data;
 
       onProductChange((currentProduct) => {
         if (!currentProduct) {
@@ -50,7 +51,17 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
 
         return {
           ...currentProduct,
-          ...response.data.data,
+          name: updatedProduct.name,
+          slug: updatedProduct.slug,
+          description: updatedProduct.description,
+          productType: updatedProduct.productType,
+          status: updatedProduct.status,
+          priceCents: updatedProduct.priceCents,
+          currency: updatedProduct.currency,
+          sku: updatedProduct.sku,
+          collectionId: updatedProduct.collectionId,
+          createdAt: updatedProduct.createdAt,
+          updatedAt: updatedProduct.updatedAt,
           inventory: {
             onHand: nextOnHand,
             reserved,
@@ -61,6 +72,7 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
       });
 
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
     },
     onError: (e) => {
       alert(`Failed to update product ${e}`);

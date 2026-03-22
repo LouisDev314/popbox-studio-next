@@ -10,7 +10,7 @@ import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { IAdminProductEditor, ICollection, ITag, productStatus } from '@/interfaces/product';
-import { extractTagIds, normalizeTagId, parsePriceToCents, toNullableText } from '@/utils/admin';
+import { normalizeTagId, parsePriceToCents, toNullableText } from '@/utils/admin';
 
 type ProductCoreFormData = {
   name: string;
@@ -29,8 +29,8 @@ function createInitialFormData(product: IAdminProductEditor): ProductCoreFormDat
     status: product.status,
     priceStr: (product.priceCents / 100).toFixed(2),
     sku: product.sku ?? '',
-    collectionId: product.collectionId ?? product.collection?.id ?? '',
-    tagIds: product.tagIds,
+    collectionId: product.collection?.id ?? product.collectionId ?? '',
+    tagIds: product.tagIds.map((tagId) => String(tagId)),
   };
 }
 
@@ -42,10 +42,12 @@ interface IProductCoreFormProps {
 export function ProductCoreForm({ product, onProductChange }: IProductCoreFormProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState(() => createInitialFormData(product));
+  const tagIdsKey = product.tagIds.join('|');
 
   useEffect(() => {
     setFormData(createInitialFormData(product));
   }, [
+    product.name,
     product.collection?.id,
     product.collectionId,
     product.description,
@@ -53,8 +55,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
     product.priceCents,
     product.sku,
     product.status,
-    product.tagIds,
-    product.updatedAt,
+    tagIdsKey,
   ]);
 
   const { data: collectionsRes } = useCustomizeQuery<ICollection[]>({
@@ -73,8 +74,8 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
   const { mutation: updateProduct, isPending } = useCustomizeMutation({
     mutationFn: MutationConfigs.updateAdminProduct,
     onSuccess: (response) => {
-      const normalizedCollectionId = formData.collectionId || null;
-      const nextTagIds = [...formData.tagIds];
+      const normalizedCollectionId = formData.collectionId === '' ? null : formData.collectionId;
+      const nextTagIds = formData.tagIds.map((tagId) => String(tagId));
       const selectedCollection = collections.find((collection) => collection.id === normalizedCollectionId) ?? null;
       const selectedTags = tags.filter((tag) => nextTagIds.includes(normalizeTagId(tag.id)));
       const updatedProduct = response.data.data;
@@ -94,6 +95,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
             ? {
               id: selectedCollection.id,
               name: selectedCollection.name,
+              slug: selectedCollection.slug,
             }
             : null,
           tags: selectedTags,
@@ -103,6 +105,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
       });
 
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
     },
   });
 
@@ -119,7 +122,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         priceCents,
         currency: product.currency,
         sku: toNullableText(formData.sku),
-        collectionId: formData.collectionId || null,
+        collectionId: formData.collectionId === '' ? null : formData.collectionId,
         tagIds: formData.tagIds,
       },
     });
@@ -254,7 +257,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
                   <input
                     type="checkbox"
                     checked={isSelected}
-                    onChange={() => toggleTag(normalizedTagId)}
+                    onChange={() => toggleTag(tag.id)}
                     className="hidden"
                   />
                   <span>{tag.name}</span>
@@ -266,16 +269,6 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
               })
             )}
           </div>
-          {product.tags === undefined && product.tagIds.length === 0 && (
-            <p className="mt-2 text-xs text-[#514349]">
-              Existing tag links cannot be hydrated reliably until the admin API exposes a dedicated product detail response.
-            </p>
-          )}
-          {product.tags !== undefined && product.tagIds.length > 0 && (
-            <p className="mt-2 text-xs text-[#514349]">
-              {extractTagIds(product.tags).length} existing tag{extractTagIds(product.tags).length === 1 ? '' : 's'} loaded from the current admin response.
-            </p>
-          )}
         </div>
       </div>
     </form>

@@ -4,7 +4,7 @@ import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IHomepageData } from '@/interfaces/home';
 import { withAdminAuth } from '@/lib/api/admin-client';
 import { IProduct, IProductListPage, ICollection, ITag, productSort, productType,
-  IProductSuggestionResponse, IAdminProductListResponse, productStatus, IKujiPrize,
+  IProductSuggestionResponse, IAdminProductDetail, IAdminProductListResponse, productStatus, IKujiPrize,
 } from '@/interfaces/product';
 import { IGuestOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
@@ -88,6 +88,9 @@ const QueryConfigs = {
     return httpClient.get('/api/v1/admin/products', await withAdminAuth({
       params: status ? { status } : undefined,
     }));
+  },
+  fetchAdminProduct: async (id: string): Promise<AxiosResponse<IBaseApiResponse<IAdminProductDetail>>> => {
+    return httpClient.get(`/api/v1/admin/products/${id}`, await withAdminAuth());
   },
   fetchAdminOrders: async (): Promise<AxiosResponse<IBaseApiResponse<IAdminOrderListResponse>>> => {
     return httpClient.get('/api/v1/admin/orders', await withAdminAuth());

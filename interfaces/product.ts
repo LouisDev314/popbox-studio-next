@@ -30,6 +30,14 @@ export interface IAdminProductImage {
   storageKey: string;
   altText: string | null;
   sortOrder: number;
+  url: string | null;
+}
+
+export interface IAdminProductImageUpload {
+  id: string;
+  storageKey: string;
+  altText: string | null;
+  sortOrder: number;
   url?: string | null;
 }
 
@@ -119,10 +127,29 @@ export interface IAdminProduct {
   updatedAt: string;
 }
 
-export interface IAdminProductEditor extends IAdminProduct {
-  images: IAdminProductImage[];
+export interface IAdminProductDetail {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  productType: productType;
+  status: productStatus;
+  priceCents: number;
+  currency: string;
+  sku: string | null;
+  collection: Pick<ICollection, 'id' | 'name' | 'slug'> | null;
   inventory: IProductInventory | null;
+  tags: ITag[];
+  images: IAdminProductImage[];
+  kujiPrizes: IKujiPrize[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IAdminProductEditor extends Omit<IAdminProductDetail, 'images'> {
+  collectionId: string | null;
   tagIds: string[];
+  images: IAdminProductImage[];
 }
 
 export interface IAdminProductListResponse {
@@ -165,4 +192,4 @@ export interface IAdminProductInventoryUpdate {
   lowStockThreshold: number;
 }
 
-export type IAdminProductImageUploadResponse = IAdminProductImage | IAdminProductImage[];
+export type IAdminProductImageUploadResponse = IAdminProductImageUpload | IAdminProductImageUpload[];

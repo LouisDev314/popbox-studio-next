@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { Button } from '@/components/ui/button';
-import { IAdminProductEditor, IAdminProductListResponse } from '@/interfaces/product';
-import { mergeAdminProductEditor } from '@/utils/admin';
+import { IAdminProductDetail, IAdminProductEditor } from '@/interfaces/product';
+import { mapAdminProductDetailToEditor } from '@/utils/admin';
 
 import { ProductCoreForm } from './product-core-form';
 import { ProductInventoryForm } from './product-inventory-form';
@@ -15,24 +15,33 @@ import { ProductMediaForm } from './product-media-form';
 import { ProductKujiPrizes } from './product-kuji-prizes';
 
 export default function AdminProductDetailPageClient({ productId }: { productId: string }) {
-  const { data: productsRes, isPending, isError } = useCustomizeQuery<IAdminProductListResponse>({
-    queryKey: ['admin', 'products'],
-    queryFn: () => QueryConfigs.fetchAdminProducts(),
+  const [productOverride, setProductOverride] = useState<IAdminProductEditor | null>(null);
+
+  const { data: productRes, isPending, isError } = useCustomizeQuery<IAdminProductDetail>({
+    queryKey: ['admin', 'product', productId],
+    queryFn: () => QueryConfigs.fetchAdminProduct(productId),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
-  const [product, setProduct] = useState<IAdminProductEditor | null>(null);
+  const hydratedProduct = useMemo(() => {
+    const detail = productRes?.data?.data;
 
-  const matchedProduct = productsRes?.data?.data?.items?.find((candidate) => candidate.id === productId);
+    return detail ? mapAdminProductDetailToEditor(detail) : null;
+  }, [productRes]);
 
   useEffect(() => {
-    if (!matchedProduct) {
+    setProductOverride(null);
+  }, [productId]);
+
+  useEffect(() => {
+    if (!hydratedProduct) {
       return;
     }
 
-    // TODO: replace this list-based editor hydration when the backend exposes GET /api/v1/admin/products/:id.
-    setProduct((currentProduct) => mergeAdminProductEditor(currentProduct, matchedProduct));
-  }, [matchedProduct]);
+    setProductOverride(hydratedProduct);
+  }, [hydratedProduct]);
+
+  const product = productOverride ?? hydratedProduct;
 
   if (isPending) return <div className="p-12 text-center text-[#514349]">Loading product details...</div>;
   if (isError) return <div className="p-12 text-center text-red-500">Failed to load product.</div>;
@@ -54,11 +63,11 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-6">
-          <ProductCoreForm product={product} onProductChange={setProduct} />
+          <ProductCoreForm product={product} onProductChange={setProductOverride} />
           {product.productType === 'standard' && (
-            <ProductInventoryForm product={product} onProductChange={setProduct} />
+            <ProductInventoryForm product={product} onProductChange={setProductOverride} />
           )}
-          <ProductMediaForm product={product} onProductChange={setProduct} />
+          <ProductMediaForm product={product} onProductChange={setProductOverride} />
           {product.productType === 'kuji' && (
             <ProductKujiPrizes product={product} />
           )}
