@@ -206,7 +206,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
           <h3 className="mb-3 text-sm font-medium text-[#191C1E]">Add New Prize</h3>
           <form onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-4 items-end">
             <div>
-              <label className="mb-1 block text-xs font-medium text-[#514349]">Code (e.g. A)</label>
+              <label className="mb-1 block text-xs font-medium text-[#514349]">Rank (e.g. A)</label>
               <Input required maxLength={10} value={newPrize.prizeCode} onChange={e => setNewPrize(p => ({ ...p, prizeCode: e.target.value }))} className="h-8 text-sm" />
             </div>
             <div className="sm:col-span-2">
