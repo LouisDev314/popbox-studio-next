@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
@@ -29,19 +29,16 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
     return detail ? mapAdminProductDetailToEditor(detail) : null;
   }, [productRes]);
 
-  useEffect(() => {
-    setProductOverride(null);
-  }, [productId]);
+  const handleProductChange: Dispatch<SetStateAction<IAdminProductEditor | null>> = (value) => {
+    setProductOverride((currentProduct) => {
+      const scopedCurrentProduct = currentProduct?.id === productId ? currentProduct : null;
+      const nextProduct = typeof value === 'function' ? value(scopedCurrentProduct) : value;
 
-  useEffect(() => {
-    if (!hydratedProduct) {
-      return;
-    }
+      return nextProduct?.id === productId ? nextProduct : null;
+    });
+  };
 
-    setProductOverride(hydratedProduct);
-  }, [hydratedProduct]);
-
-  const product = productOverride ?? hydratedProduct;
+  const product = productOverride?.id === productId ? productOverride : hydratedProduct;
 
   if (isPending) return <div className="p-12 text-center text-[#514349]">Loading product details...</div>;
   if (isError) return <div className="p-12 text-center text-red-500">Failed to load product.</div>;
@@ -63,11 +60,11 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-6">
-          <ProductCoreForm product={product} onProductChange={setProductOverride} />
+          <ProductCoreForm key={product.id} product={product} onProductChange={handleProductChange} />
           {product.productType === 'standard' && (
-            <ProductInventoryForm product={product} onProductChange={setProductOverride} />
+            <ProductInventoryForm key={product.id} product={product} onProductChange={handleProductChange} />
           )}
-          <ProductMediaForm product={product} onProductChange={setProductOverride} />
+          <ProductMediaForm product={product} onProductChange={handleProductChange} />
           {product.productType === 'kuji' && (
             <ProductKujiPrizes product={product} />
           )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { AdminHeader } from '@/components/admin/admin-header';
@@ -15,11 +16,14 @@ function LoadingScreen() {
 }
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
-  const [isLoading, setIsLoading] = useState(true);
+  const [resolvedPathname, setResolvedPathname] = useState<string | null>(null);
+  const [supabase] = useState(() => (
+    typeof window === 'undefined' ? null : createClient()
+  ));
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = typeof window === 'undefined' ? null : createClient();
   const isLoginPage = pathname === '/admin/login';
+  const isLoading = resolvedPathname !== pathname;
 
   useEffect(() => {
     if (!supabase) {
@@ -28,49 +32,41 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
     let isActive = true;
 
-    setIsLoading(true);
-
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isActive) return;
+    const resolveSession = (session: Session | null) => {
+      if (!isActive) {
+        return;
+      }
 
       if (!session && !isLoginPage) {
+        setResolvedPathname(null);
         router.replace('/admin/login');
         return;
       }
 
       if (session && isLoginPage) {
+        setResolvedPathname(null);
         router.replace('/admin/products');
         return;
       }
 
-      setIsLoading(false);
+      setResolvedPathname(pathname);
+    };
+
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      resolveSession(session);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isActive) return;
-
-      if (!session && !isLoginPage) {
-        setIsLoading(true);
-        router.replace('/admin/login');
-        return;
-      }
-
-      if (session && isLoginPage) {
-        setIsLoading(true);
-        router.replace('/admin/products');
-        return;
-      }
-
-      setIsLoading(false);
+      resolveSession(session);
     });
 
     return () => {
       isActive = false;
       subscription.unsubscribe();
     };
-  }, [isLoginPage, router, supabase]);
+  }, [isLoginPage, pathname, router, supabase]);
 
   if (isLoading) {
     return <LoadingScreen />;

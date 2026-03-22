@@ -284,25 +284,25 @@ export default function NewProductPage() {
                       const isSelected = formData.tagIds.includes(normalizedTagId);
 
                       return (
-                      <label
-                        key={tag.id}
-                        className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors md:cursor-pointer ${
-                          isSelected
-                            ? 'border-primary/30 bg-primary/10 text-primary shadow-sm'
-                            : 'border-[#D5C1C9]/50 bg-white text-[#514349] hover:border-[#D5C1C9] hover:bg-[#F7F4F6]'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleTag(normalizedTagId)}
-                          className="hidden"
-                        />
-                        <span>{tag.name}</span>
-                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${isSelected ? 'bg-primary/10 text-primary' : 'bg-[#F2F4F6] text-[#514349]/70'}`}>
-                          {tag.tagType}
-                        </span>
-                      </label>
+                        <label
+                          key={tag.id}
+                          className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors md:cursor-pointer ${
+                            isSelected
+                              ? 'border-primary/30 bg-primary/10 text-primary shadow-sm'
+                              : 'border-[#D5C1C9]/50 bg-white text-[#514349] hover:border-[#D5C1C9] hover:bg-[#F7F4F6]'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleTag(normalizedTagId)}
+                            className="hidden"
+                          />
+                          <span>{tag.name}</span>
+                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${isSelected ? 'bg-primary/10 text-primary' : 'bg-[#F2F4F6] text-[#514349]/70'}`}>
+                            {tag.tagType}
+                          </span>
+                        </label>
                       );
                     })
                   )}

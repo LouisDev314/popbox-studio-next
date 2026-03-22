@@ -152,6 +152,30 @@ export const mergeAdminImages = (
     .sort((left, right) => left.sortOrder - right.sortOrder);
 };
 
+const getDefinedPatchValue = <Key extends keyof IAdminProduct & keyof IAdminProductEditor>(
+  patch: Partial<IAdminProduct>,
+  key: Key,
+  fallback: IAdminProductEditor[Key],
+): IAdminProductEditor[Key] => {
+  const value = patch[key];
+
+  return hasOwn(patch, key) && value !== undefined
+    ? (value as IAdminProductEditor[Key])
+    : fallback;
+};
+
+const getNullablePatchValue = <Key extends keyof IAdminProduct & keyof IAdminProductEditor>(
+  patch: Partial<IAdminProduct>,
+  key: Key,
+  fallback: IAdminProductEditor[Key],
+): IAdminProductEditor[Key] => {
+  if (!hasOwn(patch, key)) {
+    return fallback;
+  }
+
+  return (patch[key] ?? null) as IAdminProductEditor[Key];
+};
+
 export const mergeAdminProductIntoEditor = (
   currentProduct: IAdminProductEditor,
   patch?: Partial<IAdminProduct> | null,
@@ -162,18 +186,18 @@ export const mergeAdminProductIntoEditor = (
 
   return {
     ...currentProduct,
-    name: hasOwn(patch, 'name') && patch.name !== undefined ? patch.name : currentProduct.name,
-    slug: hasOwn(patch, 'slug') && patch.slug !== undefined ? patch.slug : currentProduct.slug,
-    description: hasOwn(patch, 'description') ? patch.description ?? null : currentProduct.description,
-    productType: hasOwn(patch, 'productType') && patch.productType !== undefined ? patch.productType : currentProduct.productType,
-    status: hasOwn(patch, 'status') && patch.status !== undefined ? patch.status : currentProduct.status,
-    priceCents: hasOwn(patch, 'priceCents') && patch.priceCents !== undefined ? patch.priceCents : currentProduct.priceCents,
-    currency: hasOwn(patch, 'currency') && patch.currency !== undefined ? patch.currency : currentProduct.currency,
-    sku: hasOwn(patch, 'sku') ? patch.sku ?? null : currentProduct.sku,
-    collectionId: hasOwn(patch, 'collectionId') ? patch.collectionId ?? null : currentProduct.collectionId,
-    inventory: hasOwn(patch, 'inventory') ? patch.inventory ?? null : currentProduct.inventory,
-    createdAt: hasOwn(patch, 'createdAt') && patch.createdAt !== undefined ? patch.createdAt : currentProduct.createdAt,
-    updatedAt: hasOwn(patch, 'updatedAt') && patch.updatedAt !== undefined ? patch.updatedAt : currentProduct.updatedAt,
+    name: getDefinedPatchValue(patch, 'name', currentProduct.name),
+    slug: getDefinedPatchValue(patch, 'slug', currentProduct.slug),
+    description: getNullablePatchValue(patch, 'description', currentProduct.description),
+    productType: getDefinedPatchValue(patch, 'productType', currentProduct.productType),
+    status: getDefinedPatchValue(patch, 'status', currentProduct.status),
+    priceCents: getDefinedPatchValue(patch, 'priceCents', currentProduct.priceCents),
+    currency: getDefinedPatchValue(patch, 'currency', currentProduct.currency),
+    sku: getNullablePatchValue(patch, 'sku', currentProduct.sku),
+    collectionId: getNullablePatchValue(patch, 'collectionId', currentProduct.collectionId),
+    inventory: getNullablePatchValue(patch, 'inventory', currentProduct.inventory),
+    createdAt: getDefinedPatchValue(patch, 'createdAt', currentProduct.createdAt),
+    updatedAt: getDefinedPatchValue(patch, 'updatedAt', currentProduct.updatedAt),
   };
 };
 

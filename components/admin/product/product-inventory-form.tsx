@@ -1,6 +1,6 @@
 'use client';
 
-import { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import { Dispatch, SetStateAction, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Save } from 'lucide-react';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -30,10 +30,6 @@ interface IProductInventoryFormProps {
 export function ProductInventoryForm({ product, onProductChange }: IProductInventoryFormProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<ProductInventoryFormData>(() => createInitialFormData(product));
-
-  useEffect(() => {
-    setFormData(createInitialFormData(product));
-  }, [product.id, product.inventory?.lowStockThreshold, product.inventory?.onHand]);
 
   const { mutation: updateInventory, isPending } = useCustomizeMutation({
     mutationFn: MutationConfigs.updateAdminProductInventory,
