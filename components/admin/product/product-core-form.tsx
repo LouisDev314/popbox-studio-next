@@ -10,7 +10,7 @@ import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { IAdminProductEditor, ICollection, ITag, productStatus } from '@/interfaces/product';
-import { normalizeTagId, parsePriceToCents, toNullableText } from '@/utils/admin';
+import { mergeAdminProductIntoEditor, normalizeTagId, parsePriceToCents, toNullableText } from '@/utils/admin';
 
 type ProductCoreFormData = {
   name: string;
@@ -76,6 +76,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
     onSuccess: (response) => {
       const normalizedCollectionId = formData.collectionId === '' ? null : formData.collectionId;
       const nextTagIds = formData.tagIds.map((tagId) => String(tagId));
+      const nextPriceCents = parsePriceToCents(formData.priceStr);
       const selectedCollection = collections.find((collection) => collection.id === normalizedCollectionId) ?? null;
       const selectedTags = tags.filter((tag) => nextTagIds.includes(normalizeTagId(tag.id)));
       const updatedProduct = response.data.data;
@@ -86,9 +87,11 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         }
 
         return {
-          ...currentProduct,
-          ...updatedProduct,
+          ...mergeAdminProductIntoEditor(currentProduct, updatedProduct),
+          name: formData.name,
           description: toNullableText(formData.description),
+          status: formData.status,
+          priceCents: nextPriceCents,
           sku: toNullableText(formData.sku),
           collectionId: normalizedCollectionId,
           collection: selectedCollection
@@ -100,7 +103,6 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
             : null,
           tags: selectedTags,
           tagIds: nextTagIds,
-          currency: updatedProduct.currency ?? currentProduct.currency,
         };
       });
 

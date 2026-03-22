@@ -8,7 +8,7 @@ import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { IAdminProductEditor } from '@/interfaces/product';
 import { Button } from '@/components/ui/button';
 import { NumericInput } from '@/components/ui/numeric-input';
-import { parseWholeNumber } from '@/utils/admin';
+import { mergeAdminProductIntoEditor, parseWholeNumber } from '@/utils/admin';
 
 type ProductInventoryFormData = {
   onHand: string;
@@ -50,18 +50,7 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
         const reserved = currentProduct.inventory?.reserved ?? 0;
 
         return {
-          ...currentProduct,
-          name: updatedProduct.name,
-          slug: updatedProduct.slug,
-          description: updatedProduct.description,
-          productType: updatedProduct.productType,
-          status: updatedProduct.status,
-          priceCents: updatedProduct.priceCents,
-          currency: updatedProduct.currency,
-          sku: updatedProduct.sku,
-          collectionId: updatedProduct.collectionId,
-          createdAt: updatedProduct.createdAt,
-          updatedAt: updatedProduct.updatedAt,
+          ...mergeAdminProductIntoEditor(currentProduct, updatedProduct),
           inventory: {
             onHand: nextOnHand,
             reserved,

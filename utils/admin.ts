@@ -1,4 +1,5 @@
 import {
+  IAdminProduct,
   IAdminProductDetail,
   IAdminProductEditor,
   IAdminProductImage,
@@ -82,6 +83,36 @@ export const mergeAdminImages = (
       url: image.url ?? currentImage?.url ?? null,
     };
   });
+};
+
+const hasOwn = <Key extends PropertyKey>(
+  value: object,
+  key: Key,
+): value is Record<Key, unknown> => Object.prototype.hasOwnProperty.call(value, key);
+
+export const mergeAdminProductIntoEditor = (
+  currentProduct: IAdminProductEditor,
+  patch?: Partial<IAdminProduct> | null,
+): IAdminProductEditor => {
+  if (!patch) {
+    return currentProduct;
+  }
+
+  return {
+    ...currentProduct,
+    name: hasOwn(patch, 'name') && patch.name !== undefined ? patch.name : currentProduct.name,
+    slug: hasOwn(patch, 'slug') && patch.slug !== undefined ? patch.slug : currentProduct.slug,
+    description: hasOwn(patch, 'description') ? patch.description ?? null : currentProduct.description,
+    productType: hasOwn(patch, 'productType') && patch.productType !== undefined ? patch.productType : currentProduct.productType,
+    status: hasOwn(patch, 'status') && patch.status !== undefined ? patch.status : currentProduct.status,
+    priceCents: hasOwn(patch, 'priceCents') && patch.priceCents !== undefined ? patch.priceCents : currentProduct.priceCents,
+    currency: hasOwn(patch, 'currency') && patch.currency !== undefined ? patch.currency : currentProduct.currency,
+    sku: hasOwn(patch, 'sku') ? patch.sku ?? null : currentProduct.sku,
+    collectionId: hasOwn(patch, 'collectionId') ? patch.collectionId ?? null : currentProduct.collectionId,
+    inventory: hasOwn(patch, 'inventory') ? patch.inventory ?? null : currentProduct.inventory,
+    createdAt: hasOwn(patch, 'createdAt') && patch.createdAt !== undefined ? patch.createdAt : currentProduct.createdAt,
+    updatedAt: hasOwn(patch, 'updatedAt') && patch.updatedAt !== undefined ? patch.updatedAt : currentProduct.updatedAt,
+  };
 };
 
 export const mapAdminProductDetailToEditor = (product: IAdminProductDetail): IAdminProductEditor => ({
