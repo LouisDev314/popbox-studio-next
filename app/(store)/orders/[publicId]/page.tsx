@@ -12,12 +12,12 @@ import { StorefrontImage } from '@/components/ui/storefront-image';
 
 export default function GuestOrderPage() {
   const params = useParams();
-  const publicId = Array.isArray(params.publicId) ? params.publicId[0] : params.publicId;
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const { data: response, isPending, isError } = useCustomizeQuery<IGuestOrderDetail>({
-    queryKey: ['guest-order', publicId],
-    queryFn: () => QueryConfigs.fetchGuestOrder(publicId!),
-    enabled: !!publicId,
+    queryKey: ['guest-order', id],
+    queryFn: () => QueryConfigs.fetchGuestOrder(id!),
+    enabled: !!id,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,

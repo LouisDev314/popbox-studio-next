@@ -25,6 +25,24 @@ export interface IProductImage {
   url: string;
 }
 
+export interface IAdminProductImage {
+  id: string;
+  storageKey: string | null;
+  altText: string | null;
+  sortOrder: number;
+  url: string | null;
+}
+
+export interface IAdminProductImagePatch {
+  id: string;
+  storageKey?: string | null;
+  altText?: string | null;
+  sortOrder?: number | null;
+  url?: string | null;
+}
+
+export type IAdminProductImageUpload = IAdminProductImagePatch;
+
 export interface IProductInventory {
   onHand: number;
   reserved: number;
@@ -86,3 +104,94 @@ export interface IProductSuggestionResponse {
 export type productSort = 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc';
 
 export type productType = 'standard' | 'kuji';
+
+export type productStatus = 'draft' | 'active' | 'archived';
+
+// --- Admin-specific types ---
+
+export interface IAdminProduct {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  productType: productType;
+  status: productStatus;
+  priceCents: number;
+  currency: string;
+  sku: string | null;
+  collectionId: string | null;
+  // Admin list/create/update responses are not a reliable full detail shape yet.
+  collection?: Pick<ICollection, 'id' | 'name'> | null;
+  tags?: ITag[];
+  images?: IAdminProductImage[];
+  inventory?: IProductInventory | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IAdminProductDetail {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  productType: productType;
+  status: productStatus;
+  priceCents: number;
+  currency: string;
+  sku: string | null;
+  collection: Pick<ICollection, 'id' | 'name' | 'slug'> | null;
+  inventory: IProductInventory | null;
+  tags: ITag[];
+  images: IAdminProductImage[];
+  kujiPrizes: IKujiPrize[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IAdminProductEditor extends Omit<IAdminProductDetail, 'images'> {
+  collectionId: string | null;
+  tagIds: string[];
+  images: IAdminProductImage[];
+}
+
+export interface IAdminProductListResponse {
+  items: IAdminProduct[];
+}
+
+export interface IAdminProductStatusUpdate {
+  status: productStatus;
+}
+
+export interface IAdminProductCreate {
+  collectionId: string | null;
+  name: string;
+  description: string | null;
+  productType: productType;
+  status: productStatus;
+  priceCents: number;
+  currency: string;
+  sku: string | null;
+  tagIds: string[];
+  lowStockThreshold: number;
+  onHand: number;
+}
+
+export interface IAdminProductUpdate {
+  name?: string;
+  description?: string | null;
+  productType?: productType;
+  status?: productStatus;
+  priceCents?: number;
+  currency?: string;
+  sku?: string | null;
+  collectionId?: string | null;
+  tagIds?: string[];
+  lowStockThreshold?: number;
+}
+
+export interface IAdminProductInventoryUpdate {
+  onHand: number;
+  lowStockThreshold: number;
+}
+
+export type IAdminProductImageUploadResponse = IAdminProductImageUpload | IAdminProductImageUpload[];

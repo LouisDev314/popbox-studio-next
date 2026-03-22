@@ -2,11 +2,13 @@ import httpClient from '@/api/http-client';
 import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IHomepageData } from '@/interfaces/home';
+import { withAdminAuth } from '@/lib/api/admin-client';
 import { IProduct, IProductListPage, ICollection, ITag, productSort, productType,
-  IProductSuggestionResponse,
+  IProductSuggestionResponse, IAdminProductDetail, IAdminProductListResponse, productStatus, IKujiPrize,
 } from '@/interfaces/product';
-import { IGuestOrderDetail, IGuestTicketView } from '@/interfaces/order';
+import { IGuestOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
+import { IAdminCustomerListResponse } from '@/interfaces/customer';
 
 const QueryConfigs = {
   fetchHomePage: (): Promise<AxiosResponse<IBaseApiResponse<IHomepageData>>> => {
@@ -76,11 +78,37 @@ const QueryConfigs = {
       params: { token },
     });
   },
-  fetchGuestOrder: (publicId: string): Promise<AxiosResponse<IBaseApiResponse<IGuestOrderDetail>>> => {
-    return httpClient.get(`/api/v1/orders/${publicId}`);
+  fetchGuestOrder: (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestOrderDetail>>> => {
+    return httpClient.get(`/api/v1/orders/${id}`);
   },
-  fetchGuestTickets: (publicId: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
-    return httpClient.get(`/api/v1/orders/${publicId}/tickets`);
+  fetchGuestTickets: (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
+    return httpClient.get(`/api/v1/orders/${id}/tickets`);
+  },
+  fetchAdminProducts: async (status?: productStatus): Promise<AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>> => {
+    return httpClient.get('/api/v1/admin/products', await withAdminAuth({
+      params: status ? { status } : undefined,
+    }));
+  },
+  fetchAdminProduct: async (id: string): Promise<AxiosResponse<IBaseApiResponse<IAdminProductDetail>>> => {
+    return httpClient.get(`/api/v1/admin/products/${id}`, await withAdminAuth());
+  },
+  fetchAdminOrders: async (): Promise<AxiosResponse<IBaseApiResponse<IAdminOrderListResponse>>> => {
+    return httpClient.get('/api/v1/admin/orders', await withAdminAuth());
+  },
+  fetchAdminOrder: async (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestOrderDetail>>> => {
+    return httpClient.get(`/api/v1/admin/orders/${id}`, await withAdminAuth());
+  },
+  fetchAdminCustomers: async (): Promise<AxiosResponse<IBaseApiResponse<IAdminCustomerListResponse>>> => {
+    return httpClient.get('/api/v1/admin/customers', await withAdminAuth());
+  },
+  fetchAdminCollections: async (): Promise<AxiosResponse<IBaseApiResponse<ICollection[]>>> => {
+    return httpClient.get('/api/v1/admin/collections', await withAdminAuth());
+  },
+  fetchAdminTags: async (): Promise<AxiosResponse<IBaseApiResponse<ITag[]>>> => {
+    return httpClient.get('/api/v1/admin/tags', await withAdminAuth());
+  },
+  fetchAdminProductKujiPrizes: async (productId: string): Promise<AxiosResponse<IBaseApiResponse<IKujiPrize[]>>> => {
+    return httpClient.get(`/api/v1/admin/products/${productId}/kuji-prizes`, await withAdminAuth());
   },
 };
 

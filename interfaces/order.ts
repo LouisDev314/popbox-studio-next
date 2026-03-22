@@ -89,3 +89,40 @@ export interface IGuestTicketView {
     unrevealed: number;
   };
 }
+
+interface IAdminOrderListCustomer {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+}
+
+export interface IAdminOrderListItem {
+  id: string;
+  publicId: string;
+  status: IOrderStatus;
+  totalCents: number;
+  currency: string;
+  placedAt: string | null;
+  createdAt: string;
+  customer: IAdminOrderListCustomer;
+}
+
+export interface IAdminOrderListResponse {
+  items: IAdminOrderListItem[];
+  nextCursor: string | null;
+}
+
+export interface IAdminOrderStatusUpdate {
+  status: IOrderStatus;
+}
+
+export interface IAdminOrderShipmentUpdate {
+  carrierName: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+}
+
+export interface IAdminOrderRefundRequest {
+  reason: string;
+}

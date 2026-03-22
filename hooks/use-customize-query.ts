@@ -26,7 +26,23 @@ function useCustomizeQuery<ApiResponse>(
   >({
     queryKey: queryConfig.queryKey,
     queryFn: queryConfig.queryFn,
-    retry: queryConfig.retry,
+    retry: (failureCount, error) => {
+      if (typeof queryConfig.retry === 'number') {
+        return failureCount < queryConfig.retry;
+      }
+
+      if (typeof queryConfig.retry === 'boolean') {
+        return queryConfig.retry;
+      }
+
+      const status = error.response?.status;
+
+      if (status === HttpStatusCode.Unauthorized || status === HttpStatusCode.Forbidden) {
+        return false;
+      }
+
+      return failureCount < 3;
+    },
     enabled: queryConfig.enabled,
     staleTime: queryConfig.staleTime,
     gcTime: queryConfig.gcTime,
