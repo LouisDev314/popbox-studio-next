@@ -616,6 +616,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
             <h3 className="mb-3 text-md font-medium text-[#191C1E]">Add New Prize</h3>
             <Button
               type="submit"
+              form="create-kuji-prize-form"
               disabled={isCreating || isUploadingCreateImage}
               className="h-8 rounded-md px-3 text-xs font-medium"
             >
@@ -623,7 +624,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
               {isUploadingCreateImage ? 'Uploading...' : isCreating ? 'Adding...' : 'Add'}
             </Button>
           </div>
-          <form onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-start">
+          <form id="create-kuji-prize-form" onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-start">
             <div>
               <label className="mb-1 block text-xs font-medium text-[#514349]">Rank (e.g. A)</label>
               <Select
