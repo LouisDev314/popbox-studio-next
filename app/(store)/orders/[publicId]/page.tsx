@@ -12,16 +12,30 @@ import { StorefrontImage } from '@/components/ui/storefront-image';
 
 export default function GuestOrderPage() {
   const params = useParams();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const publicId = Array.isArray(params.publicId) ? params.publicId[0] : params.publicId;
 
   const { data: response, isPending, isError } = useCustomizeQuery<IGuestOrderDetail>({
-    queryKey: ['guest-order', id],
-    queryFn: () => QueryConfigs.fetchGuestOrder(id!),
-    enabled: !!id,
+    queryKey: ['guest-order', publicId],
+    queryFn: () => QueryConfigs.fetchGuestOrder(publicId!),
+    enabled: !!publicId,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
   });
+
+  if (!publicId) {
+    return (
+      <div className="container mx-auto px-4 py-32 text-center">
+        <h1 className="mb-4 text-3xl font-bold text-destructive">Order Not Found</h1>
+        <p className="mb-8 text-muted-foreground">
+          This order link is incomplete or no longer available.
+        </p>
+        <Link href="/" className="text-primary hover:underline">
+          Return to Home
+        </Link>
+      </div>
+    );
+  }
 
   if (isPending) {
     return (
