@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import QueryConfigs from '@/configs/api/query-config';
@@ -15,15 +15,28 @@ import { useQueryClient } from '@tanstack/react-query';
 
 export default function OrderTicketsPage() {
   const params = useParams();
-  const publicId = Array.isArray(params.publicId) ? params.publicId[0] : params.publicId;
+  const searchParams = useSearchParams();
+  const publicIdParam = Array.isArray(params.publicId) ? params.publicId[0] : params.publicId;
+  const publicId = typeof publicIdParam === 'string' && publicIdParam.trim() ? publicIdParam : null;
+  const token = searchParams.get('token') ?? undefined;
   const queryClient = useQueryClient();
 
   const [revealingId, setRevealingId] = useState<string | null>(null);
   const [isRevealingAll, setIsRevealingAll] = useState(false);
 
   const { data: response, isPending, isError } = useCustomizeQuery<IGuestTicketView>({
-    queryKey: ['order-tickets', publicId],
-    queryFn: () => QueryConfigs.fetchGuestTickets(publicId!),
+    queryKey: ['order-tickets', publicId, token],
+    queryFn: async () => {
+      if (!publicId) {
+        throw new Error('Missing public order id');
+      }
+
+      if (token) {
+        await QueryConfigs.fetchGuestOrderAccess(publicId, token);
+      }
+
+      return QueryConfigs.fetchGuestTickets(publicId);
+    },
     enabled: !!publicId,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 10,
@@ -49,29 +62,46 @@ export default function OrderTicketsPage() {
   });
 
   const viewData = response?.data?.data;
+  const orderHref = publicId
+    ? token
+      ? `/orders/${publicId}?token=${encodeURIComponent(token)}`
+      : `/orders/${publicId}`
+    : '/';
 
   const handleReveal = useCallback(
     (ticketId: string) => {
-      if (revealingId || isRevealingAll) return;
+      if (!publicId || revealingId || isRevealingAll) return;
       setRevealingId(ticketId);
       
       // Artificial delay for suspense/excitement before actually submitting to the server
       setTimeout(() => {
-        revealSingle({ publicId: publicId as string, ticketId });
+        revealSingle({ publicId, ticketId });
       }, 1500);
     },
     [publicId, revealSingle, revealingId, isRevealingAll],
   );
 
   const handleRevealAll = () => {
-    if (isRevealingAll || revealingId) return;
+    if (!publicId || isRevealingAll || revealingId) return;
     setIsRevealingAll(true);
     
     // Artificial suspense delay
     setTimeout(() => {
-      revealAll(publicId as string);
+      revealAll(publicId);
     }, 2000);
   };
+
+  if (!publicId) {
+    return (
+      <div className="container mx-auto px-4 py-32 text-center flex flex-col items-center">
+        <h1 className="text-3xl font-bold text-destructive mb-4">Invalid Order Link</h1>
+        <p className="text-muted-foreground mb-8">No order id was provided in this URL.</p>
+        <Button asChild variant="outline">
+          <Link href="/">Return to Home</Link>
+        </Button>
+      </div>
+    );
+  }
 
   if (isPending) {
     return (
@@ -101,7 +131,7 @@ export default function OrderTicketsPage() {
     <div className="container mx-auto px-4 py-8 lg:py-12 max-w-6xl min-h-[70vh]">
       <div className="mb-8 flex items-center justify-between">
         <Link 
-          href={`/orders/${publicId}`} 
+          href={orderHref}
           className="hover:text-foreground text-sm font-medium text-muted-foreground inline-flex items-center transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />

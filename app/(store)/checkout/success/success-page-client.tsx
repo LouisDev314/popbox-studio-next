@@ -7,7 +7,9 @@ import QueryConfigs from '@/configs/api/query-config';
 import { Button } from '@/components/ui/button';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { useCartStore } from '@/hooks/use-cart';
+import { useWishlistStore } from '@/hooks/use-wishlist';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
+import { getPurchasedProductIdsFromOrder, isFinalizedCheckoutOrder } from '@/utils/checkout';
 
 interface ICheckoutSuccessPageClientProps {
   sessionId: string | null;
@@ -15,6 +17,9 @@ interface ICheckoutSuccessPageClientProps {
 
 export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps) {
   const clearCart = useCartStore((state) => state.clearCart);
+  const hasCartHydrated = useCartStore((state) => state.hasHydrated);
+  const hasWishlistHydrated = useWishlistStore((state) => state.hasHydrated);
+  const removeWishlistItems = useWishlistStore((state) => state.removeWishlistItems);
 
   const { data: response, isPending, isError } = useCustomizeQuery<ICheckoutSuccess>({
     queryKey: ['checkout-success', props.sessionId],
@@ -28,10 +33,13 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
   const successData = response?.data?.data;
 
   useEffect(() => {
-    if (successData) {
-      clearCart();
+    if (!successData || !hasCartHydrated || !hasWishlistHydrated || !isFinalizedCheckoutOrder(successData.order)) {
+      return;
     }
-  }, [successData, clearCart]);
+
+    clearCart();
+    removeWishlistItems(getPurchasedProductIdsFromOrder(successData.order));
+  }, [successData, hasCartHydrated, hasWishlistHydrated, clearCart, removeWishlistItems]);
 
   if (!props.sessionId) {
     return (
@@ -69,6 +77,8 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
 
   const { order } = successData;
   const hasKujiTickets = order.tickets && order.tickets.length > 0;
+  const publicOrderUrl = `/orders/${order.publicId}`;
+  const publicTicketsUrl = `/orders/${order.publicId}/tickets`;
 
   return (
     <div className="container mx-auto px-4 py-20 max-w-3xl text-center flex flex-col items-center">
@@ -101,7 +111,7 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
       <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
         {hasKujiTickets ? (
           <Button asChild size="lg" className="rounded-full h-14 px-8 text-lg font-semibold group relative overflow-hidden">
-            <Link href={`/orders/${order.publicId}/tickets`}>
+            <Link href={publicTicketsUrl}>
               <span className="absolute inset-0 bg-primary/10 w-full h-full transform translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               <Ticket className="mr-2 h-5 w-5 z-10 relative" />
               <span className="z-10 relative">Reveal My Tickets!</span>
@@ -109,7 +119,7 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
           </Button>
         ) : (
           <Button asChild size="lg" className="rounded-full h-14 px-8 text-lg font-semibold">
-            <Link href={`/orders/${order.publicId}`}>
+            <Link href={publicOrderUrl}>
               View Order Details
             </Link>
           </Button>

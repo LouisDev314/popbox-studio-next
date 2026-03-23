@@ -9,6 +9,7 @@ import { type ICartItem } from '@/interfaces/cart';
 import { formatPrice } from '@/lib/utils';
 
 interface ICartPageItemProps {
+  disabled?: boolean;
   limitMessage?: string | null;
   maxQuantity?: number | null;
   item: ICartItem;
@@ -21,7 +22,10 @@ export function CartPageItem(props: ICartPageItemProps) {
   const lineTotalCents = props.item.product.priceCents * props.item.quantity;
 
   return (
-    <article className="rounded-[2rem] border border-border/60 bg-card p-4 shadow-sm sm:p-5">
+    <article
+      className="rounded-[2rem] border border-border/60 bg-card p-4 shadow-sm transition-opacity data-[disabled=true]:opacity-70 sm:p-5"
+      data-disabled={props.disabled ? 'true' : undefined}
+    >
       <div className="flex flex-row gap-4">
         <Link
           href={`/products/${props.item.product.slug}`}
@@ -49,6 +53,7 @@ export function CartPageItem(props: ICartPageItemProps) {
                   type="button"
                   variant="ghost"
                   className="h-10 w-fit rounded-full px-4 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={props.disabled}
                   onClick={props.onRemove}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -63,6 +68,7 @@ export function CartPageItem(props: ICartPageItemProps) {
 
           <div className="mt-4 sm:mx-1.5 flex justify-between items-center">
             <QuantityStepper
+              disabled={props.disabled}
               value={props.item.quantity}
               decreaseDisabled={props.item.quantity <= 1}
               increaseDisabled={props.maxQuantity !== null && props.maxQuantity !== undefined && props.item.quantity >= props.maxQuantity}
