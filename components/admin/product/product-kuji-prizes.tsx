@@ -551,7 +551,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
                       <th className="w-11 px-2 py-2">
                         <span className="sr-only">Reorder</span>
                       </th>
-                      <th className="px-3 py-2 font-medium">Code</th>
+                      <th className="px-3 py-2 font-medium">Rank</th>
                       <th className="px-3 py-2 font-medium">Name</th>
                       <th className="px-3 py-2 font-medium text-right">Sort</th>
                       <th className="px-3 py-2 font-medium text-right">Initial List</th>
