@@ -40,7 +40,7 @@ export function CheckoutButton(props: ICheckoutButtonProps) {
 
       {isError ? (
         <p className="text-sm font-medium text-destructive">
-          We couldn&apos;t start Stripe Checkout. Please try again.
+          We couldn&apos;t start Checkout. Please review your cart or try again.
         </p>
       ) : null}
     </div>
