@@ -9,7 +9,7 @@ import { CheckoutButton } from '@/components/cart/checkout-button';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/hooks/use-cart';
 import { formatPrice } from '@/lib/utils';
-import { getKujiCartLimitMessage, getKujiSellableQuantity, isKujiProduct } from '@/utils/kuji';
+import { getProductCartLimitMessage, getProductSellableQuantity } from '@/utils/product-stock';
 
 export default function CartPage() {
   const items = useCartStore((state) => state.items);
@@ -77,16 +77,14 @@ export default function CartPage() {
         <section className="space-y-4" aria-label="Cart items">
           {items.map((item) => (
             (() => {
-              const kujiQuantityLimit = isKujiProduct(item.product)
-                ? getKujiSellableQuantity(item.product)
-                : null;
-              const limitMessage = getKujiCartLimitMessage(item.quantity, kujiQuantityLimit);
+              const quantityLimit = getProductSellableQuantity(item.product);
+              const limitMessage = getProductCartLimitMessage(item.product, item.quantity);
 
               return (
                 <CartPageItem
                   key={item.id}
                   item={item}
-                  maxQuantity={kujiQuantityLimit}
+                  maxQuantity={quantityLimit}
                   limitMessage={limitMessage}
                   onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
                   onIncrease={() => updateQuantity(item.id, item.quantity + 1)}

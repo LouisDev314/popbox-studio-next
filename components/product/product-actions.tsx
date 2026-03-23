@@ -8,18 +8,20 @@ import { useCartStore } from '@/hooks/use-cart';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import { type IProduct } from '@/interfaces/product';
 import { cn } from '@/lib/utils';
-import { getKujiSellableQuantity, isKujiProduct } from '@/utils/kuji';
 import { mapProductToWishlistItem } from '@/utils/wishlist';
+import {
+  getProductSellableQuantity,
+  getProductSoldOutMessage,
+  getRemainingQuantityMessage,
+  isKujiProduct,
+  MAX_IN_CART_MESSAGE,
+} from '@/utils/product-stock';
 
 interface IProductActionsProps {
   product: IProduct;
 }
 
-const STANDARD_PRODUCT_MAX_QUANTITY = 20;
-const KUJI_MAX_IN_CART_MESSAGE = 'You already have the maximum available quantity in your cart.';
-const KUJI_SOLD_OUT_MESSAGE = 'This kuji is sold out.';
-
-interface IKujiActionState {
+interface IProductQuantityState {
   availabilityLabel: string;
   isAddDisabled: boolean;
   isSoldOut: boolean;
@@ -33,20 +35,19 @@ interface IProductActionState {
   hasReachedCartLimit: boolean;
   increaseLimitMessage: string | null;
   isAddDisabled: boolean;
-  isKuji: boolean;
-  isSoldOut: boolean;
   quantityCap: number;
 }
 
-function getKujiActionState(product: IProduct, currentCartQuantity: number): IKujiActionState {
-  const sellableQuantity = getKujiSellableQuantity(product) ?? 0;
+function getProductQuantityState(product: IProduct, currentCartQuantity: number): IProductQuantityState {
+  const isKuji = isKujiProduct(product);
+  const sellableQuantity = getProductSellableQuantity(product);
   const maxAddableQuantity = Math.max(0, sellableQuantity - currentCartQuantity);
   const isSoldOut = sellableQuantity <= 0;
 
   return {
     availabilityLabel: isSoldOut
-      ? 'Sold out'
-      : `${sellableQuantity} ticket${sellableQuantity === 1 ? '' : 's'} remaining`,
+      ? isKuji ? 'Sold out' : 'Currently unavailable'
+      : getRemainingQuantityMessage(product, sellableQuantity),
     isAddDisabled: isSoldOut || maxAddableQuantity <= 0,
     isSoldOut,
     maxAddableQuantity,
@@ -73,55 +74,33 @@ function getIncreaseLimitMessage(
   maxAddableQuantity: number,
 ): string | null {
   if (isSoldOut) {
-    return KUJI_SOLD_OUT_MESSAGE;
+    return getProductSoldOutMessage({ productType: isKuji ? 'kuji' : 'standard' });
   }
 
   if (hasReachedCartLimit) {
-    return KUJI_MAX_IN_CART_MESSAGE;
+    return MAX_IN_CART_MESSAGE;
   }
 
-  if (!isKuji) {
-    return null;
-  }
-
-  return `Only ${maxAddableQuantity} ticket${maxAddableQuantity === 1 ? '' : 's'} remaining.`;
+  return getRemainingQuantityMessage({ productType: isKuji ? 'kuji' : 'standard' }, maxAddableQuantity);
 }
 
 function getProductActionState(product: IProduct, currentCartQuantity: number): IProductActionState {
   const isKuji = isKujiProduct(product);
-
-  if (!isKuji) {
-    const isSoldOut = product.inventory?.available === 0;
-
-    return {
-      addButtonLabel: getAddButtonLabel(isSoldOut, false),
-      availabilityLabel: isSoldOut ? 'Currently unavailable' : '',
-      hasReachedCartLimit: false,
-      increaseLimitMessage: null,
-      isAddDisabled: isSoldOut,
-      isKuji,
-      isSoldOut,
-      quantityCap: STANDARD_PRODUCT_MAX_QUANTITY,
-    };
-  }
-
-  const kujiActionState = getKujiActionState(product, currentCartQuantity);
-  const hasReachedCartLimit = kujiActionState.maxAddableQuantity <= 0 && !kujiActionState.isSoldOut;
+  const quantityState = getProductQuantityState(product, currentCartQuantity);
+  const hasReachedCartLimit = quantityState.maxAddableQuantity <= 0 && !quantityState.isSoldOut;
 
   return {
-    addButtonLabel: getAddButtonLabel(kujiActionState.isSoldOut, hasReachedCartLimit),
-    availabilityLabel: kujiActionState.availabilityLabel,
+    addButtonLabel: getAddButtonLabel(quantityState.isSoldOut, hasReachedCartLimit),
+    availabilityLabel: quantityState.availabilityLabel,
     hasReachedCartLimit,
     increaseLimitMessage: getIncreaseLimitMessage(
-      true,
-      kujiActionState.isSoldOut,
+      isKuji,
+      quantityState.isSoldOut,
       hasReachedCartLimit,
-      kujiActionState.maxAddableQuantity,
+      quantityState.maxAddableQuantity,
     ),
-    isAddDisabled: kujiActionState.isAddDisabled,
-    isKuji,
-    isSoldOut: kujiActionState.isSoldOut,
-    quantityCap: kujiActionState.quantityCap,
+    isAddDisabled: quantityState.isAddDisabled,
+    quantityCap: quantityState.quantityCap,
   };
 }
 
@@ -204,7 +183,7 @@ export function ProductActions(props: IProductActionsProps) {
 
         {actionState.hasReachedCartLimit ? (
           <p className="mt-3 text-sm font-medium text-muted-foreground">
-            {KUJI_MAX_IN_CART_MESSAGE}
+            {MAX_IN_CART_MESSAGE}
           </p>
         ) : null}
 

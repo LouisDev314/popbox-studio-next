@@ -1,8 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { type ICartItem, type ICartProduct, type ICartSummary } from '@/interfaces/cart';
-import { getKujiSellableQuantity, isKujiProduct } from '@/utils/kuji';
 import { buildCartSummary } from '@/utils/cart';
+import {
+  getProductSellableQuantity,
+  getProductSoldOutMessage,
+  getRemainingQuantityMessage,
+  MAX_IN_CART_MESSAGE,
+} from '@/utils/product-stock';
 
 export interface ICartActionResult {
   message: string | null;
@@ -28,24 +33,32 @@ function normalizeQuantity(quantity: number): number {
   return Math.max(1, Math.floor(quantity));
 }
 
-function getKujiAddErrorMessage(currentQuantity: number, sellableQuantity: number): string {
+function getAddErrorMessage(product: ICartProduct, currentQuantity: number): string {
+  const sellableQuantity = getProductSellableQuantity(product);
+
   if (sellableQuantity <= 0) {
-    return 'This kuji is sold out.';
+    return getProductSoldOutMessage(product);
   }
 
   if (currentQuantity >= sellableQuantity) {
-    return 'You already have the maximum available quantity in your cart.';
+    return MAX_IN_CART_MESSAGE;
   }
 
-  return `Only ${sellableQuantity - currentQuantity} ticket${sellableQuantity - currentQuantity === 1 ? '' : 's'} remaining.`;
+  return getRemainingQuantityMessage(product, sellableQuantity - currentQuantity);
 }
 
-function getKujiUpdateErrorMessage(sellableQuantity: number): string {
+function getUpdateErrorMessage(product: ICartProduct, currentQuantity: number): string {
+  const sellableQuantity = getProductSellableQuantity(product);
+
   if (sellableQuantity <= 0) {
-    return 'This kuji is sold out.';
+    return getProductSoldOutMessage(product);
   }
 
-  return `Only ${sellableQuantity} ticket${sellableQuantity === 1 ? '' : 's'} remaining.`;
+  if (currentQuantity >= sellableQuantity) {
+    return MAX_IN_CART_MESSAGE;
+  }
+
+  return getRemainingQuantityMessage(product, sellableQuantity);
 }
 
 export const useCartStore = create<ICartStore>()(
@@ -67,21 +80,21 @@ export const useCartStore = create<ICartStore>()(
             (item) => item.product.id === product.id,
           );
 
-          if (isKujiProduct(product)) {
-            const sellableQuantity = getKujiSellableQuantity(product) ?? 0;
-            const currentQuantity = existingItemIndex > -1 ? state.items[existingItemIndex].quantity : 0;
+          const currentQuantity = existingItemIndex > -1 ? state.items[existingItemIndex].quantity : 0;
+          const sellableQuantity = getProductSellableQuantity(product);
+          const maxAddableQuantity = Math.max(0, sellableQuantity - currentQuantity);
 
-            if (normalizedQuantity > Math.max(0, sellableQuantity - currentQuantity)) {
-              result = {
-                message: getKujiAddErrorMessage(currentQuantity, sellableQuantity),
-                success: false,
-              };
-              return state;
-            }
+          if (normalizedQuantity > maxAddableQuantity) {
+            result = {
+              message: getAddErrorMessage(product, currentQuantity),
+              success: false,
+            };
+            return state;
           }
 
           if (existingItemIndex > -1) {
             const newItems = [...state.items];
+            newItems[existingItemIndex].product = product;
             newItems[existingItemIndex].quantity += normalizedQuantity;
             return { items: newItems };
           }
@@ -113,16 +126,14 @@ export const useCartStore = create<ICartStore>()(
               return item;
             }
 
-            if (isKujiProduct(item.product)) {
-              const sellableQuantity = getKujiSellableQuantity(item.product) ?? 0;
+            const sellableQuantity = getProductSellableQuantity(item.product);
 
-              if (normalizedQuantity > sellableQuantity && normalizedQuantity > item.quantity) {
-                result = {
-                  message: getKujiUpdateErrorMessage(sellableQuantity),
-                  success: false,
-                };
-                return item;
-              }
+            if (normalizedQuantity > sellableQuantity && normalizedQuantity > item.quantity) {
+              result = {
+                message: getUpdateErrorMessage(item.product, item.quantity),
+                success: false,
+              };
+              return item;
             }
 
             return { ...item, quantity: normalizedQuantity };

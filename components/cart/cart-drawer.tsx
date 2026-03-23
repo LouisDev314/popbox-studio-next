@@ -9,7 +9,7 @@ import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { useCartStore } from '@/hooks/use-cart';
 import { cn, formatPrice } from '@/lib/utils';
-import { getKujiCartLimitMessage, getKujiSellableQuantity, isKujiProduct } from '@/utils/kuji';
+import { getProductCartLimitMessage, getProductSellableQuantity } from '@/utils/product-stock';
 
 interface ICartDrawerProps {
   isOpen: boolean;
@@ -130,10 +130,8 @@ export function CartDrawer(props: ICartDrawerProps) {
               {items.map((item) => (
                 <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card/80 p-4 shadow-sm">
                   {(() => {
-                    const kujiQuantityLimit = isKujiProduct(item.product)
-                      ? getKujiSellableQuantity(item.product)
-                      : null;
-                    const limitMessage = getKujiCartLimitMessage(item.quantity, kujiQuantityLimit);
+                    const quantityLimit = getProductSellableQuantity(item.product);
+                    const limitMessage = getProductCartLimitMessage(item.product, item.quantity);
 
                     return (
                       <div className="flex gap-4">
@@ -156,7 +154,7 @@ export function CartDrawer(props: ICartDrawerProps) {
                               size="sm"
                               value={item.quantity}
                               decreaseDisabled={item.quantity <= 1}
-                              increaseDisabled={kujiQuantityLimit !== null && item.quantity >= kujiQuantityLimit}
+                              increaseDisabled={item.quantity >= quantityLimit}
                               onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
                               onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
                             />
