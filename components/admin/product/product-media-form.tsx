@@ -1,28 +1,144 @@
 'use client';
 
-import { Dispatch, SetStateAction, useState } from 'react';
+import { Dispatch, SetStateAction, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
-import { Trash, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { LoaderCircle, Trash } from 'lucide-react';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
-import { IAdminProductEditor } from '@/interfaces/product';
+import { IAdminProductEditor, IAdminProductImage } from '@/interfaces/product';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Button } from '@/components/ui/button';
 import getEnvConfig from '@/configs/env';
 import { mergeAdminImages } from '@/utils/admin';
+import { cn } from '@/lib/utils';
+
+import { buildSortOrderUpdates, moveSortableItems } from './reorder-utils';
+import { SortableHandle, useAdminSortable } from './sortable-admin-item';
 
 interface IProductMediaFormProps {
   product: IAdminProductEditor;
   onProductChange: Dispatch<SetStateAction<IAdminProductEditor | null>>;
 }
 
+interface ISortableProductImageCardProps {
+  image: IAdminProductImage;
+  index: number;
+  isDeleting: boolean;
+  isReordering: boolean;
+  onDelete: (imageId: string) => void;
+  previewSrc: string | null;
+  label: string;
+}
+
+function SortableProductImageCard({
+  image,
+  index,
+  isDeleting,
+  isReordering,
+  onDelete,
+  previewSrc,
+  label,
+}: ISortableProductImageCardProps) {
+  const isInteractionDisabled = isDeleting || isReordering;
+  const { handleProps, isDragging, setNodeRef, style } = useAdminSortable(
+    image.id,
+    isInteractionDisabled,
+  );
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'flex items-center gap-4 rounded-xl border border-[#D5C1C9]/50 bg-[#FBFAFB] p-3 transition-[background-color,box-shadow,border-color] hover:border-primary/20 hover:bg-white',
+        isDragging && 'border-primary/30 bg-white shadow-[0_12px_32px_rgba(25,28,30,0.14)]',
+      )}
+    >
+      <SortableHandle
+        label={`Reorder ${label}`}
+        disabled={isInteractionDisabled}
+        handleProps={handleProps}
+      />
+
+      <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-[#E6E8EA] shadow-sm">
+        {previewSrc ? (
+          <Image
+            src={previewSrc}
+            alt={image.altText || 'Product image'}
+            fill
+            sizes="72px"
+            className="object-cover"
+            unoptimized={previewSrc.includes('supabase')}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] font-medium uppercase tracking-wider text-[#514349]/60">
+            No preview
+          </div>
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-[#191C1E]">{label}</p>
+        {image.altText ? <p className="mt-0.5 truncate text-xs text-[#514349]">{image.altText}</p> : null}
+        <p className="mt-1 text-[11px] uppercase tracking-wider text-[#514349]/60">Position {index + 1}</p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {isReordering ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
+            <LoaderCircle className="h-3 w-3 animate-spin" />
+            Saving
+          </span>
+        ) : null}
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          title="Delete"
+          disabled={isDeleting || isReordering}
+          onClick={() => onDelete(image.id)}
+          className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+        >
+          <Trash className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function ProductMediaForm({ product, onProductChange }: IProductMediaFormProps) {
   const queryClient = useQueryClient();
   const [uploadingCount, setUploadingCount] = useState(0);
+  const reorderRollbackRef = useRef<IAdminProductImage[] | null>(null);
 
   const images = [...product.images].sort((a, b) => a.sortOrder - b.sortOrder);
   const isUploading = uploadingCount > 0;
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const { mutation: uploadImage } = useCustomizeMutation({
     mutationFn: MutationConfigs.uploadAdminProductImage,
@@ -78,6 +194,27 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
     },
+    onError: () => {
+      const previousImages = reorderRollbackRef.current;
+
+      if (previousImages) {
+        onProductChange((currentProduct) => {
+          if (!currentProduct) {
+            return currentProduct;
+          }
+
+          return {
+            ...currentProduct,
+            images: previousImages,
+          };
+        });
+      }
+
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
+    },
+    onSettled: () => {
+      reorderRollbackRef.current = null;
+    },
   });
 
   const handleFileChange = (files: File[]) => {
@@ -91,21 +228,20 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
     });
   };
 
-  const handleMove = (index: number, direction: 'up' | 'down') => {
-    if (
-      (direction === 'up' && index === 0) ||
-      (direction === 'down' && index === images.length - 1)
-    ) {
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id || isReordering) {
       return;
     }
 
-    const newImages = [...images];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    [newImages[index], newImages[targetIndex]] = [newImages[targetIndex], newImages[index]];
-    const optimisticImages = newImages.map((image, imageIndex) => ({
-      ...image,
-      sortOrder: imageIndex,
-    }));
+    const nextImages = moveSortableItems(images, String(active.id), String(over.id));
+
+    if (nextImages === images) {
+      return;
+    }
+
+    reorderRollbackRef.current = images;
 
     onProductChange((currentProduct) => {
       if (!currentProduct) {
@@ -114,12 +250,21 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
 
       return {
         ...currentProduct,
-        images: optimisticImages,
+        images: nextImages,
       };
     });
 
-    const imageIds = newImages.map((img) => img.id);
-    reorderImages({ productId: product.id, imageIds });
+    const changedImages = buildSortOrderUpdates(images, nextImages);
+
+    if (changedImages.length === 0) {
+      reorderRollbackRef.current = null;
+      return;
+    }
+
+    reorderImages({
+      productId: product.id,
+      imageIds: nextImages.map((image) => image.id),
+    });
   };
 
   const handleDelete = (imageId: string) => {
@@ -167,7 +312,7 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
       <div className="mb-6 space-y-4">
         <div>
           <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-[#191C1E]">Media & Images</h2>
-          <p className="text-sm text-[#514349]">Upload multiple images. New uploads appear here immediately.</p>
+          <p className="text-sm text-[#514349]">Upload multiple images. Drag to reorder and changes save automatically.</p>
         </div>
         <div className="relative border border-[#D5C1C9]/50 rounded-lg overflow-hidden transition-colors hover:border-primary/50">
           {isUploading && (
@@ -185,76 +330,31 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
           <p className="mt-1 text-sm text-[#514349]">Upload product photography, packaging shots, or promo art.</p>
         </div>
       ) : (
-        <div className="grid gap-3">
-          {images.map((img, idx) => {
-            const imgSrc = getImagePreviewSrc(img.url, img.storageKey);
-            const imageLabel = getImageLabel(img.storageKey, img.url, idx);
-
-            return (
-              <div key={img.id} className="flex items-center gap-4 rounded-xl border border-[#D5C1C9]/50 bg-[#FBFAFB] p-3 transition-colors hover:bg-white">
-                <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-[#E6E8EA] shadow-sm">
-                  {imgSrc ? (
-                    <Image
-                      src={imgSrc}
-                      alt={img.altText || 'Product image'}
-                      fill
-                      sizes="72px"
-                      className="object-cover"
-                      unoptimized={imgSrc.includes('supabase')}
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] font-medium uppercase tracking-wider text-[#514349]/60">
-                      No preview
-                    </div>
-                  )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-[#191C1E]">{imageLabel}</p>
-                  {img.altText && <p className="mt-0.5 truncate text-xs text-[#514349]">{img.altText}</p>}
-                  <p className="mt-1 text-[11px] uppercase tracking-wider text-[#514349]/60">Position {idx + 1}</p>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    title="Move Up"
-                    disabled={idx === 0 || isReordering}
-                    onClick={() => handleMove(idx, 'up')}
-                    className="h-8 w-8 text-[#514349]"
-                  >
-                    <ArrowUp className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    title="Move Down"
-                    disabled={idx === images.length - 1 || isReordering}
-                    onClick={() => handleMove(idx, 'down')}
-                    className="h-8 w-8 text-[#514349]"
-                  >
-                    <ArrowDown className="w-4 h-4" />
-                  </Button>
-                  <div className="mx-1 h-5 w-px bg-[#D5C1C9]/50" />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    title="Delete"
-                    disabled={isDeleting}
-                    onClick={() => handleDelete(img.id)}
-                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                  >
-                    <Trash className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={images.map((image) => image.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="grid gap-3">
+              {images.map((image, index) => (
+                <SortableProductImageCard
+                  key={image.id}
+                  image={image}
+                  index={index}
+                  isDeleting={isDeleting}
+                  isReordering={isReordering}
+                  onDelete={handleDelete}
+                  previewSrc={getImagePreviewSrc(image.url, image.storageKey)}
+                  label={getImageLabel(image.storageKey, image.url, index)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );
