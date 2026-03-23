@@ -1,23 +1,26 @@
 'use client';
 
-import { Suspense, type FormEvent, useEffect, useState, useSyncExternalStore } from 'react';
+import { Suspense, type FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Search, ShoppingBag } from 'lucide-react';
+import { Heart, Search, ShoppingBag } from 'lucide-react';
 import { CartDrawer } from '@/components/cart/cart-drawer';
 import { MobileMenuPanel } from '@/components/layout/mobile-menu-panel';
 import { MobileNavOverlay } from '@/components/layout/mobile-nav-overlay';
 import { MobileSearchPanel } from '@/components/layout/mobile-search-panel';
+import { WishlistDrawer } from '@/components/wishlist/wishlist-drawer';
 import QueryConfigs from '@/configs/api/query-config';
 import { useCartStore } from '@/hooks/use-cart';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useMobileNavbarVisibility } from '@/hooks/use-mobile-navbar-visibility';
+import { useWishlistStore } from '@/hooks/use-wishlist';
 import { type IProductSuggestion, IProductSuggestionResponse } from '@/interfaces/product';
 import { cn, isActiveLink } from '@/lib/utils';
 
 type TMobilePanel = 'menu' | 'search' | null;
 
+const WISHLIST_BUTTON_ID = 'store-wishlist-trigger';
 const MOBILE_CART_BUTTON_ID = 'store-mobile-cart-trigger';
 const MOBILE_MENU_BUTTON_ID = 'store-mobile-menu-trigger';
 const MOBILE_SEARCH_BUTTON_ID = 'store-mobile-search-trigger';
@@ -27,20 +30,110 @@ function isShopAllNavActive(pathname: string, typeParam: string | null) {
   return pathname === '/products' && typeParam !== 'kuji';
 }
 
+interface IStoreHeaderActionsProps {
+  hasCartHydrated: boolean;
+  hasWishlistHydrated: boolean;
+  isMenuOpen: boolean;
+  isSearchOpen: boolean;
+  onCartOpen: () => void;
+  onMenuToggle: () => void;
+  onSearchToggle: () => void;
+  onWishlistOpen: () => void;
+  totalItems: number;
+  totalWishlistItems: number;
+}
+
+function StoreHeaderActions(props: IStoreHeaderActionsProps) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        id={MOBILE_SEARCH_BUTTON_ID}
+        type="button"
+        aria-expanded={props.isSearchOpen}
+        aria-label={props.isSearchOpen ? 'Close search' : 'Open search'}
+        className={cn(
+          'rounded-full border border-transparent p-2 text-muted-foreground transition-all duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          props.isSearchOpen ? 'bg-primary/20 text-foreground shadow-sm' : 'bg-background/70',
+        )}
+        onClick={props.onSearchToggle}
+      >
+        <Search className="h-5 w-5" />
+      </button>
+
+      <button
+        id={WISHLIST_BUTTON_ID}
+        type="button"
+        className="relative rounded-full border border-transparent bg-background/70 p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        onClick={props.onWishlistOpen}
+      >
+        <span className="sr-only">Open wishlist</span>
+        <Heart className="h-5 w-5" />
+        {props.hasWishlistHydrated && props.totalWishlistItems > 0 ? (
+          <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+            {props.totalWishlistItems}
+          </span>
+        ) : null}
+      </button>
+
+      <button
+        id={MOBILE_CART_BUTTON_ID}
+        type="button"
+        className="relative rounded-full border border-transparent bg-background/70 p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        onClick={props.onCartOpen}
+      >
+        <span className="sr-only">Open cart</span>
+        <ShoppingBag className="h-5 w-5" />
+        {props.hasCartHydrated && props.totalItems > 0 ? (
+          <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+            {props.totalItems}
+          </span>
+        ) : null}
+      </button>
+
+      <button
+        id={MOBILE_MENU_BUTTON_ID}
+        type="button"
+        aria-expanded={props.isMenuOpen}
+        aria-label={props.isMenuOpen ? 'Close menu' : 'Open menu'}
+        className={cn(
+          'relative inline-flex h-10 w-10 items-center justify-center rounded-full border p-2 text-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:hidden',
+          props.isMenuOpen ? 'border-primary/30 bg-primary/20 shadow-sm' : 'border-border/60 bg-background/80',
+        )}
+        onClick={props.onMenuToggle}
+      >
+        <span className="sr-only">{props.isMenuOpen ? 'Close menu' : 'Open menu'}</span>
+        <span className="relative block h-4 w-5">
+          <span
+            className={cn(
+              'absolute left-0 top-[4px] h-[1.5px] w-5 rounded-full bg-current transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+              props.isMenuOpen ? 'top-[7px] rotate-45' : '',
+            )}
+          />
+          <span
+            className={cn(
+              'absolute left-0 top-[11px] h-[1.5px] w-5 rounded-full bg-current transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+              props.isMenuOpen ? 'top-[7px] -rotate-45' : '',
+            )}
+          />
+        </span>
+      </button>
+    </div>
+  );
+}
+
 export function StoreHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isClient = useSyncExternalStore(
-    () => () => undefined,
-    () => true,
-    () => false,
-  );
   const isMobileNavbarVisible = useMobileNavbarVisibility();
   const cartItems = useCartStore((state) => state.items);
+  const hasCartHydrated = useCartStore((state) => state.hasHydrated);
+  const wishlistItems = useWishlistStore((state) => state.items);
+  const hasWishlistHydrated = useWishlistStore((state) => state.hasHydrated);
 
   const [activeMobilePanel, setActiveMobilePanel] = useState<TMobilePanel>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const debouncedSearchQuery = useDebouncedValue(searchQuery.trim(), 220);
@@ -58,9 +151,10 @@ export function StoreHeader() {
     });
 
   const totalItems = cartItems.reduce((accumulator, item) => accumulator + item.quantity, 0);
+  const totalWishlistItems = wishlistItems.length;
   const isMenuOpen = activeMobilePanel === 'menu';
   const isSearchOpen = activeMobilePanel === 'search';
-  const shouldShowMobileNavbar = activeMobilePanel !== null || isCartOpen || isMobileNavbarVisible;
+  const shouldShowMobileNavbar = activeMobilePanel !== null || isCartOpen || isWishlistOpen || isMobileNavbarVisible;
   const autocompleteSuggestions = shouldFetchAutocomplete
     ? autocompleteResponse?.data?.data?.items ?? []
     : [];
@@ -134,7 +228,18 @@ export function StoreHeader() {
     }
 
     setActiveMobilePanel(null);
+    setIsWishlistOpen(false);
     setIsCartOpen(true);
+  };
+
+  const handleWishlistOpen = () => {
+    if (activeMobilePanel === 'search') {
+      setSearchQuery('');
+    }
+
+    setActiveMobilePanel(null);
+    setIsCartOpen(false);
+    setIsWishlistOpen(true);
   };
 
   return (
@@ -189,64 +294,18 @@ export function StoreHeader() {
               </nav>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                id={MOBILE_SEARCH_BUTTON_ID}
-                type="button"
-                aria-expanded={isSearchOpen}
-                aria-label={isSearchOpen ? 'Close search' : 'Open search'}
-                className={cn(
-                  'rounded-full border border-transparent p-2 text-muted-foreground transition-all duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                  isSearchOpen ? 'bg-primary/20 text-foreground shadow-sm' : 'bg-background/70',
-                )}
-                onClick={() => handleMobilePanelToggle('search')}
-              >
-                <Search className="h-5 w-5" />
-              </button>
-
-              <button
-                id={MOBILE_CART_BUTTON_ID}
-                type="button"
-                className="relative rounded-full border border-transparent bg-background/70 p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                onClick={handleCartOpen}
-              >
-                <span className="sr-only">Open cart</span>
-                <ShoppingBag className="h-5 w-5" />
-                {isClient && totalItems > 0 && (
-                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                    {totalItems}
-                  </span>
-                )}
-              </button>
-
-              <button
-                id={MOBILE_MENU_BUTTON_ID}
-                type="button"
-                aria-expanded={isMenuOpen}
-                aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
-                className={cn(
-                  'relative inline-flex h-10 w-10 items-center justify-center rounded-full border p-2 text-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:hidden',
-                  isMenuOpen ? 'border-primary/30 bg-primary/20 shadow-sm' : 'border-border/60 bg-background/80',
-                )}
-                onClick={() => handleMobilePanelToggle('menu')}
-              >
-                <span className="sr-only">{isMenuOpen ? 'Close menu' : 'Open menu'}</span>
-                <span className="relative block h-4 w-5">
-                  <span
-                    className={cn(
-                      'absolute left-0 top-[4px] h-[1.5px] w-5 rounded-full bg-current transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
-                      isMenuOpen ? 'top-[7px] rotate-45' : '',
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      'absolute left-0 top-[11px] h-[1.5px] w-5 rounded-full bg-current transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
-                      isMenuOpen ? 'top-[7px] -rotate-45' : '',
-                    )}
-                  />
-                </span>
-              </button>
-            </div>
+            <StoreHeaderActions
+              hasCartHydrated={hasCartHydrated}
+              hasWishlistHydrated={hasWishlistHydrated}
+              isMenuOpen={isMenuOpen}
+              isSearchOpen={isSearchOpen}
+              onCartOpen={handleCartOpen}
+              onMenuToggle={() => handleMobilePanelToggle('menu')}
+              onSearchToggle={() => handleMobilePanelToggle('search')}
+              onWishlistOpen={handleWishlistOpen}
+              totalItems={totalItems}
+              totalWishlistItems={totalWishlistItems}
+            />
           </div>
         </div>
       </header>
@@ -289,6 +348,11 @@ export function StoreHeader() {
         </Suspense>
       </MobileNavOverlay>
 
+      <WishlistDrawer
+        isOpen={isWishlistOpen}
+        onClose={() => setIsWishlistOpen(false)}
+        triggerButtonId={WISHLIST_BUTTON_ID}
+      />
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} triggerButtonId={MOBILE_CART_BUTTON_ID} />
     </>
   );
