@@ -7,8 +7,10 @@ import QueryConfigs from '@/configs/api/query-config';
 import { Button } from '@/components/ui/button';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { useCartStore } from '@/hooks/use-cart';
+import { useWishlistStore } from '@/hooks/use-wishlist';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
 import { getRelativeGuestOrderUrl, getRelativeGuestTicketsUrl } from '@/lib/guest-order-url';
+import { getPurchasedProductIdsFromOrder, isFinalizedCheckoutOrder } from '@/utils/checkout';
 
 interface ICheckoutSuccessPageClientProps {
   sessionId: string | null;
@@ -16,6 +18,9 @@ interface ICheckoutSuccessPageClientProps {
 
 export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps) {
   const clearCart = useCartStore((state) => state.clearCart);
+  const hasCartHydrated = useCartStore((state) => state.hasHydrated);
+  const hasWishlistHydrated = useWishlistStore((state) => state.hasHydrated);
+  const removeWishlistItems = useWishlistStore((state) => state.removeWishlistItems);
 
   const { data: response, isPending, isError } = useCustomizeQuery<ICheckoutSuccess>({
     queryKey: ['checkout-success', props.sessionId],
@@ -29,10 +34,13 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
   const successData = response?.data?.data;
 
   useEffect(() => {
-    if (successData) {
-      clearCart();
+    if (!successData || !hasCartHydrated || !hasWishlistHydrated || !isFinalizedCheckoutOrder(successData.order)) {
+      return;
     }
-  }, [successData, clearCart]);
+
+    clearCart();
+    removeWishlistItems(getPurchasedProductIdsFromOrder(successData.order));
+  }, [successData, hasCartHydrated, hasWishlistHydrated, clearCart, removeWishlistItems]);
 
   if (!props.sessionId) {
     return (

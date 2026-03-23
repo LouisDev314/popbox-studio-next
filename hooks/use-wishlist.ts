@@ -10,6 +10,7 @@ interface IWishlistStore {
   getWishlistItems: () => IWishlistItem[];
   addWishlistItem: (item: IWishlistItem) => void;
   removeWishlistItem: (productId: string) => void;
+  removeWishlistItems: (productIds: string[]) => void;
   toggleWishlistItem: (item: IWishlistItem) => void;
   isProductWishlisted: (productId: string) => boolean;
   clearWishlist: () => void;
@@ -130,6 +131,18 @@ export const useWishlistStore = create<IWishlistStore>()(
       removeWishlistItem: (productId) => {
         set((state) => ({
           items: state.items.filter((item) => item.id !== productId),
+        }));
+      },
+
+      removeWishlistItems: (productIds) => {
+        if (productIds.length === 0) {
+          return;
+        }
+
+        const productIdSet = new Set(productIds);
+
+        set((state) => ({
+          items: state.items.filter((item) => !productIdSet.has(item.id)),
         }));
       },
 
