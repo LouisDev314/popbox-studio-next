@@ -13,6 +13,7 @@ import { formatPrice } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { IOrderDetail, IOrderStatus, IShipment } from '@/interfaces/order';
+import LastOnePrizeBadge from '@/components/admin/orders/last-one-prize-badge';
 
 const STATUS_CONFIG: Record<IOrderStatus, { label: string; bg: string; text: string }> = {
   pending_payment: { label: 'Pending Payment', bg: 'bg-yellow-100', text: 'text-yellow-800' },
@@ -544,6 +545,13 @@ export default function AdminOrderDetailPageClient({ orderId }: { orderId: strin
           onOpenShipment={handleOpenShipment}
         />
       </div>
+
+      {order.includesLastOnePrize ? (
+        <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 shadow-sm">
+          <LastOnePrizeBadge className="mt-0.5 shrink-0" />
+          <p className="font-medium">This order includes the Last One (LO) prize.</p>
+        </div>
+      ) : null}
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
