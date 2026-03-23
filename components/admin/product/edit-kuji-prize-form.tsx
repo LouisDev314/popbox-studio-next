@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
 import { AxiosError, HttpStatusCode } from 'axios';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -9,6 +10,7 @@ import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IKujiPrize } from '@/interfaces/product';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { uploadAdminProductKujiPrizeImage } from '@/lib/api/admin-client';
 import { cn } from '@/lib/utils';
 import {
   EditableKujiPrizeField,
@@ -26,6 +28,18 @@ type EditKujiPrizeNotification = {
   message: string;
 };
 
+interface ICurrentPrizeImagePanelProps {
+  prize: IKujiPrize;
+}
+
+interface IReplacePrizeImageFieldProps {
+  inputKey: number;
+  selectedFile: File | null;
+  disabled: boolean;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onClear: () => void;
+}
+
 interface IEditKujiPrizeFormProps {
   productId: string;
   prize: IKujiPrize;
@@ -38,16 +52,88 @@ function getFieldClasses(hasError: boolean): string {
   return cn(hasError && 'border-red-400 focus-visible:ring-red-400');
 }
 
+function CurrentPrizeImagePanel({ prize }: ICurrentPrizeImagePanelProps) {
+  return (
+    <div className="sm:col-span-2">
+      <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Current Image</label>
+      {prize.imageUrl ? (
+        <div className="rounded-xl border border-[#D5C1C9]/30 bg-[#FBFAFB] p-4">
+          <div className="relative h-40 overflow-hidden rounded-lg bg-[#E6E8EA] sm:h-48">
+            <Image
+              src={prize.imageUrl}
+              alt={prize.name}
+              fill
+              sizes="(min-width: 640px) 24rem, 100vw"
+              className="object-cover"
+              unoptimized
+            />
+          </div>
+          <p className="mt-2 truncate text-xs text-[#514349]">{prize.imageUrl}</p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed border-[#D5C1C9]/40 bg-[#FBFAFB] px-4 py-6 text-sm text-[#514349]">
+          No image assigned yet.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReplacePrizeImageField({
+  inputKey,
+  selectedFile,
+  disabled,
+  onChange,
+  onClear,
+}: IReplacePrizeImageFieldProps) {
+  return (
+    <div className="sm:col-span-2">
+      <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Replace Image File</label>
+      <Input
+        key={inputKey}
+        type="file"
+        accept="image/*"
+        onChange={onChange}
+        disabled={disabled}
+        className="h-auto"
+      />
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#514349]">
+        {selectedFile ? (
+          <>
+            <span className="font-medium text-[#191C1E]">Selected:</span>
+            <span className="max-w-full truncate">{selectedFile.name}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClear}
+              disabled={disabled}
+              className="h-7 rounded-md px-2 text-xs"
+            >
+              Remove file
+            </Button>
+          </>
+        ) : (
+          <span>Leave blank to keep the current image URL or use the manual URL field below.</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNotify }: IEditKujiPrizeFormProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<KujiPrizeFormData>(() => createKujiPrizeFormData(prize));
   const [errors, setErrors] = useState<KujiPrizeFieldErrors>({});
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imageInputKey, setImageInputKey] = useState(0);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const normalizedFormData = normalizeKujiPrizeFormData(formData);
-  const payload = buildKujiPrizeUpdatePayload(prize, normalizedFormData);
+  const basePayload = buildKujiPrizeUpdatePayload(prize, normalizedFormData);
   const soldCount = normalizedFormData.initialQuantity !== null && normalizedFormData.remainingQuantity !== null
     ? normalizedFormData.initialQuantity - normalizedFormData.remainingQuantity
     : null;
-  const isDirty = Object.keys(payload).length > 0;
+  const isDirty = selectedImageFile !== null || Object.keys(basePayload).length > 0;
   const textareaClasses = cn(
     'flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
   );
@@ -101,10 +187,33 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
     });
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const clearSelectedImageFile = () => {
+    setSelectedImageFile(null);
+    setImageInputKey((currentKey) => currentKey + 1);
+  };
+
+  const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null;
+    setSelectedImageFile(nextFile);
+
+    setErrors((currentErrors) => {
+      if (!currentErrors.imageUrl && !currentErrors.form) {
+        return currentErrors;
+      }
+
+      const nextErrors = { ...currentErrors };
+      delete nextErrors.imageUrl;
+      delete nextErrors.form;
+      return nextErrors;
+    });
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const nextErrors = validateKujiPrizeFormData(normalizedFormData);
+    const nextErrors = validateKujiPrizeFormData(normalizedFormData, {
+      skipImageUrlValidation: selectedImageFile !== null,
+    });
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -112,6 +221,40 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
     }
 
     if (!isDirty) {
+      return;
+    }
+
+    let imageUrl = normalizedFormData.imageUrl;
+
+    if (selectedImageFile) {
+      setIsUploadingImage(true);
+
+      try {
+        const uploadResponse = await uploadAdminProductKujiPrizeImage(productId, selectedImageFile);
+        imageUrl = uploadResponse.data.data.imageUrl;
+      } catch (error) {
+        const message = error instanceof AxiosError
+          ? error.response?.data?.message ?? 'Failed to upload image.'
+          : 'Failed to upload image.';
+
+        setErrors((currentErrors) => ({
+          ...currentErrors,
+          form: message,
+        }));
+        onNotify({ type: 'error', message });
+        return;
+      } finally {
+        setIsUploadingImage(false);
+      }
+    }
+
+    const payload = buildKujiPrizeUpdatePayload(prize, {
+      ...normalizedFormData,
+      imageUrl,
+    });
+
+    if (Object.keys(payload).length === 0) {
+      onSuccess();
       return;
     }
 
@@ -158,6 +301,16 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
           />
           {errors.description ? <p className="mt-1 text-xs text-red-600">{errors.description}</p> : null}
         </div>
+
+        <CurrentPrizeImagePanel prize={prize} />
+
+        <ReplacePrizeImageField
+          inputKey={imageInputKey}
+          selectedFile={selectedImageFile}
+          disabled={isPending || isUploadingImage}
+          onChange={handleImageFileChange}
+          onClear={clearSelectedImageFile}
+        />
 
         <div className="sm:col-span-2">
           <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Image URL</label>
@@ -235,17 +388,17 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
             type="button"
             variant="outline"
             onClick={onCancel}
-            disabled={isPending}
+            disabled={isPending || isUploadingImage}
             className="rounded-lg"
           >
             Cancel
           </Button>
           <Button
             type="submit"
-            disabled={isPending || !isDirty}
+            disabled={isPending || isUploadingImage || !isDirty}
             className="rounded-lg"
           >
-            {isPending ? 'Saving...' : 'Save Changes'}
+            {isUploadingImage ? 'Uploading...' : isPending ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
       </div>

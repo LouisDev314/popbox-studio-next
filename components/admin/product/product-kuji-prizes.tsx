@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NumericInput } from '@/components/ui/numeric-input';
 import { IAdminProductEditor, IKujiPrize } from '@/interfaces/product';
+import { uploadAdminProductKujiPrizeImage } from '@/lib/api/admin-client';
 import { cn } from '@/lib/utils';
 
 import { EditKujiPrizeModal } from './edit-kuji-prize-modal';
@@ -33,8 +34,91 @@ type KujiPrizeToast = {
   message: string;
 };
 
+interface IKujiPrizeToastBannerProps {
+  toast: KujiPrizeToast;
+  onDismiss: () => void;
+}
+
+interface ICreatePrizeImageFieldProps {
+  inputKey: number;
+  selectedFile: File | null;
+  disabled: boolean;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onClear: () => void;
+}
+
 function getFieldClasses(hasError: boolean): string {
   return cn(hasError && 'border-red-400 focus-visible:ring-red-400');
+}
+
+function KujiPrizeToastBanner({ toast, onDismiss }: IKujiPrizeToastBannerProps) {
+  return (
+    <div className="fixed right-4 top-4 z-[70] w-[min(calc(100vw-2rem),24rem)]">
+      <div
+        className={`flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-lg backdrop-blur ${
+          toast.type === 'success'
+            ? 'border-emerald-200 bg-emerald-50/95 text-emerald-900'
+            : 'border-red-200 bg-red-50/95 text-red-900'
+        }`}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">{toast.message}</p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onDismiss}
+          className="h-6 w-6 rounded-md p-0 hover:bg-black/5"
+          aria-label="Dismiss notification"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CreatePrizeImageField({
+  inputKey,
+  selectedFile,
+  disabled,
+  onChange,
+  onClear,
+}: ICreatePrizeImageFieldProps) {
+  return (
+    <div className="sm:col-span-2">
+      <label className="mb-1 block text-xs font-medium text-[#514349]">Prize Image File</label>
+      <Input
+        key={inputKey}
+        type="file"
+        accept="image/*"
+        onChange={onChange}
+        disabled={disabled}
+        className="h-auto text-sm"
+      />
+      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#514349]">
+        {selectedFile ? (
+          <>
+            <span className="font-medium text-[#191C1E]">Selected:</span>
+            <span className="max-w-full truncate">{selectedFile.name}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClear}
+              disabled={disabled}
+              className="h-7 rounded-md px-2 text-xs"
+            >
+              Remove file
+            </Button>
+          </>
+        ) : (
+          <span>Upload a file to generate the image URL automatically on submit.</span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function createNewPrizeFormData(nextSortOrder: number): KujiPrizeFormData {
@@ -52,6 +136,9 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
   const [toast, setToast] = useState<KujiPrizeToast | null>(null);
   const [createErrors, setCreateErrors] = useState<KujiPrizeFieldErrors>({});
   const [newPrize, setNewPrize] = useState<KujiPrizeFormData>(() => createNewPrizeFormData(product.kujiPrizes.length));
+  const [createImageFile, setCreateImageFile] = useState<File | null>(null);
+  const [createImageInputKey, setCreateImageInputKey] = useState(0);
+  const [isUploadingCreateImage, setIsUploadingCreateImage] = useState(false);
 
   const { data: prizesRes, isPending, refetch } = useCustomizeQuery({
     queryKey: ['admin', 'prizes', product.id],
@@ -66,8 +153,13 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
   const { mutation: createPrize, isPending: isCreating } = useCustomizeMutation({
     mutationFn: MutationConfigs.createAdminProductKujiPrize,
     onSuccess: () => {
+      const nextSortOrder = sortedPrizes.length + 1;
+
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
-      setNewPrize(createNewPrizeFormData(sortedPrizes.length + 1));
+      setNewPrize(createNewPrizeFormData(nextSortOrder));
+      setCreateImageFile(null);
+      setCreateImageInputKey((currentKey) => currentKey + 1);
       setCreateErrors({});
       showToast('success', 'Prize created successfully.');
     },
@@ -92,6 +184,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
   const { mutation: deletePrize, isPending: isDeleting } = useCustomizeMutation({
     mutationFn: MutationConfigs.deleteAdminProductKujiPrize,
     onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
     },
   });
@@ -140,49 +233,75 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
     });
   };
 
-  const handleCreate = (e: React.FormEvent) => {
+  const clearCreateImageSelection = () => {
+    setCreateImageFile(null);
+    setCreateImageInputKey((currentKey) => currentKey + 1);
+  };
+
+  const handleCreateImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null;
+    setCreateImageFile(nextFile);
+
+    setCreateErrors((currentErrors) => {
+      if (!currentErrors.imageUrl && !currentErrors.form) {
+        return currentErrors;
+      }
+
+      const nextErrors = { ...currentErrors };
+      delete nextErrors.imageUrl;
+      delete nextErrors.form;
+      return nextErrors;
+    });
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const nextErrors = validateKujiPrizeFormData(normalizedNewPrize);
+    const nextErrors = validateKujiPrizeFormData(normalizedNewPrize, {
+      skipImageUrlValidation: createImageFile !== null,
+    });
 
     if (Object.keys(nextErrors).length > 0) {
       setCreateErrors(nextErrors);
       return;
     }
 
+    let imageUrl = normalizedNewPrize.imageUrl;
+
+    if (createImageFile) {
+      setIsUploadingCreateImage(true);
+
+      try {
+        const uploadResponse = await uploadAdminProductKujiPrizeImage(product.id, createImageFile);
+        imageUrl = uploadResponse.data.data.imageUrl;
+      } catch (error) {
+        const message = error instanceof AxiosError
+          ? error.response?.data?.message ?? 'Failed to upload image.'
+          : 'Failed to upload image.';
+
+        setCreateErrors((currentErrors) => ({
+          ...currentErrors,
+          form: message,
+        }));
+        showToast('error', message);
+        return;
+      } finally {
+        setIsUploadingCreateImage(false);
+      }
+    }
+
     createPrize({
       productId: product.id,
-      data: buildKujiPrizeCreatePayload(normalizedNewPrize),
+      data: buildKujiPrizeCreatePayload({
+        ...normalizedNewPrize,
+        imageUrl,
+      }),
     });
   };
 
   return (
     <>
-      {toast ? (
-        <div className="fixed right-4 top-4 z-[70] w-[min(calc(100vw-2rem),24rem)]">
-          <div
-            className={`flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-lg backdrop-blur ${
-              toast.type === 'success'
-                ? 'border-emerald-200 bg-emerald-50/95 text-emerald-900'
-                : 'border-red-200 bg-red-50/95 text-red-900'
-            }`}
-          >
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{toast.message}</p>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => setToast(null)}
-              className="h-6 w-6 rounded-md p-0 hover:bg-black/5"
-              aria-label="Dismiss notification"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      {toast ? <KujiPrizeToastBanner toast={toast} onDismiss={() => setToast(null)} /> : null}
 
       <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-[#D5C1C9]/20 pb-4">
@@ -319,17 +438,13 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
               {createErrors.description ? <p className="mt-1 text-xs text-red-600">{createErrors.description}</p> : null}
             </div>
 
-            <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-[#514349]">Image URL</label>
-              <Input
-                type="url"
-                value={newPrize.imageUrl}
-                onChange={(event) => handleCreateFieldChange('imageUrl', event.target.value)}
-                className={cn('h-8 text-sm', getFieldClasses(Boolean(createErrors.imageUrl)))}
-                placeholder="https://example.com/prize-image.jpg"
-              />
-              {createErrors.imageUrl ? <p className="mt-1 text-xs text-red-600">{createErrors.imageUrl}</p> : null}
-            </div>
+            <CreatePrizeImageField
+              inputKey={createImageInputKey}
+              selectedFile={createImageFile}
+              disabled={isCreating || isUploadingCreateImage}
+              onChange={handleCreateImageFileChange}
+              onClear={clearCreateImageSelection}
+            />
 
             <div>
               <label className="mb-1 block text-xs font-medium text-[#514349]">Remaining Qty</label>
@@ -370,11 +485,11 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
             <div className="flex justify-end lg:col-span-2">
               <Button
                 type="submit"
-                disabled={isCreating}
+                disabled={isCreating || isUploadingCreateImage}
                 className="h-8 rounded-md px-3 text-xs font-medium"
               >
                 <Plus className="mr-1 h-3.5 w-3.5" />
-                {isCreating ? 'Adding...' : 'Add'}
+                {isUploadingCreateImage ? 'Uploading...' : isCreating ? 'Adding...' : 'Add'}
               </Button>
             </div>
           </form>

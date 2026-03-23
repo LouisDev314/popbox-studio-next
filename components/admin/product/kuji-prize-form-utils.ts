@@ -27,6 +27,10 @@ export type NormalizedKujiPrizeFormData = {
   sortOrder: number | null;
 };
 
+type ValidateKujiPrizeFormDataOptions = {
+  skipImageUrlValidation?: boolean;
+};
+
 type ComparableKujiPrize = Omit<NormalizedKujiPrizeFormData, 'initialQuantity' | 'remainingQuantity' | 'sortOrder'> & {
   initialQuantity: number;
   remainingQuantity: number;
@@ -102,7 +106,10 @@ function normalizePrizeForComparison(prize: IKujiPrize): ComparableKujiPrize {
   };
 }
 
-export function validateKujiPrizeFormData(formData: NormalizedKujiPrizeFormData): KujiPrizeFieldErrors {
+export function validateKujiPrizeFormData(
+  formData: NormalizedKujiPrizeFormData,
+  options: ValidateKujiPrizeFormDataOptions = {},
+): KujiPrizeFieldErrors {
   const errors: KujiPrizeFieldErrors = {};
 
   if (formData.prizeCode === '') {
@@ -113,7 +120,7 @@ export function validateKujiPrizeFormData(formData: NormalizedKujiPrizeFormData)
     errors.name = 'Prize name is required.';
   }
 
-  if (formData.imageUrl && !isValidUrl(formData.imageUrl)) {
+  if (!options.skipImageUrlValidation && formData.imageUrl && !isValidUrl(formData.imageUrl)) {
     errors.imageUrl = 'Enter a valid URL.';
   }
 
