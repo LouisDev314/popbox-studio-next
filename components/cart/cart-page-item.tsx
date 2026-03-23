@@ -23,8 +23,8 @@ export function CartPageItem(props: ICartPageItemProps) {
 
   return (
     <article
-      className="rounded-[2rem] border border-border/60 bg-card p-4 shadow-sm transition-opacity sm:p-5"
-      aria-disabled={props.disabled}
+      className="rounded-[2rem] border border-border/60 bg-card p-4 shadow-sm transition-opacity data-[disabled=true]:opacity-70 sm:p-5"
+      data-disabled={props.disabled ? 'true' : undefined}
     >
       <div className="flex flex-row gap-4">
         <Link
