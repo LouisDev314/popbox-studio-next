@@ -9,28 +9,44 @@ import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { StorefrontImage } from '@/components/ui/storefront-image';
-import { appendGuestOrderToken, getGuestOrderTokenParamName } from '@/lib/guest-order-url';
 
 export default function GuestOrderPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const publicId = Array.isArray(params.publicId) ? params.publicId[0] : params.publicId;
-  const token = searchParams.get(getGuestOrderTokenParamName()) ?? undefined;
+  const publicIdParam = Array.isArray(params.publicId) ? params.publicId[0] : params.publicId;
+  const publicId = typeof publicIdParam === 'string' && publicIdParam.trim() ? publicIdParam : null;
+  const token = searchParams.get('token') ?? undefined;
 
   const { data: response, isPending, isError } = useCustomizeQuery<IGuestOrderDetail>({
     queryKey: ['guest-order', publicId, token],
     queryFn: async () => {
-      if (token) {
-        await QueryConfigs.fetchGuestOrderAccess(publicId!, token);
+      if (!publicId) {
+        throw new Error('Missing public order id');
       }
 
-      return QueryConfigs.fetchGuestOrder(publicId!);
+      if (token) {
+        await QueryConfigs.fetchGuestOrderAccess(publicId, token);
+      }
+
+      return QueryConfigs.fetchGuestOrder(publicId);
     },
     enabled: !!publicId,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
   });
+
+  if (!publicId) {
+    return (
+      <div className="container mx-auto px-4 py-32 text-center">
+        <h1 className="mb-4 text-3xl font-bold text-destructive">Invalid Order Link</h1>
+        <p className="mb-8 text-muted-foreground">No order id was provided in this URL.</p>
+        <Link href="/" className="text-primary hover:underline">
+          Return to Home
+        </Link>
+      </div>
+    );
+  }
 
   if (isPending) {
     return (
@@ -56,6 +72,9 @@ export default function GuestOrderPage() {
 
   const order = response.data.data;
   const hasKujiTickets = order.tickets.length > 0;
+  const ticketsHref = token
+    ? `/orders/${order.publicId}/tickets?token=${encodeURIComponent(token)}`
+    : `/orders/${order.publicId}/tickets`;
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
@@ -87,7 +106,7 @@ export default function GuestOrderPage() {
             size="lg"
             className="rounded-full px-8 py-6 text-base font-semibold shadow-md"
           >
-            <Link href={appendGuestOrderToken(`/orders/${order.publicId}/tickets`, token)}>
+            <Link href={ticketsHref}>
               <Ticket className="mr-2 h-5 w-5" />
               Go to My Tickets
             </Link>

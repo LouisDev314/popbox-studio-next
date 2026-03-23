@@ -9,7 +9,6 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import { useCartStore } from '@/hooks/use-cart';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
-import { getRelativeGuestOrderUrl, getRelativeGuestTicketsUrl } from '@/lib/guest-order-url';
 import { getPurchasedProductIdsFromOrder, isFinalizedCheckoutOrder } from '@/utils/checkout';
 
 interface ICheckoutSuccessPageClientProps {
@@ -78,8 +77,8 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
 
   const { order } = successData;
   const hasKujiTickets = order.tickets && order.tickets.length > 0;
-  const publicOrderUrl = getRelativeGuestOrderUrl(successData.clientOrderUrl);
-  const publicTicketsUrl = getRelativeGuestTicketsUrl(successData.clientOrderUrl);
+  const publicOrderUrl = `/orders/${order.publicId}`;
+  const publicTicketsUrl = `/orders/${order.publicId}/tickets`;
 
   return (
     <div className="container mx-auto px-4 py-20 max-w-3xl text-center flex flex-col items-center">
