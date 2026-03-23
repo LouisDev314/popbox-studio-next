@@ -1,17 +1,62 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Pencil, Plus, RotateCw, Trash, X } from 'lucide-react';
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { AxiosError, HttpStatusCode } from 'axios';
+import { LoaderCircle, Pencil, Plus, RotateCw, Trash, X } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
+import { IBaseApiResponse } from '@/interfaces/api-response';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { IAdminProduct, IKujiPrize } from '@/interfaces/product';
+import { NumericInput } from '@/components/ui/numeric-input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { IAdminProductEditor, IKujiPrize } from '@/interfaces/product';
+import { uploadAdminProductKujiPrizeImage } from '@/lib/api/admin-client';
+import { KUJI_PRIZE_CODES, isKujiPrizeCode } from '@/lib/kuji-prize-codes';
+import { cn } from '@/lib/utils';
 
 import { EditKujiPrizeModal } from './edit-kuji-prize-modal';
+import {
+  buildSortOrderUpdates,
+  moveSortableItems,
+  orderSortableItemsByIds,
+} from './reorder-utils';
+import {
+  EditableKujiPrizeField,
+  EditableKujiPrizeTextField,
+  KujiPrizeFieldErrors,
+  KujiPrizeFormData,
+  buildKujiPrizeCreatePayload,
+  createKujiPrizeFormData,
+  mapKujiPrizeServerValidationErrors,
+  normalizeKujiPrizeFormData,
+  validateKujiPrizeFormData,
+} from './kuji-prize-form-utils';
+import { SortableHandle, useAdminSortable } from './sortable-admin-item';
 
 type KujiPrizeToast = {
   id: number;
@@ -19,37 +64,298 @@ type KujiPrizeToast = {
   message: string;
 };
 
-export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
+interface IKujiPrizeToastBannerProps {
+  toast: KujiPrizeToast;
+  onDismiss: () => void;
+}
+
+interface ICreatePrizeImageFieldProps {
+  inputKey: number;
+  selectedFile: File | null;
+  disabled: boolean;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onClear: () => void;
+}
+
+interface IReorderPrizeRequest {
+  productId: string;
+  updates: Array<{
+    prizeId: string;
+    sortOrder: number;
+  }>;
+}
+
+interface ISortablePrizeRowProps {
+  prize: IKujiPrize;
+  isDeleting: boolean;
+  isReordering: boolean;
+  onDelete: (prizeId: string) => void;
+  onEdit: (prize: IKujiPrize) => void;
+}
+
+function getFieldClasses(hasError: boolean): string {
+  return cn(hasError && 'border-red-400 focus-visible:ring-red-400');
+}
+
+function KujiPrizeToastBanner({ toast, onDismiss }: IKujiPrizeToastBannerProps) {
+  return (
+    <div className="fixed right-4 top-4 z-[70] w-[min(calc(100vw-2rem),24rem)]">
+      <div
+        className={`flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-lg backdrop-blur ${
+          toast.type === 'success'
+            ? 'border-emerald-200 bg-emerald-50/95 text-emerald-900'
+            : 'border-red-200 bg-red-50/95 text-red-900'
+        }`}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium">{toast.message}</p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onDismiss}
+          className="h-6 w-6 rounded-md p-0 hover:bg-black/5"
+          aria-label="Dismiss notification"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CreatePrizeImageField({
+  inputKey,
+  selectedFile,
+  disabled,
+  onChange,
+  onClear,
+}: ICreatePrizeImageFieldProps) {
+  return (
+    <div className="sm:col-span-2">
+      <label className="mb-1 block text-xs font-medium text-[#514349]">Prize Image File</label>
+      <Input
+        key={inputKey}
+        type="file"
+        accept="image/*"
+        onChange={onChange}
+        disabled={disabled}
+        className="h-auto text-sm"
+      />
+      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#514349]">
+        {selectedFile && (
+          <>
+            <span className="font-medium text-[#191C1E]">Selected:</span>
+            <span className="max-w-full truncate">{selectedFile.name}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClear}
+              disabled={disabled}
+              className="h-7 rounded-md px-2 text-xs"
+            >
+              Remove file
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SortablePrizeRow({
+  prize,
+  isDeleting,
+  isReordering,
+  onDelete,
+  onEdit,
+}: ISortablePrizeRowProps) {
+  const isInteractionDisabled = isDeleting || isReordering;
+  const { handleProps, isDragging, setNodeRef, style } = useAdminSortable(
+    prize.id,
+    isInteractionDisabled,
+  );
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group transition-[background-color,box-shadow] hover:bg-[#F2F4F6]/50',
+        isDragging && 'bg-white shadow-[0_10px_24px_rgba(25,28,30,0.12)]',
+      )}
+    >
+      <td className="px-2 py-2">
+        <SortableHandle
+          label={`Reorder prize ${prize.prizeCode}`}
+          disabled={isInteractionDisabled}
+          handleProps={handleProps}
+          className="mx-auto"
+        />
+      </td>
+      <td className="px-3 py-2 font-semibold text-primary">{prize.prizeCode}</td>
+      <td className="px-3 py-2 font-medium text-[#191C1E]">{prize.name}</td>
+      <td className="px-3 py-2 text-right text-[#514349]">{prize.sortOrder}</td>
+      <td className="px-3 py-2 text-right text-[#514349]">{prize.initialQuantity}</td>
+      <td className="px-3 py-2 text-right">
+        <span className={`inline-flex items-center justify-center rounded-sm px-1.5 py-0.5 font-medium ${prize.remainingQuantity === 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
+          {prize.remainingQuantity}
+        </span>
+      </td>
+      <td className="px-3 py-2 text-right text-[#514349]">
+        {prize.initialQuantity - prize.remainingQuantity}
+      </td>
+      <td className="px-3 py-2 text-right">
+        <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            disabled={isInteractionDisabled}
+            onClick={() => onEdit(prize)}
+            className="h-8 w-8 rounded-md text-[#514349] hover:text-[#191C1E]"
+            title="Edit Prize"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            disabled={isInteractionDisabled}
+            onClick={() => onDelete(prize.id)}
+            className="h-8 w-8 rounded-md text-red-500 hover:text-red-600"
+            title="Delete Prize"
+          >
+            <Trash className="h-4 w-4" />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function createNewPrizeFormData(nextSortOrder: number): KujiPrizeFormData {
+  return createKujiPrizeFormData({
+    initialQuantity: 1,
+    remainingQuantity: 1,
+    sortOrder: nextSortOrder,
+  });
+}
+
+export function ProductKujiPrizes({ product }: { product: IAdminProductEditor }) {
   const queryClient = useQueryClient();
   const toastTimeoutRef = useRef<number | null>(null);
+  const prizeOrderRollbackRef = useRef<string[] | null>(null);
   const [editingPrize, setEditingPrize] = useState<IKujiPrize | null>(null);
   const [toast, setToast] = useState<KujiPrizeToast | null>(null);
-  const [newPrize, setNewPrize] = useState({
-    prizeCode: '',
-    name: '',
-    initialQuantity: '1',
-  });
+  const [optimisticPrizeIds, setOptimisticPrizeIds] = useState<string[] | null>(null);
+  const [createErrors, setCreateErrors] = useState<KujiPrizeFieldErrors>({});
+  const [newPrize, setNewPrize] = useState<KujiPrizeFormData>(() => createNewPrizeFormData(product.kujiPrizes.length));
+  const [createImageFile, setCreateImageFile] = useState<File | null>(null);
+  const [createImageInputKey, setCreateImageInputKey] = useState(0);
+  const [isUploadingCreateImage, setIsUploadingCreateImage] = useState(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const { data: prizesRes, isPending, refetch } = useCustomizeQuery({
     queryKey: ['admin', 'prizes', product.id],
     queryFn: () => QueryConfigs.fetchAdminProductKujiPrizes(product.id),
   });
 
-  const prizes = prizesRes?.data?.data || [];
-  const sortedPrizes = [...prizes].sort((a, b) => a.sortOrder - b.sortOrder);
+  const serverPrizes = useMemo(
+    () => [...(prizesRes?.data?.data ?? [])].sort((a, b) => a.sortOrder - b.sortOrder),
+    [prizesRes],
+  );
+  const sortedPrizes = useMemo(
+    () => orderSortableItemsByIds(serverPrizes, optimisticPrizeIds),
+    [optimisticPrizeIds, serverPrizes],
+  );
+  const normalizedNewPrize = normalizeKujiPrizeFormData(newPrize);
+  const textareaClasses = 'flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
   const { mutation: createPrize, isPending: isCreating } = useCustomizeMutation({
     mutationFn: MutationConfigs.createAdminProductKujiPrize,
     onSuccess: () => {
+      const nextSortOrder = sortedPrizes.length + 1;
+
+      setOptimisticPrizeIds(null);
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
-      setNewPrize({ prizeCode: '', name: '', initialQuantity: '1' });
+      setNewPrize(createNewPrizeFormData(nextSortOrder));
+      setCreateImageFile(null);
+      setCreateImageInputKey((currentKey) => currentKey + 1);
+      setCreateErrors({});
+      showToast('success', 'Prize created successfully.');
+    },
+    onError: (error: AxiosError<IBaseApiResponse>) => {
+      const message = error.response?.data?.message ?? 'Failed to create prize.';
+      const status = error.response?.status;
+
+      if (status === HttpStatusCode.BadRequest) {
+        setCreateErrors(mapKujiPrizeServerValidationErrors(message));
+        return;
+      }
+
+      if (status === HttpStatusCode.Conflict) {
+        showToast('error', 'Inventory conflict. Check quantities.');
+        return;
+      }
+
+      showToast('error', message);
     },
   });
 
   const { mutation: deletePrize, isPending: isDeleting } = useCustomizeMutation({
     mutationFn: MutationConfigs.deleteAdminProductKujiPrize,
     onSuccess: () => {
+      setOptimisticPrizeIds(null);
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
+    },
+  });
+
+  const { mutation: reorderPrizes, isPending: isReorderingPrizes } = useCustomizeMutation({
+    mutationFn: async ({ productId, updates }: IReorderPrizeRequest) => {
+      const responses = await Promise.all(
+        updates.map((update) =>
+          MutationConfigs.updateAdminProductKujiPrize({
+            productId,
+            prizeId: update.prizeId,
+            data: {
+              sortOrder: update.sortOrder,
+            },
+          }),
+        ),
+      );
+
+      return responses[responses.length - 1];
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
+      showToast('success', 'Prize order saved.');
+    },
+    onError: (error: AxiosError<IBaseApiResponse>) => {
+      setOptimisticPrizeIds(prizeOrderRollbackRef.current);
+
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
+
+      showToast('error', error.response?.data?.message ?? 'Failed to save prize order.');
+    },
+    onSettled: () => {
+      prizeOrderRollbackRef.current = null;
     },
   });
 
@@ -79,58 +385,178 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
     }, 4000);
   };
 
-  const handleCreate = (e: React.FormEvent) => {
+  const clearCreateFieldError = (field: EditableKujiPrizeField) => {
+    setCreateErrors((currentErrors) => {
+      if (!currentErrors[field] && !currentErrors.form) {
+        return currentErrors;
+      }
+
+      const nextErrors = { ...currentErrors };
+      delete nextErrors[field];
+      delete nextErrors.form;
+      return nextErrors;
+    });
+  };
+
+  const handleCreatePrizeCodeChange = (value: string | null) => {
+    if (!value || !isKujiPrizeCode(value)) {
+      return;
+    }
+
+    setNewPrize((currentPrize) => ({
+      ...currentPrize,
+      prizeCode: value,
+      invalidPrizeCode: null,
+    }));
+
+    clearCreateFieldError('prizeCode');
+  };
+
+  const handleCreateFieldChange = (field: EditableKujiPrizeTextField, value: string) => {
+    setNewPrize((currentPrize) => ({
+      ...currentPrize,
+      [field]: value,
+    }));
+
+    clearCreateFieldError(field);
+  };
+
+  const clearCreateImageSelection = () => {
+    setCreateImageFile(null);
+    setCreateImageInputKey((currentKey) => currentKey + 1);
+  };
+
+  const handleCreateImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null;
+    setCreateImageFile(nextFile);
+
+    setCreateErrors((currentErrors) => {
+      if (!currentErrors.imageUrl && !currentErrors.form) {
+        return currentErrors;
+      }
+
+      const nextErrors = { ...currentErrors };
+      delete nextErrors.imageUrl;
+      delete nextErrors.form;
+      return nextErrors;
+    });
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const nextErrors = validateKujiPrizeFormData(normalizedNewPrize, {
+      skipImageUrlValidation: createImageFile !== null,
+    });
+
+    if (Object.keys(nextErrors).length > 0) {
+      setCreateErrors(nextErrors);
+      return;
+    }
+
+    let imageUrl = normalizedNewPrize.imageUrl;
+
+    if (createImageFile) {
+      setIsUploadingCreateImage(true);
+
+      try {
+        const uploadResponse = await uploadAdminProductKujiPrizeImage(product.id, createImageFile);
+        imageUrl = uploadResponse.data.data.imageUrl;
+      } catch (error) {
+        const message = error instanceof AxiosError
+          ? error.response?.data?.message ?? 'Failed to upload image.'
+          : 'Failed to upload image.';
+
+        setCreateErrors((currentErrors) => ({
+          ...currentErrors,
+          form: message,
+        }));
+        showToast('error', message);
+        return;
+      } finally {
+        setIsUploadingCreateImage(false);
+      }
+    }
+
     createPrize({
       productId: product.id,
-      data: {
-        prizeCode: newPrize.prizeCode.toUpperCase(),
-        name: newPrize.name,
-        initialQuantity: Math.max(1, parseInt(newPrize.initialQuantity || '1', 10)),
-      },
+      data: buildKujiPrizeCreatePayload({
+        ...normalizedNewPrize,
+        imageUrl,
+      }),
+    });
+  };
+
+  const handlePrizeDelete = (prizeId: string) => {
+    setOptimisticPrizeIds(null);
+    deletePrize({ productId: product.id, prizeId });
+  };
+
+  const handlePrizeEdit = (prize: IKujiPrize) => {
+    setOptimisticPrizeIds(null);
+    setEditingPrize(prize);
+  };
+
+  const handlePrizeDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id || isReorderingPrizes) {
+      return;
+    }
+
+    const nextPrizes = moveSortableItems(sortedPrizes, String(active.id), String(over.id));
+
+    if (nextPrizes === sortedPrizes) {
+      return;
+    }
+
+    const updates = buildSortOrderUpdates(sortedPrizes, nextPrizes).map((update) => ({
+      prizeId: update.id,
+      sortOrder: update.sortOrder,
+    }));
+
+    if (updates.length === 0) {
+      return;
+    }
+
+    prizeOrderRollbackRef.current = sortedPrizes.map((prize) => prize.id);
+    setOptimisticPrizeIds(nextPrizes.map((prize) => prize.id));
+    reorderPrizes({
+      productId: product.id,
+      updates,
     });
   };
 
   return (
     <>
-      {toast ? (
-        <div className="fixed right-4 top-4 z-[70] w-[min(calc(100vw-2rem),24rem)]">
-          <div
-            className={`flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-lg backdrop-blur ${
-              toast.type === 'success'
-                ? 'border-emerald-200 bg-emerald-50/95 text-emerald-900'
-                : 'border-red-200 bg-red-50/95 text-red-900'
-            }`}
-          >
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">{toast.message}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setToast(null)}
-              className="rounded-md p-1 transition-colors hover:bg-black/5"
-              aria-label="Dismiss notification"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      ) : null}
+      {toast ? <KujiPrizeToastBanner toast={toast} onDismiss={() => setToast(null)} /> : null}
 
       <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-[#D5C1C9]/20 pb-4">
           <div>
             <h2 className="text-sm font-semibold text-[#191C1E] uppercase tracking-wider">Kuji Prizes</h2>
-            <p className="mt-1 text-xs text-[#514349]">Manage the prize pool for this Kuji product.</p>
+            <p className="mt-1 text-xs text-[#514349]">Manage the prize pool for this Kuji product. Drag rows to reorder and save automatically.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-[#191C1E] transition-colors hover:bg-primary/60"
-          >
-            <RotateCw className="h-3.5 w-3.5" />
-            Refresh Pool
-          </button>
+          <div className="flex items-center gap-2">
+            {isReorderingPrizes ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-primary">
+                <LoaderCircle className="h-3 w-3 animate-spin" />
+                Saving order
+              </span>
+            ) : null}
+            <Button
+              type="button"
+              disabled={isReorderingPrizes}
+              onClick={() => {
+                setOptimisticPrizeIds(null);
+                void refetch();
+              }}
+              className="h-8 gap-1.5 rounded-lg px-3 text-sm font-medium text-[#191C1E] hover:bg-primary/60"
+            >
+              <RotateCw className="h-3.5 w-3.5" />
+              Refresh Pool
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-4 mb-8">
@@ -142,107 +568,163 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
             </div>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-[#D5C1C9]/50">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="bg-[#E6E8EA]/30 text-[#514349]">
-                    <th className="px-3 py-2 font-medium">Code</th>
-                    <th className="px-3 py-2 font-medium">Name</th>
-                    <th className="px-3 py-2 font-medium text-right">Sort</th>
-                    <th className="px-3 py-2 font-medium text-right">Initial List</th>
-                    <th className="px-3 py-2 font-medium text-right">Remaining</th>
-                    <th className="px-3 py-2 font-medium text-right">Sold</th>
-                    <th className="px-3 py-2"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#D5C1C9]/30">
-                  {sortedPrizes.map((prize) => (
-                    <tr key={prize.id} className="group hover:bg-[#F2F4F6]/50 transition-colors">
-                      <td className="px-3 py-2 font-semibold text-primary">{prize.prizeCode}</td>
-                      <td className="px-3 py-2 font-medium text-[#191C1E]">{prize.name}</td>
-                      <td className="px-3 py-2 text-right text-[#514349]">{prize.sortOrder}</td>
-                      <td className="px-3 py-2 text-right text-[#514349]">{prize.initialQuantity}</td>
-                      <td className="px-3 py-2 text-right">
-                        <span className={`inline-flex items-center justify-center rounded-sm px-1.5 py-0.5 font-medium ${prize.remainingQuantity === 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
-                          {prize.remainingQuantity}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-right text-[#514349]">
-                        {prize.initialQuantity - prize.remainingQuantity}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setEditingPrize(prize)}
-                            className="h-8 w-8 rounded-md text-[#514349] hover:text-[#191C1E]"
-                            title="Edit Prize"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            disabled={isDeleting}
-                            onClick={() => deletePrize({ productId: product.id, prizeId: prize.id })}
-                            className="h-8 w-8 rounded-md text-red-500 hover:text-red-600"
-                            title="Delete Prize"
-                          >
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handlePrizeDragEnd}
+              >
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="bg-[#E6E8EA]/30 text-[#514349]">
+                      <th className="w-11 px-2 py-2">
+                        <span className="sr-only">Reorder</span>
+                      </th>
+                      <th className="px-3 py-2 font-medium">Rank</th>
+                      <th className="px-3 py-2 font-medium">Name</th>
+                      <th className="px-3 py-2 font-medium text-right">Sort</th>
+                      <th className="px-3 py-2 font-medium text-right">Initial List</th>
+                      <th className="px-3 py-2 font-medium text-right">Remaining</th>
+                      <th className="px-3 py-2 font-medium text-right">Sold</th>
+                      <th className="px-3 py-2"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <SortableContext
+                    items={sortedPrizes.map((prize) => prize.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <tbody className="divide-y divide-[#D5C1C9]/30">
+                      {sortedPrizes.map((prize) => (
+                        <SortablePrizeRow
+                          key={prize.id}
+                          prize={prize}
+                          isDeleting={isDeleting}
+                          isReordering={isReorderingPrizes}
+                          onDelete={handlePrizeDelete}
+                          onEdit={handlePrizeEdit}
+                        />
+                      ))}
+                    </tbody>
+                  </SortableContext>
+                </table>
+              </DndContext>
             </div>
           )}
         </div>
 
         <div className="rounded-lg bg-[#F9FAFB] p-4 border border-[#D5C1C9]/30">
-          <h3 className="mb-3 text-sm font-medium text-[#191C1E]">Add New Prize</h3>
-          <form onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-4 items-end">
+          <div className='flex justify-between mb-8'>
+            <h3 className="mb-3 text-md font-medium text-[#191C1E]">Add New Prize</h3>
+            <Button
+              type="submit"
+              disabled={isCreating || isUploadingCreateImage}
+              className="h-8 rounded-md px-3 text-xs font-medium"
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" />
+              {isUploadingCreateImage ? 'Uploading...' : isCreating ? 'Adding...' : 'Add'}
+            </Button>
+          </div>
+          <form onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-start">
             <div>
-              <label className="mb-1 block text-xs font-medium text-[#514349]">Code (e.g. A)</label>
-              <Input required maxLength={10} value={newPrize.prizeCode} onChange={e => setNewPrize(p => ({ ...p, prizeCode: e.target.value }))} className="h-8 text-sm" />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-[#514349]">Prize Name</label>
-              <Input required value={newPrize.name} onChange={e => setNewPrize(p => ({ ...p, name: e.target.value }))} className="h-8 text-sm" placeholder="e.g. Grand Figure" />
-            </div>
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <label className="mb-1 block text-xs font-medium text-[#514349]">Qty</label>
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  required
-                  value={newPrize.initialQuantity}
-                  onChange={(e) => {
-                    const value = e.target.value;
-
-                    if (!/^\d*$/.test(value)) return;
-
-                    setNewPrize((p) => ({
-                      ...p,
-                      initialQuantity: value,
-                    }));
-                  }}
-                  className="h-8 text-sm"
-                  placeholder="0"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isCreating}
-                className="inline-flex h-8 items-center justify-center rounded-md bg-[#191C1E] px-3 text-xs font-medium text-white shadow-sm transition-colors hover:bg-[#191C1E]/90 disabled:opacity-50"
+              <label className="mb-1 block text-xs font-medium text-[#514349]">Rank (e.g. A)</label>
+              <Select
+                value={newPrize.prizeCode}
+                onValueChange={handleCreatePrizeCodeChange}
+                modal={false}
               >
-                <Plus className="w-3.5 h-3.5 mr-1" /> Add
-              </button>
+                <SelectTrigger
+                  className={cn('h-8 w-full text-sm', getFieldClasses(Boolean(createErrors.prizeCode)))}
+                  aria-label="Rank (e.g. A)"
+                >
+                  <SelectValue className={cn(!newPrize.prizeCode && 'text-muted-foreground')}>
+                    {newPrize.prizeCode || 'Select rank'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  <SelectGroup>
+                    {KUJI_PRIZE_CODES.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              {createErrors.prizeCode ? <p className="mt-1 text-xs text-red-600">{createErrors.prizeCode}</p> : null}
+            </div>
+
+            <div className="lg:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-[#514349]">Prize Name</label>
+              <Input
+                required
+                value={newPrize.name}
+                onChange={(event) => handleCreateFieldChange('name', event.target.value)}
+                className={cn('h-8 text-sm', getFieldClasses(Boolean(createErrors.name)))}
+                placeholder="e.g. Grand Figure"
+              />
+              {createErrors.name ? <p className="mt-1 text-xs text-red-600">{createErrors.name}</p> : null}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#514349]">Initial Qty</label>
+              <NumericInput
+                required
+                value={newPrize.initialQuantity}
+                onValueChange={(value) => handleCreateFieldChange('initialQuantity', value)}
+                className={cn('h-8 text-sm', getFieldClasses(Boolean(createErrors.initialQuantity)))}
+                placeholder="0"
+              />
+              {createErrors.initialQuantity ? <p className="mt-1 text-xs text-red-600">{createErrors.initialQuantity}</p> : null}
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-[#514349]">Description</label>
+              <textarea
+                value={newPrize.description}
+                onChange={(event) => handleCreateFieldChange('description', event.target.value)}
+                className={cn(textareaClasses, getFieldClasses(Boolean(createErrors.description)))}
+                placeholder="Optional prize details"
+              />
+              {createErrors.description ? <p className="mt-1 text-xs text-red-600">{createErrors.description}</p> : null}
+            </div>
+
+            <CreatePrizeImageField
+              inputKey={createImageInputKey}
+              selectedFile={createImageFile}
+              disabled={isCreating || isUploadingCreateImage}
+              onChange={handleCreateImageFileChange}
+              onClear={clearCreateImageSelection}
+            />
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#514349]">Remaining Qty</label>
+              <NumericInput
+                required
+                value={newPrize.remainingQuantity}
+                onValueChange={(value) => handleCreateFieldChange('remainingQuantity', value)}
+                className={cn('h-8 text-sm', getFieldClasses(Boolean(createErrors.remainingQuantity)))}
+                placeholder="0"
+              />
+              {createErrors.remainingQuantity ? <p className="mt-1 text-xs text-red-600">{createErrors.remainingQuantity}</p> : null}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#514349]">Sort Order</label>
+              <NumericInput
+                required
+                value={newPrize.sortOrder}
+                onValueChange={(value) => handleCreateFieldChange('sortOrder', value)}
+                className={cn('h-8 text-sm', getFieldClasses(Boolean(createErrors.sortOrder)))}
+                placeholder="0"
+              />
+              {createErrors.sortOrder ? <p className="mt-1 text-xs text-red-600">{createErrors.sortOrder}</p> : null}
+            </div>
+
+            <div className="lg:col-span-2">
+              {createErrors.form && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {createErrors.form}
+                </div>
+              )}
             </div>
           </form>
         </div>

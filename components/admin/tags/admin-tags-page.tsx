@@ -8,14 +8,16 @@ import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { ITag } from '@/interfaces/product';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { getTagTypeLabel, isTagType, TAG_TYPE_OPTIONS, TagType } from '@/lib/tag-types';
 
 type FormState = {
   id?: string;
   name: string;
   slug: string;
-  tagType: string;
+  tagType: TagType | '';
 };
 
 const DEFAULT_FORM: FormState = { name: '', slug: '', tagType: '' };
@@ -59,17 +61,22 @@ export default function AdminTagsPageClient() {
       id: tag.id,
       name: tag.name,
       slug: tag.slug,
-      tagType: tag.tagType,
+      tagType: isTagType(tag.tagType) ? tag.tagType : '',
     });
     setIsDialogOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isTagType(formData.tagType)) {
+      return;
+    }
+
     const payload = {
       name: formData.name,
       slug: formData.slug || formData.name.toLowerCase().replace(/[\s_]+/g, '-').replace(/[^\w-]/g, ''),
-      tagType: formData.tagType.toLowerCase().trim(),
+      tagType: formData.tagType,
     };
 
     if (formData.id) {
@@ -84,15 +91,16 @@ export default function AdminTagsPageClient() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[#191C1E]">Tags</h1>
-          <p className="mt-1 text-sm text-[#514349]">Manage free-form tags to categorize your products.</p>
+          <p className="mt-1 text-sm text-[#514349]">Manage fixed tag groups to categorize your products.</p>
         </div>
-        <button
+        <Button
+          type="button"
           onClick={openCreateDialog}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/60 active:bg-[#6A3553]"
+          className="h-9 gap-1.5 rounded-lg px-4 text-sm font-medium text-white hover:bg-primary/60 active:bg-[#6A3553]"
         >
           <Plus className="h-4 w-4" />
           New Tag
-        </button>
+        </Button>
       </div>
 
       <div className="rounded-xl border border-[#D5C1C9]/30 bg-white">
@@ -116,17 +124,20 @@ export default function AdminTagsPageClient() {
               <tbody className="divide-y divide-[#D5C1C9]/30">
                 {sortedTags.map((t) => (
                   <tr key={t.id} className="transition-colors hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-secondary">{t.tagType}</td>
+                    <td className="px-4 py-3 font-medium text-secondary">{getTagTypeLabel(t.tagType)}</td>
                     <td className="px-4 py-3 font-medium text-[#191C1E]">{t.name}</td>
                     <td className="px-4 py-3 text-[#514349]"><code className="rounded bg-[#E6E8EA] px-1.5 py-0.5 text-xs">{t.slug}</code></td>
                     <td className="px-4 py-3 text-right">
-                      <button
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => openEditDialog(t)}
-                        className="inline-flex items-center gap-1.5 rounded-md p-1.5 text-[#514349] hover:bg-[#E6E8EA] hover:text-[#191C1E] transition-colors"
+                        className="h-8 w-8 rounded-md p-1.5 text-[#514349] hover:bg-[#E6E8EA] hover:text-[#191C1E] transition-colors"
                       >
                         <Pencil className="h-4 w-4" />
                         <span className="sr-only">Edit</span>
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -146,8 +157,20 @@ export default function AdminTagsPageClient() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Tag Type</label>
-              <Input required value={formData.tagType} onChange={e => setFormData(p => ({ ...p, tagType: e.target.value }))} placeholder="e.g. format, series, theme" />
-              <p className="mt-1 text-xs text-[#514349]">A free-form category grouping for your tags.</p>
+              <select
+                required
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={formData.tagType}
+                onChange={(e) => setFormData((prev) => ({ ...prev, tagType: e.target.value as TagType | '' }))}
+              >
+                <option value="" disabled>Select tag type</option>
+                {TAG_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-[#514349]">Only supported storefront tag groups can be assigned here.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -160,21 +183,22 @@ export default function AdminTagsPageClient() {
               </div>
             </div>
             <DialogFooter className="mt-6 pt-4 border-t border-[#D5C1C9]/20 gap-2">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => setIsDialogOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm font-medium text-[#514349] hover:bg-[#E6E8EA] transition-colors"
                 disabled={isCreating || isUpdating}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={isCreating || isUpdating}
                 className="rounded-lg bg-[#191C1E] px-4 py-2 text-sm font-medium text-white hover:bg-black transition-colors disabled:opacity-50"
               >
                 {isCreating || isUpdating ? 'Saving...' : 'Save Tag'}
-              </button>
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

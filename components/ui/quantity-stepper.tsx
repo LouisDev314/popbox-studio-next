@@ -8,8 +8,10 @@ type TQuantityStepperSize = 'default' | 'sm';
 
 interface IQuantityStepperProps {
   className?: string;
+  decreaseDisabled?: boolean;
   decreaseLabel?: string;
   disabled?: boolean;
+  increaseDisabled?: boolean;
   increaseLabel?: string;
   onDecrease: () => void;
   onIncrease: () => void;
@@ -39,7 +41,7 @@ export function QuantityStepper(props: IQuantityStepperProps) {
         size="icon"
         className="rounded-full hover:bg-muted/70"
         data-slot="quantity-button"
-        disabled={props.disabled}
+        disabled={props.disabled || props.decreaseDisabled}
         onClick={props.onDecrease}
       >
         <Minus className="h-4 w-4" />
@@ -58,7 +60,7 @@ export function QuantityStepper(props: IQuantityStepperProps) {
         size="icon"
         className="rounded-full hover:bg-muted/70"
         data-slot="quantity-button"
-        disabled={props.disabled}
+        disabled={props.disabled || props.increaseDisabled}
         onClick={props.onIncrease}
       >
         <Plus className="h-4 w-4" />

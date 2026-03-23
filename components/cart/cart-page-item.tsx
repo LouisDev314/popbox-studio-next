@@ -9,6 +9,8 @@ import { type ICartItem } from '@/interfaces/cart';
 import { formatPrice } from '@/lib/utils';
 
 interface ICartPageItemProps {
+  limitMessage?: string | null;
+  maxQuantity?: number | null;
   item: ICartItem;
   onDecrease: () => void;
   onIncrease: () => void;
@@ -62,6 +64,8 @@ export function CartPageItem(props: ICartPageItemProps) {
           <div className="mt-4 sm:mx-1.5 flex justify-between items-center">
             <QuantityStepper
               value={props.item.quantity}
+              decreaseDisabled={props.item.quantity <= 1}
+              increaseDisabled={props.maxQuantity !== null && props.maxQuantity !== undefined && props.item.quantity >= props.maxQuantity}
               onDecrease={props.onDecrease}
               onIncrease={props.onIncrease}
             />
@@ -69,6 +73,10 @@ export function CartPageItem(props: ICartPageItemProps) {
               {formatPrice(lineTotalCents, props.item.product.currency)}
             </p>
           </div>
+
+          {props.limitMessage ? (
+            <p className="mt-3 text-sm font-medium text-muted-foreground">{props.limitMessage}</p>
+          ) : null}
         </div>
       </div>
     </article>

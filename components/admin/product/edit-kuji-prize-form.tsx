@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useQueryClient } from '@tanstack/react-query';
 import { AxiosError, HttpStatusCode } from 'axios';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -9,29 +10,48 @@ import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IKujiPrize } from '@/interfaces/product';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { uploadAdminProductKujiPrizeImage } from '@/lib/api/admin-client';
+import { KUJI_PRIZE_CODES, isKujiPrizeCode } from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
+import {
+  EditableKujiPrizeField,
+  EditableKujiPrizeTextField,
+  KujiPrizeFieldErrors,
+  KujiPrizeFormData,
+  buildKujiPrizeUpdatePayload,
+  createKujiPrizeFormData,
+  mapKujiPrizeServerValidationErrors,
+  normalizeKujiPrizeFormData,
+  validateKujiPrizeFormData,
+} from './kuji-prize-form-utils';
 
-type EditableKujiPrizeField = keyof Pick<
-  IKujiPrize,
-  'prizeCode' | 'name' | 'description' | 'imageUrl' | 'initialQuantity' | 'remainingQuantity' | 'sortOrder'
->;
-
-type EditKujiPrizeFormData = {
-  prizeCode: string;
-  name: string;
-  description: string;
-  imageUrl: string;
-  initialQuantity: string;
-  remainingQuantity: string;
-  sortOrder: string;
-};
-
-type EditKujiPrizeFieldErrors = Partial<Record<EditableKujiPrizeField | 'form', string>>;
+const INVALID_PRIZE_CODE_SELECT_VALUE = '__invalid_prize_code__';
 
 type EditKujiPrizeNotification = {
   type: 'success' | 'error';
   message: string;
 };
+
+interface ICurrentPrizeImagePanelProps {
+  prize: IKujiPrize;
+}
+
+interface IReplacePrizeImageFieldProps {
+  inputKey: number;
+  selectedFile: File | null;
+  disabled: boolean;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onClear: () => void;
+}
 
 interface IEditKujiPrizeFormProps {
   productId: string;
@@ -41,216 +61,92 @@ interface IEditKujiPrizeFormProps {
   onNotify: (notification: EditKujiPrizeNotification) => void;
 }
 
-type NormalizedKujiPrizeFormData = {
-  prizeCode: string;
-  name: string;
-  description: string | null;
-  imageUrl: string | null;
-  initialQuantity: number | null;
-  remainingQuantity: number | null;
-  sortOrder: number | null;
-};
-
-function createInitialFormData(prize: IKujiPrize): EditKujiPrizeFormData {
-  return {
-    prizeCode: prize.prizeCode,
-    name: prize.name,
-    description: prize.description ?? '',
-    imageUrl: prize.imageUrl ?? '',
-    initialQuantity: String(prize.initialQuantity),
-    remainingQuantity: String(prize.remainingQuantity),
-    sortOrder: String(prize.sortOrder),
-  };
-}
-
-function normalizeRequiredText(value: string): string {
-  return value.trim();
-}
-
-function normalizeOptionalText(value: string): string | null {
-  const trimmedValue = value.trim();
-
-  return trimmedValue === '' ? null : trimmedValue;
-}
-
-function parseNonNegativeInteger(value: string): number | null {
-  const trimmedValue = value.trim();
-
-  if (trimmedValue === '' || !/^\d+$/.test(trimmedValue)) {
-    return null;
-  }
-
-  const parsedValue = Number.parseInt(trimmedValue, 10);
-
-  return Number.isNaN(parsedValue) ? null : parsedValue;
-}
-
-function isValidUrl(value: string): boolean {
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function normalizeFormData(formData: EditKujiPrizeFormData): NormalizedKujiPrizeFormData {
-  return {
-    prizeCode: normalizeRequiredText(formData.prizeCode),
-    name: normalizeRequiredText(formData.name),
-    description: normalizeOptionalText(formData.description),
-    imageUrl: normalizeOptionalText(formData.imageUrl),
-    initialQuantity: parseNonNegativeInteger(formData.initialQuantity),
-    remainingQuantity: parseNonNegativeInteger(formData.remainingQuantity),
-    sortOrder: parseNonNegativeInteger(formData.sortOrder),
-  };
-}
-
-function normalizePrizeForComparison(prize: IKujiPrize): Omit<NormalizedKujiPrizeFormData, 'initialQuantity' | 'remainingQuantity' | 'sortOrder'> & {
-  initialQuantity: number;
-  remainingQuantity: number;
-  sortOrder: number;
-} {
-  return {
-    prizeCode: normalizeRequiredText(prize.prizeCode),
-    name: normalizeRequiredText(prize.name),
-    description: normalizeOptionalText(prize.description ?? ''),
-    imageUrl: normalizeOptionalText(prize.imageUrl ?? ''),
-    initialQuantity: prize.initialQuantity,
-    remainingQuantity: prize.remainingQuantity,
-    sortOrder: prize.sortOrder,
-  };
-}
-
-function validateFormData(formData: NormalizedKujiPrizeFormData): EditKujiPrizeFieldErrors {
-  const errors: EditKujiPrizeFieldErrors = {};
-
-  if (formData.prizeCode === '') {
-    errors.prizeCode = 'Prize code is required.';
-  }
-
-  if (formData.name === '') {
-    errors.name = 'Prize name is required.';
-  }
-
-  if (formData.imageUrl && !isValidUrl(formData.imageUrl)) {
-    errors.imageUrl = 'Enter a valid URL.';
-  }
-
-  if (formData.initialQuantity === null) {
-    errors.initialQuantity = 'Initial quantity is required.';
-  }
-
-  if (formData.remainingQuantity === null) {
-    errors.remainingQuantity = 'Remaining quantity is required.';
-  }
-
-  if (formData.sortOrder === null) {
-    errors.sortOrder = 'Sort order is required.';
-  }
-
-  if (
-    formData.initialQuantity !== null &&
-    formData.remainingQuantity !== null &&
-    formData.remainingQuantity > formData.initialQuantity
-  ) {
-    errors.remainingQuantity = 'Remaining quantity cannot exceed initial quantity.';
-  }
-
-  return errors;
-}
-
-function buildUpdatePayload(
-  prize: IKujiPrize,
-  formData: NormalizedKujiPrizeFormData,
-): Partial<Pick<IKujiPrize, EditableKujiPrizeField>> {
-  const originalPrize = normalizePrizeForComparison(prize);
-  const payload: Partial<Pick<IKujiPrize, EditableKujiPrizeField>> = {};
-
-  if (formData.prizeCode !== originalPrize.prizeCode) {
-    payload.prizeCode = formData.prizeCode;
-  }
-
-  if (formData.name !== originalPrize.name) {
-    payload.name = formData.name;
-  }
-
-  if (formData.description !== originalPrize.description) {
-    payload.description = formData.description;
-  }
-
-  if (formData.imageUrl !== originalPrize.imageUrl) {
-    payload.imageUrl = formData.imageUrl;
-  }
-
-  if (formData.initialQuantity !== null && formData.initialQuantity !== originalPrize.initialQuantity) {
-    payload.initialQuantity = formData.initialQuantity;
-  }
-
-  if (formData.remainingQuantity !== null && formData.remainingQuantity !== originalPrize.remainingQuantity) {
-    payload.remainingQuantity = formData.remainingQuantity;
-  }
-
-  if (formData.sortOrder !== null && formData.sortOrder !== originalPrize.sortOrder) {
-    payload.sortOrder = formData.sortOrder;
-  }
-
-  return payload;
-}
-
-function mapServerValidationErrors(message: string): EditKujiPrizeFieldErrors {
-  const normalizedMessage = message.toLowerCase();
-  const errors: EditKujiPrizeFieldErrors = {};
-
-  if (normalizedMessage.includes('prize code') || normalizedMessage.includes('prizecode')) {
-    errors.prizeCode = message;
-  }
-
-  if (normalizedMessage.includes('image url') || normalizedMessage.includes('imageurl')) {
-    errors.imageUrl = message;
-  }
-
-  if (normalizedMessage.includes('initial quantity') || normalizedMessage.includes('initialquantity')) {
-    errors.initialQuantity = message;
-  }
-
-  if (normalizedMessage.includes('remaining quantity') || normalizedMessage.includes('remainingquantity')) {
-    errors.remainingQuantity = message;
-  }
-
-  if (normalizedMessage.includes('sort order') || normalizedMessage.includes('sortorder')) {
-    errors.sortOrder = message;
-  }
-
-  if (normalizedMessage.includes('description')) {
-    errors.description = message;
-  }
-
-  if (normalizedMessage.includes('name')) {
-    errors.name = message;
-  }
-
-  if (Object.keys(errors).length === 0) {
-    errors.form = message;
-  }
-
-  return errors;
-}
-
 function getFieldClasses(hasError: boolean): string {
   return cn(hasError && 'border-red-400 focus-visible:ring-red-400');
 }
 
+function CurrentPrizeImagePanel({ prize }: ICurrentPrizeImagePanelProps) {
+  return (
+    <div className="sm:col-span-2">
+      <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Current Image</label>
+      {prize.imageUrl ? (
+        <div className="rounded-xl border border-[#D5C1C9]/30 bg-[#FBFAFB] p-4">
+          <div className="relative h-40 overflow-hidden rounded-lg bg-[#E6E8EA] sm:h-48">
+            <Image
+              src={prize.imageUrl}
+              alt={prize.name}
+              fill
+              sizes="(min-width: 640px) 24rem, 100vw"
+              className="object-cover"
+              unoptimized
+            />
+          </div>
+          <p className="mt-2 truncate text-xs text-[#514349]">{prize.imageUrl}</p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed border-[#D5C1C9]/40 bg-[#FBFAFB] px-4 py-6 text-sm text-[#514349]">
+          No image assigned yet.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReplacePrizeImageField({
+  inputKey,
+  selectedFile,
+  disabled,
+  onChange,
+  onClear,
+}: IReplacePrizeImageFieldProps) {
+  return (
+    <div className="sm:col-span-2">
+      <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Replace Image File</label>
+      <Input
+        key={inputKey}
+        type="file"
+        accept="image/*"
+        onChange={onChange}
+        disabled={disabled}
+        className="h-auto"
+      />
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#514349]">
+        {selectedFile ? (
+          <>
+            <span className="font-medium text-[#191C1E]">Selected:</span>
+            <span className="max-w-full truncate">{selectedFile.name}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClear}
+              disabled={disabled}
+              className="h-7 rounded-md px-2 text-xs"
+            >
+              Remove file
+            </Button>
+          </>
+        ) : (
+          <span>Leave blank to keep the current image URL or use the manual URL field below.</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNotify }: IEditKujiPrizeFormProps) {
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState(() => createInitialFormData(prize));
-  const [errors, setErrors] = useState<EditKujiPrizeFieldErrors>({});
-  const normalizedFormData = normalizeFormData(formData);
-  const payload = buildUpdatePayload(prize, normalizedFormData);
+  const [formData, setFormData] = useState<KujiPrizeFormData>(() => createKujiPrizeFormData(prize));
+  const [errors, setErrors] = useState<KujiPrizeFieldErrors>({});
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imageInputKey, setImageInputKey] = useState(0);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const normalizedFormData = normalizeKujiPrizeFormData(formData);
+  const basePayload = buildKujiPrizeUpdatePayload(prize, normalizedFormData);
   const soldCount = normalizedFormData.initialQuantity !== null && normalizedFormData.remainingQuantity !== null
     ? normalizedFormData.initialQuantity - normalizedFormData.remainingQuantity
     : null;
-  const isDirty = Object.keys(payload).length > 0;
+  const isDirty = selectedImageFile !== null || Object.keys(basePayload).length > 0;
   const textareaClasses = cn(
     'flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
   );
@@ -268,7 +164,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
       const status = error.response?.status;
 
       if (status === HttpStatusCode.BadRequest) {
-        setErrors(mapServerValidationErrors(message));
+        setErrors(mapKujiPrizeServerValidationErrors(message));
         return;
       }
 
@@ -286,12 +182,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
     },
   });
 
-  const handleFieldChange = (field: EditableKujiPrizeField, value: string) => {
-    setFormData((currentFormData) => ({
-      ...currentFormData,
-      [field]: value,
-    }));
-
+  const clearFieldError = (field: EditableKujiPrizeField) => {
     setErrors((currentErrors) => {
       if (!currentErrors[field] && !currentErrors.form) {
         return currentErrors;
@@ -304,10 +195,56 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
     });
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handlePrizeCodeChange = (value: string | null) => {
+    if (!value || !isKujiPrizeCode(value)) {
+      return;
+    }
+
+    setFormData((currentFormData) => ({
+      ...currentFormData,
+      prizeCode: value,
+      invalidPrizeCode: null,
+    }));
+
+    clearFieldError('prizeCode');
+  };
+
+  const handleFieldChange = (field: EditableKujiPrizeTextField, value: string) => {
+    setFormData((currentFormData) => ({
+      ...currentFormData,
+      [field]: value,
+    }));
+
+    clearFieldError(field);
+  };
+
+  const clearSelectedImageFile = () => {
+    setSelectedImageFile(null);
+    setImageInputKey((currentKey) => currentKey + 1);
+  };
+
+  const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextFile = event.target.files?.[0] ?? null;
+    setSelectedImageFile(nextFile);
+
+    setErrors((currentErrors) => {
+      if (!currentErrors.imageUrl && !currentErrors.form) {
+        return currentErrors;
+      }
+
+      const nextErrors = { ...currentErrors };
+      delete nextErrors.imageUrl;
+      delete nextErrors.form;
+      return nextErrors;
+    });
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const nextErrors = validateFormData(normalizedFormData);
+    const nextErrors = validateKujiPrizeFormData(normalizedFormData, {
+      skipImageUrlValidation: selectedImageFile !== null,
+    });
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -315,6 +252,40 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
     }
 
     if (!isDirty) {
+      return;
+    }
+
+    let imageUrl = normalizedFormData.imageUrl;
+
+    if (selectedImageFile) {
+      setIsUploadingImage(true);
+
+      try {
+        const uploadResponse = await uploadAdminProductKujiPrizeImage(productId, selectedImageFile);
+        imageUrl = uploadResponse.data.data.imageUrl;
+      } catch (error) {
+        const message = error instanceof AxiosError
+          ? error.response?.data?.message ?? 'Failed to upload image.'
+          : 'Failed to upload image.';
+
+        setErrors((currentErrors) => ({
+          ...currentErrors,
+          form: message,
+        }));
+        onNotify({ type: 'error', message });
+        return;
+      } finally {
+        setIsUploadingImage(false);
+      }
+    }
+
+    const payload = buildKujiPrizeUpdatePayload(prize, {
+      ...normalizedFormData,
+      imageUrl,
+    });
+
+    if (Object.keys(payload).length === 0) {
+      onSuccess();
       return;
     }
 
@@ -329,14 +300,43 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Prize Code</label>
-          <Input
-            required
-            maxLength={32}
-            value={formData.prizeCode}
-            onChange={(event) => handleFieldChange('prizeCode', event.target.value)}
-            className={getFieldClasses(Boolean(errors.prizeCode))}
-          />
+          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Rank (e.g. A)</label>
+          <Select
+            value={formData.invalidPrizeCode ? INVALID_PRIZE_CODE_SELECT_VALUE : formData.prizeCode}
+            onValueChange={handlePrizeCodeChange}
+            modal={false}
+          >
+            <SelectTrigger
+              className={cn('w-full', getFieldClasses(Boolean(errors.prizeCode)))}
+              aria-label="Rank (e.g. A)"
+            >
+              <SelectValue className={cn(!formData.prizeCode && !formData.invalidPrizeCode && 'text-muted-foreground')}>
+                {formData.invalidPrizeCode
+                  ? `${formData.invalidPrizeCode} (unsupported current value)`
+                  : formData.prizeCode || 'Select rank'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {formData.invalidPrizeCode ? (
+                  <>
+                    <SelectItem value={INVALID_PRIZE_CODE_SELECT_VALUE} disabled>
+                      {formData.invalidPrizeCode} (unsupported current value)
+                    </SelectItem>
+                    <SelectSeparator />
+                  </>
+                ) : null}
+                {KUJI_PRIZE_CODES.map((code) => (
+                  <SelectItem key={code} value={code}>
+                    {code}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          {formData.invalidPrizeCode ? (
+            <p className="mt-1 text-xs text-amber-600">Choose a valid rank before saving this prize.</p>
+          ) : null}
           {errors.prizeCode ? <p className="mt-1 text-xs text-red-600">{errors.prizeCode}</p> : null}
         </div>
 
@@ -361,6 +361,16 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
           />
           {errors.description ? <p className="mt-1 text-xs text-red-600">{errors.description}</p> : null}
         </div>
+
+        <CurrentPrizeImagePanel prize={prize} />
+
+        <ReplacePrizeImageField
+          inputKey={imageInputKey}
+          selectedFile={selectedImageFile}
+          disabled={isPending || isUploadingImage}
+          onChange={handleImageFileChange}
+          onClear={clearSelectedImageFile}
+        />
 
         <div className="sm:col-span-2">
           <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Image URL</label>
@@ -438,17 +448,17 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
             type="button"
             variant="outline"
             onClick={onCancel}
-            disabled={isPending}
+            disabled={isPending || isUploadingImage}
             className="rounded-lg"
           >
             Cancel
           </Button>
           <Button
             type="submit"
-            disabled={isPending || !isDirty}
+            disabled={isPending || isUploadingImage || !isDirty}
             className="rounded-lg"
           >
-            {isPending ? 'Saving...' : 'Save Changes'}
+            {isUploadingImage ? 'Uploading...' : isPending ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
       </div>
