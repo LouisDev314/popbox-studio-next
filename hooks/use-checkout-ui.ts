@@ -4,10 +4,21 @@ import { create } from 'zustand';
 
 interface ICheckoutUiStore {
   isCheckingOut: boolean;
-  setIsCheckingOut: (value: boolean) => void;
+  beginCheckout: () => boolean;
+  endCheckout: () => void;
 }
 
-export const useCheckoutUiStore = create<ICheckoutUiStore>((set) => ({
+export const useCheckoutUiStore = create<ICheckoutUiStore>((set, get) => ({
   isCheckingOut: false,
-  setIsCheckingOut: (value) => set({ isCheckingOut: value }),
+
+  beginCheckout: () => {
+    if (get().isCheckingOut) {
+      return false;
+    }
+
+    set({ isCheckingOut: true });
+    return true;
+  },
+
+  endCheckout: () => set({ isCheckingOut: false }),
 }));

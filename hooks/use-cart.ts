@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { type ICartItem, type ICartProduct, type ICartSummary } from '@/interfaces/cart';
 import { buildCartSummary } from '@/utils/cart';
 import {
@@ -12,6 +13,15 @@ import {
 export interface ICartActionResult {
   message: string | null;
   success: boolean;
+}
+
+const CHECKOUT_LOCKED_ACTION_RESULT: ICartActionResult = {
+  message: null,
+  success: false,
+};
+
+function isCartInteractionLocked(): boolean {
+  return useCheckoutUiStore.getState().isCheckingOut;
 }
 
 interface ICartStore {
@@ -111,12 +121,20 @@ export const useCartStore = create<ICartStore>()(
       },
 
       removeItem: (cartItemId) => {
+        if (isCartInteractionLocked()) {
+          return;
+        }
+
         set((state) => ({
           items: state.items.filter((item) => item.id !== cartItemId),
         }));
       },
 
       updateQuantity: (cartItemId, quantity) => {
+        if (isCartInteractionLocked()) {
+          return CHECKOUT_LOCKED_ACTION_RESULT;
+        }
+
         const normalizedQuantity = normalizeQuantity(quantity);
         let result: ICartActionResult = { message: null, success: true };
 
@@ -144,6 +162,10 @@ export const useCartStore = create<ICartStore>()(
       },
 
       clearCart: () => {
+        if (isCartInteractionLocked()) {
+          return;
+        }
+
         set({ items: [] });
       },
 

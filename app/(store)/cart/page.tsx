@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { ShoppingBag } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
+import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-lock-overlay';
 import { CartPageItem } from '@/components/cart/cart-page-item';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { CheckoutButton } from '@/components/cart/checkout-button';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/hooks/use-cart';
+import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { formatPrice } from '@/lib/utils';
 import { getProductCartLimitMessage, getProductSellableQuantity } from '@/utils/product-stock';
 
@@ -16,6 +18,7 @@ export default function CartPage() {
   const getCartSummary = useCartStore((state) => state.getCartSummary);
   const removeItem = useCartStore((state) => state.removeItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
   const isHydrated = useSyncExternalStore(
     () => () => undefined,
     () => true,
@@ -60,57 +63,67 @@ export default function CartPage() {
 
   return (
     <div className="container mx-auto w-full px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-      <div className="mb-6 flex flex-col gap-4 justify-center sm:flex-row sm:items-end">
-        <div>
-          <p className="font-semibold uppercase tracking-[0.24em] text-muted-foreground justify-self-center">Cart</p>
-          <h1 className="mt-2 text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Your cart total is {formatPrice(summary.totalCents, summary.currency)}
-          </h1>
-          <CheckoutButton
-            size="lg"
-            className="mt-6 h-12 w-full rounded-full text-base font-semibold"
-          />
+      <div className="relative" aria-busy={isCheckingOut}>
+        <div
+          className={isCheckingOut ? 'pointer-events-none select-none opacity-70 transition-opacity duration-200' : 'transition-opacity duration-200'}
+          inert={isCheckingOut}
+        >
+          <div className="mb-6 flex flex-col justify-center gap-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="justify-self-center font-semibold uppercase tracking-[0.24em] text-muted-foreground">Cart</p>
+              <h1 className="mt-2 text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                Your cart total is {formatPrice(summary.totalCents, summary.currency)}
+              </h1>
+              <CheckoutButton
+                size="lg"
+                className="mt-6 h-12 w-full rounded-full text-base font-semibold"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+            <section className="space-y-4" aria-label="Cart items">
+              {items.map((item) => (
+                (() => {
+                  const quantityLimit = getProductSellableQuantity(item.product);
+                  const limitMessage = getProductCartLimitMessage(item.product, item.quantity);
+
+                  return (
+                    <CartPageItem
+                      key={item.id}
+                      disabled={isCheckingOut}
+                      item={item}
+                      maxQuantity={quantityLimit}
+                      limitMessage={limitMessage}
+                      onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
+                      onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
+                      onRemove={() => removeItem(item.id)}
+                    />
+                  );
+                })()
+              ))}
+            </section>
+
+            <div className="lg:sticky lg:top-24">
+              <CartSummary
+                summary={summary}
+                note=""
+              />
+              <CheckoutButton
+                size="lg"
+                className="mt-6 h-12 w-full rounded-full text-base font-semibold"
+              />
+            </div>
+
+            <div className="flex justify-center">
+              <Button asChild variant="outline" className="rounded-full px-5 hover:bg-primary/60">
+                <Link href="/products">Continue shopping</Link>
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
-        <section className="space-y-4" aria-label="Cart items">
-          {items.map((item) => (
-            (() => {
-              const quantityLimit = getProductSellableQuantity(item.product);
-              const limitMessage = getProductCartLimitMessage(item.product, item.quantity);
-
-              return (
-                <CartPageItem
-                  key={item.id}
-                  item={item}
-                  maxQuantity={quantityLimit}
-                  limitMessage={limitMessage}
-                  onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
-                  onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
-                  onRemove={() => removeItem(item.id)}
-                />
-              );
-            })()
-          ))}
-        </section>
-
-        <div className="lg:sticky lg:top-24">
-          <CartSummary
-            summary={summary}
-            note=""
-          />
-          <CheckoutButton
-            size="lg"
-            className="mt-6 h-12 w-full rounded-full text-base font-semibold"
-          />
-        </div>
-
-        <div className="flex justify-center">
-          <Button asChild variant="outline" className="rounded-full px-5 hover:bg-primary/60">
-            <Link href="/products">Continue shopping</Link>
-          </Button>
-        </div>
+        {isCheckingOut ? <CartInteractionLockOverlay /> : null}
       </div>
     </div>
   );
