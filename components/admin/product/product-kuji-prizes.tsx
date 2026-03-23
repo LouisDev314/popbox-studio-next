@@ -26,8 +26,17 @@ import { IBaseApiResponse } from '@/interfaces/api-response';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NumericInput } from '@/components/ui/numeric-input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { IAdminProductEditor, IKujiPrize } from '@/interfaces/product';
 import { uploadAdminProductKujiPrizeImage } from '@/lib/api/admin-client';
+import { KUJI_PRIZE_CODES, isKujiPrizeCode } from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
 
 import { EditKujiPrizeModal } from './edit-kuji-prize-modal';
@@ -38,6 +47,7 @@ import {
 } from './reorder-utils';
 import {
   EditableKujiPrizeField,
+  EditableKujiPrizeTextField,
   KujiPrizeFieldErrors,
   KujiPrizeFormData,
   buildKujiPrizeCreatePayload,
@@ -375,12 +385,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
     }, 4000);
   };
 
-  const handleCreateFieldChange = (field: EditableKujiPrizeField, value: string) => {
-    setNewPrize((currentPrize) => ({
-      ...currentPrize,
-      [field]: value,
-    }));
-
+  const clearCreateFieldError = (field: EditableKujiPrizeField) => {
     setCreateErrors((currentErrors) => {
       if (!currentErrors[field] && !currentErrors.form) {
         return currentErrors;
@@ -391,6 +396,29 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
       delete nextErrors.form;
       return nextErrors;
     });
+  };
+
+  const handleCreatePrizeCodeChange = (value: string | null) => {
+    if (!value || !isKujiPrizeCode(value)) {
+      return;
+    }
+
+    setNewPrize((currentPrize) => ({
+      ...currentPrize,
+      prizeCode: value,
+      invalidPrizeCode: null,
+    }));
+
+    clearCreateFieldError('prizeCode');
+  };
+
+  const handleCreateFieldChange = (field: EditableKujiPrizeTextField, value: string) => {
+    setNewPrize((currentPrize) => ({
+      ...currentPrize,
+      [field]: value,
+    }));
+
+    clearCreateFieldError(field);
   };
 
   const clearCreateImageSelection = () => {
@@ -598,13 +626,29 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
           <form onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-start">
             <div>
               <label className="mb-1 block text-xs font-medium text-[#514349]">Rank (e.g. A)</label>
-              <Input
-                required
-                maxLength={32}
+              <Select
                 value={newPrize.prizeCode}
-                onChange={(event) => handleCreateFieldChange('prizeCode', event.target.value)}
-                className={cn('h-8 text-sm', getFieldClasses(Boolean(createErrors.prizeCode)))}
-              />
+                onValueChange={handleCreatePrizeCodeChange}
+                modal={false}
+              >
+                <SelectTrigger
+                  className={cn('h-8 w-full text-sm', getFieldClasses(Boolean(createErrors.prizeCode)))}
+                  aria-label="Rank (e.g. A)"
+                >
+                  <SelectValue className={cn(!newPrize.prizeCode && 'text-muted-foreground')}>
+                    {newPrize.prizeCode || 'Select rank'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  <SelectGroup>
+                    {KUJI_PRIZE_CODES.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
               {createErrors.prizeCode ? <p className="mt-1 text-xs text-red-600">{createErrors.prizeCode}</p> : null}
             </div>
 

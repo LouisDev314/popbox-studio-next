@@ -1,12 +1,16 @@
 import { IKujiPrize } from '@/interfaces/product';
+import { type KujiPrizeCode, parseKujiPrizeCode } from '@/lib/kuji-prize-codes';
 
 export type EditableKujiPrizeField = keyof Pick<
   IKujiPrize,
   'prizeCode' | 'name' | 'description' | 'imageUrl' | 'initialQuantity' | 'remainingQuantity' | 'sortOrder'
 >;
 
+export type EditableKujiPrizeTextField = Exclude<EditableKujiPrizeField, 'prizeCode'>;
+
 export type KujiPrizeFormData = {
-  prizeCode: string;
+  prizeCode: KujiPrizeCode | '';
+  invalidPrizeCode: string | null;
   name: string;
   description: string;
   imageUrl: string;
@@ -18,7 +22,7 @@ export type KujiPrizeFormData = {
 export type KujiPrizeFieldErrors = Partial<Record<EditableKujiPrizeField | 'form', string>>;
 
 export type NormalizedKujiPrizeFormData = {
-  prizeCode: string;
+  prizeCode: KujiPrizeCode | null;
   name: string;
   description: string | null;
   imageUrl: string | null;
@@ -31,17 +35,35 @@ type ValidateKujiPrizeFormDataOptions = {
   skipImageUrlValidation?: boolean;
 };
 
-type ComparableKujiPrize = Omit<NormalizedKujiPrizeFormData, 'initialQuantity' | 'remainingQuantity' | 'sortOrder'> & {
+type ComparableKujiPrize = Omit<NormalizedKujiPrizeFormData, 'prizeCode' | 'initialQuantity' | 'remainingQuantity' | 'sortOrder'> & {
+  prizeCode: string;
   initialQuantity: number;
   remainingQuantity: number;
   sortOrder: number;
 };
 
+function createPrizeCodeState(prizeCode: string | undefined): Pick<KujiPrizeFormData, 'prizeCode' | 'invalidPrizeCode'> {
+  const normalizedPrizeCode = normalizeRequiredText(prizeCode ?? '');
+  const parsedPrizeCode = parseKujiPrizeCode(normalizedPrizeCode);
+
+  if (parsedPrizeCode) {
+    return {
+      prizeCode: parsedPrizeCode,
+      invalidPrizeCode: null,
+    };
+  }
+
+  return {
+    prizeCode: '',
+    invalidPrizeCode: normalizedPrizeCode === '' ? null : normalizedPrizeCode,
+  };
+}
+
 export function createKujiPrizeFormData(
   prize: Partial<Pick<IKujiPrize, EditableKujiPrizeField>> = {},
 ): KujiPrizeFormData {
   return {
-    prizeCode: prize.prizeCode ?? '',
+    ...createPrizeCodeState(prize.prizeCode),
     name: prize.name ?? '',
     description: prize.description ?? '',
     imageUrl: prize.imageUrl ?? '',
@@ -84,7 +106,7 @@ export function isValidUrl(value: string): boolean {
 
 export function normalizeKujiPrizeFormData(formData: KujiPrizeFormData): NormalizedKujiPrizeFormData {
   return {
-    prizeCode: normalizeRequiredText(formData.prizeCode),
+    prizeCode: formData.prizeCode === '' ? null : formData.prizeCode,
     name: normalizeRequiredText(formData.name),
     description: normalizeOptionalText(formData.description),
     imageUrl: normalizeOptionalText(formData.imageUrl),
@@ -96,7 +118,7 @@ export function normalizeKujiPrizeFormData(formData: KujiPrizeFormData): Normali
 
 function normalizePrizeForComparison(prize: IKujiPrize): ComparableKujiPrize {
   return {
-    prizeCode: normalizeRequiredText(prize.prizeCode),
+    prizeCode: parseKujiPrizeCode(prize.prizeCode) ?? normalizeRequiredText(prize.prizeCode),
     name: normalizeRequiredText(prize.name),
     description: normalizeOptionalText(prize.description ?? ''),
     imageUrl: normalizeOptionalText(prize.imageUrl ?? ''),
@@ -112,8 +134,8 @@ export function validateKujiPrizeFormData(
 ): KujiPrizeFieldErrors {
   const errors: KujiPrizeFieldErrors = {};
 
-  if (formData.prizeCode === '') {
-    errors.prizeCode = 'Prize code is required.';
+  if (formData.prizeCode === null) {
+    errors.prizeCode = 'Rank is required.';
   }
 
   if (formData.name === '') {
@@ -151,11 +173,12 @@ export function buildKujiPrizeCreatePayload(
   formData: NormalizedKujiPrizeFormData,
 ): Pick<IKujiPrize, EditableKujiPrizeField> {
   if (
+    formData.prizeCode === null ||
     formData.initialQuantity === null ||
     formData.remainingQuantity === null ||
     formData.sortOrder === null
   ) {
-    throw new Error('Kuji prize payload requires numeric quantity and sort order values.');
+    throw new Error('Kuji prize payload requires a valid rank, numeric quantity, and sort order values.');
   }
 
   return {
@@ -176,7 +199,7 @@ export function buildKujiPrizeUpdatePayload(
   const originalPrize = normalizePrizeForComparison(prize);
   const payload: Partial<Pick<IKujiPrize, EditableKujiPrizeField>> = {};
 
-  if (formData.prizeCode !== originalPrize.prizeCode) {
+  if (formData.prizeCode !== null && formData.prizeCode !== originalPrize.prizeCode) {
     payload.prizeCode = formData.prizeCode;
   }
 

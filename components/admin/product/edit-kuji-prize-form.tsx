@@ -10,10 +10,21 @@ import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IKujiPrize } from '@/interfaces/product';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { uploadAdminProductKujiPrizeImage } from '@/lib/api/admin-client';
+import { KUJI_PRIZE_CODES, isKujiPrizeCode } from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
 import {
   EditableKujiPrizeField,
+  EditableKujiPrizeTextField,
   KujiPrizeFieldErrors,
   KujiPrizeFormData,
   buildKujiPrizeUpdatePayload,
@@ -22,6 +33,8 @@ import {
   normalizeKujiPrizeFormData,
   validateKujiPrizeFormData,
 } from './kuji-prize-form-utils';
+
+const INVALID_PRIZE_CODE_SELECT_VALUE = '__invalid_prize_code__';
 
 type EditKujiPrizeNotification = {
   type: 'success' | 'error';
@@ -169,12 +182,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
     },
   });
 
-  const handleFieldChange = (field: EditableKujiPrizeField, value: string) => {
-    setFormData((currentFormData) => ({
-      ...currentFormData,
-      [field]: value,
-    }));
-
+  const clearFieldError = (field: EditableKujiPrizeField) => {
     setErrors((currentErrors) => {
       if (!currentErrors[field] && !currentErrors.form) {
         return currentErrors;
@@ -185,6 +193,29 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
       delete nextErrors.form;
       return nextErrors;
     });
+  };
+
+  const handlePrizeCodeChange = (value: string | null) => {
+    if (!value || !isKujiPrizeCode(value)) {
+      return;
+    }
+
+    setFormData((currentFormData) => ({
+      ...currentFormData,
+      prizeCode: value,
+      invalidPrizeCode: null,
+    }));
+
+    clearFieldError('prizeCode');
+  };
+
+  const handleFieldChange = (field: EditableKujiPrizeTextField, value: string) => {
+    setFormData((currentFormData) => ({
+      ...currentFormData,
+      [field]: value,
+    }));
+
+    clearFieldError(field);
   };
 
   const clearSelectedImageFile = () => {
@@ -269,14 +300,43 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Prize Code</label>
-          <Input
-            required
-            maxLength={32}
-            value={formData.prizeCode}
-            onChange={(event) => handleFieldChange('prizeCode', event.target.value)}
-            className={getFieldClasses(Boolean(errors.prizeCode))}
-          />
+          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Rank (e.g. A)</label>
+          <Select
+            value={formData.invalidPrizeCode ? INVALID_PRIZE_CODE_SELECT_VALUE : formData.prizeCode}
+            onValueChange={handlePrizeCodeChange}
+            modal={false}
+          >
+            <SelectTrigger
+              className={cn('w-full', getFieldClasses(Boolean(errors.prizeCode)))}
+              aria-label="Rank (e.g. A)"
+            >
+              <SelectValue className={cn(!formData.prizeCode && !formData.invalidPrizeCode && 'text-muted-foreground')}>
+                {formData.invalidPrizeCode
+                  ? `${formData.invalidPrizeCode} (unsupported current value)`
+                  : formData.prizeCode || 'Select rank'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {formData.invalidPrizeCode ? (
+                  <>
+                    <SelectItem value={INVALID_PRIZE_CODE_SELECT_VALUE} disabled>
+                      {formData.invalidPrizeCode} (unsupported current value)
+                    </SelectItem>
+                    <SelectSeparator />
+                  </>
+                ) : null}
+                {KUJI_PRIZE_CODES.map((code) => (
+                  <SelectItem key={code} value={code}>
+                    {code}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          {formData.invalidPrizeCode ? (
+            <p className="mt-1 text-xs text-amber-600">Choose a valid rank before saving this prize.</p>
+          ) : null}
           {errors.prizeCode ? <p className="mt-1 text-xs text-red-600">{errors.prizeCode}</p> : null}
         </div>
 
