@@ -60,6 +60,7 @@ export interface IOrderDetail {
   id: string;
   publicId: string;
   status: IOrderStatus;
+  includesLastOnePrize?: boolean;
   currency: string;
   subtotalCents: number;
   taxCents: number;
@@ -101,6 +102,7 @@ export interface IAdminOrderListItem {
   id: string;
   publicId: string;
   status: IOrderStatus;
+  includesLastOnePrize?: boolean;
   totalCents: number;
   currency: string;
   placedAt: string | null;

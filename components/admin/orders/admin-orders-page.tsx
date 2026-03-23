@@ -6,6 +6,7 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import { IAdminOrderListResponse, IOrderStatus } from '@/interfaces/order';
 import { formatPrice } from '@/lib/utils';
 import { Package } from 'lucide-react';
+import LastOnePrizeBadge from '@/components/admin/orders/last-one-prize-badge';
 
 const STATUS_CONFIG: Record<IOrderStatus, { label: string; bg: string; text: string }> = {
   pending_payment: { label: 'Pending Payment', bg: 'bg-yellow-100', text: 'text-yellow-800' },
@@ -88,8 +89,13 @@ export default function AdminOrdersPageClient() {
                       className="cursor-pointer transition-colors hover:bg-slate-50"
                       onClick={() => router.push(`/admin/orders/${order.id}`)}
                     >
-                      <td className="px-5 py-4 font-mono text-sm font-medium text-[#191C1E]">
-                        {order.publicId}
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-medium text-[#191C1E]">
+                            {order.publicId}
+                          </span>
+                          {order.includesLastOnePrize ? <LastOnePrizeBadge /> : null}
+                        </div>
                       </td>
 
                       <td className="px-5 py-4">
