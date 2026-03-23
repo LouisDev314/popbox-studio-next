@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Package, Truck, XCircle, CreditCard, RotateCw } from 'lucide-react';
+import { AxiosError, HttpStatusCode } from 'axios';
+import { ArrowLeft, Mail, Package, Truck, XCircle, CreditCard, RotateCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
+import { IBaseApiResponse } from '@/interfaces/api-response';
 import { formatPrice } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -49,26 +51,75 @@ function StatusBadge({ status }: { status: IOrderStatus }) {
   );
 }
 
+type OrderActionFeedback = {
+  type: 'success' | 'error';
+  message: string;
+};
+
+function getResendConfirmationErrorMessage(error: AxiosError<IBaseApiResponse>): string {
+  const responseStatus = error.response?.status;
+  const responseMessage = error.response?.data?.message?.trim();
+
+  if (responseMessage) {
+    return responseMessage;
+  }
+
+  switch (responseStatus) {
+    case HttpStatusCode.NotFound:
+      return 'Order not found.';
+    case HttpStatusCode.Conflict:
+      return 'This order is not eligible for a confirmation email resend.';
+    case HttpStatusCode.UnprocessableEntity:
+      return 'This order is missing a valid customer email address.';
+    case HttpStatusCode.BadGateway:
+    case HttpStatusCode.ServiceUnavailable:
+      return 'Email delivery is temporarily unavailable. Please try again shortly.';
+    default:
+      return 'Failed to resend the confirmation email.';
+  }
+}
+
+function OrderActionFeedbackBanner({ feedback }: { feedback: OrderActionFeedback }) {
+  return (
+    <div
+      className={`rounded-lg border px-3 py-2 text-sm ${
+        feedback.type === 'success'
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+          : 'border-red-200 bg-red-50 text-red-900'
+      }`}
+      role={feedback.type === 'error' ? 'alert' : 'status'}
+    >
+      {feedback.message}
+    </div>
+  );
+}
+
 interface IOrderActionButtonsProps {
   order: IOrderDetail;
   isStatusUpdating: boolean;
+  isShipmentUpdating: boolean;
   isRefunding: boolean;
   isReconciling: boolean;
+  isResendingConfirmation: boolean;
   onUpdateStatus: (newStatus: IOrderStatus) => void;
   onOpenRefund: () => void;
   onReconcile: () => void;
   onOpenShipment: () => void;
+  onResendConfirmation: () => void;
 }
 
 function OrderActionButtons({
   order,
   isStatusUpdating,
+  isShipmentUpdating,
   isRefunding,
   isReconciling,
+  isResendingConfirmation,
   onUpdateStatus,
   onOpenRefund,
   onReconcile,
   onOpenShipment,
+  onResendConfirmation,
 }: IOrderActionButtonsProps) {
   const canRefund = order.status === 'paid' || order.status === 'packed' || order.status === 'shipped' || order.status === 'paid_needs_attention';
   const canReconcile = (order.status === 'refunded' || order.status === 'cancelled') && order.refundedAt && !order.cancelledAt;
@@ -137,7 +188,18 @@ function OrderActionButtons({
 
       <button
         type="button"
+        onClick={onResendConfirmation}
+        disabled={isResendingConfirmation}
+        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#D5C1C9] bg-white px-3 text-sm font-medium text-[#191C1E] hover:bg-[#F2F4F6] disabled:opacity-50"
+      >
+        <Mail className="h-4 w-4" />
+        {isResendingConfirmation ? 'Resending...' : 'Resend confirmation email'}
+      </button>
+
+      <button
+        type="button"
         onClick={onOpenShipment}
+        disabled={isShipmentUpdating}
         className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/60 active:bg-[#6A3553]"
       >
         Update Shipment
@@ -451,6 +513,7 @@ export default function AdminOrderDetailPageClient({ orderId }: { orderId: strin
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
   const [shipmentForm, setShipmentForm] = useState<IShipmentFormState>(createShipmentForm(null));
   const [refundReason, setRefundReason] = useState('Customer Request');
+  const [actionFeedback, setActionFeedback] = useState<OrderActionFeedback | null>(null);
 
   const { data: fetchRes, isPending } = useCustomizeQuery<IOrderDetail>({
     queryKey: ['admin', 'orders', orderId],
@@ -489,6 +552,22 @@ export default function AdminOrderDetailPageClient({ orderId }: { orderId: strin
     onSuccess: invalidateOrder,
   });
 
+  const { mutation: resendConfirmation, isPending: isResendingConfirmation } = useCustomizeMutation<void, string>({
+    mutationFn: MutationConfigs.resendAdminOrderConfirmation,
+    onSuccess: (response) => {
+      setActionFeedback({
+        type: 'success',
+        message: response.data.message || 'Confirmation email sent successfully.',
+      });
+    },
+    onError: (error) => {
+      setActionFeedback({
+        type: 'error',
+        message: getResendConfirmationErrorMessage(error),
+      });
+    },
+  });
+
   if (isPending) return <div className="p-12 text-center text-[#514349]">Loading order details...</div>;
   if (!order) return <div className="p-12 text-center text-red-500">Failed to load order.</div>;
 
@@ -518,6 +597,20 @@ export default function AdminOrderDetailPageClient({ orderId }: { orderId: strin
     processRefund({ orderId: order.publicId, data: { reason: refundReason } });
   };
 
+  const handleResendConfirmation = () => {
+    setActionFeedback(null);
+    if (!order.id) {
+      console.error('Missing internal order id for resend confirmation', { publicId: order.publicId });
+      setActionFeedback({
+        type: 'error',
+        message: 'Unable to resend confirmation email because the internal order id is missing.',
+      });
+      return;
+    }
+
+    resendConfirmation(order.id);
+  };
+
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -534,16 +627,22 @@ export default function AdminOrderDetailPageClient({ orderId }: { orderId: strin
           </div>
         </div>
 
-        <OrderActionButtons
-          order={order}
-          isStatusUpdating={isStatusUpdating}
-          isRefunding={isRefunding}
-          isReconciling={isReconciling}
-          onUpdateStatus={handleUpdateStatus}
-          onOpenRefund={() => setIsRefundDialogOpen(true)}
-          onReconcile={() => processReconcile(order.publicId)}
-          onOpenShipment={handleOpenShipment}
-        />
+        <div className="flex max-w-full flex-col items-stretch gap-3 sm:items-end">
+          <OrderActionButtons
+            order={order}
+            isStatusUpdating={isStatusUpdating}
+            isShipmentUpdating={isShipmentUpdating}
+            isRefunding={isRefunding}
+            isReconciling={isReconciling}
+            isResendingConfirmation={isResendingConfirmation}
+            onUpdateStatus={handleUpdateStatus}
+            onOpenRefund={() => setIsRefundDialogOpen(true)}
+            onReconcile={() => processReconcile(order.publicId)}
+            onOpenShipment={handleOpenShipment}
+            onResendConfirmation={handleResendConfirmation}
+          />
+          {actionFeedback ? <OrderActionFeedbackBanner feedback={actionFeedback} /> : null}
+        </div>
       </div>
 
       {order.includesLastOnePrize ? (

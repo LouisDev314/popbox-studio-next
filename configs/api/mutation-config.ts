@@ -94,6 +94,9 @@ const MutationConfigs = {
   updateAdminOrderShipment: async ({ orderId, data }: { orderId: string; data: IAdminOrderShipmentUpdate }): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
     return httpClient.patch(`/api/v1/admin/orders/${orderId}/shipment`, data, await withAdminAuth());
   },
+  resendAdminOrderConfirmation: async (orderId: string): Promise<AxiosResponse<IBaseApiResponse<void>>> => {
+    return httpClient.post(`/api/v1/admin/orders/${orderId}/resend-confirmation`, undefined, await withAdminAuth());
+  },
   refundAdminOrder: async ({ orderId, data }: { orderId: string; data: IAdminOrderRefundRequest }): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
     return httpClient.post(`/api/v1/admin/orders/${orderId}/refund`, data, await withAdminAuth());
   },
