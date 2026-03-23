@@ -1,8 +1,12 @@
-import { type IProductCard } from '@/interfaces/product';
+import { type IKujiPrize, type IProductCard } from '@/interfaces/product';
+
+export interface ICartProduct extends IProductCard {
+  kujiPrizes?: IKujiPrize[];
+}
 
 export interface ICartItem {
   id: string;
-  product: IProductCard;
+  product: ICartProduct;
   quantity: number;
 }
 

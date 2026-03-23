@@ -9,6 +9,7 @@ import { CheckoutButton } from '@/components/cart/checkout-button';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/hooks/use-cart';
 import { formatPrice } from '@/lib/utils';
+import { getKujiCartLimitMessage, getKujiSellableQuantity, isKujiProduct } from '@/utils/kuji';
 
 export default function CartPage() {
   const items = useCartStore((state) => state.items);
@@ -75,13 +76,24 @@ export default function CartPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
         <section className="space-y-4" aria-label="Cart items">
           {items.map((item) => (
-            <CartPageItem
-              key={item.id}
-              item={item}
-              onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
-              onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
-              onRemove={() => removeItem(item.id)}
-            />
+            (() => {
+              const kujiQuantityLimit = isKujiProduct(item.product)
+                ? getKujiSellableQuantity(item.product)
+                : null;
+              const limitMessage = getKujiCartLimitMessage(item.quantity, kujiQuantityLimit);
+
+              return (
+                <CartPageItem
+                  key={item.id}
+                  item={item}
+                  maxQuantity={kujiQuantityLimit}
+                  limitMessage={limitMessage}
+                  onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
+                  onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
+                  onRemove={() => removeItem(item.id)}
+                />
+              );
+            })()
           ))}
         </section>
 

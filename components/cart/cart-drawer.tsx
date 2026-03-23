@@ -9,6 +9,7 @@ import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { useCartStore } from '@/hooks/use-cart';
 import { cn, formatPrice } from '@/lib/utils';
+import { getKujiCartLimitMessage, getKujiSellableQuantity, isKujiProduct } from '@/utils/kuji';
 
 interface ICartDrawerProps {
   isOpen: boolean;
@@ -128,39 +129,53 @@ export function CartDrawer(props: ICartDrawerProps) {
             <div className="space-y-4">
               {items.map((item) => (
                 <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card/80 p-4 shadow-sm">
-                  <div className="flex gap-4">
-                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-muted/30">
-                      <StorefrontImage
-                        src={item.product.images[0]?.url}
-                        alt={item.product.name}
-                        label={item.product.name}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
-                        {item.product.name}
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {formatPrice(item.product.priceCents, item.product.currency)}
-                      </p>
-                      <div className="mt-3 flex items-center justify-between gap-3">
-                        <QuantityStepper
-                          size="sm"
-                          value={item.quantity}
-                          onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
-                          onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="h-9 rounded-full px-3 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => removeItem(item.id)}
-                        >
-                          Remove
-                        </Button>
+                  {(() => {
+                    const kujiQuantityLimit = isKujiProduct(item.product)
+                      ? getKujiSellableQuantity(item.product)
+                      : null;
+                    const limitMessage = getKujiCartLimitMessage(item.quantity, kujiQuantityLimit);
+
+                    return (
+                      <div className="flex gap-4">
+                        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-muted/30">
+                          <StorefrontImage
+                            src={item.product.images[0]?.url}
+                            alt={item.product.name}
+                            label={item.product.name}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
+                            {item.product.name}
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {formatPrice(item.product.priceCents, item.product.currency)}
+                          </p>
+                          <div className="mt-3 flex items-center justify-between gap-3">
+                            <QuantityStepper
+                              size="sm"
+                              value={item.quantity}
+                              decreaseDisabled={item.quantity <= 1}
+                              increaseDisabled={kujiQuantityLimit !== null && item.quantity >= kujiQuantityLimit}
+                              onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
+                              onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="h-9 rounded-full px-3 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => removeItem(item.id)}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                          {limitMessage ? (
+                            <p className="mt-2 text-xs font-medium text-muted-foreground">{limitMessage}</p>
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
                 </article>
               ))}
               <div className='flex justify-center'>
