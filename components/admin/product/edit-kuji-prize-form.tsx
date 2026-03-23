@@ -10,23 +10,16 @@ import { IKujiPrize } from '@/interfaces/product';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-
-type EditableKujiPrizeField = keyof Pick<
-  IKujiPrize,
-  'prizeCode' | 'name' | 'description' | 'imageUrl' | 'initialQuantity' | 'remainingQuantity' | 'sortOrder'
->;
-
-type EditKujiPrizeFormData = {
-  prizeCode: string;
-  name: string;
-  description: string;
-  imageUrl: string;
-  initialQuantity: string;
-  remainingQuantity: string;
-  sortOrder: string;
-};
-
-type EditKujiPrizeFieldErrors = Partial<Record<EditableKujiPrizeField | 'form', string>>;
+import {
+  EditableKujiPrizeField,
+  KujiPrizeFieldErrors,
+  KujiPrizeFormData,
+  buildKujiPrizeUpdatePayload,
+  createKujiPrizeFormData,
+  mapKujiPrizeServerValidationErrors,
+  normalizeKujiPrizeFormData,
+  validateKujiPrizeFormData,
+} from './kuji-prize-form-utils';
 
 type EditKujiPrizeNotification = {
   type: 'success' | 'error';
@@ -41,212 +34,16 @@ interface IEditKujiPrizeFormProps {
   onNotify: (notification: EditKujiPrizeNotification) => void;
 }
 
-type NormalizedKujiPrizeFormData = {
-  prizeCode: string;
-  name: string;
-  description: string | null;
-  imageUrl: string | null;
-  initialQuantity: number | null;
-  remainingQuantity: number | null;
-  sortOrder: number | null;
-};
-
-function createInitialFormData(prize: IKujiPrize): EditKujiPrizeFormData {
-  return {
-    prizeCode: prize.prizeCode,
-    name: prize.name,
-    description: prize.description ?? '',
-    imageUrl: prize.imageUrl ?? '',
-    initialQuantity: String(prize.initialQuantity),
-    remainingQuantity: String(prize.remainingQuantity),
-    sortOrder: String(prize.sortOrder),
-  };
-}
-
-function normalizeRequiredText(value: string): string {
-  return value.trim();
-}
-
-function normalizeOptionalText(value: string): string | null {
-  const trimmedValue = value.trim();
-
-  return trimmedValue === '' ? null : trimmedValue;
-}
-
-function parseNonNegativeInteger(value: string): number | null {
-  const trimmedValue = value.trim();
-
-  if (trimmedValue === '' || !/^\d+$/.test(trimmedValue)) {
-    return null;
-  }
-
-  const parsedValue = Number.parseInt(trimmedValue, 10);
-
-  return Number.isNaN(parsedValue) ? null : parsedValue;
-}
-
-function isValidUrl(value: string): boolean {
-  try {
-    new URL(value);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function normalizeFormData(formData: EditKujiPrizeFormData): NormalizedKujiPrizeFormData {
-  return {
-    prizeCode: normalizeRequiredText(formData.prizeCode),
-    name: normalizeRequiredText(formData.name),
-    description: normalizeOptionalText(formData.description),
-    imageUrl: normalizeOptionalText(formData.imageUrl),
-    initialQuantity: parseNonNegativeInteger(formData.initialQuantity),
-    remainingQuantity: parseNonNegativeInteger(formData.remainingQuantity),
-    sortOrder: parseNonNegativeInteger(formData.sortOrder),
-  };
-}
-
-function normalizePrizeForComparison(prize: IKujiPrize): Omit<NormalizedKujiPrizeFormData, 'initialQuantity' | 'remainingQuantity' | 'sortOrder'> & {
-  initialQuantity: number;
-  remainingQuantity: number;
-  sortOrder: number;
-} {
-  return {
-    prizeCode: normalizeRequiredText(prize.prizeCode),
-    name: normalizeRequiredText(prize.name),
-    description: normalizeOptionalText(prize.description ?? ''),
-    imageUrl: normalizeOptionalText(prize.imageUrl ?? ''),
-    initialQuantity: prize.initialQuantity,
-    remainingQuantity: prize.remainingQuantity,
-    sortOrder: prize.sortOrder,
-  };
-}
-
-function validateFormData(formData: NormalizedKujiPrizeFormData): EditKujiPrizeFieldErrors {
-  const errors: EditKujiPrizeFieldErrors = {};
-
-  if (formData.prizeCode === '') {
-    errors.prizeCode = 'Prize code is required.';
-  }
-
-  if (formData.name === '') {
-    errors.name = 'Prize name is required.';
-  }
-
-  if (formData.imageUrl && !isValidUrl(formData.imageUrl)) {
-    errors.imageUrl = 'Enter a valid URL.';
-  }
-
-  if (formData.initialQuantity === null) {
-    errors.initialQuantity = 'Initial quantity is required.';
-  }
-
-  if (formData.remainingQuantity === null) {
-    errors.remainingQuantity = 'Remaining quantity is required.';
-  }
-
-  if (formData.sortOrder === null) {
-    errors.sortOrder = 'Sort order is required.';
-  }
-
-  if (
-    formData.initialQuantity !== null &&
-    formData.remainingQuantity !== null &&
-    formData.remainingQuantity > formData.initialQuantity
-  ) {
-    errors.remainingQuantity = 'Remaining quantity cannot exceed initial quantity.';
-  }
-
-  return errors;
-}
-
-function buildUpdatePayload(
-  prize: IKujiPrize,
-  formData: NormalizedKujiPrizeFormData,
-): Partial<Pick<IKujiPrize, EditableKujiPrizeField>> {
-  const originalPrize = normalizePrizeForComparison(prize);
-  const payload: Partial<Pick<IKujiPrize, EditableKujiPrizeField>> = {};
-
-  if (formData.prizeCode !== originalPrize.prizeCode) {
-    payload.prizeCode = formData.prizeCode;
-  }
-
-  if (formData.name !== originalPrize.name) {
-    payload.name = formData.name;
-  }
-
-  if (formData.description !== originalPrize.description) {
-    payload.description = formData.description;
-  }
-
-  if (formData.imageUrl !== originalPrize.imageUrl) {
-    payload.imageUrl = formData.imageUrl;
-  }
-
-  if (formData.initialQuantity !== null && formData.initialQuantity !== originalPrize.initialQuantity) {
-    payload.initialQuantity = formData.initialQuantity;
-  }
-
-  if (formData.remainingQuantity !== null && formData.remainingQuantity !== originalPrize.remainingQuantity) {
-    payload.remainingQuantity = formData.remainingQuantity;
-  }
-
-  if (formData.sortOrder !== null && formData.sortOrder !== originalPrize.sortOrder) {
-    payload.sortOrder = formData.sortOrder;
-  }
-
-  return payload;
-}
-
-function mapServerValidationErrors(message: string): EditKujiPrizeFieldErrors {
-  const normalizedMessage = message.toLowerCase();
-  const errors: EditKujiPrizeFieldErrors = {};
-
-  if (normalizedMessage.includes('prize code') || normalizedMessage.includes('prizecode')) {
-    errors.prizeCode = message;
-  }
-
-  if (normalizedMessage.includes('image url') || normalizedMessage.includes('imageurl')) {
-    errors.imageUrl = message;
-  }
-
-  if (normalizedMessage.includes('initial quantity') || normalizedMessage.includes('initialquantity')) {
-    errors.initialQuantity = message;
-  }
-
-  if (normalizedMessage.includes('remaining quantity') || normalizedMessage.includes('remainingquantity')) {
-    errors.remainingQuantity = message;
-  }
-
-  if (normalizedMessage.includes('sort order') || normalizedMessage.includes('sortorder')) {
-    errors.sortOrder = message;
-  }
-
-  if (normalizedMessage.includes('description')) {
-    errors.description = message;
-  }
-
-  if (normalizedMessage.includes('name')) {
-    errors.name = message;
-  }
-
-  if (Object.keys(errors).length === 0) {
-    errors.form = message;
-  }
-
-  return errors;
-}
-
 function getFieldClasses(hasError: boolean): string {
   return cn(hasError && 'border-red-400 focus-visible:ring-red-400');
 }
 
 export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNotify }: IEditKujiPrizeFormProps) {
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState(() => createInitialFormData(prize));
-  const [errors, setErrors] = useState<EditKujiPrizeFieldErrors>({});
-  const normalizedFormData = normalizeFormData(formData);
-  const payload = buildUpdatePayload(prize, normalizedFormData);
+  const [formData, setFormData] = useState<KujiPrizeFormData>(() => createKujiPrizeFormData(prize));
+  const [errors, setErrors] = useState<KujiPrizeFieldErrors>({});
+  const normalizedFormData = normalizeKujiPrizeFormData(formData);
+  const payload = buildKujiPrizeUpdatePayload(prize, normalizedFormData);
   const soldCount = normalizedFormData.initialQuantity !== null && normalizedFormData.remainingQuantity !== null
     ? normalizedFormData.initialQuantity - normalizedFormData.remainingQuantity
     : null;
@@ -268,7 +65,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
       const status = error.response?.status;
 
       if (status === HttpStatusCode.BadRequest) {
-        setErrors(mapServerValidationErrors(message));
+        setErrors(mapKujiPrizeServerValidationErrors(message));
         return;
       }
 
@@ -307,7 +104,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const nextErrors = validateFormData(normalizedFormData);
+    const nextErrors = validateKujiPrizeFormData(normalizedFormData);
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);

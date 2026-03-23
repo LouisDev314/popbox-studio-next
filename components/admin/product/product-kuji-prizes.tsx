@@ -2,16 +2,30 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { AxiosError, HttpStatusCode } from 'axios';
 import { Pencil, Plus, RotateCw, Trash, X } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
+import { IBaseApiResponse } from '@/interfaces/api-response';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { IAdminProduct, IKujiPrize } from '@/interfaces/product';
+import { NumericInput } from '@/components/ui/numeric-input';
+import { IAdminProductEditor, IKujiPrize } from '@/interfaces/product';
+import { cn } from '@/lib/utils';
 
 import { EditKujiPrizeModal } from './edit-kuji-prize-modal';
+import {
+  EditableKujiPrizeField,
+  KujiPrizeFieldErrors,
+  KujiPrizeFormData,
+  buildKujiPrizeCreatePayload,
+  createKujiPrizeFormData,
+  mapKujiPrizeServerValidationErrors,
+  normalizeKujiPrizeFormData,
+  validateKujiPrizeFormData,
+} from './kuji-prize-form-utils';
 
 type KujiPrizeToast = {
   id: number;
@@ -19,16 +33,25 @@ type KujiPrizeToast = {
   message: string;
 };
 
-export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
+function getFieldClasses(hasError: boolean): string {
+  return cn(hasError && 'border-red-400 focus-visible:ring-red-400');
+}
+
+function createNewPrizeFormData(nextSortOrder: number): KujiPrizeFormData {
+  return createKujiPrizeFormData({
+    initialQuantity: 1,
+    remainingQuantity: 1,
+    sortOrder: nextSortOrder,
+  });
+}
+
+export function ProductKujiPrizes({ product }: { product: IAdminProductEditor }) {
   const queryClient = useQueryClient();
   const toastTimeoutRef = useRef<number | null>(null);
   const [editingPrize, setEditingPrize] = useState<IKujiPrize | null>(null);
   const [toast, setToast] = useState<KujiPrizeToast | null>(null);
-  const [newPrize, setNewPrize] = useState({
-    prizeCode: '',
-    name: '',
-    initialQuantity: '1',
-  });
+  const [createErrors, setCreateErrors] = useState<KujiPrizeFieldErrors>({});
+  const [newPrize, setNewPrize] = useState<KujiPrizeFormData>(() => createNewPrizeFormData(product.kujiPrizes.length));
 
   const { data: prizesRes, isPending, refetch } = useCustomizeQuery({
     queryKey: ['admin', 'prizes', product.id],
@@ -37,12 +60,32 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
 
   const prizes = prizesRes?.data?.data || [];
   const sortedPrizes = [...prizes].sort((a, b) => a.sortOrder - b.sortOrder);
+  const normalizedNewPrize = normalizeKujiPrizeFormData(newPrize);
+  const textareaClasses = 'flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
   const { mutation: createPrize, isPending: isCreating } = useCustomizeMutation({
     mutationFn: MutationConfigs.createAdminProductKujiPrize,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
-      setNewPrize({ prizeCode: '', name: '', initialQuantity: '1' });
+      setNewPrize(createNewPrizeFormData(sortedPrizes.length + 1));
+      setCreateErrors({});
+      showToast('success', 'Prize created successfully.');
+    },
+    onError: (error: AxiosError<IBaseApiResponse>) => {
+      const message = error.response?.data?.message ?? 'Failed to create prize.';
+      const status = error.response?.status;
+
+      if (status === HttpStatusCode.BadRequest) {
+        setCreateErrors(mapKujiPrizeServerValidationErrors(message));
+        return;
+      }
+
+      if (status === HttpStatusCode.Conflict) {
+        showToast('error', 'Inventory conflict. Check quantities.');
+        return;
+      }
+
+      showToast('error', message);
     },
   });
 
@@ -79,15 +122,37 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
     }, 4000);
   };
 
+  const handleCreateFieldChange = (field: EditableKujiPrizeField, value: string) => {
+    setNewPrize((currentPrize) => ({
+      ...currentPrize,
+      [field]: value,
+    }));
+
+    setCreateErrors((currentErrors) => {
+      if (!currentErrors[field] && !currentErrors.form) {
+        return currentErrors;
+      }
+
+      const nextErrors = { ...currentErrors };
+      delete nextErrors[field];
+      delete nextErrors.form;
+      return nextErrors;
+    });
+  };
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const nextErrors = validateKujiPrizeFormData(normalizedNewPrize);
+
+    if (Object.keys(nextErrors).length > 0) {
+      setCreateErrors(nextErrors);
+      return;
+    }
+
     createPrize({
       productId: product.id,
-      data: {
-        prizeCode: newPrize.prizeCode.toUpperCase(),
-        name: newPrize.name,
-        initialQuantity: Math.max(1, parseInt(newPrize.initialQuantity || '1', 10)),
-      },
+      data: buildKujiPrizeCreatePayload(normalizedNewPrize),
     });
   };
 
@@ -105,14 +170,16 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium">{toast.message}</p>
             </div>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => setToast(null)}
-              className="rounded-md p-1 transition-colors hover:bg-black/5"
+              className="h-6 w-6 rounded-md p-0 hover:bg-black/5"
               aria-label="Dismiss notification"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
@@ -123,14 +190,14 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
             <h2 className="text-sm font-semibold text-[#191C1E] uppercase tracking-wider">Kuji Prizes</h2>
             <p className="mt-1 text-xs text-[#514349]">Manage the prize pool for this Kuji product.</p>
           </div>
-          <button
+          <Button
             type="button"
             onClick={() => refetch()}
-            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-[#191C1E] transition-colors hover:bg-primary/60"
+            className="h-8 gap-1.5 rounded-lg px-3 text-sm font-medium text-[#191C1E] hover:bg-primary/60"
           >
             <RotateCw className="h-3.5 w-3.5" />
             Refresh Pool
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-4 mb-8">
@@ -204,45 +271,111 @@ export function ProductKujiPrizes({ product }: { product: IAdminProduct }) {
 
         <div className="rounded-lg bg-[#F9FAFB] p-4 border border-[#D5C1C9]/30">
           <h3 className="mb-3 text-sm font-medium text-[#191C1E]">Add New Prize</h3>
-          <form onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-4 items-end">
+          <form onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-start">
             <div>
               <label className="mb-1 block text-xs font-medium text-[#514349]">Rank (e.g. A)</label>
-              <Input required maxLength={10} value={newPrize.prizeCode} onChange={e => setNewPrize(p => ({ ...p, prizeCode: e.target.value }))} className="h-8 text-sm" />
+              <Input
+                required
+                maxLength={32}
+                value={newPrize.prizeCode}
+                onChange={(event) => handleCreateFieldChange('prizeCode', event.target.value)}
+                className={cn('h-8 text-sm', getFieldClasses(Boolean(createErrors.prizeCode)))}
+              />
+              {createErrors.prizeCode ? <p className="mt-1 text-xs text-red-600">{createErrors.prizeCode}</p> : null}
             </div>
-            <div className="sm:col-span-2">
+
+            <div className="lg:col-span-2">
               <label className="mb-1 block text-xs font-medium text-[#514349]">Prize Name</label>
-              <Input required value={newPrize.name} onChange={e => setNewPrize(p => ({ ...p, name: e.target.value }))} className="h-8 text-sm" placeholder="e.g. Grand Figure" />
+              <Input
+                required
+                value={newPrize.name}
+                onChange={(event) => handleCreateFieldChange('name', event.target.value)}
+                className={cn('h-8 text-sm', getFieldClasses(Boolean(createErrors.name)))}
+                placeholder="e.g. Grand Figure"
+              />
+              {createErrors.name ? <p className="mt-1 text-xs text-red-600">{createErrors.name}</p> : null}
             </div>
-            <div className="flex gap-2 items-end">
-              <div className="flex-1">
-                <label className="mb-1 block text-xs font-medium text-[#514349]">Qty</label>
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  required
-                  value={newPrize.initialQuantity}
-                  onChange={(e) => {
-                    const value = e.target.value;
 
-                    if (!/^\d*$/.test(value)) return;
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#514349]">Initial Qty</label>
+              <NumericInput
+                required
+                value={newPrize.initialQuantity}
+                onValueChange={(value) => handleCreateFieldChange('initialQuantity', value)}
+                className={cn('h-8 text-sm', getFieldClasses(Boolean(createErrors.initialQuantity)))}
+                placeholder="0"
+              />
+              {createErrors.initialQuantity ? <p className="mt-1 text-xs text-red-600">{createErrors.initialQuantity}</p> : null}
+            </div>
 
-                    setNewPrize((p) => ({
-                      ...p,
-                      initialQuantity: value,
-                    }));
-                  }}
-                  className="h-8 text-sm"
-                  placeholder="0"
-                />
-              </div>
-              <button
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-[#514349]">Description</label>
+              <textarea
+                value={newPrize.description}
+                onChange={(event) => handleCreateFieldChange('description', event.target.value)}
+                className={cn(textareaClasses, getFieldClasses(Boolean(createErrors.description)))}
+                placeholder="Optional prize details"
+              />
+              {createErrors.description ? <p className="mt-1 text-xs text-red-600">{createErrors.description}</p> : null}
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-[#514349]">Image URL</label>
+              <Input
+                type="url"
+                value={newPrize.imageUrl}
+                onChange={(event) => handleCreateFieldChange('imageUrl', event.target.value)}
+                className={cn('h-8 text-sm', getFieldClasses(Boolean(createErrors.imageUrl)))}
+                placeholder="https://example.com/prize-image.jpg"
+              />
+              {createErrors.imageUrl ? <p className="mt-1 text-xs text-red-600">{createErrors.imageUrl}</p> : null}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#514349]">Remaining Qty</label>
+              <NumericInput
+                required
+                value={newPrize.remainingQuantity}
+                onValueChange={(value) => handleCreateFieldChange('remainingQuantity', value)}
+                className={cn('h-8 text-sm', getFieldClasses(Boolean(createErrors.remainingQuantity)))}
+                placeholder="0"
+              />
+              {createErrors.remainingQuantity ? <p className="mt-1 text-xs text-red-600">{createErrors.remainingQuantity}</p> : null}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[#514349]">Sort Order</label>
+              <NumericInput
+                required
+                value={newPrize.sortOrder}
+                onValueChange={(value) => handleCreateFieldChange('sortOrder', value)}
+                className={cn('h-8 text-sm', getFieldClasses(Boolean(createErrors.sortOrder)))}
+                placeholder="0"
+              />
+              {createErrors.sortOrder ? <p className="mt-1 text-xs text-red-600">{createErrors.sortOrder}</p> : null}
+            </div>
+
+            <div className="lg:col-span-2">
+              {createErrors.form ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                  {createErrors.form}
+                </div>
+              ) : (
+                <p className="text-xs text-[#514349]">
+                  Optional fields send `null` when left blank. Quantities and sort order always submit as numbers.
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end lg:col-span-2">
+              <Button
                 type="submit"
                 disabled={isCreating}
-                className="inline-flex h-8 items-center justify-center rounded-md bg-[#191C1E] px-3 text-xs font-medium text-white shadow-sm transition-colors hover:bg-[#191C1E]/90 disabled:opacity-50"
+                className="h-8 rounded-md px-3 text-xs font-medium"
               >
-                <Plus className="w-3.5 h-3.5 mr-1" /> Add
-              </button>
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                {isCreating ? 'Adding...' : 'Add'}
+              </Button>
             </div>
           </form>
         </div>
