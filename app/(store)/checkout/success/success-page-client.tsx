@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { useCartStore } from '@/hooks/use-cart';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
+import { getRelativeGuestOrderUrl, getRelativeGuestTicketsUrl } from '@/lib/guest-order-url';
 
 interface ICheckoutSuccessPageClientProps {
   sessionId: string | null;
@@ -69,6 +70,8 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
 
   const { order } = successData;
   const hasKujiTickets = order.tickets && order.tickets.length > 0;
+  const publicOrderUrl = getRelativeGuestOrderUrl(successData.clientOrderUrl);
+  const publicTicketsUrl = getRelativeGuestTicketsUrl(successData.clientOrderUrl);
 
   return (
     <div className="container mx-auto px-4 py-20 max-w-3xl text-center flex flex-col items-center">
@@ -101,7 +104,7 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
       <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
         {hasKujiTickets ? (
           <Button asChild size="lg" className="rounded-full h-14 px-8 text-lg font-semibold group relative overflow-hidden">
-            <Link href={`/orders/${order.publicId}/tickets`}>
+            <Link href={publicTicketsUrl}>
               <span className="absolute inset-0 bg-primary/10 w-full h-full transform translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               <Ticket className="mr-2 h-5 w-5 z-10 relative" />
               <span className="z-10 relative">Reveal My Tickets!</span>
@@ -109,7 +112,7 @@ export function CheckoutSuccessPageClient(props: ICheckoutSuccessPageClientProps
           </Button>
         ) : (
           <Button asChild size="lg" className="rounded-full h-14 px-8 text-lg font-semibold">
-            <Link href={`/orders/${order.publicId}`}>
+            <Link href={publicOrderUrl}>
               View Order Details
             </Link>
           </Button>

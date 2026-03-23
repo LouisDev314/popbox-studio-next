@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import QueryConfigs from '@/configs/api/query-config';
@@ -12,18 +12,27 @@ import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Ticket as TicketIcon, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
+import { appendGuestOrderToken, getGuestOrderTokenParamName } from '@/lib/guest-order-url';
 
 export default function OrderTicketsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const publicId = Array.isArray(params.publicId) ? params.publicId[0] : params.publicId;
+  const token = searchParams.get(getGuestOrderTokenParamName()) ?? undefined;
   const queryClient = useQueryClient();
 
   const [revealingId, setRevealingId] = useState<string | null>(null);
   const [isRevealingAll, setIsRevealingAll] = useState(false);
 
   const { data: response, isPending, isError } = useCustomizeQuery<IGuestTicketView>({
-    queryKey: ['order-tickets', publicId],
-    queryFn: () => QueryConfigs.fetchGuestTickets(publicId!),
+    queryKey: ['order-tickets', publicId, token],
+    queryFn: async () => {
+      if (token) {
+        await QueryConfigs.fetchGuestOrderAccess(publicId!, token);
+      }
+
+      return QueryConfigs.fetchGuestTickets(publicId!);
+    },
     enabled: !!publicId,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 10,
@@ -101,7 +110,7 @@ export default function OrderTicketsPage() {
     <div className="container mx-auto px-4 py-8 lg:py-12 max-w-6xl min-h-[70vh]">
       <div className="mb-8 flex items-center justify-between">
         <Link 
-          href={`/orders/${publicId}`} 
+          href={appendGuestOrderToken(`/orders/${publicId}`, token)}
           className="hover:text-foreground text-sm font-medium text-muted-foreground inline-flex items-center transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />

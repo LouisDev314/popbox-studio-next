@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import QueryConfigs from '@/configs/api/query-config';
 import { IGuestOrderDetail } from '@/interfaces/order';
@@ -9,15 +9,24 @@ import Link from 'next/link';
 import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { StorefrontImage } from '@/components/ui/storefront-image';
+import { appendGuestOrderToken, getGuestOrderTokenParamName } from '@/lib/guest-order-url';
 
 export default function GuestOrderPage() {
   const params = useParams();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const searchParams = useSearchParams();
+  const publicId = Array.isArray(params.publicId) ? params.publicId[0] : params.publicId;
+  const token = searchParams.get(getGuestOrderTokenParamName()) ?? undefined;
 
   const { data: response, isPending, isError } = useCustomizeQuery<IGuestOrderDetail>({
-    queryKey: ['guest-order', id],
-    queryFn: () => QueryConfigs.fetchGuestOrder(id!),
-    enabled: !!id,
+    queryKey: ['guest-order', publicId, token],
+    queryFn: async () => {
+      if (token) {
+        await QueryConfigs.fetchGuestOrderAccess(publicId!, token);
+      }
+
+      return QueryConfigs.fetchGuestOrder(publicId!);
+    },
+    enabled: !!publicId,
     staleTime: Infinity,
     gcTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
@@ -78,7 +87,7 @@ export default function GuestOrderPage() {
             size="lg"
             className="rounded-full px-8 py-6 text-base font-semibold shadow-md"
           >
-            <Link href={`/orders/${order.publicId}/tickets`}>
+            <Link href={appendGuestOrderToken(`/orders/${order.publicId}/tickets`, token)}>
               <Ticket className="mr-2 h-5 w-5" />
               Go to My Tickets
             </Link>
