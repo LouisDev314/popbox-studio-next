@@ -87,7 +87,7 @@ export function WishlistDrawer(props: IWishlistDrawerProps) {
         <div className="flex items-center justify-between border-b border-border/70 px-5 py-4 sm:px-6">
           <h2 id={titleId} className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
             <Heart className="h-5 w-5" />
-            Your Wishlist {hasHydrated && items.length > 0 ? `(${items.length})` : null}
+            Wishlist {hasHydrated && items.length > 0 ? `(${items.length})` : null}
           </h2>
           <Button
             ref={closeButtonRef}
