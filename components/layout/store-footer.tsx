@@ -35,9 +35,9 @@ export function StoreFooter() {
             <h3 className="text-sm font-semibold text-foreground tracking-wider uppercase">Support</h3>
             <ul className="mt-4 space-y-4">
               <li>
-                <span className="text-sm text-muted-foreground cursor-not-allowed">
+                <Link href="/legal/faq" className="text-sm text-muted-foreground hover:text-foreground">
                   FAQ
-                </span>
+                </Link>
               </li>
               <li>
                 <span className="text-sm text-muted-foreground cursor-not-allowed">
@@ -45,9 +45,9 @@ export function StoreFooter() {
                 </span>
               </li>
               <li>
-                <span className="text-sm text-muted-foreground cursor-not-allowed">
+                <Link href="/legal/shipping-returns" className="text-sm text-muted-foreground hover:text-foreground">
                   Shipping & Returns
-                </span>
+                </Link>
               </li>
             </ul>
           </div>
@@ -57,8 +57,8 @@ export function StoreFooter() {
             &copy; {new Date().getFullYear()} PopBox Studio. All rights reserved.
           </p>
           <div className="flex gap-4">
-            <span className="text-sm text-muted-foreground/60 cursor-not-allowed">Terms of Service</span>
-            <span className="text-sm text-muted-foreground/60 cursor-not-allowed">Privacy Policy</span>
+            <Link href="/legal/terms" className="text-sm text-muted-foreground hover:text-foreground">Terms of Service</Link>
+            <Link href="/legal/privacy" className="text-sm text-muted-foreground hover:text-foreground">Privacy Policy</Link>
           </div>
         </div>
       </div>
