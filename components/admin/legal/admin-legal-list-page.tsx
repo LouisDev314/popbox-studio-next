@@ -6,6 +6,7 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { IAdminLegalListResponse, LegalDocumentType, IAdminLegalDocument } from '@/interfaces/legal';
+import { useRouter } from 'next/navigation';
 
 const CANONICAL_TYPES: { type: LegalDocumentType; label: string; description: string }[] = [
   { type: 'faq', label: 'FAQ', description: 'Frequently asked questions.' },
