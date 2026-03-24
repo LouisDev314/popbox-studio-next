@@ -11,9 +11,9 @@ export default function StoreLayout(props: IStoreLayoutProps) {
   if (!getEnvConfig().isSiteOpen) {
     return (
       <main>
-          <div className="flex min-h-screen items-center justify-center text-xl">
+        <div className="flex min-h-screen items-center justify-center text-xl">
         🚧 Coming Soon
-          </div>
+        </div>
       </main>
     );
   }

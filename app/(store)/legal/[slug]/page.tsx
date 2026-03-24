@@ -10,10 +10,11 @@ const CANONICAL_LABELS: Record<string, string> = {
 };
 
 type Props = {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const label = CANONICAL_LABELS[params.slug];
 
   if (!label) {
@@ -25,7 +26,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function LegalRoute({ params }: Props) {
+export default async function LegalRoute(props: Props) {
+  const params = await props.params;
   const validSlugs = ['faq', 'shipping-returns', 'terms', 'privacy'];
 
   if (!validSlugs.includes(params.slug)) {
