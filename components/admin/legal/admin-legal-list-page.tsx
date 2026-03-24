@@ -117,7 +117,7 @@ function DocumentCard({
               'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
               exists
                 ? 'bg-[#E7F0E7] text-[#116211]' // Published
-                : 'bg-[#F2F4F6] text-[#514349]'  // Not created
+                : 'bg-[#F2F4F6] text-[#514349]', // Not created
             )}
           >
             {exists ? 'Published' : 'Not created'}
@@ -145,7 +145,7 @@ function DocumentCard({
           className={cn(
             'w-full rounded-lg shadow-none',
             !exists && 'bg-primary text-white hover:opacity-90',
-            exists && 'border border-[#D5C1C9] bg-white text-[#191C1E] hover:bg-[#F2F4F6]'
+            exists && 'border border-[#D5C1C9] bg-white text-[#191C1E] hover:bg-[#F2F4F6]',
           )}
           variant={exists ? 'outline' : 'default'}
         >

@@ -3,7 +3,7 @@
 import QueryConfigs from '@/configs/api/query-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import type { IPublicLegalDocument } from '@/interfaces/legal';
-import { FileText } from 'lucide-react';
+import { FileText, Loader2 } from 'lucide-react';
 
 const SLUG_TO_TYPE: Record<string, string> = {
   'faq': 'faq',
@@ -71,7 +71,7 @@ export function PublicLegalPage({ slug }: { slug: string }) {
 function LoadingState() {
   return (
     <div className="container mx-auto px-4 py-32 sm:px-6 lg:px-8 max-w-3xl flex justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
     </div>
   );
 }

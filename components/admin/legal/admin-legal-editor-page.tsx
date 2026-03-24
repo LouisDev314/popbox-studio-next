@@ -14,7 +14,7 @@ import type {
   IAdminLegalListResponse, 
   IAdminLegalDocument,
   IAdminLegalUpdate,
-  IAdminLegalCreate 
+  IAdminLegalCreate, 
 } from '@/interfaces/legal';
 
 const CANONICAL_LABELS: Record<string, string> = {
@@ -114,7 +114,7 @@ export function AdminLegalEditorPage() {
         id: activeDoc.id,
         data: {
           content: submittedContent,
-        }
+        },
       });
     } else {
       createDoc({
