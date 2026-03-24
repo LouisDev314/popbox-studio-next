@@ -15,6 +15,7 @@ import {
   ICollection,
   ITag,
 } from '@/interfaces/product';
+import { IAdminLegalCreate, IAdminLegalUpdate, IAdminLegalDocument } from '@/interfaces/legal';
 import { withAdminAuth } from '@/lib/api/admin-client';
 
 const MutationConfigs = {
@@ -102,6 +103,12 @@ const MutationConfigs = {
   },
   reconcileAdminOrderRefund: async (orderId: string): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
     return httpClient.post(`/api/v1/admin/orders/${orderId}/refund/reconcile`, undefined, await withAdminAuth());
+  },
+  createAdminLegalDoc: async (data: IAdminLegalCreate): Promise<AxiosResponse<IBaseApiResponse<IAdminLegalDocument>>> => {
+    return httpClient.post('/api/v1/admin/legal', data, await withAdminAuth());
+  },
+  updateAdminLegalDoc: async ({ id, data }: { id: string; data: IAdminLegalUpdate }): Promise<AxiosResponse<IBaseApiResponse<IAdminLegalDocument>>> => {
+    return httpClient.patch(`/api/v1/admin/legal/${id}`, data, await withAdminAuth());
   },
 };
 

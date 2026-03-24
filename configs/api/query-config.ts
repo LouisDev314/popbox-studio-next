@@ -9,6 +9,7 @@ import { IProduct, IProductListPage, ICollection, ITag, productSort, productType
 import { IGuestOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
 import { IAdminCustomerListResponse } from '@/interfaces/customer';
+import { IAdminLegalListResponse, IAdminLegalDocument, IPublicLegalDocument } from '@/interfaces/legal';
 
 const QueryConfigs = {
   fetchHomePage: (): Promise<AxiosResponse<IBaseApiResponse<IHomepageData>>> => {
@@ -109,6 +110,15 @@ const QueryConfigs = {
   },
   fetchAdminProductKujiPrizes: async (productId: string): Promise<AxiosResponse<IBaseApiResponse<IKujiPrize[]>>> => {
     return httpClient.get(`/api/v1/admin/products/${productId}/kuji-prizes`, await withAdminAuth());
+  },
+  fetchAdminLegalDocs: async (): Promise<AxiosResponse<IBaseApiResponse<IAdminLegalListResponse>>> => {
+    return httpClient.get('/api/v1/admin/legal', await withAdminAuth());
+  },
+  fetchAdminLegalDoc: async (id: string): Promise<AxiosResponse<IBaseApiResponse<IAdminLegalDocument>>> => {
+    return httpClient.get(`/api/v1/admin/legal/${id}`, await withAdminAuth());
+  },
+  fetchPublicLegalDoc: (type: string): Promise<AxiosResponse<IBaseApiResponse<IPublicLegalDocument>>> => {
+    return httpClient.get(`/api/v1/legal/${type}`);
   },
 };
 

@@ -8,7 +8,7 @@ function normalizeSessionId(sessionId: string | string[] | undefined) {
   return sessionId ?? null;
 }
 
-export default async function CheckoutSuccessPage(props: PageProps<'/checkout/success'>) {
+export default async function CheckoutSuccessPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const searchParams = await props.searchParams;
   const sessionId = normalizeSessionId(searchParams.session_id);
 

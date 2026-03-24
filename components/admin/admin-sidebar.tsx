@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Package, LayoutGrid, Tags, ShoppingCart, Users, Menu, X } from 'lucide-react';
+import { Package, LayoutGrid, Tags, ShoppingCart, Users, Menu, X, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -18,6 +18,7 @@ const NAV_ITEMS: INavItem[] = [
   { label: 'Tags', href: '/admin/tags', icon: Tags },
   { label: 'Orders', href: '/admin/orders', icon: ShoppingCart },
   { label: 'Customers', href: '/admin/customers', icon: Users },
+  { label: 'Legal', href: '/admin/legal', icon: FileText },
 ];
 
 export function AdminSidebar() {
