@@ -246,7 +246,7 @@ export function StoreHeader() {
     <>
       <header
         className={cn(
-          'fixed inset-x-0 top-0 z-50 w-full border-b border-border/60 bg-background/90 backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] supports-[backdrop-filter]:bg-background/75',
+          'fixed inset-x-0 top-0 z-50 w-full border-b border-border/60 bg-background transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
           shouldShowMobileNavbar ? 'translate-y-0' : '-translate-y-full',
           activeMobilePanel !== null
             ? 'shadow-[0_24px_54px_-36px_hsl(var(--foreground)/0.48)]'
