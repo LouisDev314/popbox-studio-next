@@ -1,8 +1,5 @@
 'use client';
 
-import { useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Plus, Pencil, FileText } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
@@ -34,8 +31,6 @@ function formatRelativeDate(dateString?: string): string {
 }
 
 export function AdminLegalListPage() {
-  const router = useRouter();
-
   const { data, isPending, isError } = useCustomizeQuery<IAdminLegalListResponse>({
     queryKey: ['admin', 'legal'],
     queryFn: () => QueryConfigs.fetchAdminLegalDocs(),

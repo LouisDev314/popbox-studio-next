@@ -15,7 +15,7 @@ export interface IAdminLegalDocument {
   updatedAt: string;
 }
 
-export interface IPublicLegalDocument extends IAdminLegalDocument {}
+export type IPublicLegalDocument = IAdminLegalDocument;
 
 export interface IAdminLegalListResponse {
   items: IAdminLegalDocument[];

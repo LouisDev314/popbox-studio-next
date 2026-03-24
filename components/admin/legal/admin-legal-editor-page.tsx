@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, History } from 'lucide-react';
@@ -64,20 +64,6 @@ export function AdminLegalEditorPage() {
   const activeDoc = typeDocs.find((i) => i.isActive) ?? typeDocs[0];
   const exists = !!activeDoc;
 
-  // Form State
-  const [content, setContent] = useState('');
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Sync state with active document
-  useEffect(() => {
-    if (!isListPending && !isInitialized) {
-      if (activeDoc) {
-        setContent(activeDoc.content);
-      }
-      setIsInitialized(true);
-    }
-  }, [activeDoc, isListPending, isInitialized]);
-
   // Mutations
   const { mutation: createDoc, isPending: isCreating } = useCustomizeMutation<
     IAdminLegalDocument,
@@ -103,15 +89,10 @@ export function AdminLegalEditorPage() {
 
   const isSubmitting = isCreating || isUpdating;
 
-  // Handlers
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const submittedContent = content.trim();
-
-    if (exists && activeDoc) {
+  const handleSubmit = (submittedContent: string, currentDoc?: IAdminLegalDocument) => {
+    if (exists && currentDoc) {
       updateDoc({
-        id: activeDoc.id,
+        id: currentDoc.id,
         data: {
           content: submittedContent,
         },
@@ -157,50 +138,16 @@ export function AdminLegalEditorPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-8">
-        {/* Content Editor */}
-        <div className="rounded-xl border border-[#D5C1C9]/40 bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-[#191C1E]">Document Content</h2>
-          <div className="mt-4">
-            <label htmlFor="content" className="sr-only">
-              Content
-            </label>
-            <textarea
-              id="content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Enter document text here..."
-              rows={25}
-              required
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-        </div>
-
-        {/* Submit */}
-        <div className="flex items-center justify-end gap-4 border-t border-[#D5C1C9]/20 pt-6">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => router.back()}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting || !content.trim()}>
-            {isSubmitting ? (
-              <span className="flex items-center gap-2">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Saving...
-              </span>
-            ) : exists ? (
-              'Publish New Version'
-            ) : (
-              'Create and Publish'
-            )}
-          </Button>
-        </div>
-      </form>
+      <LegalDocumentForm
+        key={activeDoc?.id ?? type}
+        exists={exists}
+        activeDoc={activeDoc}
+        isSubmitting={isSubmitting}
+        onCancel={() => router.back()}
+        onSubmit={(content) => {
+          handleSubmit(content, activeDoc);
+        }}
+      />
 
       {/* Version History */}
       {typeDocs.length > 0 && (
@@ -244,5 +191,67 @@ export function AdminLegalEditorPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function LegalDocumentForm({
+  exists,
+  activeDoc,
+  isSubmitting,
+  onCancel,
+  onSubmit,
+}: {
+  exists: boolean;
+  activeDoc?: IAdminLegalDocument;
+  isSubmitting: boolean;
+  onCancel: () => void;
+  onSubmit: (content: string, activeDoc?: IAdminLegalDocument) => void;
+}) {
+  const [content, setContent] = useState(activeDoc?.content ?? '');
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(content.trim(), activeDoc);
+      }}
+      className="mt-8 space-y-8"
+    >
+      <div className="rounded-xl border border-[#D5C1C9]/40 bg-white p-6 shadow-sm">
+        <h2 className="text-base font-semibold text-[#191C1E]">Document Content</h2>
+        <div className="mt-4">
+          <label htmlFor="content" className="sr-only">
+            Content
+          </label>
+          <textarea
+            id="content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Enter document text here..."
+            rows={25}
+            required
+            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-4 border-t border-[#D5C1C9]/20 pt-6">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting || !content.trim()}>
+          {isSubmitting ? (
+            <span className="flex items-center gap-2">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Saving...
+            </span>
+          ) : exists ? (
+            'Publish New Version'
+          ) : (
+            'Create and Publish'
+          )}
+        </Button>
+      </div>
+    </form>
   );
 }
