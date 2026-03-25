@@ -40,9 +40,9 @@ export function StoreFooter() {
                 </Link>
               </li>
               <li>
-                <span className="text-sm text-muted-foreground cursor-not-allowed">
+                <Link href="/contact" className="text-sm text-muted-foreground hover:text-foreground">
                   Contact Us
-                </span>
+                </Link>
               </li>
               <li>
                 <Link href="/legal/shipping-returns" className="text-sm text-muted-foreground hover:text-foreground">
