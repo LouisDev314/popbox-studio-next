@@ -8,6 +8,7 @@ export interface IStoreCollectionNavItem {
 
 export const DESKTOP_PRIMARY_NAV_ITEMS = [
   { href: '/products', label: 'Shop All' },
+  { href: '/products?type=standard', label: 'Anime Merchandise' },
   { href: '/products?type=kuji', label: 'Ichiban Kuji' },
 ] as const;
 

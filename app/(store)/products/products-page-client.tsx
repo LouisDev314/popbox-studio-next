@@ -16,7 +16,7 @@ const VALID_PRODUCT_SORTS = ['newest', 'price_asc', 'price_desc', 'name_asc', 'n
 
 const PRODUCT_TYPE_ITEMS = [
   { label: 'All Products', value: '' },
-  { label: 'Figures & Merchandise', value: 'standard' },
+  { label: 'Anime Merchandise', value: 'standard' },
   { label: 'Ichiban Kuji', value: 'kuji' },
 ] as const;
 
@@ -115,7 +115,7 @@ export default function ProductsPageClient() {
       case 'kuji':
         return 'Ichiban Kuji'
       case 'standard':
-        return 'Figures & Merchandise'
+        return 'Anime Merchandise'
       default:
         return 'All Products'
     }
