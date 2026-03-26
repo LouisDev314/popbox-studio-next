@@ -12,12 +12,24 @@ type RouteContext = {
   params: Promise<{ publicId: string }>;
 };
 
+function appendSetCookieHeaders(response: NextResponse, setCookieHeaders: string[] | undefined) {
+  if (!Array.isArray(setCookieHeaders)) {
+    return;
+  }
+
+  for (const setCookieHeader of setCookieHeaders) {
+    response.headers.append('Set-Cookie', setCookieHeader);
+  }
+}
+
 export async function GET(request: NextRequest, context: RouteContext) {
   const { publicId } = await context.params;
   const token = request.nextUrl.searchParams.get('token');
   const nextTarget = normalizeGuestAccessNext(request.nextUrl.searchParams.get('next'));
+
   const destinationPath =
     nextTarget === 'tickets' ? getGuestTicketsPath(publicId) : getGuestOrderPath(publicId);
+
   const failurePath = token
     ? getGuestTokenEntryPath(publicId, nextTarget, token, 'failed')
     : destinationPath;
@@ -43,27 +55,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
       validateStatus: () => true,
     });
 
-    const response = NextResponse.redirect(new URL(destinationPath, request.url));
     const setCookieHeaders = upstreamResponse.headers['set-cookie'];
     const isSuccessfulAccess = upstreamResponse.status >= 200 && upstreamResponse.status < 400;
 
-    if (!isSuccessfulAccess) {
-      const failureResponse = NextResponse.redirect(new URL(failurePath, request.url));
+    const response = NextResponse.redirect(
+      new URL(isSuccessfulAccess ? destinationPath : failurePath, request.url),
+    );
 
-      if (Array.isArray(setCookieHeaders)) {
-        for (const setCookieHeader of setCookieHeaders) {
-          failureResponse.headers.append('Set-Cookie', setCookieHeader);
-        }
-      }
-
-      return failureResponse;
-    }
-
-    if (Array.isArray(setCookieHeaders)) {
-      for (const setCookieHeader of setCookieHeaders) {
-        response.headers.append('Set-Cookie', setCookieHeader);
-      }
-    }
+    appendSetCookieHeaders(response, setCookieHeaders);
 
     return response;
   } catch {
