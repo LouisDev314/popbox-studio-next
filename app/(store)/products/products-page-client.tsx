@@ -109,6 +109,8 @@ export default function ProductsPageClient() {
     PRODUCT_SORT_ITEMS.find((item) => item.value === sortParam)?.label ?? 'Newest';
 
   const pageTitle = () => {
+    if (collectionParam) return collectionParam;
+
     switch (typeParam) {
       case 'kuji':
         return 'Ichiban Kuji'
