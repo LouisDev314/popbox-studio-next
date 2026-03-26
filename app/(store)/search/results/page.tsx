@@ -1,60 +1,74 @@
-'use client';
-
-import { Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import useCustomizeQuery from '@/hooks/use-customize-query';
-import QueryConfigs from '@/configs/api/query-config';
-import { IProductListPage } from '@/interfaces/product';
-import { Loader2 } from 'lucide-react';
+import type { Metadata } from 'next';
 import { ProductCard } from '@/components/product/product-card';
+import type { IProductCard } from '@/interfaces/product';
+import { getPublicSearchResults } from '@/lib/api/public-storefront';
 
-function SearchResultsContent() {
-  const searchParams = useSearchParams();
-  const query = searchParams.get('q') || '';
+type SearchResultsPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
 
-  const { data: response, isPending, isError } = useCustomizeQuery<IProductListPage>({
-    queryKey: ['search', query],
-    queryFn: () => QueryConfigs.fetchSearch({ query }),
-  });
+function normalizeQuery(query: string | string[] | undefined) {
+  if (Array.isArray(query)) {
+    return query[0]?.trim() ?? '';
+  }
 
-  const products = response?.data?.data?.items || [];
+  return query?.trim() ?? '';
+}
+
+export async function generateMetadata(
+  props: SearchResultsPageProps,
+): Promise<Metadata> {
+  const searchParams = await props.searchParams;
+  const query = normalizeQuery(searchParams.q);
+
+  return {
+    title: query ? `Search: ${query} - PopBox Studio` : 'Search - PopBox Studio',
+    robots: {
+      follow: true,
+      index: false,
+    },
+  };
+}
+
+export default async function SearchResultsPage(props: SearchResultsPageProps) {
+  const searchParams = await props.searchParams;
+  const query = normalizeQuery(searchParams.q);
+  let products: IProductCard[] = [];
+  let isError = false;
+
+  if (query) {
+    try {
+      const searchResults = await getPublicSearchResults(query);
+      products = searchResults.items;
+    } catch {
+      isError = true;
+    }
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold mb-2">Search Results</h1>
-      <p className="text-muted-foreground mb-8">Showing results for &quot;{query}&quot;</p>
+      <h1 className="mb-2 text-3xl font-bold">Search Results</h1>
+      <p className="mb-8 text-muted-foreground">Showing results for &quot;{query}&quot;</p>
 
-      {isPending ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      {!query ? (
+        <div className="rounded-xl border border-dashed bg-muted/20 py-20 text-center">
+          <p className="text-lg text-muted-foreground">Enter a search term to browse products.</p>
         </div>
       ) : isError ? (
-        <div className="text-center py-20 text-destructive">
+        <div className="py-20 text-center text-destructive">
           Failed to fetch search results.
         </div>
       ) : products.length === 0 ? (
-        <div className="text-center py-20 bg-muted/20 border border-dashed rounded-xl">
+        <div className="rounded-xl border border-dashed bg-muted/20 py-20 text-center">
           <p className="text-lg text-muted-foreground">No matching products found.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       )}
     </div>
-  );
-}
-
-export default function SearchResultsPage() {
-  return (
-    <Suspense fallback={
-      <div className="container mx-auto px-4 py-32 flex justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    }>
-      <SearchResultsContent />
-    </Suspense>
   );
 }

@@ -15,7 +15,7 @@ export const DESKTOP_PRIMARY_NAV_ITEMS = [
 export const MOBILE_PRIMARY_NAV_ITEMS: IStoreCollectionNavItem[] = [
   {
     label: 'Home',
-    href: '/home',
+    href: '/',
     description: 'Featured drops, recent releases, and storefront highlights.',
   },
   {

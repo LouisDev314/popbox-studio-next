@@ -57,7 +57,7 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
             const isActive = isCollectionItem
               ? pathname === '/products' &&
                 currentCollectionParam === targetCollectionParam
-              : item.href === '/products'
+              : !targetTypeParam
                 ? isMenuItemActive(pathname, searchParams, item.href)
                 : !currentCollectionParam &&
                   Boolean(targetTypeParam) &&

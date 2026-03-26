@@ -1,19 +1,10 @@
-import axios from 'axios';
-import getEnvConfig from '@/configs/env';
-import { IBaseApiResponse } from '@/interfaces/api-response';
-import { ICollection } from '@/interfaces/product';
+import { getPublicCollections } from '@/lib/api/public-storefront';
 import { mapCollectionToNavItem } from '@/components/layout/store-navigation';
 import { StoreHeaderClient } from '@/components/layout/store-header-client';
 
 async function getActiveCollectionNavItems() {
-  const apiBaseUrl = getEnvConfig().apiBaseUrl.replace(/\/$/, '');
-
   try {
-    const response = await axios.get<IBaseApiResponse<ICollection[]>>(
-      `${apiBaseUrl}/api/v1/collections`,
-    );
-
-    const collections = Array.isArray(response.data?.data) ? response.data.data : [];
+    const collections = await getPublicCollections();
 
     return collections
       .filter((collection) => collection.isActive)

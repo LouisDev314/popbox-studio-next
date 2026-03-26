@@ -1,59 +1,69 @@
-'use client';
-
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { KujiPrizesView } from '@/components/product/kuji-prizes-view';
 import { ProductActions } from '@/components/product/product-actions';
 import { ProductGallery } from '@/components/product/product-gallery';
 import { ProductRecommendations } from '@/components/product/product-recommendations';
-import QueryConfigs from '@/configs/api/query-config';
-import useCustomizeQuery from '@/hooks/use-customize-query';
 import { type IProduct } from '@/interfaces/product';
+import { getPublicProductBySlug, isPublicApiNotFoundError } from '@/lib/api/public-storefront';
 import { formatPrice } from '@/lib/utils';
 
-export default function ProductDetailPage() {
-  const params = useParams();
-  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+type ProductDetailPageProps = {
+  params: Promise<{ slug: string }>;
+};
 
-  const { data: response, isPending, isError } = useCustomizeQuery<IProduct>({
-    queryKey: ['product', slug],
-    queryFn: () => QueryConfigs.fetchProductBySlug(slug!),
-    enabled: !!slug,
-  });
+export async function generateMetadata(
+  props: ProductDetailPageProps,
+): Promise<Metadata> {
+  const params = await props.params;
 
-  const product = response?.data?.data;
+  try {
+    const product = await getPublicProductBySlug(params.slug);
 
-  if (isPending) {
-    return (
-      <div className="container mx-auto w-full px-4 py-12 sm:px-6 lg:px-8 md:py-16">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,32rem)] lg:gap-16">
-          <div className="aspect-square rounded-4xl bg-muted/35" />
-          <div className="space-y-5">
-            <div className="h-4 w-24 rounded-full bg-muted/35" />
-            <div className="h-10 rounded-full bg-muted/35" />
-            <div className="h-6 w-32 rounded-full bg-muted/25" />
-            <div className="h-28 rounded-4xl bg-muted/25" />
-            <div className="h-40 rounded-4xl bg-muted/35" />
-          </div>
-        </div>
-      </div>
-    );
+    return {
+      title: `${product.name} - PopBox Studio`,
+      description:
+        product.description ||
+        `Shop ${product.name} at PopBox Studio.`,
+    };
+  } catch {
+    return {
+      title: 'Product - PopBox Studio',
+    };
   }
+}
 
-  if (isError || !product) {
-    return (
-      <div className="container mx-auto px-4 py-24 text-center sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-xl rounded-4xl border border-dashed border-border/70 bg-card px-8 py-14 shadow-sm">
-          <h1 className="text-3xl font-bold text-destructive">Product Not Found</h1>
-          <p className="mt-3 text-base text-muted-foreground">
-            We couldn&apos;t find the requested product. It may have moved, sold out, or been removed from the storefront.
-          </p>
-          <Button asChild className="mt-8 rounded-full px-6">
-            <Link href="/products">Back to products</Link>
-          </Button>
-        </div>
+function ProductUnavailableState() {
+  return (
+    <div className="container mx-auto px-4 py-24 text-center sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-xl rounded-4xl border border-dashed border-border/70 bg-card px-8 py-14 shadow-sm">
+        <h1 className="text-3xl font-bold text-destructive">Failed to load product</h1>
+        <p className="mt-3 text-base text-muted-foreground">
+          The requested product is temporarily unavailable. Please try again shortly.
+        </p>
+        <Button asChild className="mt-8 rounded-full px-6">
+          <Link href="/products">Back to products</Link>
+        </Button>
       </div>
+    </div>
+  );
+}
+
+export default async function ProductDetailPage(props: ProductDetailPageProps) {
+  const params = await props.params;
+  let product: IProduct;
+
+  try {
+    product = await getPublicProductBySlug(params.slug);
+  } catch (error) {
+    if (isPublicApiNotFoundError(error)) {
+      notFound();
+    }
+
+    return (
+      <ProductUnavailableState />
     );
   }
 

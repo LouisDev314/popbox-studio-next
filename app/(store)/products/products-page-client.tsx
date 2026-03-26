@@ -1,12 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import QueryConfigs from '@/configs/api/query-config';
 import { IProductListPage, productSort, productType } from '@/interfaces/product';
 import { ProductCard } from '@/components/product/product-card';
-import { ProductsGridSkeleton } from '@/components/product/products-grid-skeleton';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -36,36 +34,50 @@ function isProductSort(value: string | null): value is productSort {
   return value !== null && VALID_PRODUCT_SORTS.includes(value as productSort);
 }
 
-export default function ProductsPageClient() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+function formatCollectionLabel(collection: string) {
+  return collection
+    .split('-')
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+}
 
-  const rawTypeParam = searchParams.get('type');
-  const typeParam = isProductType(rawTypeParam) ? rawTypeParam : undefined;
-  const collectionParam = searchParams.get('collection') ?? undefined;
-  const rawSort = searchParams.get('sort');
-  const sortParam = isProductSort(rawSort) ? rawSort : 'newest';
+interface IProductsPageClientProps {
+  initialCollection?: string;
+  initialPage: IProductListPage | null;
+  initialSort: productSort;
+  initialType?: productType;
+}
+
+export default function ProductsPageClient(props: IProductsPageClientProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const productsQuery = useInfiniteQuery({
-    queryKey: ['products', typeParam ?? null, collectionParam ?? null, sortParam],
+    queryKey: ['products', props.initialType ?? null, props.initialCollection ?? null, props.initialSort],
     initialPageParam: undefined as string | undefined,
     queryFn: async ({ pageParam }) => {
       const response = await QueryConfigs.fetchProducts({
-        type: typeParam,
-        collection: collectionParam,
-        sort: sortParam,
+        type: props.initialType,
+        collection: props.initialCollection,
+        sort: props.initialSort,
         pageParam,
       });
 
       return response.data.data as IProductListPage;
     },
+    enabled: props.initialPage !== null,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    initialData: props.initialPage
+      ? {
+          pages: [props.initialPage],
+          pageParams: [undefined],
+        }
+      : undefined,
     staleTime: 30_000,
   });
 
-  const products = useMemo(() => {
-    return productsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  }, [productsQuery.data]);
+  const products = productsQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
   const handleSearchParamReplace = (mutator: (params: URLSearchParams) => void) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -97,21 +109,20 @@ export default function ProductsPageClient() {
     });
   };
 
-  const isInitialLoading = productsQuery.status === 'pending';
-  const isInitialError = productsQuery.status === 'error';
+  const isInitialError = props.initialPage === null || productsQuery.status === 'error';
   const isLoadingMore = productsQuery.isFetchingNextPage;
   const hasNextPage = Boolean(productsQuery.hasNextPage);
 
   const selectedProductTypeLabel =
-    PRODUCT_TYPE_ITEMS.find((item) => item.value === (typeParam ?? ''))?.label ?? 'All Types';
+    PRODUCT_TYPE_ITEMS.find((item) => item.value === (props.initialType ?? ''))?.label ?? 'All Types';
 
   const selectedSortLabel =
-    PRODUCT_SORT_ITEMS.find((item) => item.value === sortParam)?.label ?? 'Newest';
+    PRODUCT_SORT_ITEMS.find((item) => item.value === props.initialSort)?.label ?? 'Newest';
 
   const pageTitle = () => {
-    if (collectionParam) return collectionParam;
+    if (props.initialCollection) return formatCollectionLabel(props.initialCollection);
 
-    switch (typeParam) {
+    switch (props.initialType) {
       case 'kuji':
         return 'Ichiban Kuji'
       case 'standard':
@@ -129,7 +140,7 @@ export default function ProductsPageClient() {
             {pageTitle()}
           </h1>
           <p className="mt-2 text-lg text-muted-foreground">
-            {typeParam === 'kuji'
+            {props.initialType === 'kuji'
               ? 'Test your luck with premium prizes.'
               : 'Browse our premium collection.'}
           </p>
@@ -137,7 +148,7 @@ export default function ProductsPageClient() {
 
         <div className="flex flex-col gap-4 sm:flex-row">
           <Select
-            value={typeParam ?? ''}
+            value={props.initialType ?? ''}
             onValueChange={handleTypeChange}
             modal={false}
           >
@@ -156,7 +167,7 @@ export default function ProductsPageClient() {
           </Select>
 
           <Select
-            value={sortParam}
+            value={props.initialSort}
             onValueChange={handleSortChange}
             modal={false}
           >
@@ -176,9 +187,7 @@ export default function ProductsPageClient() {
         </div>
       </div>
 
-      {isInitialLoading ? (
-        <ProductsGridSkeleton count={8} />
-      ) : isInitialError ? (
+      {isInitialError ? (
         <div className="rounded-2xl border border-destructive/20 bg-destructive/5 py-20 text-center">
           <p className="font-medium text-destructive">Failed to load products. Please try again.</p>
         </div>
