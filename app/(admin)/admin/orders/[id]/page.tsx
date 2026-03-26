@@ -6,10 +6,10 @@ export const metadata: Metadata = {
 };
 
 interface IAdminOrderDetailPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>
 }
 
 export default async function AdminOrderDetailPage(props: IAdminOrderDetailPageProps) {
-  const { id } = props.params;
+  const { id } = await props.params;
   return <AdminOrderDetailPageClient orderId={id} />;
 }

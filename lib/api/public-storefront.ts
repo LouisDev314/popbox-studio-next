@@ -4,11 +4,13 @@ import axios, { type AxiosRequestConfig } from 'axios';
 import { cache } from 'react';
 import getEnvConfig from '@/configs/env';
 import type { IBaseApiResponse } from '@/interfaces/api-response';
+import type { ICheckoutSuccess } from '@/interfaces/checkout';
 import type { IHomepageData } from '@/interfaces/home';
 import type { IPublicLegalDocument, LegalDocumentType } from '@/interfaces/legal';
 import type {
   IProduct,
   IProductListPage,
+  IProductRecommendationsResponse,
   ICollection,
   productSort,
   productType,
@@ -56,10 +58,24 @@ export const getPublicProductBySlug = cache(async (slug: string): Promise<IProdu
   return readPublicData<IProduct>(`/api/v1/products/${slug}`);
 });
 
+export const getPublicProductRecommendations = cache(
+  async (slug: string): Promise<IProductRecommendationsResponse> => {
+    return readPublicData<IProductRecommendationsResponse>(`/api/v1/products/${slug}/recommendations`);
+  },
+);
+
 export async function getPublicSearchResults(query: string): Promise<IProductListPage> {
   return readPublicData<IProductListPage>('/api/v1/search', {
     params: {
       q: query,
+    },
+  });
+}
+
+export async function getPublicCheckoutSuccess(sessionId: string): Promise<ICheckoutSuccess> {
+  return readPublicData<ICheckoutSuccess>('/api/v1/checkout/success', {
+    params: {
+      session_id: sessionId,
     },
   });
 }

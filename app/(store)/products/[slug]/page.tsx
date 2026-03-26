@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -5,7 +6,10 @@ import { Button } from '@/components/ui/button';
 import { KujiPrizesView } from '@/components/product/kuji-prizes-view';
 import { ProductActions } from '@/components/product/product-actions';
 import { ProductGallery } from '@/components/product/product-gallery';
-import { ProductRecommendations } from '@/components/product/product-recommendations';
+import {
+  ProductRecommendations,
+  ProductRecommendationsFallback,
+} from '@/components/product/product-recommendations';
 import { type IProduct } from '@/interfaces/product';
 import { getPublicProductBySlug, isPublicApiNotFoundError } from '@/lib/api/public-storefront';
 import { formatPrice } from '@/lib/utils';
@@ -121,7 +125,9 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
         </p>
       </div>
 
-      <ProductRecommendations product={product} />
+      <Suspense fallback={<ProductRecommendationsFallback />}>
+        <ProductRecommendations product={product} />
+      </Suspense>
     </div>
   );
 }

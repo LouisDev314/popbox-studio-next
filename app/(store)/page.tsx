@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Loader2 } from 'lucide-react';
-import { StorefrontHomeClient } from '@/components/home/storefront-home-client';
+import { StorefrontHome } from '@/components/home/storefront-home';
 import { Button } from '@/components/ui/button';
 import { getPublicHomepageData } from '@/lib/api/public-storefront';
 
@@ -41,5 +41,5 @@ export default async function StoreRootPage() {
     );
   }
 
-  return <StorefrontHomeClient homeData={homeData} />;
+  return <StorefrontHome homeData={homeData} />;
 }

@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type IProductCard } from '@/interfaces/product';
