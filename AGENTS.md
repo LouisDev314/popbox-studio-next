@@ -143,3 +143,16 @@ A task is done when:
 - it works on mobile and desktop
 - it keeps server/client boundaries correct
 - it is production-appropriate and explainable in an interview
+
+---
+
+## HTTP client rule
+- Do not use raw `fetch` anywhere in this repo.
+- This includes:
+  - server components
+  - route handlers
+  - utility modules
+  - client components
+- Use the repo’s approved Axios-based patterns only.
+- Do not introduce `fetch` for low-level server cases unless explicitly requested.
+- If a task appears to require lower-level response/header handling, keep Axios and implement the smallest correct solution instead of switching transport.

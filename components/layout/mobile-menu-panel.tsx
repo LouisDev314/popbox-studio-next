@@ -51,12 +51,14 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
       <nav className="flex-1 overflow-y-auto px-4 py-4 mb-4">
         <div className="space-y-3">
           {menuItems.map((item, index) => {
-            const targetCollectionParam = new URLSearchParams(item.href.split('?')[1] ?? '').get('collection');
-            const isCollectionItem = Boolean(targetCollectionParam);
+            const targetCollectionSlug = item.href.startsWith('/collections/')
+              ? decodeURIComponent(item.href.replace('/collections/', ''))
+              : null;
+            const isCollectionItem = Boolean(targetCollectionSlug);
             const targetTypeParam = new URLSearchParams(item.href.split('?')[1] ?? '').get('type');
             const isActive = isCollectionItem
-              ? pathname === '/products' &&
-                currentCollectionParam === targetCollectionParam
+              ? pathname === `/collections/${targetCollectionSlug}` ||
+                (pathname === '/products' && currentCollectionParam === targetCollectionSlug)
               : !targetTypeParam
                 ? isMenuItemActive(pathname, searchParams, item.href)
                 : !currentCollectionParam &&

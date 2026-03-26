@@ -3,12 +3,51 @@ import getEnvConfig from '@/configs/env';
 
 const nextConfig: NextConfig = {
   async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${getEnvConfig().apiBaseUrl}/api/:path*`,
-      },
-    ];
+    return {
+      beforeFiles: [
+        {
+          source: '/orders/:publicId',
+          has: [
+            {
+              type: 'query',
+              key: 'token',
+              value: '(?<token>.*)',
+            },
+          ],
+          missing: [
+            {
+              type: 'query',
+              key: 'handoff',
+            },
+          ],
+          destination: '/orders/:publicId/access?next=order&token=:token',
+        },
+        {
+          source: '/orders/:publicId/tickets',
+          has: [
+            {
+              type: 'query',
+              key: 'token',
+              value: '(?<token>.*)',
+            },
+          ],
+          missing: [
+            {
+              type: 'query',
+              key: 'handoff',
+            },
+          ],
+          destination: '/orders/:publicId/access?next=tickets&token=:token',
+        },
+      ],
+      afterFiles: [
+        {
+          source: '/api/:path*',
+          destination: `${getEnvConfig().apiBaseUrl}/api/:path*`,
+        },
+      ],
+      fallback: [],
+    };
   },
 
   images: {

@@ -7,6 +7,7 @@ import type { IBaseApiResponse } from '@/interfaces/api-response';
 import type { ICheckoutSuccess } from '@/interfaces/checkout';
 import type { IHomepageData } from '@/interfaces/home';
 import type { IPublicLegalDocument, LegalDocumentType } from '@/interfaces/legal';
+import type { IGuestOrderDetail, IGuestTicketView } from '@/interfaces/order';
 import type {
   IProduct,
   IProductListPage,
@@ -27,6 +28,23 @@ export type PublicProductListFilters = {
 const publicStorefrontClient = axios.create({
   baseURL: getEnvConfig().apiBaseUrl.replace(/\/$/, ''),
 });
+
+function withCookieHeader(
+  config: AxiosRequestConfig | undefined,
+  cookieHeader: string | undefined,
+): AxiosRequestConfig | undefined {
+  if (!cookieHeader) {
+    return config;
+  }
+
+  return {
+    ...config,
+    headers: {
+      ...config?.headers,
+      Cookie: cookieHeader,
+    },
+  };
+}
 
 async function readPublicData<T>(
   path: string,
@@ -89,6 +107,26 @@ export const getPublicLegalDocument = cache(
 export const getPublicCollections = cache(async (): Promise<ICollection[]> => {
   return readPublicData<ICollection[]>('/api/v1/collections');
 });
+
+export async function getPublicGuestOrder(
+  publicId: string,
+  cookieHeader?: string,
+): Promise<IGuestOrderDetail> {
+  return readPublicData<IGuestOrderDetail>(
+    `/api/v1/orders/${publicId}`,
+    withCookieHeader(undefined, cookieHeader),
+  );
+}
+
+export async function getPublicGuestTickets(
+  publicId: string,
+  cookieHeader?: string,
+): Promise<IGuestTicketView> {
+  return readPublicData<IGuestTicketView>(
+    `/api/v1/orders/${publicId}/tickets`,
+    withCookieHeader(undefined, cookieHeader),
+  );
+}
 
 export function isPublicApiNotFoundError(error: unknown): boolean {
   return axios.isAxiosError(error) && error.response?.status === 404;

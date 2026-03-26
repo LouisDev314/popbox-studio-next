@@ -38,7 +38,7 @@ export const MOBILE_PRIMARY_NAV_ITEMS: IStoreCollectionNavItem[] = [
 export function mapCollectionToNavItem(collection: ICollection): IStoreCollectionNavItem {
   return {
     label: collection.name,
-    href: `/products?collection=${encodeURIComponent(collection.slug)}`,
+    href: `/collections/${encodeURIComponent(collection.slug)}`,
     description: `Browse the ${collection.name} collection.`,
   };
 }

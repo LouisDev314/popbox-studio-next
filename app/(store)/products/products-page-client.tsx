@@ -43,6 +43,9 @@ function formatCollectionLabel(collection: string) {
 }
 
 interface IProductsPageClientProps {
+  basePath?: string;
+  headingDescription?: string;
+  headingTitle?: string;
   initialCollection?: string;
   initialPage: IProductListPage | null;
   initialSort: productSort;
@@ -84,7 +87,9 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
     mutator(params);
 
     const nextQueryString = params.toString();
-    const nextUrl = nextQueryString ? `/products?${nextQueryString}` : '/products';
+    const nextUrl = nextQueryString
+      ? `${props.basePath ?? '/products'}?${nextQueryString}`
+      : (props.basePath ?? '/products');
 
     router.replace(nextUrl, { scroll: false });
   };
@@ -120,6 +125,8 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
     PRODUCT_SORT_ITEMS.find((item) => item.value === props.initialSort)?.label ?? 'Newest';
 
   const pageTitle = () => {
+    if (props.headingTitle) return props.headingTitle;
+
     if (props.initialCollection) return formatCollectionLabel(props.initialCollection);
 
     switch (props.initialType) {
@@ -140,9 +147,9 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
             {pageTitle()}
           </h1>
           <p className="mt-2 text-lg text-muted-foreground">
-            {props.initialType === 'kuji'
+            {props.headingDescription ?? (props.initialType === 'kuji'
               ? 'Test your luck with premium prizes.'
-              : 'Browse our premium collection.'}
+              : 'Browse our premium collection.')}
           </p>
         </div>
 

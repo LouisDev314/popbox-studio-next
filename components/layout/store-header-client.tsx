@@ -190,15 +190,18 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
       };
     }),
     ...props.collectionNavItems.map((item) => {
-      const targetCollectionParam = new URLSearchParams(item.href.split('?')[1] ?? '').get('collection');
+      const targetCollectionSlug = item.href.startsWith('/collections/')
+        ? decodeURIComponent(item.href.replace('/collections/', ''))
+        : null;
 
       return {
         href: item.href,
         label: item.label,
         isActive:
-          pathname === '/products' &&
-          Boolean(targetCollectionParam) &&
-          currentCollectionParam === targetCollectionParam,
+          (Boolean(targetCollectionSlug) && pathname === `/collections/${targetCollectionSlug}`) ||
+          (pathname === '/products' &&
+            Boolean(targetCollectionSlug) &&
+            currentCollectionParam === targetCollectionSlug),
       };
     }),
   ];
