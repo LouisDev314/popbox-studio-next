@@ -17,6 +17,7 @@ import {
 } from '@/interfaces/product';
 import { IAdminLegalCreate, IAdminLegalUpdate, IAdminLegalDocument } from '@/interfaces/legal';
 import { withAdminAuth } from '@/lib/api/admin-client';
+import { IContactRequestBody } from '@/interfaces/contact';
 
 const MutationConfigs = {
   createCheckoutSession: (
@@ -109,6 +110,11 @@ const MutationConfigs = {
   },
   updateAdminLegalDoc: async ({ id, data }: { id: string; data: IAdminLegalUpdate }): Promise<AxiosResponse<IBaseApiResponse<IAdminLegalDocument>>> => {
     return httpClient.patch(`/api/v1/admin/legal/${id}`, data, await withAdminAuth());
+  },
+  sendContactEmail: async (
+    data: IContactRequestBody,
+  ): Promise<AxiosResponse<IBaseApiResponse<null>>> => {
+    return httpClient.post('/api/v1/contact', data);
   },
 };
 

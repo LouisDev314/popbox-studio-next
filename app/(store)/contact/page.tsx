@@ -6,7 +6,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Mail, PackageSearch, Sparkles } from 'lucide-react';
 import * as z from 'zod';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/stateful-button';
 import {
   Field,
   FieldError,
@@ -21,6 +21,11 @@ import {
   InputGroupTextarea,
 } from '@/components/ui/input-group';
 import { cn } from '@/lib/utils';
+import useCustomizeMutation from '@/hooks/use-customize-mutation';
+import MutationConfigs from '@/configs/api/mutation-config';
+import { AxiosError } from 'axios';
+import { IBaseApiResponse } from '@/interfaces/api-response';
+import { toast } from 'sonner'
 
 const inquiryTypes = [
   'product-request',
@@ -40,8 +45,9 @@ const formSchema = z
     lastName: z
       .string()
       .trim()
-      .min(1, 'Last name is required.')
-      .max(50, 'Last name must be 50 characters or fewer.'),
+      .max(50, 'Last name must be 50 characters or fewer.')
+      .optional()
+      .or(z.literal('')),
     email: z
       .string()
       .trim()
@@ -109,7 +115,29 @@ const invalidControlClassName =
   '!border-destructive/80 focus-visible:!border-destructive focus-visible:!ring-destructive/20';
 
 export default function ContactPage() {
-  const [isSubmitted, setIsSubmitted] = React.useState(false);
+  const { mutation: sendContactEmail, isPending: isSending } = useCustomizeMutation({
+    mutationFn: MutationConfigs.sendContactEmail,
+    onSuccess: () => {
+      form.reset({
+        firstName: '',
+        lastName: '',
+        email: '',
+        inquiryType: 'product-request',
+        orderNumber: '',
+        requestedSeries: '',
+        message: '',
+      });
+
+      toast.success('Your message has been sent.');
+    },
+    onError: (error: AxiosError<IBaseApiResponse>) => {
+      const errorMessage =
+        error.response?.data?.message ??
+        'Failed to send your message. Please try again.';
+
+      toast.error(errorMessage);
+    },
+  });
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(formSchema),
@@ -140,24 +168,8 @@ export default function ContactPage() {
     inquiryType === 'shipping-support' ||
     inquiryType === 'ticket-support';
 
-  async function onSubmit(values: ContactFormValues) {
-    setIsSubmitted(false);
-
-    // TODO: replace with your real API call
-    console.log('contact form payload', values);
-
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    setIsSubmitted(true);
-    form.reset({
-      firstName: '',
-      lastName: '',
-      email: '',
-      inquiryType: 'product-request',
-      orderNumber: '',
-      requestedSeries: '',
-      message: '',
-    });
+  function handleClick(values: ContactFormValues) {
+    sendContactEmail(values);
   }
 
   return (
@@ -209,8 +221,8 @@ export default function ContactPage() {
 
             <form
               id="contact-form"
-              onSubmit={form.handleSubmit(onSubmit)}
               noValidate
+              onSubmit={form.handleSubmit(handleClick)}
             >
               <FieldGroup>
                 <div className="grid gap-5 sm:grid-cols-2">
@@ -244,7 +256,7 @@ export default function ContactPage() {
                     render={({ field, fieldState }) => (
                       <Field data-invalid={fieldState.invalid}>
                         <FieldLabel htmlFor="contact-last-name">
-                          Last name
+                          Last name (optional)
                         </FieldLabel>
                         <Input
                           {...field}
@@ -405,17 +417,11 @@ export default function ContactPage() {
               <div className="space-y-3 pt-6">
                 <Button
                   type="submit"
-                  className="w-full"
-                  disabled={form.formState.isSubmitting}
+                  className="w-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 border-primary ring-0!"
+                  disabled={isSending}
                 >
-                  {form.formState.isSubmitting ? 'Sending...' : 'Send message'}
+                  Send
                 </Button>
-
-                {isSubmitted ? (
-                  <p className="text-center text-sm text-green-600">
-                    Your message has been sent successfully.
-                  </p>
-                ) : null}
 
                 <p className="text-center text-xs leading-5 text-muted-foreground">
                   We review support issues and product requests in the order they
