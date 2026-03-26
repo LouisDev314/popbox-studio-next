@@ -1,3 +1,4 @@
+import axios from 'axios';
 import getEnvConfig from '@/configs/env';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { ICollection } from '@/interfaces/product';
@@ -8,16 +9,11 @@ async function getActiveCollectionNavItems() {
   const apiBaseUrl = getEnvConfig().apiBaseUrl.replace(/\/$/, '');
 
   try {
-    const response = await fetch(`${apiBaseUrl}/api/v1/collections`, {
-      cache: 'no-store',
-    });
+    const response = await axios.get<IBaseApiResponse<ICollection[]>>(
+      `${apiBaseUrl}/api/v1/collections`,
+    );
 
-    if (!response.ok) {
-      return [];
-    }
-
-    const payload = (await response.json()) as IBaseApiResponse<ICollection[]>;
-    const collections = Array.isArray(payload.data) ? payload.data : [];
+    const collections = Array.isArray(response.data?.data) ? response.data.data : [];
 
     return collections
       .filter((collection) => collection.isActive)
