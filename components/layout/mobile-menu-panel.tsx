@@ -4,36 +4,17 @@ import { type CSSProperties } from 'react';
 import Link from 'next/link';
 import { ReadonlyURLSearchParams, usePathname, useSearchParams } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
+import {
+  IStoreCollectionNavItem,
+  MOBILE_PRIMARY_NAV_ITEMS,
+} from '@/components/layout/store-navigation';
 import { cn } from '@/lib/utils';
 
-interface IMobileMenuItem {
-  description: string;
-  href: string;
-  label: string;
-}
-
 interface IMobileMenuPanelProps {
+  collectionNavItems: IStoreCollectionNavItem[];
   isOpen: boolean;
   onNavigate: () => void;
 }
-
-const MOBILE_MENU_ITEMS: IMobileMenuItem[] = [
-  {
-    label: 'Home',
-    href: '/home',
-    description: 'Featured drops, recent releases, and storefront highlights.',
-  },
-  {
-    label: 'Shop All',
-    href: '/products',
-    description: 'Browse every figure, collectible, and PopBox Studio release.',
-  },
-  {
-    label: 'Ichiban Kuji',
-    href: '/products?type=kuji',
-    description: 'Premium lottery-style prizes and ticket-based launches.',
-  },
-];
 
 function isMenuItemActive(pathname: string, currentSearchParams: ReadonlyURLSearchParams, href: string) {
   const [hrefPathname, hrefQueryString] = href.split('?');
@@ -60,13 +41,14 @@ function isMenuItemActive(pathname: string, currentSearchParams: ReadonlyURLSear
 export function MobileMenuPanel(props: IMobileMenuPanelProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const menuItems = [...MOBILE_PRIMARY_NAV_ITEMS, ...props.collectionNavItems];
 
   return (
     <div className="flex flex-col overflow-hidden border border-border/70 bg-background shadow-[0_32px_72px_-40px_hsl(var(--foreground)/0.58)]">
 
       <nav className="flex-1 overflow-y-auto px-4 py-4 mb-4">
         <div className="space-y-3">
-          {MOBILE_MENU_ITEMS.map((item, index) => {
+          {menuItems.map((item, index) => {
             const isActive = isMenuItemActive(pathname, searchParams, item.href);
             const itemStyle: CSSProperties = {
               transitionDelay: props.isOpen ? `${index * 55}ms` : '0ms',
