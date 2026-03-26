@@ -1,7 +1,7 @@
 'use client';
 import QueryConfigs from '@/configs/api/query-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
-import { type IProduct, type IProductCard, type IProductListPage } from '@/interfaces/product';
+import { type IProduct, type IProductCard, type IProductRecommendationsResponse } from '@/interfaces/product';
 import { ProductCard } from '@/components/product/product-card';
 
 const RELATED_PRODUCTS_LIMIT = 4;
@@ -11,32 +11,21 @@ interface IProductRecommendationsProps {
 }
 
 export function ProductRecommendations(props: IProductRecommendationsProps) {
-  const collectionSlug = props.product.collection?.slug;
-  const fallbackTagSlug = props.product.tags[0]?.slug;
-  const shouldFetchRecommendations = Boolean(collectionSlug || fallbackTagSlug);
+  const shouldFetchRecommendations = Boolean(props.product.slug);
 
-  const { data: response, isPending, isError } = useCustomizeQuery<IProductListPage>({
-    queryKey: ['product-recommendations', props.product.id, collectionSlug, fallbackTagSlug],
-    queryFn: () =>
-      QueryConfigs.fetchProducts({
-        collection: collectionSlug,
-        pageParam: undefined,
-        tag: collectionSlug ? undefined : fallbackTagSlug,
-      }),
+  const { data: response, isPending, isError } = useCustomizeQuery<IProductRecommendationsResponse>({
+    queryKey: ['product-recommendations', props.product.slug],
+    queryFn: () => QueryConfigs.fetchProductRecommendations({ slug: props.product.slug }),
     enabled: shouldFetchRecommendations,
     staleTime: 5 * 60 * 1000,
   });
 
-  if (!shouldFetchRecommendations) {
-    // TODO: add a backend-driven related-products signal for products that do not expose
-    // collection or tag metadata suitable for a storefront fallback query.
-    return null;
-  }
-
   const relatedProducts =
-    response?.data?.data?.items.filter((item) => item.id !== props.product.id).slice(0, RELATED_PRODUCTS_LIMIT) ?? [];
+    response?.data?.data?.items
+      ?.filter((item) => item.id !== props.product.id)
+      .slice(0, RELATED_PRODUCTS_LIMIT) ?? [];
 
-  if (!isPending && (isError || relatedProducts.length === 0)) {
+  if (!shouldFetchRecommendations || (!isPending && (isError || relatedProducts.length === 0))) {
     return null;
   }
 

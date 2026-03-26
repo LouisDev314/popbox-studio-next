@@ -5,6 +5,7 @@ import { IHomepageData } from '@/interfaces/home';
 import { withAdminAuth } from '@/lib/api/admin-client';
 import { IProduct, IProductListPage, ICollection, ITag, productSort, productType,
   IProductSuggestionResponse, IAdminProductDetail, IAdminProductListResponse, productStatus, IKujiPrize,
+  IProductRecommendationsResponse,
 } from '@/interfaces/product';
 import { IGuestOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
@@ -46,6 +47,13 @@ const QueryConfigs = {
   },
   fetchProductBySlug: (slug: string): Promise<AxiosResponse<IBaseApiResponse<IProduct>>> => {
     return httpClient.get(`/api/v1/products/${slug}`);
+  },
+  fetchProductRecommendations: ({
+    slug,
+  }: {
+    slug: string;
+  }): Promise<AxiosResponse<IBaseApiResponse<IProductRecommendationsResponse>>> => {
+    return httpClient.get(`/api/v1/products/${slug}/recommendations`);
   },
   fetchSearch: async ({
     query,

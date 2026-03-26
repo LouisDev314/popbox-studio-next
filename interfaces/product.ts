@@ -88,6 +88,14 @@ export interface IProductListPage {
   nextCursor: string | null;
 }
 
+export interface IProductRecommendationsResponse {
+  items: IProductCard[];
+  meta: {
+    count: number;
+    limit: number;
+  };
+}
+
 export interface IProductSuggestion {
   id: string;
   name: string;
