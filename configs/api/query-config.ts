@@ -1,27 +1,16 @@
 import httpClient from '@/api/http-client';
 import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
-import { IHomepageData } from '@/interfaces/home';
 import { withAdminAuth } from '@/lib/api/admin-client';
-import { IProduct, IProductListPage, ICollection, ITag, productSort, productType,
+import { IProductListPage, ICollection, ITag, productSort, productType,
   IProductSuggestionResponse, IAdminProductDetail, IAdminProductListResponse, productStatus, IKujiPrize,
-  IProductRecommendationsResponse,
 } from '@/interfaces/product';
 import { IGuestOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
 import { IAdminCustomerListResponse } from '@/interfaces/customer';
-import { IAdminLegalListResponse, IAdminLegalDocument, IPublicLegalDocument } from '@/interfaces/legal';
+import { IAdminLegalListResponse } from '@/interfaces/legal';
 
 const QueryConfigs = {
-  fetchHomePage: (): Promise<AxiosResponse<IBaseApiResponse<IHomepageData>>> => {
-    return httpClient.get('/api/v1/home');
-  },
-  fetchCollections: (): Promise<AxiosResponse<IBaseApiResponse<ICollection[]>>> => {
-    return httpClient.get('/api/v1/collections');
-  },
-  fetchTags: (): Promise<AxiosResponse<IBaseApiResponse<ITag[]>>> => {
-    return httpClient.get('/api/v1/tags');
-  },
   fetchProducts: async ({
     pageParam = undefined,
     collection,
@@ -45,27 +34,6 @@ const QueryConfigs = {
       },
     });
   },
-  fetchProductBySlug: (slug: string): Promise<AxiosResponse<IBaseApiResponse<IProduct>>> => {
-    return httpClient.get(`/api/v1/products/${slug}`);
-  },
-  fetchProductRecommendations: ({
-    slug,
-  }: {
-    slug: string;
-  }): Promise<AxiosResponse<IBaseApiResponse<IProductRecommendationsResponse>>> => {
-    return httpClient.get(`/api/v1/products/${slug}/recommendations`);
-  },
-  fetchSearch: async ({
-    query,
-  }: {
-    query: string;
-  }): Promise<AxiosResponse<IBaseApiResponse<IProductListPage>>> => {
-    return httpClient.get('/api/v1/search', {
-      params: {
-        q: query,
-      },
-    });
-  },
   fetchAutocomplete: (query: string): Promise<AxiosResponse<IBaseApiResponse<IProductSuggestionResponse>>> => {
     return httpClient.get('/api/v1/search/autocomplete', {
       params: {
@@ -79,16 +47,6 @@ const QueryConfigs = {
         session_id: sessionId,
       },
     });
-  },
-  fetchGuestOrderAccess: (publicId: string, token?: string): Promise<AxiosResponse<IBaseApiResponse<unknown>>> => {
-    // Note: The /access endpoint returns a 302 redirect normally.
-    // However, if called via fetch/axios, it may need special handling depending on CORS/redirect following.
-    return httpClient.get(`/api/v1/orders/${publicId}/access`, {
-      params: { token },
-    });
-  },
-  fetchGuestOrder: (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestOrderDetail>>> => {
-    return httpClient.get(`/api/v1/orders/${id}`);
   },
   fetchGuestTickets: (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
     return httpClient.get(`/api/v1/orders/${id}/tickets`);
@@ -121,12 +79,6 @@ const QueryConfigs = {
   },
   fetchAdminLegalDocs: async (): Promise<AxiosResponse<IBaseApiResponse<IAdminLegalListResponse>>> => {
     return httpClient.get('/api/v1/admin/legal', await withAdminAuth());
-  },
-  fetchAdminLegalDoc: async (id: string): Promise<AxiosResponse<IBaseApiResponse<IAdminLegalDocument>>> => {
-    return httpClient.get(`/api/v1/admin/legal/${id}`, await withAdminAuth());
-  },
-  fetchPublicLegalDoc: (type: string): Promise<AxiosResponse<IBaseApiResponse<IPublicLegalDocument>>> => {
-    return httpClient.get(`/api/v1/legal/${type}`);
   },
 };
 
