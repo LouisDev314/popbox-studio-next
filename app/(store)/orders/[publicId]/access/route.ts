@@ -54,8 +54,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
         for (const setCookieHeader of setCookieHeaders) {
           failureResponse.headers.append('Set-Cookie', setCookieHeader);
         }
-      } else if (typeof setCookieHeaders === 'string') {
-        failureResponse.headers.append('Set-Cookie', setCookieHeaders);
       }
 
       return failureResponse;
