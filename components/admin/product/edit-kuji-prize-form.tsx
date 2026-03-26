@@ -134,6 +134,8 @@ function ReplacePrizeImageField({
   );
 }
 
+// This form intentionally keeps related edit logic colocated for the modal workflow.
+// eslint-disable-next-line complexity
 export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNotify }: IEditKujiPrizeFormProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<KujiPrizeFormData>(() => createKujiPrizeFormData(prize));

@@ -70,9 +70,9 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     initialData: props.initialPage
       ? {
-          pages: [props.initialPage],
-          pageParams: [undefined],
-        }
+        pages: [props.initialPage],
+        pageParams: [undefined],
+      }
       : undefined,
     staleTime: 30_000,
   });

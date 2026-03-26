@@ -68,17 +68,23 @@ export default async function LegalRoute(props: Props) {
     notFound();
   }
 
-  try {
-    const document = await getPublicLegalDocument(type);
+  let document = null;
 
-    return <PublicLegalPage doc={document} />;
+  try {
+    document = await getPublicLegalDocument(type);
   } catch (error) {
     if (isPublicApiNotFoundError(error)) {
       notFound();
     }
 
+    document = null;
+  }
+
+  if (!document) {
     return (
       <LegalUnavailableState label={CANONICAL_LABELS[type]} />
     );
   }
+
+  return <PublicLegalPage doc={document} />;
 }

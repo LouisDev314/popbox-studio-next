@@ -13,11 +13,15 @@ export const metadata: Metadata = {
 };
 
 export default async function StoreRootPage() {
-  try {
-    const homeData = await getPublicHomepageData();
+  let homeData = null;
 
-    return <StorefrontHomeClient homeData={homeData} />;
+  try {
+    homeData = await getPublicHomepageData();
   } catch {
+    homeData = null;
+  }
+
+  if (!homeData) {
     return (
       <div className="container mx-auto flex min-h-[60vh] w-full items-center px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-xl rounded-[2rem] border border-dashed border-border/70 bg-card px-8 py-14 text-center shadow-sm">
@@ -36,4 +40,6 @@ export default async function StoreRootPage() {
       </div>
     );
   }
+
+  return <StorefrontHomeClient homeData={homeData} />;
 }
