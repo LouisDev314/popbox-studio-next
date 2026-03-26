@@ -13,24 +13,16 @@ export function isActiveLink(
 ): boolean {
   if (!href) return false;
 
-  const [hrefPathname, hrefQueryString] = href.split('?');
+  const [targetPath, targetQuery = ''] = href.split('?');
 
-  if (pathname !== hrefPathname) {
+  if (pathname !== targetPath) {
     return false;
   }
 
-  const targetSearchParams = new URLSearchParams(hrefQueryString ?? '');
+  const targetSearchParams = new URLSearchParams(targetQuery);
 
-  if ([...targetSearchParams.keys()].length === 0) {
-    return true;
-  }
-
-  if (!currentSearchParams) {
-    return false;
-  }
-
-  for (const [key, value] of targetSearchParams.entries()) {
-    if (currentSearchParams.get(key) !== value) {
+  for (const [key, value] of targetSearchParams) {
+    if (currentSearchParams?.get(key) !== value) {
       return false;
     }
   }
