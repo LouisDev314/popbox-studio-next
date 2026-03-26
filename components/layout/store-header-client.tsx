@@ -25,7 +25,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useMobileNavbarVisibility } from '@/hooks/use-mobile-navbar-visibility';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import { type IProductSuggestion, IProductSuggestionResponse } from '@/interfaces/product';
-import { cn, isActiveLink } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 type TMobilePanel = 'menu' | 'search' | null;
 
@@ -171,20 +171,36 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
   const autocompleteSuggestions = shouldFetchAutocomplete
     ? autocompleteResponse?.data?.data?.items ?? []
     : [];
+  const currentTypeParam = searchParams.get('type');
+  const currentCollectionParam = searchParams.get('collection');
   const desktopNavItems = [
-    ...DESKTOP_PRIMARY_NAV_ITEMS.map((item) => ({
-      href: item.href,
-      label: item.label,
-      isActive:
-        item.href === '/products'
-          ? isShopAllNavActive(pathname, searchParams)
-          : isActiveLink(item.href, pathname, searchParams),
-    })),
-    ...props.collectionNavItems.map((item) => ({
-      href: item.href,
-      label: item.label,
-      isActive: isActiveLink(item.href, pathname, searchParams),
-    })),
+    ...DESKTOP_PRIMARY_NAV_ITEMS.map((item) => {
+      const targetTypeParam = new URLSearchParams(item.href.split('?')[1] ?? '').get('type');
+
+      return {
+        href: item.href,
+        label: item.label,
+        isActive:
+          item.href === '/products'
+            ? isShopAllNavActive(pathname, searchParams)
+            : !currentCollectionParam &&
+              Boolean(targetTypeParam) &&
+              currentTypeParam === targetTypeParam &&
+              pathname === '/products',
+      };
+    }),
+    ...props.collectionNavItems.map((item) => {
+      const targetCollectionParam = new URLSearchParams(item.href.split('?')[1] ?? '').get('collection');
+
+      return {
+        href: item.href,
+        label: item.label,
+        isActive:
+          pathname === '/products' &&
+          Boolean(targetCollectionParam) &&
+          currentCollectionParam === targetCollectionParam,
+      };
+    }),
   ];
 
   useEffect(() => {
@@ -351,6 +367,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
         isOpen={isMenuOpen}
         onClose={closeMobilePanel}
         containerClassName="md:hidden"
+        panelClassName="bottom-0"
         restoreFocusId={MOBILE_MENU_BUTTON_ID}
       >
         <Suspense fallback={null}>

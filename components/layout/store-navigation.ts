@@ -24,6 +24,11 @@ export const MOBILE_PRIMARY_NAV_ITEMS: IStoreCollectionNavItem[] = [
     description: 'Browse every figure, collectible, and PopBox Studio release.',
   },
   {
+    label: 'Anime Merchandise',
+    href: '/products?type=standard',
+    description: 'Browse figures, collectibles, and standard merchandise releases.',
+  },
+  {
     label: 'Ichiban Kuji',
     href: '/products?type=kuji',
     description: 'Premium lottery-style prizes and ticket-based launches.',

@@ -42,14 +42,27 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const menuItems = [...MOBILE_PRIMARY_NAV_ITEMS, ...props.collectionNavItems];
+  const currentTypeParam = searchParams.get('type');
+  const currentCollectionParam = searchParams.get('collection');
 
   return (
-    <div className="flex flex-col overflow-hidden border border-border/70 bg-background shadow-[0_32px_72px_-40px_hsl(var(--foreground)/0.58)]">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden border border-border/70 bg-background shadow-[0_32px_72px_-40px_hsl(var(--foreground)/0.58)]">
 
       <nav className="flex-1 overflow-y-auto px-4 py-4 mb-4">
         <div className="space-y-3">
           {menuItems.map((item, index) => {
-            const isActive = isMenuItemActive(pathname, searchParams, item.href);
+            const targetCollectionParam = new URLSearchParams(item.href.split('?')[1] ?? '').get('collection');
+            const isCollectionItem = Boolean(targetCollectionParam);
+            const targetTypeParam = new URLSearchParams(item.href.split('?')[1] ?? '').get('type');
+            const isActive = isCollectionItem
+              ? pathname === '/products' &&
+                currentCollectionParam === targetCollectionParam
+              : item.href === '/products'
+                ? isMenuItemActive(pathname, searchParams, item.href)
+                : !currentCollectionParam &&
+                  Boolean(targetTypeParam) &&
+                  pathname === '/products' &&
+                  currentTypeParam === targetTypeParam;
             const itemStyle: CSSProperties = {
               transitionDelay: props.isOpen ? `${index * 55}ms` : '0ms',
             };
