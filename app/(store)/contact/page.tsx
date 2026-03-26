@@ -3,10 +3,9 @@
 import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import { Mail, PackageSearch, Sparkles } from 'lucide-react';
+import { Loader2, Mail, PackageSearch, Sparkles } from 'lucide-react';
 import * as z from 'zod';
 
-import { Button } from '@/components/ui/stateful-button';
 import {
   Field,
   FieldError,
@@ -26,6 +25,7 @@ import MutationConfigs from '@/configs/api/mutation-config';
 import { AxiosError } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button';
 
 const inquiryTypes = [
   'product-request',
@@ -168,7 +168,7 @@ export default function ContactPage() {
     inquiryType === 'shipping-support' ||
     inquiryType === 'ticket-support';
 
-  function handleClick(values: ContactFormValues) {
+  function handleSubmitContact(values: ContactFormValues) {
     sendContactEmail(values);
   }
 
@@ -222,7 +222,7 @@ export default function ContactPage() {
             <form
               id="contact-form"
               noValidate
-              onSubmit={form.handleSubmit(handleClick)}
+              onSubmit={form.handleSubmit(handleSubmitContact)}
             >
               <FieldGroup>
                 <div className="grid gap-5 sm:grid-cols-2">
@@ -330,13 +330,13 @@ export default function ContactPage() {
                     )}
                   />
 
-                  <Controller
+                  {isSupportFlow && <Controller
                     name="orderNumber"
                     control={form.control}
                     render={({ field, fieldState }) => (
                       <Field data-invalid={fieldState.invalid}>
                         <FieldLabel htmlFor="contact-order-number">
-                          Order number {isSupportFlow ? '' : '(optional)'}
+                            Order number
                         </FieldLabel>
                         <Input
                           {...field}
@@ -352,17 +352,16 @@ export default function ContactPage() {
                         )}
                       </Field>
                     )}
-                  />
+                  />}
                 </div>
 
-                <Controller
+                {inquiryType === 'product-request' && <Controller
                   name="requestedSeries"
                   control={form.control}
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor="contact-requested-series">
-                        Series / product wanted{' '}
-                        {inquiryType === 'product-request' ? '' : '(optional)'}
+                          Series / product wanted
                       </FieldLabel>
                       <Input
                         {...field}
@@ -378,7 +377,7 @@ export default function ContactPage() {
                       )}
                     </Field>
                   )}
-                />
+                />}
 
                 <Controller
                   name="message"
@@ -420,9 +419,8 @@ export default function ContactPage() {
                   className="w-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 border-primary ring-0!"
                   disabled={isSending}
                 >
-                  Send
+                  {isSending ? <Loader2 className="size-6 animate-spin text-white" /> : 'Send'}
                 </Button>
-
                 <p className="text-center text-xs leading-5 text-muted-foreground">
                   We review support issues and product requests in the order they
                   come in.
