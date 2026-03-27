@@ -13,6 +13,7 @@ import type {
   IProductListPage,
   IProductRecommendationsResponse,
   ICollection,
+  ITag,
   productSort,
   productType,
 } from '@/interfaces/product';
@@ -125,6 +126,10 @@ export const getPublicFaqItems = cache(async (): Promise<IPublicFaqItem[]> => {
 
 export const getPublicCollections = cache(async (): Promise<ICollection[]> => {
   return readPublicData<ICollection[]>('/api/v1/collections');
+});
+
+export const getPublicTags = cache(async (): Promise<ITag[]> => {
+  return readPublicData<ITag[]>('/api/v1/tags');
 });
 
 export async function getPublicGuestOrder(

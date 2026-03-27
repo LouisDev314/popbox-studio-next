@@ -1,13 +1,13 @@
 export enum TagType {
   BRAND = 'brand',
   SERIES = 'series',
-  PRODUCT_TYPE = 'product_type',
+  CATEGORY = 'category',
 }
 
 export const TAG_TYPE_OPTIONS = [
   { label: 'Brand', value: TagType.BRAND },
   { label: 'Series', value: TagType.SERIES },
-  { label: 'Product Type', value: TagType.PRODUCT_TYPE },
+  { label: 'Category', value: TagType.CATEGORY },
 ] as const;
 
 export function isTagType(value: string): value is TagType {

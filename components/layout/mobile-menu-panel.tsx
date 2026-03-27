@@ -10,6 +10,8 @@ import {
 } from '@/components/layout/store-navigation';
 import { cn } from '@/lib/utils';
 
+const LISTING_FILTER_PARAM_KEYS = ['sort', 'tag', 'type'] as const;
+
 interface IMobileMenuPanelProps {
   collectionNavItems: IStoreCollectionNavItem[];
   isOpen: boolean;
@@ -36,6 +38,32 @@ function isMenuItemActive(pathname: string, currentSearchParams: ReadonlyURLSear
   }
 
   return true;
+}
+
+function buildListingHref(href: string, currentSearchParams: ReadonlyURLSearchParams) {
+  const [hrefPathname, hrefQueryString = ''] = href.split('?');
+  const isListingPath = hrefPathname === '/products' || hrefPathname.startsWith('/collections/');
+
+  if (!isListingPath) {
+    return href;
+  }
+
+  const nextSearchParams = new URLSearchParams(hrefQueryString);
+
+  for (const key of LISTING_FILTER_PARAM_KEYS) {
+    if (nextSearchParams.has(key)) {
+      continue;
+    }
+
+    const currentValues = currentSearchParams.getAll(key);
+
+    for (const value of currentValues) {
+      nextSearchParams.append(key, value);
+    }
+  }
+
+  const nextQueryString = nextSearchParams.toString();
+  return nextQueryString ? `${hrefPathname}?${nextQueryString}` : hrefPathname;
 }
 
 export function MobileMenuPanel(props: IMobileMenuPanelProps) {
@@ -72,7 +100,7 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={buildListingHref(item.href, searchParams)}
                 style={itemStyle}
                 className={cn(
                   'group flex items-center justify-between rounded-[26px] border px-4 py-4 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',

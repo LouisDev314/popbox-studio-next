@@ -34,6 +34,36 @@ const MOBILE_CART_BUTTON_ID = 'store-mobile-cart-trigger';
 const MOBILE_MENU_BUTTON_ID = 'store-mobile-menu-trigger';
 const MOBILE_SEARCH_BUTTON_ID = 'store-mobile-search-trigger';
 const MOBILE_SEARCH_INPUT_ID = 'store-mobile-search-input';
+const LISTING_FILTER_PARAM_KEYS = ['sort', 'tag', 'type'] as const;
+
+function buildListingHref(
+  href: string,
+  currentSearchParams: URLSearchParams | ReadonlyURLSearchParams,
+) {
+  const [pathname, queryString = ''] = href.split('?');
+  const isListingPath = pathname === '/products' || pathname.startsWith('/collections/');
+
+  if (!isListingPath) {
+    return href;
+  }
+
+  const nextSearchParams = new URLSearchParams(queryString);
+
+  for (const key of LISTING_FILTER_PARAM_KEYS) {
+    if (nextSearchParams.has(key)) {
+      continue;
+    }
+
+    const currentValues = currentSearchParams.getAll(key);
+
+    for (const value of currentValues) {
+      nextSearchParams.append(key, value);
+    }
+  }
+
+  const nextQueryString = nextSearchParams.toString();
+  return nextQueryString ? `${pathname}?${nextQueryString}` : pathname;
+}
 
 function isShopAllNavActive(pathname: string, searchParams: URLSearchParams | ReadonlyURLSearchParams) {
   return pathname === '/products' && [...searchParams.keys()].length === 0;
@@ -308,7 +338,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
                 {desktopNavItems.map((item) => (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={buildListingHref(item.href, searchParams)}
                     aria-current={item.isActive ? 'page' : undefined}
                     className={cn(
                       'group relative inline-flex items-center rounded-full px-3 py-2 text-sm font-medium tracking-tight transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]',
