@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import { ProductInventoryStatus } from '@/components/product/product-inventory-status';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type IProductCard } from '@/interfaces/product';
 import { formatPrice } from '@/lib/utils';
+import { getProductInventoryState } from '@/utils/product-stock';
 
 interface IProductCardProps {
   product: IProductCard;
@@ -9,6 +11,7 @@ interface IProductCardProps {
 
 export function ProductCard(props: IProductCardProps) {
   const isKuji = props.product.productType === 'kuji';
+  const inventoryState = getProductInventoryState(props.product);
 
   return (
     <div className="group relative flex h-full flex-col gap-3 rounded-[1.75rem] border border-border/50 bg-card p-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:gap-4 sm:p-4">
@@ -25,6 +28,11 @@ export function ProductCard(props: IProductCardProps) {
             Ichiban Kuji
           </div>
         )}
+        {inventoryState.hasInventoryData && inventoryState.status === 'sold_out' ? (
+          <div className="absolute right-3 top-2 z-20 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-background shadow-sm sm:text-xs">
+            Sold Out
+          </div>
+        ) : null}
         <StorefrontImage
           src={props.product.images?.[0]?.url}
           alt={props.product.name}
@@ -43,6 +51,8 @@ export function ProductCard(props: IProductCardProps) {
           </p>
         )}
       </div>
+
+      <ProductInventoryStatus product={props.product} />
 
       <p className="text-base text-primary font-bold sm:text-lg">
         {formatPrice(props.product.priceCents, props.product.currency)}

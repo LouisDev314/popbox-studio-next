@@ -60,9 +60,9 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-6">
-          <ProductCoreForm key={product.id} product={product} onProductChange={handleProductChange} />
+          <ProductCoreForm product={product} onProductChange={handleProductChange} />
           {product.productType === 'standard' && (
-            <ProductInventoryForm key={product.id} product={product} onProductChange={handleProductChange} />
+            <ProductInventoryForm product={product} onProductChange={handleProductChange} />
           )}
           <ProductMediaForm product={product} onProductChange={handleProductChange} />
           {product.productType === 'kuji' && (

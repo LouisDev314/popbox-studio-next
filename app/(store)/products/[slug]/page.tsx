@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { ProductInventoryStatus } from '@/components/product/product-inventory-status';
 import { KujiPrizesView } from '@/components/product/kuji-prizes-view';
 import { ProductActions } from '@/components/product/product-actions';
 import { ProductGallery } from '@/components/product/product-gallery';
@@ -99,6 +100,8 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
               <span className="text-sm text-muted-foreground">per ticket</span>
             ) : null}
           </div>
+
+          <ProductInventoryStatus product={product} variant="detail" />
 
           <ProductActions product={product} />
 

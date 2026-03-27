@@ -4,6 +4,15 @@ type TProductStockLike = Pick<IProductCard, 'inventory' | 'productType'> & {
   kujiPrizes?: IKujiPrize[];
 };
 
+export type InventoryStatus = 'sold_out' | 'low_stock' | 'in_stock';
+
+interface IProductInventoryState {
+  availableStock: number;
+  hasInventoryData: boolean;
+  isKuji: boolean;
+  status: InventoryStatus;
+}
+
 export const MAX_IN_CART_MESSAGE = 'You already have the maximum available quantity in your cart.';
 
 function normalizePrizeCode(prizeCode: string): string {
@@ -12,6 +21,61 @@ function normalizePrizeCode(prizeCode: string): string {
 
 export function isKujiProduct(product: Pick<IProductCard, 'productType'>): boolean {
   return product.productType === 'kuji';
+}
+
+export function getAvailableStock(product: Pick<IProductCard, 'inventory'>): number {
+  if (!product.inventory) {
+    return 0;
+  }
+
+  return Math.max(0, product.inventory.onHand - product.inventory.reserved);
+}
+
+export function getProductInventoryState(product: Pick<IProductCard, 'inventory' | 'productType'>): IProductInventoryState {
+  const isKuji = isKujiProduct(product);
+
+  if (!product.inventory) {
+    return {
+      availableStock: 0,
+      hasInventoryData: false,
+      isKuji,
+      status: 'in_stock',
+    };
+  }
+
+  const availableStock = getAvailableStock(product);
+  const lowStockThreshold = Math.max(0, product.inventory.lowStockThreshold);
+  const status = availableStock <= 0
+    ? 'sold_out'
+    : lowStockThreshold > 0 && availableStock <= lowStockThreshold
+      ? 'low_stock'
+      : 'in_stock';
+
+  return {
+    availableStock,
+    hasInventoryData: true,
+    isKuji,
+    status,
+  };
+}
+
+export function getProductInventoryStatusLabel(product: Pick<IProductCard, 'inventory' | 'productType'>): string | null {
+  const inventoryState = getProductInventoryState(product);
+
+  if (!inventoryState.hasInventoryData) {
+    return null;
+  }
+
+  if (inventoryState.status === 'sold_out') {
+    return 'Sold Out';
+  }
+
+  if (inventoryState.isKuji) {
+    const ticketLabel = `${inventoryState.availableStock} ticket${inventoryState.availableStock === 1 ? '' : 's'} left`;
+    return inventoryState.status === 'low_stock' ? `Only ${ticketLabel}` : ticketLabel;
+  }
+
+  return inventoryState.status === 'low_stock' ? 'Low in Stock' : 'Stock Available';
 }
 
 export function isLastOnePrize(prizeCode: string): boolean {
@@ -33,7 +97,7 @@ export function getKujiSellableQuantity(product: TProductStockLike): number | nu
     }, 0);
   }
 
-  return Math.max(0, product.inventory?.available ?? 0);
+  return getAvailableStock(product);
 }
 
 export function getProductSellableQuantity(product: TProductStockLike): number {
@@ -41,7 +105,7 @@ export function getProductSellableQuantity(product: TProductStockLike): number {
     return getKujiSellableQuantity(product) ?? 0;
   }
 
-  return Math.max(0, product.inventory?.available ?? 0);
+  return getAvailableStock(product);
 }
 
 export function getRemainingQuantityMessage(product: Pick<IProductCard, 'productType'>, quantity: number): string {

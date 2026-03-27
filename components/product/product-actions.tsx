@@ -11,8 +11,10 @@ import { cn } from '@/lib/utils';
 import { mapProductToWishlistItem } from '@/utils/wishlist';
 import {
   getProductSellableQuantity,
+  getProductInventoryStatusLabel,
   getProductSoldOutMessage,
   getRemainingQuantityMessage,
+  getProductInventoryState,
   isKujiProduct,
   MAX_IN_CART_MESSAGE,
 } from '@/utils/product-stock';
@@ -40,14 +42,20 @@ interface IProductActionState {
 
 function getProductQuantityState(product: IProduct, currentCartQuantity: number): IProductQuantityState {
   const isKuji = isKujiProduct(product);
+  const inventoryState = getProductInventoryState(product);
   const sellableQuantity = getProductSellableQuantity(product);
   const maxAddableQuantity = Math.max(0, sellableQuantity - currentCartQuantity);
   const isSoldOut = sellableQuantity <= 0;
+  const availabilityLabel = getProductInventoryStatusLabel(product);
 
   return {
-    availabilityLabel: isSoldOut
-      ? isKuji ? 'Sold out' : 'Currently unavailable'
-      : getRemainingQuantityMessage(product, sellableQuantity),
+    availabilityLabel: availabilityLabel ?? (
+      isSoldOut
+        ? isKuji ? 'Sold Out' : 'Currently unavailable'
+        : inventoryState.isKuji
+          ? getRemainingQuantityMessage(product, sellableQuantity)
+          : 'Stock Available'
+    ),
     isAddDisabled: isSoldOut || maxAddableQuantity <= 0,
     isSoldOut,
     maxAddableQuantity,
