@@ -1,19 +1,18 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { FileText } from 'lucide-react';
+import { PublicFaqPage } from '@/components/storefront/legal/public-faq-page';
 import { PublicLegalPage } from '@/components/storefront/legal/public-legal-page';
-import { getPublicLegalDocument, isPublicApiNotFoundError } from '@/lib/api/public-storefront';
+import { getPublicFaqItems, getPublicLegalDocument, isPublicApiNotFoundError } from '@/lib/api/public-storefront';
 import type { LegalDocumentType } from '@/interfaces/legal';
 
 const SLUG_TO_TYPE: Record<string, LegalDocumentType> = {
-  faq: 'faq',
   'shipping-returns': 'shipping_returns',
   terms: 'terms',
   privacy: 'privacy',
 };
 
 const CANONICAL_LABELS: Record<LegalDocumentType, string> = {
-  faq: 'FAQ',
   shipping_returns: 'Shipping & Returns',
   terms: 'Terms of Service',
   privacy: 'Privacy Policy',
@@ -25,6 +24,13 @@ type Props = {
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params;
+
+  if (params.slug === 'faq') {
+    return {
+      title: 'FAQ - PopBox Studio',
+    };
+  }
+
   const type = SLUG_TO_TYPE[params.slug];
 
   if (!type) {
@@ -62,6 +68,35 @@ function LegalUnavailableState({ label }: { label: string }) {
 
 export default async function LegalRoute(props: Props) {
   const params = await props.params;
+
+  if (params.slug === 'faq') {
+    let faqItems = null;
+
+    try {
+      faqItems = await getPublicFaqItems();
+    } catch (error) {
+      if (isPublicApiNotFoundError(error)) {
+        notFound();
+      }
+
+      faqItems = null;
+    }
+
+    if (!faqItems) {
+      return (
+        <LegalUnavailableState label="FAQ" />
+      );
+    }
+
+    if (faqItems.length === 0) {
+      return (
+        <LegalUnavailableState label="FAQ" />
+      );
+    }
+
+    return <PublicFaqPage items={faqItems} />;
+  }
+
   const type = SLUG_TO_TYPE[params.slug];
 
   if (!type) {

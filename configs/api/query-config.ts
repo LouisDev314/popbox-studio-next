@@ -8,7 +8,21 @@ import { IProductListPage, ICollection, ITag, productSort, productType,
 import { IGuestOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
 import { IAdminCustomerListResponse } from '@/interfaces/customer';
-import { IAdminLegalListResponse } from '@/interfaces/legal';
+import { IFaqListResponse, IAdminFaqItem, IAdminFaqListResponse, IAdminLegalListResponse } from '@/interfaces/legal';
+
+function normalizeAdminFaqItems(
+  payload: IAdminFaqItem[] | IFaqListResponse<IAdminFaqItem> | null | undefined,
+): IAdminFaqItem[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && Array.isArray(payload.items)) {
+    return payload.items;
+  }
+
+  return [];
+}
 
 const QueryConfigs = {
   fetchProducts: async ({
@@ -79,6 +93,21 @@ const QueryConfigs = {
   },
   fetchAdminLegalDocs: async (): Promise<AxiosResponse<IBaseApiResponse<IAdminLegalListResponse>>> => {
     return httpClient.get('/api/v1/admin/legal', await withAdminAuth());
+  },
+  fetchAdminFaqItems: async (): Promise<AxiosResponse<IBaseApiResponse<IAdminFaqListResponse>>> => {
+    const response = await httpClient.get<
+      IBaseApiResponse<IAdminFaqItem[] | IFaqListResponse<IAdminFaqItem>>
+    >('/api/v1/admin/legal/faq', await withAdminAuth());
+
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        data: {
+          items: normalizeAdminFaqItems(response.data.data),
+        },
+      },
+    };
   },
 };
 

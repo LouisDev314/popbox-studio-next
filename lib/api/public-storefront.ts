@@ -6,7 +6,7 @@ import getEnvConfig from '@/configs/env';
 import type { IBaseApiResponse } from '@/interfaces/api-response';
 import type { ICheckoutSuccess } from '@/interfaces/checkout';
 import type { IHomepageData } from '@/interfaces/home';
-import type { IPublicLegalDocument, LegalDocumentType } from '@/interfaces/legal';
+import type { IFaqListResponse, IPublicFaqItem, IPublicLegalDocument, LegalDocumentType } from '@/interfaces/legal';
 import type { IGuestOrderDetail, IGuestTicketView } from '@/interfaces/order';
 import type {
   IProduct,
@@ -52,6 +52,20 @@ async function readPublicData<T>(
 ): Promise<T> {
   const response = await publicStorefrontClient.get<IBaseApiResponse<T>>(path, config);
   return response.data.data;
+}
+
+function normalizeFaqItems(
+  payload: IPublicFaqItem[] | IFaqListResponse<IPublicFaqItem> | null | undefined,
+): IPublicFaqItem[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && Array.isArray(payload.items)) {
+    return payload.items;
+  }
+
+  return [];
 }
 
 export const getPublicHomepageData = cache(async (): Promise<IHomepageData> => {
@@ -103,6 +117,11 @@ export const getPublicLegalDocument = cache(
     return readPublicData<IPublicLegalDocument>(`/api/v1/legal/${type}`);
   },
 );
+
+export const getPublicFaqItems = cache(async (): Promise<IPublicFaqItem[]> => {
+  const payload = await readPublicData<IPublicFaqItem[] | IFaqListResponse<IPublicFaqItem>>('/api/v1/legal/faq');
+  return normalizeFaqItems(payload);
+});
 
 export const getPublicCollections = cache(async (): Promise<ICollection[]> => {
   return readPublicData<ICollection[]>('/api/v1/collections');

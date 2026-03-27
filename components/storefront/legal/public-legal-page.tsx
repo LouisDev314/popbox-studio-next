@@ -1,7 +1,6 @@
 import type { IPublicLegalDocument } from '@/interfaces/legal';
 
 const CANONICAL_LABELS: Record<string, string> = {
-  faq: 'FAQ',
   shipping_returns: 'Shipping & Returns',
   terms: 'Terms of Service',
   privacy: 'Privacy Policy',

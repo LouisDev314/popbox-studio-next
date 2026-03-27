@@ -5,11 +5,17 @@ import QueryConfigs from '@/configs/api/query-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { IAdminLegalListResponse, LegalDocumentType, IAdminLegalDocument } from '@/interfaces/legal';
+import type {
+  AdminLegalType,
+  IAdminFaqItem,
+  IAdminFaqListResponse,
+  IAdminLegalListResponse,
+  LegalDocumentType,
+  IAdminLegalDocument,
+} from '@/interfaces/legal';
 import { useRouter } from 'next/navigation';
 
 const CANONICAL_TYPES: { type: LegalDocumentType; label: string; description: string }[] = [
-  { type: 'faq', label: 'FAQ', description: 'Frequently asked questions.' },
   { type: 'shipping_returns', label: 'Shipping & Returns', description: 'Policies on shipping and returns.' },
   { type: 'terms', label: 'Terms of Service', description: 'Legal terms for using the platform.' },
   { type: 'privacy', label: 'Privacy Policy', description: 'How user data is handled and protected.' },
@@ -32,14 +38,24 @@ function formatRelativeDate(dateString?: string): string {
 }
 
 export function AdminLegalListPage() {
-  const { data, isPending, isError } = useCustomizeQuery<IAdminLegalListResponse>({
+  const { data: legalData, isPending: isLegalPending, isError: isLegalError } = useCustomizeQuery<IAdminLegalListResponse>({
     queryKey: ['admin', 'legal'],
     queryFn: () => QueryConfigs.fetchAdminLegalDocs(),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
 
-  const legalItems = data?.data?.data?.items ?? [];
+  const { data: faqData, isPending: isFaqPending, isError: isFaqError } = useCustomizeQuery<IAdminFaqListResponse>({
+    queryKey: ['admin', 'legal', 'faq'],
+    queryFn: () => QueryConfigs.fetchAdminFaqItems(),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
+
+  const legalItems = legalData?.data?.data?.items ?? [];
+  const faqItems = faqData?.data?.data?.items ?? [];
+  const isPending = isLegalPending || isFaqPending;
+  const isError = isLegalError || isFaqError;
 
   return (
     <div>
@@ -80,6 +96,7 @@ export function AdminLegalListPage() {
                 />
               );
             })}
+            <FaqCard faqItems={faqItems} />
           </div>
         )}
       </div>
@@ -93,7 +110,7 @@ function DocumentCard({
   description,
   activeDoc,
 }: {
-  type: LegalDocumentType;
+  type: AdminLegalType;
   label: string;
   description: string;
   activeDoc?: IAdminLegalDocument;
@@ -162,10 +179,92 @@ function DocumentCard({
   );
 }
 
+function FaqCard({ faqItems }: { faqItems: IAdminFaqItem[] }) {
+  const router = useRouter();
+  const publishedCount = faqItems.filter((item) => item.isPublished).length;
+  const latestUpdatedAt = faqItems.reduce<string | null>((latest, item) => {
+    if (!latest || new Date(item.updatedAt) > new Date(latest)) {
+      return item.updatedAt;
+    }
+
+    return latest;
+  }, null);
+  const exists = faqItems.length > 0;
+  const statusClassName = !exists
+    ? 'bg-[#F2F4F6] text-[#514349]'
+    : publishedCount > 0
+      ? 'bg-[#E7F0E7] text-[#116211]'
+      : 'bg-[#FFF7E6] text-[#8A6116]';
+  const statusLabel = !exists
+    ? 'Not created'
+    : publishedCount > 0
+      ? 'Published'
+      : 'Draft only';
+
+  return (
+    <div className="flex flex-col justify-between rounded-xl border border-[#D5C1C9]/40 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+      <div>
+        <div className="flex items-start justify-between">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <FileText className="h-5 w-5 text-primary" />
+          </div>
+          <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', statusClassName)}>
+            {statusLabel}
+          </span>
+        </div>
+        <h3 className="mt-4 font-semibold text-[#191C1E]">FAQ</h3>
+        <p className="mt-1 text-sm text-[#514349] line-clamp-2">
+          Manage published FAQ items for the storefront accordion.
+        </p>
+
+        <div className="mt-4 flex flex-col gap-1 text-xs text-[#514349]">
+          <div className="flex justify-between">
+            <span className="font-medium">FAQ Items</span>
+            <span>{faqItems.length}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-medium">Published</span>
+            <span>{publishedCount}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-medium">Last Updated</span>
+            <span>{formatRelativeDate(latestUpdatedAt ?? undefined)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <Button
+          type="button"
+          onClick={() => router.push('/admin/legal/faq')}
+          className={cn(
+            'w-full rounded-lg shadow-none',
+            !exists && 'bg-primary text-white hover:opacity-90',
+            exists && 'border border-[#D5C1C9] bg-white text-[#191C1E] hover:bg-[#F2F4F6]',
+          )}
+          variant={exists ? 'outline' : 'default'}
+        >
+          {exists ? (
+            <>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </>
+          ) : (
+            <>
+              <Plus className="mr-2 h-4 w-4" />
+              Create
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function LoadingSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 5 }).map((_, i) => (
+      {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="flex flex-col justify-between rounded-xl border border-[#D5C1C9]/40 bg-white p-5 shadow-sm">
           <div>
             <div className="flex items-start justify-between">

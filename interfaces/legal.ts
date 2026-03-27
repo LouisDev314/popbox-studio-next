@@ -1,8 +1,11 @@
 export type LegalDocumentType =
-  | 'faq'
   | 'shipping_returns'
   | 'terms'
   | 'privacy';
+
+export type AdminLegalType =
+  | 'faq'
+  | LegalDocumentType;
 
 export interface IAdminLegalDocument {
   id: string;
@@ -17,9 +20,40 @@ export interface IAdminLegalDocument {
 
 export type IPublicLegalDocument = IAdminLegalDocument;
 
+export interface IPublicFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  sortOrder: number;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IFaqListResponse<TItem = IPublicFaqItem> {
+  items: TItem[];
+}
+
 export interface IAdminLegalListResponse {
   items: IAdminLegalDocument[];
 }
+
+export interface IAdminFaqItem extends IPublicFaqItem {}
+
+export type IAdminFaqListResponse = IFaqListResponse<IAdminFaqItem>;
+
+export interface IAdminFaqUpsert {
+  question: string;
+  answer: string;
+  category: string;
+  sortOrder: number;
+  isPublished: boolean;
+}
+
+export type IAdminFaqCreate = IAdminFaqUpsert;
+
+export type IAdminFaqUpdate = Partial<IAdminFaqUpsert>;
 
 export interface IAdminLegalCreate {
   type: LegalDocumentType;
