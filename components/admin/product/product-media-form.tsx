@@ -37,7 +37,6 @@ interface IProductMediaFormProps {
 
 interface ISortableProductImageCardProps {
   image: IAdminProductImage;
-  index: number;
   isDeleting: boolean;
   isReordering: boolean;
   onDelete: (imageId: string) => void;
@@ -47,7 +46,6 @@ interface ISortableProductImageCardProps {
 
 function SortableProductImageCard({
   image,
-  index,
   isDeleting,
   isReordering,
   onDelete,
@@ -343,7 +341,6 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
                 <SortableProductImageCard
                   key={image.id}
                   image={image}
-                  index={index}
                   isDeleting={isDeleting}
                   isReordering={isReordering}
                   onDelete={handleDelete}

@@ -39,7 +39,7 @@ export interface IAdminLegalListResponse {
   items: IAdminLegalDocument[];
 }
 
-export interface IAdminFaqItem extends IPublicFaqItem {}
+export type IAdminFaqItem = IPublicFaqItem;
 
 export type IAdminFaqListResponse = IFaqListResponse<IAdminFaqItem>;
 
