@@ -95,7 +95,6 @@ function SortableProductImageCard({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-[#191C1E]">{label}</p>
         {image.altText ? <p className="mt-0.5 truncate text-xs text-[#514349]">{image.altText}</p> : null}
-        <p className="mt-1 text-[11px] uppercase tracking-wider text-[#514349]/60">Position {index + 1}</p>
       </div>
 
       <div className="flex items-center gap-2">
