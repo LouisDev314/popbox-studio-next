@@ -24,12 +24,12 @@ export function ProductCard(props: IProductCardProps) {
 
       <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-[1.4rem] bg-muted/30">
         {isKuji && (
-          <div className="absolute left-3 top-2 z-20 rounded-md bg-primary/60 px-2 py-1 text-[10px] font-bold text-secondary-foreground shadow-sm sm:text-xs">
+          <div className="absolute left-3 top-3 z-20 rounded-full bg-primary/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-secondary-foreground shadow-sm sm:text-[11px]">
             Ichiban Kuji
           </div>
         )}
         {inventoryState.hasInventoryData && inventoryState.status === 'sold_out' ? (
-          <div className="absolute right-3 top-2 z-20 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-background shadow-sm sm:text-xs">
+          <div className="absolute bottom-3 right-3 z-20 rounded-full bg-foreground/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-background shadow-sm backdrop-blur-sm sm:text-[11px]">
             Sold Out
           </div>
         ) : null}
@@ -41,7 +41,7 @@ export function ProductCard(props: IProductCardProps) {
         />
       </div>
 
-      <div className="z-20 flex flex-col gap-1">
+      <div className="z-20 flex flex-col gap-1.5">
         <h3 className="line-clamp-2 min-h-11 text-base font-semibold text-foreground transition-colors sm:min-h-7 sm:text-lg">
           {props.product.name}
         </h3>
@@ -52,9 +52,9 @@ export function ProductCard(props: IProductCardProps) {
         )}
       </div>
 
-      <ProductInventoryStatus product={props.product} />
+      <ProductInventoryStatus product={props.product} className="mt-0.5" />
 
-      <p className="text-base text-primary font-bold sm:text-lg">
+      <p className="mt-auto pt-1 text-base font-bold text-primary sm:text-lg">
         {formatPrice(props.product.priceCents, props.product.currency)}
       </p>
     </div>

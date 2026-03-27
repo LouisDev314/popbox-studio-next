@@ -166,7 +166,6 @@ export function ProductActions(props: IProductActionsProps) {
         <div className="flex flex-row items-center justify-between gap-4">
           <div>
             <p className="font-medium text-foreground">Quantity</p>
-            <p className="mt-1 text-sm text-muted-foreground">{actionState.availabilityLabel}</p>
           </div>
           <QuantityStepper
             disabled={actionState.isAddDisabled}

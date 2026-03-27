@@ -23,15 +23,15 @@ export function ProductInventoryStatus(props: IProductInventoryStatusProps) {
     return (
       <div
         className={cn(
-          'mt-6 inline-flex w-fit flex-col rounded-[1.5rem] border px-4 py-3 shadow-sm',
+          'mt-6 inline-flex min-w-[11rem] w-fit flex-col gap-0.5 rounded-[1.5rem] border px-4 py-3.5 shadow-sm',
           getDetailContainerClasses(inventoryState.status, inventoryState.isKuji),
           props.className,
         )}
       >
-        <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] opacity-75">
           {inventoryState.isKuji ? 'Ticket stock' : 'Availability'}
         </span>
-        <span className="mt-1 text-sm font-semibold sm:text-base">{label}</span>
+        <span className="text-sm font-semibold leading-5 sm:text-base">{label}</span>
       </div>
     );
   }
@@ -39,14 +39,14 @@ export function ProductInventoryStatus(props: IProductInventoryStatusProps) {
   return (
     <div
       className={cn(
-        'z-20 flex items-center gap-2 text-sm font-medium',
+        'z-20 inline-flex w-fit items-center gap-2 rounded-full bg-background/85 px-2.5 py-1 text-[11px] font-semibold shadow-sm ring-1 ring-border/50 backdrop-blur-[2px] sm:text-xs',
         getCardTextClasses(inventoryState.status, inventoryState.isKuji),
         props.className,
       )}
     >
       <span
         className={cn(
-          'h-2 w-2 rounded-full',
+          'h-1.5 w-1.5 rounded-full',
           getCardDotClasses(inventoryState.status, inventoryState.isKuji),
         )}
       />
