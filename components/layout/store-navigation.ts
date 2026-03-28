@@ -15,8 +15,8 @@ export const TRENDING_NAV_HREF = '/products?sort=trending';
 
 export const DESKTOP_PRIMARY_NAV_ITEMS = [
   { key: 'show-all', href: '/products', label: 'Show All' },
-  { key: 'featured', href: FEATURED_NAV_HREF, label: 'Featured' },
   { key: 'trending', href: TRENDING_NAV_HREF, label: 'Trending' },
+  { key: 'featured', href: FEATURED_NAV_HREF, label: 'Featured' },
   { key: 'kuji', href: '/products?type=kuji', label: 'Ichiban Kuji' },
   { key: 'standard', href: '/products?type=standard', label: 'Anime Merchandise' },
 ] as const;

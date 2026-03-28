@@ -22,17 +22,17 @@ export async function generateMetadata(props: ProductsPageProps): Promise<Metada
   const sort = parseProductSortParam(searchParams.sort);
   const collection = rawCollection ? rawCollection : undefined;
 
+  if (sort === 'trending') {
+    return {
+      title: 'Trending Products',
+      description: 'Browse the products trending now at PopBox Studio.',
+    };
+  }
+
   if (collection) {
     return {
       title: `${formatCollectionLabel(collection)} - PopBox Studio`,
       description: `Browse products in the ${formatCollectionLabel(collection)} collection.`,
-    };
-  }
-
-  if (sort === 'trending') {
-    return {
-      title: 'Trending Products - PopBox Studio',
-      description: 'Browse the products trending now at PopBox Studio.',
     };
   }
 

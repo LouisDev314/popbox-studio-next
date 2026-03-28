@@ -139,6 +139,8 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
   const pageTitle = () => {
     if (props.headingTitle) return props.headingTitle;
 
+    if (props.initialSort === 'trending') return 'Trending Products';
+
     if (props.initialCollection) return formatCollectionLabel(props.initialCollection);
 
     switch (props.initialType) {
@@ -151,6 +153,16 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
     }
   };
 
+  const pageDescription = () => {
+    if (props.headingDescription) return props.headingDescription;
+
+    if (props.initialSort === 'trending') return 'Browse what’s trending right now.';
+
+    return props.initialType === 'kuji'
+      ? 'Test your luck with premium prizes.'
+      : 'Browse our premium collection.';
+  };
+
   return (
     <div className="container mx-auto w-full px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-col justify-between gap-5 sm:mb-8 lg:flex-row lg:items-end">
@@ -159,9 +171,7 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
             {pageTitle()}
           </h1>
           <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            {props.headingDescription ?? (props.initialType === 'kuji'
-              ? 'Test your luck with premium prizes.'
-              : 'Browse our premium collection.')}
+            {pageDescription()}
           </p>
         </div>
 
