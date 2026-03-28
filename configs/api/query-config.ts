@@ -5,7 +5,7 @@ import { withAdminAuth } from '@/lib/api/admin-client';
 import { IProductListPage, ICollection, ITag, productSort, productType,
   IProductSuggestionResponse, IAdminProductDetail, IAdminProductListResponse, productStatus, IKujiPrize,
 } from '@/interfaces/product';
-import { IGuestOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
+import { IOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
 import { IAdminCustomerListResponse } from '@/interfaces/customer';
 import { IFaqListResponse, IAdminFaqItem, IAdminFaqListResponse, IAdminLegalListResponse } from '@/interfaces/legal';
@@ -76,8 +76,8 @@ const QueryConfigs = {
   fetchAdminOrders: async (): Promise<AxiosResponse<IBaseApiResponse<IAdminOrderListResponse>>> => {
     return httpClient.get('/api/v1/admin/orders', await withAdminAuth());
   },
-  fetchAdminOrder: async (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestOrderDetail>>> => {
-    return httpClient.get(`/api/v1/admin/orders/${id}`, await withAdminAuth());
+  fetchAdminOrder: async (adminOrderId: string): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
+    return httpClient.get(`/api/v1/admin/orders/${adminOrderId}`, await withAdminAuth());
   },
   fetchAdminCustomers: async (): Promise<AxiosResponse<IBaseApiResponse<IAdminCustomerListResponse>>> => {
     return httpClient.get('/api/v1/admin/customers', await withAdminAuth());

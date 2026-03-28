@@ -80,6 +80,11 @@ export interface IOrderDetail {
 
 export type IGuestOrderDetail = IOrderDetail;
 
+export interface IAdminOrderIdentity {
+  id: string;
+  publicId: string;
+}
+
 export interface IGuestTicketView {
   tickets: IOrderTicket[];
   revealed: IOrderTicket[];
@@ -120,11 +125,14 @@ export interface IAdminOrderStatusUpdate {
 }
 
 export interface IAdminOrderShipmentUpdate {
-  carrierName: string | null;
-  trackingNumber: string | null;
-  trackingUrl: string | null;
+  carrierName?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
 }
 
 export interface IAdminOrderRefundRequest {
-  reason: string;
+  amountCents?: number;
+  reason?: string | null;
 }

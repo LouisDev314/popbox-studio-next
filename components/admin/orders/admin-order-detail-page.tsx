@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AxiosError, HttpStatusCode } from 'axios';
-import { ArrowLeft, Mail, Package, Truck, XCircle, CreditCard, RotateCw } from 'lucide-react';
+import { ArrowLeft, Mail, Package, Truck, XCircle, CreditCard } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -12,10 +12,19 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { formatPrice } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { IOrderDetail, IOrderStatus, IShipment } from '@/interfaces/order';
+import {
+  IAdminOrderRefundRequest,
+  IAdminOrderShipmentUpdate,
+  IOrderDetail,
+  IOrderStatus,
+  IShipment,
+} from '@/interfaces/order';
 import LastOnePrizeBadge from '@/components/admin/orders/last-one-prize-badge';
+import { toNullableText } from '@/utils/admin';
+import { getAdminOrderId } from '@/utils/admin-order';
 
 const STATUS_CONFIG: Record<IOrderStatus, { label: string; bg: string; text: string }> = {
   pending_payment: { label: 'Pending Payment', bg: 'bg-yellow-100', text: 'text-yellow-800' },
@@ -33,6 +42,8 @@ interface IShipmentFormState {
   trackingNumber: string;
   trackingUrl: string;
 }
+
+type ShipmentActionMode = 'ship' | 'edit';
 
 function createShipmentForm(shipment: IShipment | null): IShipmentFormState {
   return {
@@ -79,6 +90,50 @@ function getResendConfirmationErrorMessage(error: AxiosError<IBaseApiResponse>):
   }
 }
 
+function getAdminOrderActionErrorMessage(
+  error: AxiosError<IBaseApiResponse>,
+  fallbackMessage: string,
+): string {
+  return error.response?.data?.message?.trim() || fallbackMessage;
+}
+
+function getAdminOrderActionSuccessMessage(
+  response: IBaseApiResponse,
+  fallbackMessage: string,
+): string {
+  return response.message?.trim() || fallbackMessage;
+}
+
+function buildShipmentUpdatePayload(
+  shipmentForm: IShipmentFormState,
+  shipment: IShipment | null,
+): IAdminOrderShipmentUpdate {
+  const nextCarrierName = toNullableText(shipmentForm.carrierName);
+  const nextTrackingNumber = toNullableText(shipmentForm.trackingNumber);
+  const nextTrackingUrl = toNullableText(shipmentForm.trackingUrl);
+  const payload: IAdminOrderShipmentUpdate = {};
+
+  if (nextCarrierName !== (shipment?.carrierName ?? null)) {
+    payload.carrierName = nextCarrierName;
+  }
+
+  if (nextTrackingNumber !== (shipment?.trackingNumber ?? null)) {
+    payload.trackingNumber = nextTrackingNumber;
+  }
+
+  if (nextTrackingUrl !== (shipment?.trackingUrl ?? null)) {
+    payload.trackingUrl = nextTrackingUrl;
+  }
+
+  return payload;
+}
+
+function buildRefundPayload(refundReason: string): IAdminOrderRefundRequest {
+  const normalizedReason = toNullableText(refundReason);
+
+  return normalizedReason ? { reason: normalizedReason } : {};
+}
+
 function OrderActionFeedbackBanner({ feedback }: { feedback: OrderActionFeedback }) {
   return (
     <div
@@ -99,11 +154,9 @@ interface IOrderActionButtonsProps {
   isStatusUpdating: boolean;
   isShipmentUpdating: boolean;
   isRefunding: boolean;
-  isReconciling: boolean;
   isResendingConfirmation: boolean;
   onUpdateStatus: (newStatus: IOrderStatus) => void;
   onOpenRefund: () => void;
-  onReconcile: () => void;
   onOpenShipment: () => void;
   onResendConfirmation: () => void;
 }
@@ -113,97 +166,90 @@ function OrderActionButtons({
   isStatusUpdating,
   isShipmentUpdating,
   isRefunding,
-  isReconciling,
   isResendingConfirmation,
   onUpdateStatus,
   onOpenRefund,
-  onReconcile,
   onOpenShipment,
   onResendConfirmation,
 }: IOrderActionButtonsProps) {
   const canRefund = order.status === 'paid' || order.status === 'packed' || order.status === 'shipped' || order.status === 'paid_needs_attention';
-  const canReconcile = (order.status === 'refunded' || order.status === 'cancelled') && order.refundedAt && !order.cancelledAt;
+  const shipmentActionMode: ShipmentActionMode | null = order.status === 'packed'
+    ? 'ship'
+    : order.status === 'shipped'
+      ? 'edit'
+      : null;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       {order.status === 'pending_payment' && (
-        <button
+        <Button
           type="button"
           onClick={() => onUpdateStatus('cancelled')}
           disabled={isStatusUpdating}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
+          variant="outline"
+          size="sm"
+          className="gap-1.5 rounded-lg border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
         >
           <XCircle className="h-4 w-4" />
           Cancel
-        </button>
+        </Button>
       )}
 
       {(order.status === 'paid' || order.status === 'paid_needs_attention') && (
-        <button
+        <Button
           type="button"
           onClick={() => onUpdateStatus('packed')}
           disabled={isStatusUpdating}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+          variant="outline"
+          size="sm"
+          className="gap-1.5 rounded-lg border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
         >
           <Package className="h-4 w-4" />
           Mark Packed
-        </button>
-      )}
-
-      {order.status === 'packed' && (
-        <button
-          type="button"
-          onClick={() => onUpdateStatus('shipped')}
-          disabled={isStatusUpdating}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 text-sm font-medium text-purple-700 hover:bg-purple-100 disabled:opacity-50"
-        >
-          <Truck className="h-4 w-4" />
-          Mark Shipped
-        </button>
+        </Button>
       )}
 
       {canRefund && (
-        <button
+        <Button
           type="button"
           onClick={onOpenRefund}
           disabled={isRefunding}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#D5C1C9] bg-white px-3 text-sm font-medium text-[#191C1E] hover:bg-[#F2F4F6] disabled:opacity-50"
+          variant="outline"
+          size="sm"
+          className="gap-1.5 rounded-lg border-[#D5C1C9] bg-white text-[#191C1E] hover:bg-[#F2F4F6]"
         >
           <CreditCard className="h-4 w-4" />
           Refund
-        </button>
+        </Button>
       )}
 
-      {canReconcile && (
-        <button
-          type="button"
-          onClick={onReconcile}
-          disabled={isReconciling}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#D5C1C9] bg-[#E6E8EA] px-3 text-sm font-medium text-[#191C1E] hover:bg-[#D5C1C9] disabled:opacity-50"
-        >
-          <RotateCw className="h-4 w-4" />
-          Reconcile Refund
-        </button>
-      )}
-
-      <button
+      <Button
         type="button"
         onClick={onResendConfirmation}
         disabled={isResendingConfirmation}
-        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#D5C1C9] bg-white px-3 text-sm font-medium text-[#191C1E] hover:bg-[#F2F4F6] disabled:opacity-50"
+        variant="outline"
+        size="sm"
+        className="gap-1.5 rounded-lg border-[#D5C1C9] bg-white text-[#191C1E] hover:bg-[#F2F4F6]"
       >
         <Mail className="h-4 w-4" />
         {isResendingConfirmation ? 'Resending...' : 'Resend confirmation email'}
-      </button>
+      </Button>
 
-      <button
-        type="button"
-        onClick={onOpenShipment}
-        disabled={isShipmentUpdating}
-        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/60 active:bg-[#6A3553]"
-      >
-        Update Shipment
-      </button>
+      {shipmentActionMode ? (
+        <Button
+          type="button"
+          onClick={onOpenShipment}
+          disabled={isShipmentUpdating}
+          variant={shipmentActionMode === 'ship' ? 'default' : 'outline'}
+          size="sm"
+          className={shipmentActionMode === 'ship'
+            ? 'gap-1.5 rounded-lg px-4'
+            : 'gap-1.5 rounded-lg border-[#D5C1C9] bg-white px-4 text-[#191C1E] hover:bg-[#F2F4F6]'}
+        >
+          <Truck className="h-4 w-4" />
+          {shipmentActionMode === 'ship' ? 'Ship Order' : 'Edit Shipment'}
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -377,6 +423,7 @@ function OrderSidebar({
 
 interface IShipmentDialogProps {
   isOpen: boolean;
+  mode: ShipmentActionMode;
   shipmentForm: IShipmentFormState;
   isPending: boolean;
   onOpenChange: (open: boolean) => void;
@@ -386,17 +433,21 @@ interface IShipmentDialogProps {
 
 function ShipmentDialog({
   isOpen,
+  mode,
   shipmentForm,
   isPending,
   onOpenChange,
   onShipmentFormChange,
   onSubmit,
 }: IShipmentDialogProps) {
+  const title = mode === 'ship' ? 'Ship Order' : 'Edit Shipment';
+  const submitLabel = mode === 'ship' ? 'Ship Order' : 'Save Shipment';
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-2xl border-[#D5C1C9]/50 bg-white p-6 sm:max-w-md">
         <DialogHeader className="mb-4">
-          <DialogTitle className="text-xl font-semibold text-[#191C1E]">Update Shipment</DialogTitle>
+          <DialogTitle className="text-xl font-semibold text-[#191C1E]">{title}</DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
@@ -424,21 +475,22 @@ function ShipmentDialog({
             />
           </div>
           <DialogFooter className="mt-6 gap-2 border-t border-[#D5C1C9]/20 pt-4">
-            <button
+            <Button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-[#514349] hover:bg-[#E6E8EA]"
+              variant="secondary"
+              className="rounded-lg text-[#514349]"
               disabled={isPending}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isPending}
-              className="rounded-lg bg-[#191C1E] px-4 py-2 text-sm font-medium text-white hover:bg-black disabled:opacity-50"
+              className="rounded-lg"
             >
-              Save Shipment
-            </button>
+              {submitLabel}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -485,21 +537,23 @@ function RefundDialog({
             </select>
           </div>
           <DialogFooter className="mt-6 gap-2 border-t border-[#D5C1C9]/20 pt-4">
-            <button
+            <Button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-[#514349] hover:bg-[#E6E8EA]"
+              variant="secondary"
+              className="rounded-lg text-[#514349]"
               disabled={isPending}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="destructive"
               disabled={isPending}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              className="rounded-lg"
             >
               Process Refund
-            </button>
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -507,7 +561,7 @@ function RefundDialog({
   );
 }
 
-export default function AdminOrderDetailPageClient({ orderId }: { orderId: string }) {
+export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrderId: string }) {
   const queryClient = useQueryClient();
   const [isShipmentDialogOpen, setIsShipmentDialogOpen] = useState(false);
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
@@ -516,40 +570,95 @@ export default function AdminOrderDetailPageClient({ orderId }: { orderId: strin
   const [actionFeedback, setActionFeedback] = useState<OrderActionFeedback | null>(null);
 
   const { data: fetchRes, isPending } = useCustomizeQuery<IOrderDetail>({
-    queryKey: ['admin', 'orders', orderId],
-    queryFn: () => QueryConfigs.fetchAdminOrder(orderId),
+    queryKey: ['admin', 'orders', adminOrderId],
+    queryFn: () => QueryConfigs.fetchAdminOrder(adminOrderId),
   });
 
   const order = fetchRes?.data?.data;
+  const shipmentActionMode: ShipmentActionMode = order?.status === 'packed' ? 'ship' : 'edit';
 
-  const invalidateOrder = () => {
-    void queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
+  const refreshOrderQueries = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders'], exact: true }),
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders', adminOrderId], exact: true }),
+    ]);
+  };
+
+  const resolveAdminOrderId = () => {
+    if (!order) {
+      setActionFeedback({
+        type: 'error',
+        message: 'Unable to run the admin action because the order details are unavailable.',
+      });
+      return null;
+    }
+
+    try {
+      return getAdminOrderId(order);
+    } catch (error) {
+      console.error(error);
+      setActionFeedback({
+        type: 'error',
+        message: 'Unable to run the admin action because the internal order id is missing.',
+      });
+      return null;
+    }
   };
 
   const { mutation: updateStatus, isPending: isStatusUpdating } = useCustomizeMutation({
     mutationFn: MutationConfigs.updateAdminOrderStatus,
-    onSuccess: invalidateOrder,
+    onSuccess: async (response) => {
+      await refreshOrderQueries();
+      setActionFeedback({
+        type: 'success',
+        message: getAdminOrderActionSuccessMessage(response.data, 'Order status updated.'),
+      });
+    },
+    onError: (error) => {
+      setActionFeedback({
+        type: 'error',
+        message: getAdminOrderActionErrorMessage(error, 'Failed to update order status.'),
+      });
+    },
   });
 
   const { mutation: updateShipment, isPending: isShipmentUpdating } = useCustomizeMutation({
     mutationFn: MutationConfigs.updateAdminOrderShipment,
-    onSuccess: () => {
-      invalidateOrder();
+    onSuccess: async (response) => {
+      await refreshOrderQueries();
       setIsShipmentDialogOpen(false);
+      setActionFeedback({
+        type: 'success',
+        message: getAdminOrderActionSuccessMessage(
+          response.data,
+          shipmentActionMode === 'ship' ? 'Order shipped.' : 'Shipment updated.',
+        ),
+      });
+    },
+    onError: (error) => {
+      setActionFeedback({
+        type: 'error',
+        message: getAdminOrderActionErrorMessage(error, 'Failed to update shipment.'),
+      });
     },
   });
 
   const { mutation: processRefund, isPending: isRefunding } = useCustomizeMutation({
     mutationFn: MutationConfigs.refundAdminOrder,
-    onSuccess: () => {
-      invalidateOrder();
+    onSuccess: async (response) => {
+      await refreshOrderQueries();
       setIsRefundDialogOpen(false);
+      setActionFeedback({
+        type: 'success',
+        message: getAdminOrderActionSuccessMessage(response.data, 'Order refunded.'),
+      });
     },
-  });
-
-  const { mutation: processReconcile, isPending: isReconciling } = useCustomizeMutation({
-    mutationFn: MutationConfigs.reconcileAdminOrderRefund,
-    onSuccess: invalidateOrder,
+    onError: (error) => {
+      setActionFeedback({
+        type: 'error',
+        message: getAdminOrderActionErrorMessage(error, 'Failed to refund the order.'),
+      });
+    },
   });
 
   const { mutation: resendConfirmation, isPending: isResendingConfirmation } = useCustomizeMutation<void, string>({
@@ -572,7 +681,14 @@ export default function AdminOrderDetailPageClient({ orderId }: { orderId: strin
   if (!order) return <div className="p-12 text-center text-red-500">Failed to load order.</div>;
 
   const handleUpdateStatus = (newStatus: IOrderStatus) => {
-    updateStatus({ orderId: order.publicId, data: { status: newStatus } });
+    setActionFeedback(null);
+    const nextAdminOrderId = resolveAdminOrderId();
+
+    if (!nextAdminOrderId) {
+      return;
+    }
+
+    updateStatus({ adminOrderId: nextAdminOrderId, data: { status: newStatus } });
   };
 
   const handleOpenShipment = () => {
@@ -582,33 +698,40 @@ export default function AdminOrderDetailPageClient({ orderId }: { orderId: strin
 
   const handleShipmentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setActionFeedback(null);
+    const nextAdminOrderId = resolveAdminOrderId();
+
+    if (!nextAdminOrderId) {
+      return;
+    }
+
     updateShipment({
-      orderId: order.publicId,
-      data: {
-        carrierName: shipmentForm.carrierName || null,
-        trackingNumber: shipmentForm.trackingNumber || null,
-        trackingUrl: shipmentForm.trackingUrl || null,
-      },
+      adminOrderId: nextAdminOrderId,
+      data: buildShipmentUpdatePayload(shipmentForm, order.shipment),
     });
   };
 
   const handleRefundSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    processRefund({ orderId: order.publicId, data: { reason: refundReason } });
+    setActionFeedback(null);
+    const nextAdminOrderId = resolveAdminOrderId();
+
+    if (!nextAdminOrderId) {
+      return;
+    }
+
+    processRefund({ adminOrderId: nextAdminOrderId, data: buildRefundPayload(refundReason) });
   };
 
   const handleResendConfirmation = () => {
     setActionFeedback(null);
-    if (!order.id) {
-      console.error('Missing internal order id for resend confirmation', { publicId: order.publicId });
-      setActionFeedback({
-        type: 'error',
-        message: 'Unable to resend confirmation email because the internal order id is missing.',
-      });
+    const nextAdminOrderId = resolveAdminOrderId();
+
+    if (!nextAdminOrderId) {
       return;
     }
 
-    resendConfirmation(order.id);
+    resendConfirmation(nextAdminOrderId);
   };
 
   return (
@@ -633,11 +756,9 @@ export default function AdminOrderDetailPageClient({ orderId }: { orderId: strin
             isStatusUpdating={isStatusUpdating}
             isShipmentUpdating={isShipmentUpdating}
             isRefunding={isRefunding}
-            isReconciling={isReconciling}
             isResendingConfirmation={isResendingConfirmation}
             onUpdateStatus={handleUpdateStatus}
             onOpenRefund={() => setIsRefundDialogOpen(true)}
-            onReconcile={() => processReconcile(order.publicId)}
             onOpenShipment={handleOpenShipment}
             onResendConfirmation={handleResendConfirmation}
           />
@@ -663,6 +784,7 @@ export default function AdminOrderDetailPageClient({ orderId }: { orderId: strin
 
       <ShipmentDialog
         isOpen={isShipmentDialogOpen}
+        mode={shipmentActionMode}
         shipmentForm={shipmentForm}
         isPending={isShipmentUpdating}
         onOpenChange={setIsShipmentDialogOpen}

@@ -97,20 +97,17 @@ const MutationConfigs = {
   updateAdminTag: async ({ id, data }: { id: string; data: Partial<ITag> }): Promise<AxiosResponse<IBaseApiResponse<ITag>>> => {
     return httpClient.patch(`/api/v1/admin/tags/${id}`, data, await withAdminAuth());
   },
-  updateAdminOrderStatus: async ({ orderId, data }: { orderId: string; data: IAdminOrderStatusUpdate }): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
-    return httpClient.patch(`/api/v1/admin/orders/${orderId}/status`, data, await withAdminAuth());
+  updateAdminOrderStatus: async ({ adminOrderId, data }: { adminOrderId: string; data: IAdminOrderStatusUpdate }): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
+    return httpClient.patch(`/api/v1/admin/orders/${adminOrderId}/status`, data, await withAdminAuth());
   },
-  updateAdminOrderShipment: async ({ orderId, data }: { orderId: string; data: IAdminOrderShipmentUpdate }): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
-    return httpClient.patch(`/api/v1/admin/orders/${orderId}/shipment`, data, await withAdminAuth());
+  updateAdminOrderShipment: async ({ adminOrderId, data }: { adminOrderId: string; data: IAdminOrderShipmentUpdate }): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
+    return httpClient.patch(`/api/v1/admin/orders/${adminOrderId}/shipment`, data, await withAdminAuth());
   },
-  resendAdminOrderConfirmation: async (orderId: string): Promise<AxiosResponse<IBaseApiResponse<void>>> => {
-    return httpClient.post(`/api/v1/admin/orders/${orderId}/resend-confirmation`, undefined, await withAdminAuth());
+  resendAdminOrderConfirmation: async (adminOrderId: string): Promise<AxiosResponse<IBaseApiResponse<void>>> => {
+    return httpClient.post(`/api/v1/admin/orders/${adminOrderId}/resend-confirmation`, undefined, await withAdminAuth());
   },
-  refundAdminOrder: async ({ orderId, data }: { orderId: string; data: IAdminOrderRefundRequest }): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
-    return httpClient.post(`/api/v1/admin/orders/${orderId}/refund`, data, await withAdminAuth());
-  },
-  reconcileAdminOrderRefund: async (orderId: string): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
-    return httpClient.post(`/api/v1/admin/orders/${orderId}/refund/reconcile`, undefined, await withAdminAuth());
+  refundAdminOrder: async ({ adminOrderId, data }: { adminOrderId: string; data: IAdminOrderRefundRequest }): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
+    return httpClient.post(`/api/v1/admin/orders/${adminOrderId}/refund`, data, await withAdminAuth());
   },
   createAdminLegalDoc: async (data: IAdminLegalCreate): Promise<AxiosResponse<IBaseApiResponse<IAdminLegalDocument>>> => {
     return httpClient.post('/api/v1/admin/legal', data, await withAdminAuth());

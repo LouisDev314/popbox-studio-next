@@ -10,6 +10,6 @@ interface IAdminOrderDetailPageProps {
 }
 
 export default async function AdminOrderDetailPage(props: IAdminOrderDetailPageProps) {
-  const { id } = await props.params;
-  return <AdminOrderDetailPageClient orderId={id} />;
+  const { id: adminOrderId } = await props.params;
+  return <AdminOrderDetailPageClient adminOrderId={adminOrderId} />;
 }

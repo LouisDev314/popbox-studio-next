@@ -7,6 +7,7 @@ import { IAdminOrderListResponse, IOrderStatus } from '@/interfaces/order';
 import { formatPrice } from '@/lib/utils';
 import { Package } from 'lucide-react';
 import LastOnePrizeBadge from '@/components/admin/orders/last-one-prize-badge';
+import { buildAdminOrderPath } from '@/utils/admin-order';
 
 const STATUS_CONFIG: Record<IOrderStatus, { label: string; bg: string; text: string }> = {
   pending_payment: { label: 'Pending Payment', bg: 'bg-yellow-100', text: 'text-yellow-800' },
@@ -87,7 +88,7 @@ export default function AdminOrdersPageClient() {
                     <tr
                       key={order.id}
                       className="cursor-pointer transition-colors hover:bg-slate-50"
-                      onClick={() => router.push(`/admin/orders/${order.id}`)}
+                      onClick={() => router.push(buildAdminOrderPath(order.id))}
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
