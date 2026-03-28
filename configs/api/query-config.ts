@@ -2,8 +2,9 @@ import httpClient from '@/api/http-client';
 import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { withAdminAuth } from '@/lib/api/admin-client';
+import { IAdminProductListQueryParams, serializeAdminTagIdsParam } from '@/lib/admin-product-filters';
 import { IProductListPage, ICollection, ITag, productSort, productType,
-  IProductSuggestionResponse, IAdminProductDetail, IAdminProductListResponse, productStatus, IKujiPrize,
+  IProductSuggestionResponse, IAdminProductDetail, IAdminProductListResponse, IKujiPrize,
 } from '@/interfaces/product';
 import { IOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
@@ -65,9 +66,21 @@ const QueryConfigs = {
   fetchGuestTickets: (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
     return httpClient.get(`/api/v1/orders/${id}/tickets`);
   },
-  fetchAdminProducts: async (status?: productStatus): Promise<AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>> => {
+  fetchAdminProducts: async ({
+    status,
+    type,
+    collectionId,
+    tagIds,
+    sort,
+  }: IAdminProductListQueryParams = {}): Promise<AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>> => {
     return httpClient.get('/api/v1/admin/products', await withAdminAuth({
-      params: status ? { status } : undefined,
+      params: {
+        status,
+        type,
+        collectionId,
+        tagIds: serializeAdminTagIdsParam(tagIds ?? []),
+        sort,
+      },
     }));
   },
   fetchAdminProduct: async (id: string): Promise<AxiosResponse<IBaseApiResponse<IAdminProductDetail>>> => {

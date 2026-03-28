@@ -25,9 +25,9 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
       )}
 
       <HomeProductSection
-        title="Featured Prizes"
+        title="Featured"
         products={featured}
-        viewAllHref="/products"
+        viewAllHref="/collections/featured"
       />
 
       <HomeProductSection

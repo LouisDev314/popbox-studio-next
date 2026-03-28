@@ -1,0 +1,90 @@
+import type { productStatus, productType } from '@/interfaces/product';
+
+type SearchParamValue = string | string[] | undefined;
+
+const VALID_PRODUCT_TYPES = ['standard', 'kuji'] as const satisfies readonly productType[];
+const VALID_ADMIN_PRODUCT_SORTS = [
+  'updated_desc',
+  'updated_asc',
+  'inventory_desc',
+  'inventory_asc',
+] as const;
+
+export type adminProductSort = (typeof VALID_ADMIN_PRODUCT_SORTS)[number];
+
+export interface IAdminProductListQueryParams {
+  status?: productStatus;
+  type?: productType;
+  collectionId?: string;
+  tagIds?: string[];
+  sort?: adminProductSort;
+}
+
+export const ADMIN_PRODUCT_TYPE_ITEMS = [
+  { label: 'All types', value: 'all' },
+  { label: 'Standard', value: 'standard' },
+  { label: 'Kuji', value: 'kuji' },
+] as const;
+
+export const ADMIN_PRODUCT_SORT_ITEMS = [
+  { label: 'Default order', value: 'default' },
+  { label: 'Updated: Newest first', value: 'updated_desc' },
+  { label: 'Updated: Oldest first', value: 'updated_asc' },
+  { label: 'Inventory: High to low', value: 'inventory_desc' },
+  { label: 'Inventory: Low to high', value: 'inventory_asc' },
+] as const;
+
+function getFirstParamValue(value: SearchParamValue) {
+  if (Array.isArray(value)) {
+    return value[0] ?? undefined;
+  }
+
+  return value ?? undefined;
+}
+
+export function parseAdminProductTypeParam(value: SearchParamValue): productType | undefined {
+  const normalizedValue = getFirstParamValue(value);
+
+  if (normalizedValue && VALID_PRODUCT_TYPES.includes(normalizedValue as productType)) {
+    return normalizedValue as productType;
+  }
+
+  return undefined;
+}
+
+export function parseAdminProductSortParam(value: SearchParamValue): adminProductSort | undefined {
+  const normalizedValue = getFirstParamValue(value);
+
+  if (normalizedValue && VALID_ADMIN_PRODUCT_SORTS.includes(normalizedValue as adminProductSort)) {
+    return normalizedValue as adminProductSort;
+  }
+
+  return undefined;
+}
+
+export function parseAdminCollectionIdParam(value: SearchParamValue): string | undefined {
+  const normalizedValue = getFirstParamValue(value)?.trim();
+
+  return normalizedValue ? normalizedValue : undefined;
+}
+
+export function parseAdminTagIdsParam(value: SearchParamValue): string[] {
+  const rawValues = Array.isArray(value) ? value : value ? [value] : [];
+
+  return Array.from(
+    new Set(
+      rawValues
+        .flatMap((entry) => entry.split(','))
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+export function serializeAdminTagIdsParam(values: string[]): string | undefined {
+  const normalizedValues = Array.from(
+    new Set(values.map((entry) => entry.trim()).filter(Boolean)),
+  ).sort((left, right) => left.localeCompare(right));
+
+  return normalizedValues.length > 0 ? normalizedValues.join(',') : undefined;
+}
