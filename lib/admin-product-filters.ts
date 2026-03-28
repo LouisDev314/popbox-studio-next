@@ -20,6 +20,13 @@ export interface IAdminProductListQueryParams {
   sort?: adminProductSort;
 }
 
+export const ADMIN_PRODUCT_STATUS_TABS: { label: string; value: productStatus | 'all' }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Draft', value: 'draft' },
+  { label: 'Active', value: 'active' },
+  { label: 'Archived', value: 'archived' },
+] as const;
+
 export const ADMIN_PRODUCT_TYPE_ITEMS = [
   { label: 'All types', value: 'all' },
   { label: 'Standard', value: 'standard' },
@@ -87,4 +94,47 @@ export function serializeAdminTagIdsParam(values: string[]): string | undefined 
   ).sort((left, right) => left.localeCompare(right));
 
   return normalizedValues.length > 0 ? normalizedValues.join(',') : undefined;
+}
+
+export function parseAdminProductStatusParam(value: SearchParamValue): productStatus | undefined {
+  const normalizedValue = getFirstParamValue(value);
+
+  if (normalizedValue === 'draft' || normalizedValue === 'active' || normalizedValue === 'archived') {
+    return normalizedValue;
+  }
+
+  return undefined;
+}
+
+export function buildAdminProductListQueryParams(
+  filters: IAdminProductListQueryParams,
+): IAdminProductListQueryParams {
+  return {
+    status: filters.status,
+    type: filters.type,
+    collectionId: filters.collectionId,
+    tagIds: filters.tagIds && filters.tagIds.length > 0 ? filters.tagIds : undefined,
+    sort: filters.sort,
+  };
+}
+
+export function buildAdminProductsQueryKey(filters: IAdminProductListQueryParams) {
+  return [
+    'admin',
+    'products',
+    filters.status ?? 'all',
+    filters.type ?? 'all',
+    filters.collectionId ?? 'all',
+    serializeAdminTagIdsParam(filters.tagIds ?? []) ?? 'all',
+    filters.sort ?? 'default',
+  ] as const;
+}
+
+export function hasActiveAdminProductRefinements(filters: IAdminProductListQueryParams): boolean {
+  return Boolean(
+    filters.type
+    || filters.collectionId
+    || (filters.tagIds && filters.tagIds.length > 0)
+    || filters.sort,
+  );
 }
