@@ -2,7 +2,7 @@ import type { ITag, productSort, productType } from '@/interfaces/product';
 import { TAG_TYPE_OPTIONS } from '@/lib/tag-types';
 
 const VALID_PRODUCT_TYPES = ['standard', 'kuji'] as const satisfies readonly productType[];
-const VALID_PRODUCT_SORTS = ['newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'] as const satisfies readonly productSort[];
+const VALID_PRODUCT_SORTS = ['trending', 'newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'] as const satisfies readonly productSort[];
 
 export const PRODUCT_TYPE_ITEMS = [
   { label: 'All Products', value: '' },
@@ -11,6 +11,7 @@ export const PRODUCT_TYPE_ITEMS = [
 ] as const;
 
 export const PRODUCT_SORT_ITEMS = [
+  { label: 'Trending', value: 'trending' },
   { label: 'Newest', value: 'newest' },
   { label: 'Price: Low to High', value: 'price_asc' },
   { label: 'Price: High to Low', value: 'price_desc' },

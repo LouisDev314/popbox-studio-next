@@ -33,7 +33,7 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
       <HomeProductSection
         title="Trending Now"
         products={trendingNow}
-        viewAllHref="/products"
+        viewAllHref="/products?sort=trending"
       />
 
       <HomeProductSection

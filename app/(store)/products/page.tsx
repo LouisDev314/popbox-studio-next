@@ -19,12 +19,20 @@ export async function generateMetadata(props: ProductsPageProps): Promise<Metada
   const searchParams = await props.searchParams;
   const rawCollection = getFirstParamValue(searchParams.collection)?.trim();
   const type = parseProductTypeParam(searchParams.type);
+  const sort = parseProductSortParam(searchParams.sort);
   const collection = rawCollection ? rawCollection : undefined;
 
   if (collection) {
     return {
       title: `${formatCollectionLabel(collection)} - PopBox Studio`,
       description: `Browse products in the ${formatCollectionLabel(collection)} collection.`,
+    };
+  }
+
+  if (sort === 'trending') {
+    return {
+      title: 'Trending Products - PopBox Studio',
+      description: 'Browse the products trending now at PopBox Studio.',
     };
   }
 

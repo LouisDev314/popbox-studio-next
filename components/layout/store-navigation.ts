@@ -6,15 +6,17 @@ export interface IStoreCollectionNavItem {
   label: string;
 }
 
-export type TTopLevelNavKey = 'show-all' | 'featured' | 'kuji' | 'standard' | 'collections';
+export type TTopLevelNavKey = 'show-all' | 'featured' | 'trending' | 'kuji' | 'standard' | 'collections';
 
 type TStorefrontSearchParamReader = Pick<URLSearchParams, 'get'>;
 
 export const FEATURED_NAV_HREF = '/collections/featured';
+export const TRENDING_NAV_HREF = '/products?sort=trending';
 
 export const DESKTOP_PRIMARY_NAV_ITEMS = [
   { key: 'show-all', href: '/products', label: 'Show All' },
   { key: 'featured', href: FEATURED_NAV_HREF, label: 'Featured' },
+  { key: 'trending', href: TRENDING_NAV_HREF, label: 'Trending' },
   { key: 'kuji', href: '/products?type=kuji', label: 'Ichiban Kuji' },
   { key: 'standard', href: '/products?type=standard', label: 'Anime Merchandise' },
 ] as const;
@@ -31,6 +33,12 @@ export const MOBILE_PRIMARY_NAV_ITEMS = [
     label: 'Featured',
     href: FEATURED_NAV_HREF,
     description: 'Browse the featured storefront drops already highlighted on the home page.',
+  },
+  {
+    key: 'trending',
+    label: 'Trending',
+    href: TRENDING_NAV_HREF,
+    description: 'Browse the backend-ranked products trending across the storefront right now.',
   },
   {
     key: 'kuji',
@@ -59,15 +67,19 @@ function getCollectionSlugFromHref(href: string) {
   return decodeURIComponent(href.replace('/collections/', ''));
 }
 
-function isFeaturedNavActive(pathname: string, searchParams: TStorefrontSearchParamReader) {
-  const featuredCollectionSlug = getCollectionSlugFromHref(FEATURED_NAV_HREF);
+function isNavHrefActive(
+  href: string,
+  pathname: string,
+  searchParams: TStorefrontSearchParamReader,
+) {
+  const targetCollectionSlug = getCollectionSlugFromHref(href);
 
-  if (featuredCollectionSlug) {
-    return pathname === `/collections/${featuredCollectionSlug}` || searchParams.get('collection') === featuredCollectionSlug;
+  if (targetCollectionSlug) {
+    return pathname === `/collections/${targetCollectionSlug}` || searchParams.get('collection') === targetCollectionSlug;
   }
 
-  const [featuredPathname, queryString] = FEATURED_NAV_HREF.split('?');
-  if (pathname !== featuredPathname) {
+  const [targetPathname, queryString] = href.split('?');
+  if (pathname !== normalizeStorefrontPathname(targetPathname)) {
     return false;
   }
 
@@ -90,7 +102,7 @@ export function getActiveTopLevelNavKey(
   const currentCollectionSlug = searchParams.get('collection');
   const currentType = searchParams.get('type');
 
-  if (isFeaturedNavActive(normalizedPathname, searchParams)) {
+  if (isNavHrefActive(FEATURED_NAV_HREF, normalizedPathname, searchParams)) {
     return 'featured';
   }
 
@@ -104,6 +116,10 @@ export function getActiveTopLevelNavKey(
 
   if (normalizedPathname !== '/products') {
     return null;
+  }
+
+  if (isNavHrefActive(TRENDING_NAV_HREF, normalizedPathname, searchParams)) {
+    return 'trending';
   }
 
   if (currentType === 'kuji') {
@@ -134,15 +150,7 @@ export function isStoreNavItemActive(
   searchParams: TStorefrontSearchParamReader,
   href: string,
 ) {
-  const normalizedPathname = normalizeStorefrontPathname(pathname);
-  const targetCollectionSlug = getCollectionSlugFromHref(href);
-  const currentCollectionSlug = searchParams.get('collection');
-
-  if (targetCollectionSlug) {
-    return normalizedPathname === `/collections/${targetCollectionSlug}` || currentCollectionSlug === targetCollectionSlug;
-  }
-
-  return false;
+  return isNavHrefActive(href, normalizeStorefrontPathname(pathname), searchParams);
 }
 
 export function mapCollectionToNavItem(collection: ICollection): IStoreCollectionNavItem {
