@@ -2,15 +2,16 @@
 
 import { type CSSProperties } from 'react';
 import Link from 'next/link';
-import { ReadonlyURLSearchParams, usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
 import {
+  FEATURED_NAV_HREF,
+  getActiveTopLevelNavKey,
   IStoreCollectionNavItem,
   MOBILE_PRIMARY_NAV_ITEMS,
+  isStoreNavItemActive,
 } from '@/components/layout/store-navigation';
 import { cn } from '@/lib/utils';
-
-const LISTING_FILTER_PARAM_KEYS = ['sort', 'tag', 'type'] as const;
 
 interface IMobileMenuPanelProps {
   collectionNavItems: IStoreCollectionNavItem[];
@@ -18,107 +19,96 @@ interface IMobileMenuPanelProps {
   onNavigate: () => void;
 }
 
-function isMenuItemActive(pathname: string, currentSearchParams: ReadonlyURLSearchParams, href: string) {
-  const [hrefPathname, hrefQueryString] = href.split('?');
-
-  if (pathname !== hrefPathname) {
-    return false;
-  }
-
-  const targetSearchParams = new URLSearchParams(hrefQueryString ?? '');
-
-  if ([...targetSearchParams.keys()].length === 0) {
-    return [...currentSearchParams.keys()].length === 0;
-  }
-
-  for (const [key, value] of targetSearchParams.entries()) {
-    if (currentSearchParams.get(key) !== value) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function buildListingHref(href: string, currentSearchParams: ReadonlyURLSearchParams) {
-  const [hrefPathname, hrefQueryString = ''] = href.split('?');
-  const isListingPath = hrefPathname === '/products' || hrefPathname.startsWith('/collections/');
-
-  if (!isListingPath) {
-    return href;
-  }
-
-  const nextSearchParams = new URLSearchParams(hrefQueryString);
-
-  for (const key of LISTING_FILTER_PARAM_KEYS) {
-    if (nextSearchParams.has(key)) {
-      continue;
-    }
-
-    const currentValues = currentSearchParams.getAll(key);
-
-    for (const value of currentValues) {
-      nextSearchParams.append(key, value);
-    }
-  }
-
-  const nextQueryString = nextSearchParams.toString();
-  return nextQueryString ? `${hrefPathname}?${nextQueryString}` : hrefPathname;
-}
-
 export function MobileMenuPanel(props: IMobileMenuPanelProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const menuItems = [...MOBILE_PRIMARY_NAV_ITEMS, ...props.collectionNavItems];
-  const currentTypeParam = searchParams.get('type');
-  const currentCollectionParam = searchParams.get('collection');
+  const activeTopLevelNavKey = getActiveTopLevelNavKey(pathname, searchParams);
+  const isCollectionsActive = activeTopLevelNavKey === 'collections';
+  const collectionMenuItems = props.collectionNavItems.filter((item) => item.href !== FEATURED_NAV_HREF);
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden border border-border/70 bg-background shadow-[0_32px_72px_-40px_hsl(var(--foreground)/0.58)]">
-
       <nav className="flex-1 overflow-y-auto px-4 py-4 mb-4">
-        <div className="space-y-3">
-          {menuItems.map((item, index) => {
-            const targetCollectionSlug = item.href.startsWith('/collections/')
-              ? decodeURIComponent(item.href.replace('/collections/', ''))
-              : null;
-            const isCollectionItem = Boolean(targetCollectionSlug);
-            const targetTypeParam = new URLSearchParams(item.href.split('?')[1] ?? '').get('type');
-            const isActive = isCollectionItem
-              ? pathname === `/collections/${targetCollectionSlug}` ||
-                (pathname === '/products' && currentCollectionParam === targetCollectionSlug)
-              : !targetTypeParam
-                ? isMenuItemActive(pathname, searchParams, item.href)
-                : !currentCollectionParam &&
-                  Boolean(targetTypeParam) &&
-                  pathname === '/products' &&
-                  currentTypeParam === targetTypeParam;
-            const itemStyle: CSSProperties = {
-              transitionDelay: props.isOpen ? `${index * 55}ms` : '0ms',
-            };
+        <div className="space-y-6">
+          <div className="space-y-3">
+            {MOBILE_PRIMARY_NAV_ITEMS.map((item, index) => {
+              const isActive = activeTopLevelNavKey === item.key;
+              const itemStyle: CSSProperties = {
+                transitionDelay: props.isOpen ? `${index * 55}ms` : '0ms',
+              };
 
-            return (
-              <Link
-                key={item.href}
-                href={buildListingHref(item.href, searchParams)}
-                style={itemStyle}
-                className={cn(
-                  'group flex items-center justify-between rounded-[26px] border px-4 py-4 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                  props.isOpen ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0',
-                  isActive
-                    ? 'border-primary/40 bg-primary/12 shadow-[0_18px_38px_-30px_hsl(var(--foreground)/0.45)]'
-                    : 'border-border/70 bg-gradient-to-br from-background to-muted/45 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/60',
-                )}
-                onClick={props.onNavigate}
-              >
-                <div className="min-w-0">
-                  <p className="text-base font-semibold text-foreground">{item.label}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-                </div>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={itemStyle}
+                  className={cn(
+                    'group flex items-center justify-between rounded-[26px] border px-4 py-4 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    props.isOpen ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0',
+                    isActive
+                      ? 'border-primary/40 bg-primary/12 shadow-[0_18px_38px_-30px_hsl(var(--foreground)/0.45)]'
+                      : 'border-border/70 bg-gradient-to-br from-background to-muted/45 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/60',
+                  )}
+                  onClick={props.onNavigate}
+                >
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold text-foreground">{item.label}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
+                </Link>
+              );
+            })}
+          </div>
+
+          {collectionMenuItems.length > 0 ? (
+            <div className="space-y-3 border-t border-border/60 pt-4">
+              <div className="px-1">
+                <p
+                  className={cn(
+                    'text-sm font-semibold tracking-tight',
+                    isCollectionsActive ? 'text-primary' : 'text-foreground',
+                  )}
+                >
+                  All Collections
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Browse every collection in a simple list on mobile.
+                </p>
+              </div>
+              <div className="space-y-2">
+                {collectionMenuItems.map((item, index) => {
+                  const isActive = isStoreNavItemActive(pathname, searchParams, item.href);
+                  const itemStyle: CSSProperties = {
+                    transitionDelay: props.isOpen
+                      ? `${(MOBILE_PRIMARY_NAV_ITEMS.length + index) * 55}ms`
+                      : '0ms',
+                  };
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      style={itemStyle}
+                      className={cn(
+                        'flex items-center justify-between gap-3 rounded-2xl px-4 py-3 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                        props.isOpen ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0',
+                        isActive
+                          ? 'bg-primary/12 text-foreground'
+                          : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                      )}
+                      onClick={props.onNavigate}
+                    >
+                      <span className="min-w-0 text-sm font-medium leading-snug break-words">
+                        {item.label}
+                      </span>
+                      <ArrowUpRight className="h-4 w-4 shrink-0" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
       </nav>
 

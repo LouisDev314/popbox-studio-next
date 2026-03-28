@@ -2,12 +2,7 @@
 
 import { Suspense, type FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
-import {
-  ReadonlyURLSearchParams,
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Heart, Search, ShoppingBag } from 'lucide-react';
 import { CartDrawer } from '@/components/cart/cart-drawer';
 import { MobileMenuPanel } from '@/components/layout/mobile-menu-panel';
@@ -15,8 +10,19 @@ import { MobileNavOverlay } from '@/components/layout/mobile-nav-overlay';
 import { MobileSearchPanel } from '@/components/layout/mobile-search-panel';
 import {
   DESKTOP_PRIMARY_NAV_ITEMS,
+  FEATURED_NAV_HREF,
+  getActiveTopLevelNavKey,
   IStoreCollectionNavItem,
+  isStoreNavItemActive,
 } from '@/components/layout/store-navigation';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from '@/components/ui/navigation-menu';
 import { WishlistDrawer } from '@/components/wishlist/wishlist-drawer';
 import QueryConfigs from '@/configs/api/query-config';
 import { useCartStore } from '@/hooks/use-cart';
@@ -34,40 +40,6 @@ const MOBILE_CART_BUTTON_ID = 'store-mobile-cart-trigger';
 const MOBILE_MENU_BUTTON_ID = 'store-mobile-menu-trigger';
 const MOBILE_SEARCH_BUTTON_ID = 'store-mobile-search-trigger';
 const MOBILE_SEARCH_INPUT_ID = 'store-mobile-search-input';
-const LISTING_FILTER_PARAM_KEYS = ['sort', 'tag', 'type'] as const;
-
-function buildListingHref(
-  href: string,
-  currentSearchParams: URLSearchParams | ReadonlyURLSearchParams,
-) {
-  const [pathname, queryString = ''] = href.split('?');
-  const isListingPath = pathname === '/products' || pathname.startsWith('/collections/');
-
-  if (!isListingPath) {
-    return href;
-  }
-
-  const nextSearchParams = new URLSearchParams(queryString);
-
-  for (const key of LISTING_FILTER_PARAM_KEYS) {
-    if (nextSearchParams.has(key)) {
-      continue;
-    }
-
-    const currentValues = currentSearchParams.getAll(key);
-
-    for (const value of currentValues) {
-      nextSearchParams.append(key, value);
-    }
-  }
-
-  const nextQueryString = nextSearchParams.toString();
-  return nextQueryString ? `${pathname}?${nextQueryString}` : pathname;
-}
-
-function isShopAllNavActive(pathname: string, searchParams: URLSearchParams | ReadonlyURLSearchParams) {
-  return pathname === '/products' && [...searchParams.keys()].length === 0;
-}
 
 interface IStoreHeaderActionsProps {
   hasCartHydrated: boolean;
@@ -84,6 +56,19 @@ interface IStoreHeaderActionsProps {
 
 interface IStoreHeaderClientProps {
   collectionNavItems: IStoreCollectionNavItem[];
+}
+
+function getDesktopNavItemClassName(isActive: boolean, isTrigger = false) {
+  return cn(
+    'inline-flex h-9 items-center rounded-full px-3 py-2 text-sm font-medium tracking-tight transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+    isActive
+      ? 'bg-primary/60 text-primary-foreground shadow-[0_10px_24px_-20px_hsl(var(--foreground)/0.55)] hover:bg-primary/60 focus:bg-primary/60'
+      : 'text-muted-foreground hover:bg-primary/60 hover:text-foreground',
+    isTrigger &&
+      (isActive
+        ? 'data-popup-open:bg-primary/60 data-popup-open:text-primary-foreground data-open:bg-primary/60 data-open:text-primary-foreground data-open:focus:bg-primary/60'
+        : 'hover:bg-muted hover:text-foreground data-popup-open:bg-muted data-popup-open:text-foreground data-open:bg-muted data-open:text-foreground data-open:focus:bg-muted'),
+  );
 }
 
 function StoreHeaderActions(props: IStoreHeaderActionsProps) {
@@ -201,40 +186,15 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
   const autocompleteSuggestions = shouldFetchAutocomplete
     ? autocompleteResponse?.data?.data?.items ?? []
     : [];
-  const currentTypeParam = searchParams.get('type');
-  const currentCollectionParam = searchParams.get('collection');
-  const desktopNavItems = [
-    ...DESKTOP_PRIMARY_NAV_ITEMS.map((item) => {
-      const targetTypeParam = new URLSearchParams(item.href.split('?')[1] ?? '').get('type');
-
-      return {
-        href: item.href,
-        label: item.label,
-        isActive:
-          item.href === '/products'
-            ? isShopAllNavActive(pathname, searchParams)
-            : !currentCollectionParam &&
-              Boolean(targetTypeParam) &&
-              currentTypeParam === targetTypeParam &&
-              pathname === '/products',
-      };
-    }),
-    ...props.collectionNavItems.map((item) => {
-      const targetCollectionSlug = item.href.startsWith('/collections/')
-        ? decodeURIComponent(item.href.replace('/collections/', ''))
-        : null;
-
-      return {
-        href: item.href,
-        label: item.label,
-        isActive:
-          (Boolean(targetCollectionSlug) && pathname === `/collections/${targetCollectionSlug}`) ||
-          (pathname === '/products' &&
-            Boolean(targetCollectionSlug) &&
-            currentCollectionParam === targetCollectionSlug),
-      };
-    }),
-  ];
+  const activeTopLevelNavKey = getActiveTopLevelNavKey(pathname, searchParams);
+  const desktopNavItems = DESKTOP_PRIMARY_NAV_ITEMS.map((item) => ({
+    key: item.key,
+    href: item.href,
+    label: item.label,
+    isActive: activeTopLevelNavKey === item.key,
+  }));
+  const isCollectionsActive = activeTopLevelNavKey === 'collections';
+  const collectionMenuItems = props.collectionNavItems.filter((item) => item.href !== FEATURED_NAV_HREF);
 
   useEffect(() => {
     if (!isSearchOpen) {
@@ -334,24 +294,58 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
               <Link href="/" className="truncate font-bold tracking-tight text-primary text-lg sm:text-xl">
                 PopBox Studio
               </Link>
-              <nav className="hidden md:flex md:items-center md:space-x-3" aria-label="Primary">
+              <nav className="hidden md:flex md:items-center md:gap-2" aria-label="Primary">
                 {desktopNavItems.map((item) => (
                   <Link
                     key={item.href}
-                    href={buildListingHref(item.href, searchParams)}
+                    href={item.href}
                     aria-current={item.isActive ? 'page' : undefined}
-                    className={cn(
-                      'group relative inline-flex items-center rounded-full px-3 py-2 text-sm font-medium tracking-tight transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98]',
-                      item.isActive
-                        ? 'bg-primary/60 text-foreground shadow-[0_10px_24px_-20px_hsl(var(--foreground)/0.55)]'
-                        : 'text-muted-foreground hover:-translate-y-px hover:bg-primary/60 hover:text-foreground',
-                    )}
+                    className={getDesktopNavItemClassName(item.isActive)}
                   >
-                    <span className={cn('relative z-10', item.isActive ? 'font-semibold' : '')}>
-                      {item.label}
-                    </span>
+                    <span className={cn(item.isActive && 'font-semibold')}>{item.label}</span>
                   </Link>
                 ))}
+                {collectionMenuItems.length > 0 ? (
+                  <NavigationMenu align="start" className="flex-none">
+                    <NavigationMenuList>
+                      <NavigationMenuItem>
+                        <NavigationMenuTrigger
+                          className={cn(
+                            getDesktopNavItemClassName(isCollectionsActive, true),
+                            'gap-1.5',
+                          )}
+                          aria-current={isCollectionsActive ? 'page' : undefined}
+                        >
+                          <span className={cn(isCollectionsActive && 'font-semibold')}>All Collections</span>
+                        </NavigationMenuTrigger>
+                        <NavigationMenuContent className="p-0">
+                          <div className="grid max-h-[min(70vh,24rem)] w-[min(52rem,calc(100vw-2rem))] gap-1 overflow-y-auto p-2 sm:grid-cols-2 lg:grid-cols-3">
+                            {collectionMenuItems.map((item) => {
+                              const isActive = isStoreNavItemActive(pathname, searchParams, item.href);
+
+                              return (
+                                <NavigationMenuLink
+                                  key={item.href}
+                                  active={isActive}
+                                  aria-current={isActive ? 'page' : undefined}
+                                  render={<Link href={item.href} />}
+                                  className={cn(
+                                    'min-h-12 items-start px-3 py-2.5',
+                                    isActive && 'bg-primary/60 text-primary-foreground',
+                                  )}
+                                >
+                                  <span className="text-sm font-medium leading-snug break-words">
+                                    {item.label}
+                                  </span>
+                                </NavigationMenuLink>
+                              );
+                            })}
+                          </div>
+                        </NavigationMenuContent>
+                      </NavigationMenuItem>
+                    </NavigationMenuList>
+                  </NavigationMenu>
+                ) : null}
               </nav>
             </div>
 
