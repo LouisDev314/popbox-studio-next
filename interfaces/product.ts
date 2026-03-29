@@ -202,4 +202,34 @@ export interface IAdminProductInventoryUpdate {
   lowStockThreshold: number;
 }
 
+export interface IAdminCollectionCreateRequest {
+  name: string;
+  slug: string;
+  description: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export type IAdminCollectionUpdateRequest = Partial<IAdminCollectionCreateRequest>;
+
+export interface IAdminTagCreateRequest {
+  name: string;
+  slug: string;
+  tagType: string;
+}
+
+export type IAdminTagUpdateRequest = Partial<IAdminTagCreateRequest>;
+
+export interface IAdminKujiPrizeCreateRequest {
+  prizeCode: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  initialQuantity: number;
+  remainingQuantity: number;
+  sortOrder: number;
+}
+
+export type IAdminKujiPrizeUpdateRequest = Partial<IAdminKujiPrizeCreateRequest>;
+
 export type IAdminProductImageUploadResponse = IAdminProductImageUpload | IAdminProductImageUpload[];

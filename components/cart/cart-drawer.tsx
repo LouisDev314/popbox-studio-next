@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ShoppingBag, Trash2, X } from 'lucide-react';
 import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-lock-overlay';
 import { CheckoutButton } from '@/components/cart/checkout-button';
+import { InvalidCartItems } from '@/components/cart/invalid-cart-items';
 import { Button } from '@/components/ui/button';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { StorefrontImage } from '@/components/ui/storefront-image';
@@ -24,9 +25,11 @@ export function CartDrawer(props: ICartDrawerProps) {
   const onClose = props.onClose;
   const triggerButtonId = props.triggerButtonId;
   const router = useRouter();
+  const invalidItems = useCartStore((state) => state.invalidItems);
   const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
   const removeItem = useCartStore((state) => state.removeItem);
+  const removeInvalidItem = useCartStore((state) => state.removeInvalidItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const getCartSummary = useCartStore((state) => state.getCartSummary);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -34,6 +37,7 @@ export function CartDrawer(props: ICartDrawerProps) {
   const cartSummary = getCartSummary();
   const hasHydrated = useCartStore((state) => state.hasHydrated);
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
+  const totalItems = cartSummary.totalItems + invalidItems.reduce((count, item) => count + item.quantity, 0);
 
   useEffect(() => {
     if (!isOpen) {
@@ -102,7 +106,7 @@ export function CartDrawer(props: ICartDrawerProps) {
         <div className="flex items-center justify-between border-b border-border/70 px-5 py-4 sm:px-6">
           <h2 id={titleId} className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
             <ShoppingBag className="h-5 w-5" />
-            Cart {hasHydrated && cartSummary.totalItems > 0 && `(${cartSummary.totalItems})`}
+            Cart {hasHydrated && totalItems > 0 && `(${totalItems})`}
           </h2>
           <Button
             ref={closeButtonRef}
@@ -128,7 +132,7 @@ export function CartDrawer(props: ICartDrawerProps) {
                   <div className="h-24 rounded-3xl bg-muted/35" />
                   <div className="h-24 rounded-3xl bg-muted/25" />
                 </div>
-              ) : items.length === 0 ? (
+              ) : items.length === 0 && invalidItems.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center rounded-[2rem] border border-dashed border-border/70 bg-card/70 px-8 py-12 text-center">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted/60">
                     <ShoppingBag className="h-7 w-7 text-muted-foreground" />
@@ -140,6 +144,12 @@ export function CartDrawer(props: ICartDrawerProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  <InvalidCartItems
+                    compact={true}
+                    disabled={isCheckingOut}
+                    items={invalidItems}
+                    onRemove={removeInvalidItem}
+                  />
                   {items.map((item) => (
                     <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card/80 p-4 shadow-sm">
                       {(() => {

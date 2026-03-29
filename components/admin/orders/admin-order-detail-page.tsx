@@ -23,8 +23,12 @@ import {
   IShipment,
 } from '@/interfaces/order';
 import LastOnePrizeBadge from '@/components/admin/orders/last-one-prize-badge';
-import { toNullableText } from '@/utils/admin';
-import { getAdminOrderId } from '@/utils/admin-order';
+import {
+  buildRefundPayload,
+  buildShipmentUpdatePayload,
+  getAdminOrderId,
+  type IShipmentFormValues,
+} from '@/utils/admin-order';
 
 const STATUS_CONFIG: Record<IOrderStatus, { label: string; bg: string; text: string }> = {
   pending_payment: { label: 'Pending Payment', bg: 'bg-yellow-100', text: 'text-yellow-800' },
@@ -37,15 +41,9 @@ const STATUS_CONFIG: Record<IOrderStatus, { label: string; bg: string; text: str
   expired: { label: 'Expired', bg: 'bg-gray-100', text: 'text-gray-500' },
 };
 
-interface IShipmentFormState {
-  carrierName: string;
-  trackingNumber: string;
-  trackingUrl: string;
-}
-
 type ShipmentActionMode = 'ship' | 'edit';
 
-function createShipmentForm(shipment: IShipment | null): IShipmentFormState {
+function createShipmentForm(shipment: IShipment | null): IShipmentFormValues {
   return {
     carrierName: shipment?.carrierName || '',
     trackingNumber: shipment?.trackingNumber || '',
@@ -63,7 +61,7 @@ function StatusBadge({ status }: { status: IOrderStatus }) {
 }
 
 type OrderActionFeedback = {
-  type: 'success' | 'error';
+  type: 'error' | 'info' | 'success';
   message: string;
 };
 
@@ -104,42 +102,14 @@ function getAdminOrderActionSuccessMessage(
   return response.message?.trim() || fallbackMessage;
 }
 
-function buildShipmentUpdatePayload(
-  shipmentForm: IShipmentFormState,
-  shipment: IShipment | null,
-): IAdminOrderShipmentUpdate {
-  const nextCarrierName = toNullableText(shipmentForm.carrierName);
-  const nextTrackingNumber = toNullableText(shipmentForm.trackingNumber);
-  const nextTrackingUrl = toNullableText(shipmentForm.trackingUrl);
-  const payload: IAdminOrderShipmentUpdate = {};
-
-  if (nextCarrierName !== (shipment?.carrierName ?? null)) {
-    payload.carrierName = nextCarrierName;
-  }
-
-  if (nextTrackingNumber !== (shipment?.trackingNumber ?? null)) {
-    payload.trackingNumber = nextTrackingNumber;
-  }
-
-  if (nextTrackingUrl !== (shipment?.trackingUrl ?? null)) {
-    payload.trackingUrl = nextTrackingUrl;
-  }
-
-  return payload;
-}
-
-function buildRefundPayload(refundReason: string): IAdminOrderRefundRequest {
-  const normalizedReason = toNullableText(refundReason);
-
-  return normalizedReason ? { reason: normalizedReason } : {};
-}
-
 function OrderActionFeedbackBanner({ feedback }: { feedback: OrderActionFeedback }) {
   return (
     <div
       className={`rounded-lg border px-3 py-2 text-sm ${
         feedback.type === 'success'
           ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+          : feedback.type === 'info'
+            ? 'border-sky-200 bg-sky-50 text-sky-900'
           : 'border-red-200 bg-red-50 text-red-900'
       }`}
       role={feedback.type === 'error' ? 'alert' : 'status'}
@@ -424,10 +394,10 @@ function OrderSidebar({
 interface IShipmentDialogProps {
   isOpen: boolean;
   mode: ShipmentActionMode;
-  shipmentForm: IShipmentFormState;
+  shipmentForm: IShipmentFormValues;
   isPending: boolean;
   onOpenChange: (open: boolean) => void;
-  onShipmentFormChange: (form: IShipmentFormState) => void;
+  onShipmentFormChange: (form: IShipmentFormValues) => void;
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -565,7 +535,7 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
   const queryClient = useQueryClient();
   const [isShipmentDialogOpen, setIsShipmentDialogOpen] = useState(false);
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
-  const [shipmentForm, setShipmentForm] = useState<IShipmentFormState>(createShipmentForm(null));
+  const [shipmentForm, setShipmentForm] = useState<IShipmentFormValues>(createShipmentForm(null));
   const [refundReason, setRefundReason] = useState('Customer Request');
   const [actionFeedback, setActionFeedback] = useState<OrderActionFeedback | null>(null);
 
@@ -705,9 +675,19 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
       return;
     }
 
+    const shipmentPayload = buildShipmentUpdatePayload(shipmentForm, order.shipment);
+
+    if (Object.keys(shipmentPayload).length === 0) {
+      setActionFeedback({
+        type: 'info',
+        message: 'No shipment changes to save.',
+      });
+      return;
+    }
+
     updateShipment({
       adminOrderId: nextAdminOrderId,
-      data: buildShipmentUpdatePayload(shipmentForm, order.shipment),
+      data: shipmentPayload,
     });
   };
 

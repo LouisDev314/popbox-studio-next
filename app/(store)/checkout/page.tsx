@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/hooks/use-cart';
 
 export default function CheckoutPage() {
+  const invalidItems = useCartStore((state) => state.invalidItems);
   const items = useCartStore((state) => state.items);
+  const cartItemCount = items.length + invalidItems.length;
   const isHydrated = useSyncExternalStore(
     () => () => undefined,
     () => true,
@@ -22,7 +24,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!items.length) {
+  if (!cartItemCount) {
     return (
       <div className="container mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold mb-4">Your cart is empty</h1>
@@ -42,6 +44,11 @@ export default function CheckoutPage() {
           Stripe handles the payment form, shipping details, and final confirmation. If you returned from a canceled
           payment attempt, your cart is still saved and you can retry below or head back to your cart first.
         </p>
+        {invalidItems.length > 0 ? (
+          <p className="mt-4 text-sm font-medium text-destructive">
+            Some saved cart items need attention before checkout. Return to your cart and remove them first.
+          </p>
+        ) : null}
 
         <CheckoutButton
           size="lg"

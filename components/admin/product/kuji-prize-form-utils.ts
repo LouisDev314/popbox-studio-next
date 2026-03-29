@@ -1,4 +1,9 @@
-import { IKujiPrize } from '@/interfaces/product';
+import { type IApiValidationErrors } from '@/interfaces/api-response';
+import {
+  type IAdminKujiPrizeCreateRequest,
+  type IAdminKujiPrizeUpdateRequest,
+  IKujiPrize,
+} from '@/interfaces/product';
 import { type KujiPrizeCode, parseKujiPrizeCode } from '@/lib/kuji-prize-codes';
 
 export type EditableKujiPrizeField = keyof Pick<
@@ -171,7 +176,7 @@ export function validateKujiPrizeFormData(
 
 export function buildKujiPrizeCreatePayload(
   formData: NormalizedKujiPrizeFormData,
-): Pick<IKujiPrize, EditableKujiPrizeField> {
+): IAdminKujiPrizeCreateRequest {
   if (
     formData.prizeCode === null ||
     formData.initialQuantity === null ||
@@ -195,9 +200,9 @@ export function buildKujiPrizeCreatePayload(
 export function buildKujiPrizeUpdatePayload(
   prize: IKujiPrize,
   formData: NormalizedKujiPrizeFormData,
-): Partial<Pick<IKujiPrize, EditableKujiPrizeField>> {
+): IAdminKujiPrizeUpdateRequest {
   const originalPrize = normalizePrizeForComparison(prize);
-  const payload: Partial<Pick<IKujiPrize, EditableKujiPrizeField>> = {};
+  const payload: IAdminKujiPrizeUpdateRequest = {};
 
   if (formData.prizeCode !== null && formData.prizeCode !== originalPrize.prizeCode) {
     payload.prizeCode = formData.prizeCode;
@@ -230,40 +235,95 @@ export function buildKujiPrizeUpdatePayload(
   return payload;
 }
 
-export function mapKujiPrizeServerValidationErrors(message: string): KujiPrizeFieldErrors {
-  const normalizedMessage = message.toLowerCase();
+function collectValidationEntries(
+  value: IApiValidationErrors,
+  path = '',
+): Array<{ message: string; path: string }> {
+  if (typeof value === 'string') {
+    return [{ message: value, path }];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((entry, index) => (
+      collectValidationEntries(entry, path ? `${path}[${index}]` : `[${index}]`)
+    ));
+  }
+
+  return Object.entries(value).flatMap(([key, entry]) => (
+    collectValidationEntries(entry, path ? `${path}.${key}` : key)
+  ));
+}
+
+export function mapKujiPrizeServerValidationErrors(
+  value: IApiValidationErrors | string | undefined,
+): KujiPrizeFieldErrors {
+  const entries = typeof value === 'string'
+    ? [{ message: value, path: '' }]
+    : value
+      ? collectValidationEntries(value)
+      : [];
   const errors: KujiPrizeFieldErrors = {};
 
-  if (normalizedMessage.includes('prize code') || normalizedMessage.includes('prizecode')) {
-    errors.prizeCode = message;
-  }
+  for (const entry of entries) {
+    const normalizedMessage = entry.message.toLowerCase();
+    const normalizedPath = entry.path.toLowerCase();
 
-  if (normalizedMessage.includes('image url') || normalizedMessage.includes('imageurl')) {
-    errors.imageUrl = message;
-  }
+    if (
+      normalizedPath.includes('prizecode')
+      || normalizedPath.includes('prize_code')
+      || normalizedMessage.includes('prize code')
+      || normalizedMessage.includes('prizecode')
+    ) {
+      errors.prizeCode = entry.message;
+    }
 
-  if (normalizedMessage.includes('initial quantity') || normalizedMessage.includes('initialquantity')) {
-    errors.initialQuantity = message;
-  }
+    if (
+      normalizedPath.includes('imageurl')
+      || normalizedPath.includes('image_url')
+      || normalizedMessage.includes('image url')
+      || normalizedMessage.includes('imageurl')
+    ) {
+      errors.imageUrl = entry.message;
+    }
 
-  if (normalizedMessage.includes('remaining quantity') || normalizedMessage.includes('remainingquantity')) {
-    errors.remainingQuantity = message;
-  }
+    if (
+      normalizedPath.includes('initialquantity')
+      || normalizedPath.includes('initial_quantity')
+      || normalizedMessage.includes('initial quantity')
+      || normalizedMessage.includes('initialquantity')
+    ) {
+      errors.initialQuantity = entry.message;
+    }
 
-  if (normalizedMessage.includes('sort order') || normalizedMessage.includes('sortorder')) {
-    errors.sortOrder = message;
-  }
+    if (
+      normalizedPath.includes('remainingquantity')
+      || normalizedPath.includes('remaining_quantity')
+      || normalizedMessage.includes('remaining quantity')
+      || normalizedMessage.includes('remainingquantity')
+    ) {
+      errors.remainingQuantity = entry.message;
+    }
 
-  if (normalizedMessage.includes('description')) {
-    errors.description = message;
-  }
+    if (
+      normalizedPath.includes('sortorder')
+      || normalizedPath.includes('sort_order')
+      || normalizedMessage.includes('sort order')
+      || normalizedMessage.includes('sortorder')
+    ) {
+      errors.sortOrder = entry.message;
+    }
 
-  if (normalizedMessage.includes('name')) {
-    errors.name = message;
+    if (normalizedPath.includes('description') || normalizedMessage.includes('description')) {
+      errors.description = entry.message;
+    }
+
+    if (normalizedPath.includes('name') || normalizedMessage.includes('name')) {
+      errors.name = entry.message;
+    }
   }
 
   if (Object.keys(errors).length === 0) {
-    errors.form = message;
+    errors.form = entries[0]?.message ?? 'Failed to validate the prize payload.';
   }
 
   return errors;

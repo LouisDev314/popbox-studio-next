@@ -7,6 +7,10 @@ import {
   IAdminProduct,
   IAdminProductImagePatch,
   IAdminProductImageUploadResponse,
+  IAdminCollectionCreateRequest,
+  IAdminCollectionUpdateRequest,
+  IAdminKujiPrizeCreateRequest,
+  IAdminKujiPrizeUpdateRequest,
   IAdminProductStatusUpdate,
   IAdminProductCreate,
   IAdminProductUpdate,
@@ -14,6 +18,8 @@ import {
   IKujiPrize,
   ICollection,
   ITag,
+  IAdminTagCreateRequest,
+  IAdminTagUpdateRequest,
 } from '@/interfaces/product';
 import {
   IAdminFaqCreate,
@@ -76,25 +82,25 @@ const MutationConfigs = {
   deleteAdminProductImage: async ({ productId, imageId }: { productId: string; imageId: string }): Promise<AxiosResponse<IBaseApiResponse<void>>> => {
     return httpClient.delete(`/api/v1/admin/products/${productId}/images/${imageId}`, await withAdminAuth());
   },
-  createAdminProductKujiPrize: async ({ productId, data }: { productId: string; data: Partial<IKujiPrize> }): Promise<AxiosResponse<IBaseApiResponse<IKujiPrize>>> => {
+  createAdminProductKujiPrize: async ({ productId, data }: { productId: string; data: IAdminKujiPrizeCreateRequest }): Promise<AxiosResponse<IBaseApiResponse<IKujiPrize>>> => {
     return httpClient.post(`/api/v1/admin/products/${productId}/kuji-prizes`, data, await withAdminAuth());
   },
-  updateAdminProductKujiPrize: async ({ productId, prizeId, data }: { productId: string; prizeId: string; data: Partial<IKujiPrize> }): Promise<AxiosResponse<IBaseApiResponse<IKujiPrize>>> => {
+  updateAdminProductKujiPrize: async ({ productId, prizeId, data }: { productId: string; prizeId: string; data: IAdminKujiPrizeUpdateRequest }): Promise<AxiosResponse<IBaseApiResponse<IKujiPrize>>> => {
     return httpClient.patch(`/api/v1/admin/products/${productId}/kuji-prizes/${prizeId}`, data, await withAdminAuth());
   },
   deleteAdminProductKujiPrize: async ({ productId, prizeId }: { productId: string; prizeId: string }): Promise<AxiosResponse<IBaseApiResponse<void>>> => {
     return httpClient.delete(`/api/v1/admin/products/${productId}/kuji-prizes/${prizeId}`, await withAdminAuth());
   },
-  createAdminCollection: async (data: Partial<ICollection>): Promise<AxiosResponse<IBaseApiResponse<ICollection>>> => {
+  createAdminCollection: async (data: IAdminCollectionCreateRequest): Promise<AxiosResponse<IBaseApiResponse<ICollection>>> => {
     return httpClient.post('/api/v1/admin/collections', data, await withAdminAuth());
   },
-  updateAdminCollection: async ({ id, data }: { id: string; data: Partial<ICollection> }): Promise<AxiosResponse<IBaseApiResponse<ICollection>>> => {
+  updateAdminCollection: async ({ id, data }: { id: string; data: IAdminCollectionUpdateRequest }): Promise<AxiosResponse<IBaseApiResponse<ICollection>>> => {
     return httpClient.patch(`/api/v1/admin/collections/${id}`, data, await withAdminAuth());
   },
-  createAdminTag: async (data: Partial<ITag>): Promise<AxiosResponse<IBaseApiResponse<ITag>>> => {
+  createAdminTag: async (data: IAdminTagCreateRequest): Promise<AxiosResponse<IBaseApiResponse<ITag>>> => {
     return httpClient.post('/api/v1/admin/tags', data, await withAdminAuth());
   },
-  updateAdminTag: async ({ id, data }: { id: string; data: Partial<ITag> }): Promise<AxiosResponse<IBaseApiResponse<ITag>>> => {
+  updateAdminTag: async ({ id, data }: { id: string; data: IAdminTagUpdateRequest }): Promise<AxiosResponse<IBaseApiResponse<ITag>>> => {
     return httpClient.patch(`/api/v1/admin/tags/${id}`, data, await withAdminAuth());
   },
   updateAdminOrderStatus: async ({ adminOrderId, data }: { adminOrderId: string; data: IAdminOrderStatusUpdate }): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {

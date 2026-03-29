@@ -20,6 +20,10 @@ export interface ICheckoutRequest {
   items: ICheckoutItem[];
 }
 
+export type CheckoutValidationResult =
+  | { data: ICheckoutRequest; success: true }
+  | { issues: string[]; message: string; success: false };
+
 export interface ICheckoutSession {
   checkoutUrl: string;
   sessionId: string;

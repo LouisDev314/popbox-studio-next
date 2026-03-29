@@ -25,6 +25,8 @@ import { AxiosError } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button';
+import { getApiErrorDetails } from '@/utils/api-errors';
+import { normalizeContactRequestBody } from '@/utils/contact';
 
 const inquiryTypes = [
   'product-request',
@@ -130,11 +132,12 @@ export default function ContactPageClient() {
       toast.success('Your message has been sent.');
     },
     onError: (error: AxiosError<IBaseApiResponse>) => {
-      const errorMessage =
-        error.response?.data?.message ??
-        'Failed to send your message. Please try again.';
-
-      toast.error(errorMessage);
+      toast.error(
+        getApiErrorDetails(
+          error,
+          'Failed to send your message. Please try again.',
+        ).message,
+      );
     },
   });
 
@@ -168,7 +171,7 @@ export default function ContactPageClient() {
     inquiryType === 'ticket-support';
 
   function handleSubmitContact(values: ContactFormValues) {
-    sendContactEmail(values);
+    sendContactEmail(normalizeContactRequestBody(values));
   }
 
   return (

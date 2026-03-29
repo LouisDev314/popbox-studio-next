@@ -303,7 +303,11 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
       const status = error.response?.status;
 
       if (status === HttpStatusCode.BadRequest) {
-        setCreateErrors(mapKujiPrizeServerValidationErrors(message));
+        setCreateErrors(
+          mapKujiPrizeServerValidationErrors(
+            error.response?.data?.errors ?? message,
+          ),
+        );
         return;
       }
 

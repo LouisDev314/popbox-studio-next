@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ShoppingBag } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-lock-overlay';
+import { InvalidCartItems } from '@/components/cart/invalid-cart-items';
 import { CartPageItem } from '@/components/cart/cart-page-item';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { CheckoutButton } from '@/components/cart/checkout-button';
@@ -14,10 +15,13 @@ import { formatPrice } from '@/lib/utils';
 import { getProductCartLimitMessage, getProductSellableQuantity } from '@/utils/product-stock';
 
 export default function CartPage() {
+  const invalidItems = useCartStore((state) => state.invalidItems);
   const items = useCartStore((state) => state.items);
   const getCartSummary = useCartStore((state) => state.getCartSummary);
   const removeItem = useCartStore((state) => state.removeItem);
+  const removeInvalidItem = useCartStore((state) => state.removeInvalidItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const clearCart = useCartStore((state) => state.clearCart);
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
   const isHydrated = useSyncExternalStore(
     () => () => undefined,
@@ -42,7 +46,7 @@ export default function CartPage() {
     );
   }
 
-  if (items.length === 0) {
+  if (items.length === 0 && invalidItems.length === 0) {
     return (
       <div className="container mx-auto flex flex-1 px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-xl flex-col items-center rounded-4xl border border-dashed border-border/70 bg-card px-8 py-14 text-center shadow-sm">
@@ -83,6 +87,11 @@ export default function CartPage() {
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
             <section className="space-y-4" aria-label="Cart items">
+              <InvalidCartItems
+                disabled={isCheckingOut}
+                items={invalidItems}
+                onRemove={removeInvalidItem}
+              />
               {items.map((item) => (
                 (() => {
                   const quantityLimit = getProductSellableQuantity(item.product);
@@ -102,6 +111,18 @@ export default function CartPage() {
                   );
                 })()
               ))}
+
+              <div className="flex justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full px-5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  disabled={isCheckingOut}
+                  onClick={clearCart}
+                >
+                  Clear cart
+                </Button>
+              </div>
             </section>
 
             <div className="lg:sticky lg:top-24">

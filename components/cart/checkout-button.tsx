@@ -6,6 +6,7 @@ import { useStartCheckout } from '@/hooks/use-start-checkout';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
+import { getInvalidCartItemsCheckoutMessage } from '@/utils/checkout';
 
 interface ICheckoutButtonProps extends Omit<ComponentPropsWithoutRef<typeof Button>, 'onClick'> {
   label?: string;
@@ -21,8 +22,12 @@ export function CheckoutButton(props: ICheckoutButtonProps) {
     ...buttonProps
   } = props;
 
+  const invalidItems = useCartStore((state) => state.invalidItems);
   const items = useCartStore((state) => state.items);
-  const { isCheckingOut, isError, startCheckout } = useStartCheckout();
+  const { checkoutErrorMessage, isCheckingOut, startCheckout } = useStartCheckout();
+  const blockingMessage = invalidItems.length > 0
+    ? getInvalidCartItemsCheckoutMessage(invalidItems)
+    : checkoutErrorMessage;
 
   return (
     <div className="space-y-3">
@@ -30,7 +35,7 @@ export function CheckoutButton(props: ICheckoutButtonProps) {
         type="button"
         className={cn(className, 'gap-1.5')}
         aria-busy={isCheckingOut}
-        disabled={disabled || !items.length || isCheckingOut}
+        disabled={disabled || !items.length || invalidItems.length > 0 || isCheckingOut}
         onClick={startCheckout}
         {...buttonProps}
       >
@@ -38,9 +43,9 @@ export function CheckoutButton(props: ICheckoutButtonProps) {
         {isCheckingOut ? pendingLabel : label}
       </Button>
 
-      {isError ? (
-        <p className="text-sm font-medium text-destructive">
-          We couldn&apos;t start Checkout. Please review your cart or try again.
+      {blockingMessage ? (
+        <p className="text-sm font-medium text-destructive" role="alert">
+          {blockingMessage}
         </p>
       ) : null}
     </div>

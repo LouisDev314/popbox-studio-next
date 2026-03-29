@@ -166,7 +166,11 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
       const status = error.response?.status;
 
       if (status === HttpStatusCode.BadRequest) {
-        setErrors(mapKujiPrizeServerValidationErrors(message));
+        setErrors(
+          mapKujiPrizeServerValidationErrors(
+            error.response?.data?.errors ?? message,
+          ),
+        );
         return;
       }
 

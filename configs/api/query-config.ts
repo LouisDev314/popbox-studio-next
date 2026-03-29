@@ -25,6 +25,30 @@ function normalizeAdminFaqItems(
   return [];
 }
 
+export function buildProductsQueryParams({
+  collection,
+  pageParam,
+  sort,
+  tag,
+  type,
+}: {
+  pageParam?: string | unknown;
+  collection?: string;
+  tag?: string;
+  type?: productType;
+  sort?: productSort;
+}) {
+  const normalizedCursor = typeof pageParam === 'string' && pageParam.trim() ? pageParam : undefined;
+
+  return {
+    ...(collection ? { collection } : {}),
+    ...(normalizedCursor ? { cursor: normalizedCursor } : {}),
+    ...(sort ? { sort } : {}),
+    ...(tag ? { tag } : {}),
+    ...(type ? { type } : {}),
+  };
+}
+
 const QueryConfigs = {
   fetchProducts: async ({
     pageParam = undefined,
@@ -40,13 +64,13 @@ const QueryConfigs = {
     sort?: productSort;
   }): Promise<AxiosResponse<IBaseApiResponse<IProductListPage>>> => {
     return httpClient.get('/api/v1/products', {
-      params: {
-        cursor: pageParam ?? '',
+      params: buildProductsQueryParams({
         collection,
+        pageParam,
+        sort,
         tag,
         type,
-        sort,
-      },
+      }),
     });
   },
   fetchAutocomplete: (query: string): Promise<AxiosResponse<IBaseApiResponse<IProductSuggestionResponse>>> => {

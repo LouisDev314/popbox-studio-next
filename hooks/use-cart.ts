@@ -1,8 +1,22 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
-import { type ICartItem, type ICartProduct, type ICartSummary } from '@/interfaces/cart';
+import {
+  type CartIssueCode,
+  type ICartInvalidItem,
+  type ICartItem,
+  type ICartProduct,
+  type ICartSummary,
+} from '@/interfaces/cart';
 import { buildCartSummary } from '@/utils/cart';
+import {
+  CART_STORAGE_KEY,
+  CART_STORAGE_VERSION_NUMBER,
+  createCartStorage,
+  getCartIssueMessage,
+  normalizeCartPersistedState,
+  validateCartProduct,
+} from '@/utils/cart-storage';
 import {
   getProductSellableQuantity,
   getProductSoldOutMessage,
@@ -24,12 +38,18 @@ function isCartInteractionLocked(): boolean {
   return useCheckoutUiStore.getState().isCheckingOut;
 }
 
+function clearCheckoutError(): void {
+  useCheckoutUiStore.getState().clearCheckoutError();
+}
+
 interface ICartStore {
+  invalidItems: ICartInvalidItem[];
   items: ICartItem[];
   hasHydrated: boolean;
   setHasHydrated: (value: boolean) => void;
   addItem: (product: ICartProduct, quantity?: number) => ICartActionResult;
   removeItem: (cartItemId: string) => void;
+  removeInvalidItem: (cartItemId: string) => void;
   updateQuantity: (cartItemId: string, quantity: number) => ICartActionResult;
   clearCart: () => void;
   getCartSummary: () => ICartSummary;
@@ -71,9 +91,24 @@ function getUpdateErrorMessage(product: ICartProduct, currentQuantity: number): 
   return getRemainingQuantityMessage(product, sellableQuantity);
 }
 
+function inferProductIssueCode(product: unknown): CartIssueCode {
+  const parsedProduct = validateCartProduct(product);
+
+  if (parsedProduct.success) {
+    return 'invalid_cart_item';
+  }
+
+  return parsedProduct.error.issues.some((issue) => issue.path.join('.') === 'id')
+    ? 'invalid_product_id'
+    : 'missing_product_data';
+}
+
+type ICartPersistedState = Pick<ICartStore, 'invalidItems' | 'items'>;
+
 export const useCartStore = create<ICartStore>()(
   persist(
     (set, get) => ({
+      invalidItems: [],
       items: [],
       hasHydrated: false,
 
@@ -84,19 +119,29 @@ export const useCartStore = create<ICartStore>()(
       addItem: (product, quantity = 1) => {
         const normalizedQuantity = normalizeQuantity(quantity);
         let result: ICartActionResult = { message: null, success: true };
+        const parsedProduct = validateCartProduct(product);
+
+        if (!parsedProduct.success) {
+          return {
+            message: getCartIssueMessage(inferProductIssueCode(product)),
+            success: false,
+          };
+        }
 
         set((state) => {
+          clearCheckoutError();
+
           const existingItemIndex = state.items.findIndex(
-            (item) => item.product.id === product.id,
+            (item) => item.product.id === parsedProduct.data.id,
           );
 
           const currentQuantity = existingItemIndex > -1 ? state.items[existingItemIndex].quantity : 0;
-          const sellableQuantity = getProductSellableQuantity(product);
+          const sellableQuantity = getProductSellableQuantity(parsedProduct.data);
           const maxAddableQuantity = Math.max(0, sellableQuantity - currentQuantity);
 
           if (normalizedQuantity > maxAddableQuantity) {
             result = {
-              message: getAddErrorMessage(product, currentQuantity),
+              message: getAddErrorMessage(parsedProduct.data, currentQuantity),
               success: false,
             };
             return state;
@@ -104,7 +149,7 @@ export const useCartStore = create<ICartStore>()(
 
           if (existingItemIndex > -1) {
             const newItems = [...state.items];
-            newItems[existingItemIndex].product = product;
+            newItems[existingItemIndex].product = parsedProduct.data;
             newItems[existingItemIndex].quantity += normalizedQuantity;
             return { items: newItems };
           }
@@ -112,7 +157,11 @@ export const useCartStore = create<ICartStore>()(
           return {
             items: [
               ...state.items,
-              { id: crypto.randomUUID(), product, quantity: normalizedQuantity },
+              {
+                id: crypto.randomUUID(),
+                product: parsedProduct.data,
+                quantity: normalizedQuantity,
+              },
             ],
           };
         });
@@ -125,8 +174,22 @@ export const useCartStore = create<ICartStore>()(
           return;
         }
 
+        clearCheckoutError();
+
         set((state) => ({
           items: state.items.filter((item) => item.id !== cartItemId),
+        }));
+      },
+
+      removeInvalidItem: (cartItemId) => {
+        if (isCartInteractionLocked()) {
+          return;
+        }
+
+        clearCheckoutError();
+
+        set((state) => ({
+          invalidItems: state.invalidItems.filter((item) => item.id !== cartItemId),
         }));
       },
 
@@ -137,6 +200,8 @@ export const useCartStore = create<ICartStore>()(
 
         const normalizedQuantity = normalizeQuantity(quantity);
         let result: ICartActionResult = { message: null, success: true };
+
+        clearCheckoutError();
 
         set((state) => ({
           items: state.items.map((item) => {
@@ -166,7 +231,9 @@ export const useCartStore = create<ICartStore>()(
           return;
         }
 
-        set({ items: [] });
+        clearCheckoutError();
+
+        set({ items: [], invalidItems: [] });
       },
 
       getCartSummary: () => {
@@ -174,7 +241,14 @@ export const useCartStore = create<ICartStore>()(
       },
     }),
     {
-      name: 'popbox-cart-storage',
+      name: CART_STORAGE_KEY,
+      storage: createCartStorage<ICartPersistedState>(CART_STORAGE_KEY),
+      partialize: (state) => ({
+        items: state.items,
+        invalidItems: state.invalidItems,
+      }),
+      migrate: (persistedState) => normalizeCartPersistedState(persistedState),
+      version: CART_STORAGE_VERSION_NUMBER,
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

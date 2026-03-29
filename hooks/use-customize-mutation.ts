@@ -1,6 +1,7 @@
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { MutationFunction, useMutation } from '@tanstack/react-query';
 import { AxiosError, AxiosResponse } from 'axios';
+import { getApiErrorDetails } from '@/utils/api-errors';
 
 interface ICustomizeMutationConfig<ApiResponse, ApiRequest> {
   mutationFn: MutationFunction<AxiosResponse<IBaseApiResponse<ApiResponse>>, ApiRequest>;
@@ -31,6 +32,13 @@ const useCustomizeMutation = <ApiResponse, ApiRequest>(config: ICustomizeMutatio
   });
 
   return {
+    error: mutation.error as AxiosError<IBaseApiResponse> | null,
+    errorDetails: mutation.error
+      ? getApiErrorDetails(mutation.error as AxiosError<IBaseApiResponse>)
+      : null,
+    errorMessage: mutation.error
+      ? getApiErrorDetails(mutation.error as AxiosError<IBaseApiResponse>).message
+      : null,
     mutation: mutation.mutate,
     isPending: mutation.isPending,
     isSuccess: mutation.isSuccess,
