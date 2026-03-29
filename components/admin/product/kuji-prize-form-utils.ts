@@ -263,62 +263,72 @@ export function mapKujiPrizeServerValidationErrors(
       ? collectValidationEntries(value)
       : [];
   const errors: KujiPrizeFieldErrors = {};
+  const fieldMatchers: Array<{
+    field: keyof KujiPrizeFieldErrors;
+    match: (path: string, message: string) => boolean;
+  }> = [
+    {
+      field: 'prizeCode',
+      match: (path, message) => (
+        path.includes('prizecode')
+        || path.includes('prize_code')
+        || message.includes('prize code')
+        || message.includes('prizecode')
+      ),
+    },
+    {
+      field: 'imageUrl',
+      match: (path, message) => (
+        path.includes('imageurl')
+        || path.includes('image_url')
+        || message.includes('image url')
+        || message.includes('imageurl')
+      ),
+    },
+    {
+      field: 'initialQuantity',
+      match: (path, message) => (
+        path.includes('initialquantity')
+        || path.includes('initial_quantity')
+        || message.includes('initial quantity')
+        || message.includes('initialquantity')
+      ),
+    },
+    {
+      field: 'remainingQuantity',
+      match: (path, message) => (
+        path.includes('remainingquantity')
+        || path.includes('remaining_quantity')
+        || message.includes('remaining quantity')
+        || message.includes('remainingquantity')
+      ),
+    },
+    {
+      field: 'sortOrder',
+      match: (path, message) => (
+        path.includes('sortorder')
+        || path.includes('sort_order')
+        || message.includes('sort order')
+        || message.includes('sortorder')
+      ),
+    },
+    {
+      field: 'description',
+      match: (path, message) => path.includes('description') || message.includes('description'),
+    },
+    {
+      field: 'name',
+      match: (path, message) => path.includes('name') || message.includes('name'),
+    },
+  ];
 
   for (const entry of entries) {
     const normalizedMessage = entry.message.toLowerCase();
     const normalizedPath = entry.path.toLowerCase();
-
-    if (
-      normalizedPath.includes('prizecode')
-      || normalizedPath.includes('prize_code')
-      || normalizedMessage.includes('prize code')
-      || normalizedMessage.includes('prizecode')
-    ) {
-      errors.prizeCode = entry.message;
-    }
-
-    if (
-      normalizedPath.includes('imageurl')
-      || normalizedPath.includes('image_url')
-      || normalizedMessage.includes('image url')
-      || normalizedMessage.includes('imageurl')
-    ) {
-      errors.imageUrl = entry.message;
-    }
-
-    if (
-      normalizedPath.includes('initialquantity')
-      || normalizedPath.includes('initial_quantity')
-      || normalizedMessage.includes('initial quantity')
-      || normalizedMessage.includes('initialquantity')
-    ) {
-      errors.initialQuantity = entry.message;
-    }
-
-    if (
-      normalizedPath.includes('remainingquantity')
-      || normalizedPath.includes('remaining_quantity')
-      || normalizedMessage.includes('remaining quantity')
-      || normalizedMessage.includes('remainingquantity')
-    ) {
-      errors.remainingQuantity = entry.message;
-    }
-
-    if (
-      normalizedPath.includes('sortorder')
-      || normalizedPath.includes('sort_order')
-      || normalizedMessage.includes('sort order')
-      || normalizedMessage.includes('sortorder')
-    ) {
-      errors.sortOrder = entry.message;
-    }
-
-    if (normalizedPath.includes('description') || normalizedMessage.includes('description')) {
-      errors.description = entry.message;
-    }
-
-    if (normalizedPath.includes('name') || normalizedMessage.includes('name')) {
-      errors.name = entry.message;
+    for (const { field, match } of fieldMatchers) {
+      if (match(normalizedPath, normalizedMessage)) {
+        errors[field] = entry.message;
+      }
     }
   }
 

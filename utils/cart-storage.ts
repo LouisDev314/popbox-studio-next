@@ -232,7 +232,7 @@ export function parseCartStorageValue(storedValue: string): StorageValue<CartPer
 }
 
 export function createCartStorage<State extends { items: unknown; invalidItems: unknown }>(
-  storageKey: string,
+  _storageKey: string,
 ): PersistStorage<State> {
   return {
     getItem: (name) => {

@@ -12,8 +12,8 @@ import {
 
 async function importFreshCartStore() {
   vi.resetModules();
-  const module = await import('@/hooks/use-cart');
-  return module.useCartStore;
+  const cartStoreModule = await import('@/hooks/use-cart');
+  return cartStoreModule.useCartStore;
 }
 
 describe('useCartStore', () => {

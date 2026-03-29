@@ -16,8 +16,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
-  IAdminOrderRefundRequest,
-  IAdminOrderShipmentUpdate,
   IOrderDetail,
   IOrderStatus,
   IShipment,
@@ -110,7 +108,7 @@ function OrderActionFeedbackBanner({ feedback }: { feedback: OrderActionFeedback
           ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
           : feedback.type === 'info'
             ? 'border-sky-200 bg-sky-50 text-sky-900'
-          : 'border-red-200 bg-red-50 text-red-900'
+            : 'border-red-200 bg-red-50 text-red-900'
       }`}
       role={feedback.type === 'error' ? 'alert' : 'status'}
     >
