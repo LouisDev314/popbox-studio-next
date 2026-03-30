@@ -2,7 +2,7 @@ import 'server-only';
 
 import axios, { type AxiosRequestConfig } from 'axios';
 import { cache } from 'react';
-import getEnvConfig from '@/configs/env';
+import getPublicEnvConfig from '@/configs/public-env';
 import type { IBaseApiResponse } from '@/interfaces/api-response';
 import type { ICheckoutSuccess } from '@/interfaces/checkout';
 import type { IHomepageData } from '@/interfaces/home';
@@ -27,7 +27,7 @@ export type PublicProductListFilters = {
 };
 
 const publicStorefrontClient = axios.create({
-  baseURL: getEnvConfig().apiBaseUrl.replace(/\/$/, ''),
+  baseURL: getPublicEnvConfig().apiBaseUrl.replace(/\/$/, ''),
 });
 
 function withCookieHeader(
@@ -154,4 +154,12 @@ export async function getPublicGuestTickets(
 
 export function isPublicApiNotFoundError(error: unknown): boolean {
   return axios.isAxiosError(error) && error.response?.status === 404;
+}
+
+export function getPublicApiErrorStatus(error: unknown): number | null {
+  if (!axios.isAxiosError(error)) {
+    return null;
+  }
+
+  return error.response?.status ?? null;
 }

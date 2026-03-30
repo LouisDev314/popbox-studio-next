@@ -20,19 +20,18 @@ function resolveApiBaseUrl(): string {
   return 'http://localhost:3000';
 }
 
-const envConfig = {
+const publicEnvConfig = {
   apiBaseUrl: resolveApiBaseUrl(),
   stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
-  stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   supabasePublishableDefaultKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY || '',
   isSiteOpen: process.env.NEXT_PUBLIC_IS_SITE_OPEN !== 'false',
 };
 
-const getEnvConfig = () => {
+const getPublicEnvConfig = () => {
   return Object.freeze({
-    ...envConfig,
+    ...publicEnvConfig,
   });
 };
 
-export default getEnvConfig;
+export default getPublicEnvConfig;

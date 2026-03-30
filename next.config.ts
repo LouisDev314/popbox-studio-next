@@ -1,5 +1,5 @@
 import type { NextConfig } from 'next';
-import getEnvConfig from '@/configs/env';
+import getPublicEnvConfig from '@/configs/public-env';
 
 const nextConfig: NextConfig = {
   async rewrites() {
@@ -43,7 +43,7 @@ const nextConfig: NextConfig = {
       afterFiles: [
         {
           source: '/api/:path*',
-          destination: `${getEnvConfig().apiBaseUrl}/api/:path*`,
+          destination: `${getPublicEnvConfig().apiBaseUrl}/api/:path*`,
         },
       ],
       fallback: [],

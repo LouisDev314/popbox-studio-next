@@ -9,7 +9,7 @@ import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { type IBaseApiResponse } from '@/interfaces/api-response';
 import { type ICheckoutRequest, type ICheckoutSession } from '@/interfaces/checkout';
-import { getApiErrorDetails } from '@/utils/api-errors';
+import { getApiErrorDetails, isTimeoutAxiosError } from '@/utils/api-errors';
 import {
   buildCheckoutRequest,
   getInvalidCartItemsCheckoutMessage,
@@ -19,6 +19,10 @@ import {
 function getCheckoutRequestErrorMessage(
   error: AxiosError,
 ): string {
+  if (isTimeoutAxiosError(error)) {
+    return 'We couldn’t start checkout before the request timed out. Please try again.';
+  }
+
   const details = getApiErrorDetails(
     error as AxiosError<IBaseApiResponse<unknown>>,
     'We couldn’t start checkout. Please review your cart and try again.',
@@ -91,7 +95,15 @@ export function useStartCheckout() {
             return;
           }
 
-          redirectToCheckout(checkoutUrl);
+          try {
+            redirectToCheckout(checkoutUrl);
+          } catch (error) {
+            useCheckoutUiStore.getState().setCheckoutError(
+              error instanceof Error
+                ? error.message
+                : 'We couldn’t start checkout right now. Please try again.',
+            );
+          }
         },
         onError: (error) => {
           useCheckoutUiStore.getState().setCheckoutError(

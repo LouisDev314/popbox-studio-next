@@ -35,7 +35,23 @@ function collectValidationMessages(
 }
 
 export function getFallbackApiErrorMessage(error: AxiosError): string {
+  if (isTimeoutAxiosError(error)) {
+    return 'The request timed out. Please try again.';
+  }
+
+  if (!error.response) {
+    return 'We could not reach the service. Please try again.';
+  }
+
+  if (error.response.status >= HttpStatusCode.InternalServerError) {
+    return 'The service is temporarily unavailable. Please try again.';
+  }
+
   return error.message.trim() || 'Request failed.';
+}
+
+export function isTimeoutAxiosError(error: AxiosError): boolean {
+  return error.code === 'ECONNABORTED' && error.message.toLowerCase().includes('timeout');
 }
 
 export function getApiErrorDetails(

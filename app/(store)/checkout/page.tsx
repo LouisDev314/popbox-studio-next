@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useSyncExternalStore } from 'react';
 import { CheckoutButton } from '@/components/cart/checkout-button';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/hooks/use-cart';
@@ -10,11 +9,7 @@ export default function CheckoutPage() {
   const invalidItems = useCartStore((state) => state.invalidItems);
   const items = useCartStore((state) => state.items);
   const cartItemCount = items.length + invalidItems.length;
-  const isHydrated = useSyncExternalStore(
-    () => () => undefined,
-    () => true,
-    () => false,
-  );
+  const isHydrated = useCartStore((state) => state.hasHydrated);
 
   if (!isHydrated) {
     return (

@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { GuestOrderDetail } from './guest-order-detail';
 import {
+  getGuestOrderPath,
   getGuestAccessPath,
   getGuestTokenEntryPath,
   normalizeDynamicSegment,
@@ -10,9 +11,10 @@ import {
 import {
   GuestAccessFailedState,
   GuestOrderNotFoundState,
+  GuestOrderUnavailableState,
   InvalidOrderLinkState,
 } from './guest-order-states';
-import { getPublicGuestOrder } from '@/lib/api/public-storefront';
+import { getPublicApiErrorStatus, getPublicGuestOrder } from '@/lib/api/public-storefront';
 
 type GuestOrderPageProps = {
   params: Promise<{ publicId: string }>;
@@ -40,14 +42,21 @@ export default async function GuestOrderPage(props: GuestOrderPageProps) {
 
   const cookieHeader = (await cookies()).toString() || undefined;
   let order = null;
+  let requestFailed = false;
+  let errorStatus: number | null = null;
 
   try {
     order = await getPublicGuestOrder(publicId, cookieHeader);
-  } catch {
-    order = null;
+  } catch (error) {
+    requestFailed = true;
+    errorStatus = getPublicApiErrorStatus(error);
   }
 
   if (!order) {
+    if (requestFailed && errorStatus !== 403 && errorStatus !== 404) {
+      return <GuestOrderUnavailableState retryHref={getGuestOrderPath(publicId)} />;
+    }
+
     return <GuestOrderNotFoundState />;
   }
 

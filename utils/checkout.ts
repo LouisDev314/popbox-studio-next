@@ -25,6 +25,9 @@ const checkoutRequestSchema = z.object({
   items: z.array(checkoutItemSchema).min(1),
 });
 
+const STRIPE_CHECKOUT_HOSTNAME = 'checkout.stripe.com';
+const STRIPE_CHECKOUT_PATH_PREFIXES = ['/c/pay/', '/pay/'] as const;
+
 export function isFinalizedCheckoutOrder(order: IOrderDetail): boolean {
   return FINALIZED_CHECKOUT_ORDER_STATUSES.has(order.status);
 }
@@ -65,6 +68,28 @@ export function buildCheckoutRequest(items: ICartItem[]): CheckoutValidationResu
   };
 }
 
+export function getValidatedCheckoutUrl(checkoutUrl: string): string {
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(checkoutUrl);
+  } catch {
+    throw new Error('We couldn’t start checkout because the payment link was invalid. Please try again.');
+  }
+
+  const hasAllowedPath = STRIPE_CHECKOUT_PATH_PREFIXES.some((prefix) => parsedUrl.pathname.startsWith(prefix));
+
+  if (
+    parsedUrl.protocol !== 'https:'
+    || parsedUrl.hostname !== STRIPE_CHECKOUT_HOSTNAME
+    || !hasAllowedPath
+  ) {
+    throw new Error('We couldn’t start checkout because the payment link was invalid. Please try again.');
+  }
+
+  return parsedUrl.toString();
+}
+
 export function redirectToCheckout(checkoutUrl: string): void {
-  window.location.assign(checkoutUrl);
+  window.location.assign(getValidatedCheckoutUrl(checkoutUrl));
 }

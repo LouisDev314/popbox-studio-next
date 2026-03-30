@@ -57,14 +57,7 @@ function useCustomizeQuery<ApiResponse>(
 
   useEffect(() => {
     if (queryResult.isError && onError) {
-      const err = queryResult.error;
-      if (err.code === 'ECONNABORTED' && err.message.includes('timeout')) {
-
-      } else if (err.code === HttpStatusCode.InternalServerError.toString()) {
-
-      } else {
-        onError(err);
-      }
+      onError(queryResult.error as AxiosError<IBaseApiResponse>);
     }
   }, [queryResult.isError, queryResult.error, onError]);
 

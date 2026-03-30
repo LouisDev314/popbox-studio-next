@@ -24,13 +24,34 @@ export interface IShipmentFormValues {
   trackingUrl: string;
 }
 
+export function normalizeTrackingUrl(value: string | null | undefined): string | null {
+  const normalizedValue = typeof value === 'string' ? toNullableText(value) : null;
+
+  if (!normalizedValue) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(normalizedValue);
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return null;
+    }
+
+    return parsedUrl.toString();
+  } catch {
+    return null;
+  }
+}
+
 export function buildShipmentUpdatePayload(
   shipmentForm: IShipmentFormValues,
   shipment: IShipment | null,
 ): IAdminOrderShipmentUpdate {
   const nextCarrierName = toNullableText(shipmentForm.carrierName);
   const nextTrackingNumber = toNullableText(shipmentForm.trackingNumber);
-  const nextTrackingUrl = toNullableText(shipmentForm.trackingUrl);
+  const nextTrackingUrl = normalizeTrackingUrl(shipmentForm.trackingUrl);
+  const currentTrackingUrl = normalizeTrackingUrl(shipment?.trackingUrl);
   const payload: IAdminOrderShipmentUpdate = {};
 
   if (nextCarrierName !== (shipment?.carrierName ?? null)) {
@@ -41,7 +62,7 @@ export function buildShipmentUpdatePayload(
     payload.trackingNumber = nextTrackingNumber;
   }
 
-  if (nextTrackingUrl !== (shipment?.trackingUrl ?? null)) {
+  if (nextTrackingUrl !== currentTrackingUrl) {
     payload.trackingUrl = nextTrackingUrl;
   }
 

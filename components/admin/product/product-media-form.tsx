@@ -23,7 +23,7 @@ import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { IAdminProductEditor, IAdminProductImage } from '@/interfaces/product';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Button } from '@/components/ui/button';
-import getEnvConfig from '@/configs/env';
+import getPublicEnvConfig from '@/configs/public-env';
 import { mergeAdminImages } from '@/utils/admin';
 import { cn } from '@/lib/utils';
 
@@ -288,7 +288,7 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
       return null;
     }
 
-    return `${getEnvConfig().supabaseUrl}/storage/v1/object/public/${storageKey}`;
+    return `${getPublicEnvConfig().supabaseUrl}/storage/v1/object/public/${storageKey}`;
   };
 
   const getImageLabel = (storageKey: string | null, url: string | null, index: number) => {
@@ -317,7 +317,7 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
               <span className="text-sm font-medium text-primary shadow-sm bg-white px-3 py-1.5 rounded-full border border-primary/20">Uploading...</span>
             </div>
           )}
-          <FileUpload onChange={handleFileChange} multiple />
+          <FileUpload onChange={handleFileChange} multiple accept="image/*" maxSizeBytes={5 * 1024 * 1024} />
         </div>
       </div>
 

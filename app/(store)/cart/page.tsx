@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { ShoppingBag } from 'lucide-react';
-import { useSyncExternalStore } from 'react';
 import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-lock-overlay';
 import { InvalidCartItems } from '@/components/cart/invalid-cart-items';
 import { CartPageItem } from '@/components/cart/cart-page-item';
@@ -23,11 +22,7 @@ export default function CartPage() {
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const clearCart = useCartStore((state) => state.clearCart);
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
-  const isHydrated = useSyncExternalStore(
-    () => () => undefined,
-    () => true,
-    () => false,
-  );
+  const isHydrated = useCartStore((state) => state.hasHydrated);
 
   const summary = getCartSummary();
 

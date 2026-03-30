@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import OrderTicketsPageClient from './order-tickets-page-client';
 import {
+  getGuestTicketsPath,
   getGuestAccessPath,
   getGuestTokenEntryPath,
   normalizeDynamicSegment,
@@ -10,9 +11,10 @@ import {
 import {
   GuestAccessFailedState,
   GuestTicketsNotFoundState,
+  GuestTicketsUnavailableState,
   InvalidOrderLinkState,
 } from '../guest-order-states';
-import { getPublicGuestTickets } from '@/lib/api/public-storefront';
+import { getPublicApiErrorStatus, getPublicGuestTickets } from '@/lib/api/public-storefront';
 
 type OrderTicketsPageProps = {
   params: Promise<{ publicId: string }>;
@@ -40,14 +42,21 @@ export default async function OrderTicketsPage(props: OrderTicketsPageProps) {
 
   const cookieHeader = (await cookies()).toString() || undefined;
   let ticketView = null;
+  let requestFailed = false;
+  let errorStatus: number | null = null;
 
   try {
     ticketView = await getPublicGuestTickets(publicId, cookieHeader);
-  } catch {
-    ticketView = null;
+  } catch (error) {
+    requestFailed = true;
+    errorStatus = getPublicApiErrorStatus(error);
   }
 
   if (!ticketView) {
+    if (requestFailed && errorStatus !== 403 && errorStatus !== 404) {
+      return <GuestTicketsUnavailableState retryHref={getGuestTicketsPath(publicId)} />;
+    }
+
     return <GuestTicketsNotFoundState />;
   }
 

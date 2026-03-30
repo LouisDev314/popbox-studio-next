@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { NextRequest, NextResponse } from 'next/server';
-import getEnvConfig from '@/configs/env';
+import getPublicEnvConfig from '@/configs/public-env';
 import {
   getGuestOrderPath,
   getGuestTokenEntryPath,
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   const accessUrl = new URL(
     `/api/v1/orders/${encodeURIComponent(publicId)}/access`,
-    getEnvConfig().apiBaseUrl,
+    getPublicEnvConfig().apiBaseUrl,
   );
   accessUrl.searchParams.set('token', token);
 

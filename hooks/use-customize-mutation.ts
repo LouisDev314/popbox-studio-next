@@ -20,11 +20,7 @@ const useCustomizeMutation = <ApiResponse, ApiRequest>(config: ICustomizeMutatio
       onSuccess?.(data);
     },
     onError: (err) => {
-      if (err.code === 'ECONNABORTED' && err.message.includes('timeout')) {
-
-      } else {
-        onError?.(err as AxiosError<IBaseApiResponse>);
-      }
+      onError?.(err as AxiosError<IBaseApiResponse>);
     },
     onSettled: (data, error, variables, context) => {
       mutationConfig.onSettled?.(data, error as AxiosError<IBaseApiResponse>, variables, context);

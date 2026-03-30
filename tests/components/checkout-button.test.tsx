@@ -5,6 +5,7 @@ import {
   http,
   HttpResponse,
 } from 'msw';
+import { AxiosError } from 'axios';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('@/utils/checkout', async () => {
   const actual = await vi.importActual<typeof import('@/utils/checkout')>('@/utils/checkout');
@@ -17,6 +18,8 @@ vi.mock('@/utils/checkout', async () => {
 
 import { CheckoutButton } from '@/components/cart/checkout-button';
 import { useCartStore } from '@/hooks/use-cart';
+import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
+import MutationConfigs from '@/configs/api/mutation-config';
 import { redirectToCheckout } from '@/utils/checkout';
 import { server } from '../msw/server';
 import {
@@ -157,5 +160,30 @@ describe('CheckoutButton', () => {
       expect(redirectToCheckout).toHaveBeenCalledTimes(1);
     });
     expect(requestCount).toBe(1);
+  });
+
+  it('surfaces timeout failures and clears the checkout pending state', async () => {
+    vi.spyOn(MutationConfigs, 'createCheckoutSession').mockRejectedValue(
+      new AxiosError('timeout of 15000ms exceeded', 'ECONNABORTED'),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CheckoutButton />);
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'We couldn’t start checkout before the request timed out. Please try again.',
+      );
+    });
+
+    expect(useCheckoutUiStore.getState().isCheckingOut).toBe(false);
   });
 });

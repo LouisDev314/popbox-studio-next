@@ -7,20 +7,92 @@ import { cn } from "@/lib/utils";
 interface IFileUploadProps {
   onChange?: (files: File[]) => void;
   multiple?: boolean;
+  accept?: string;
+  maxSizeBytes?: number;
 }
 
-export const FileUpload = ({ onChange, multiple = false }: IFileUploadProps) => {
+const IMAGE_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'] as const;
+
+function isAcceptedFileType(file: File, accept: string | undefined): boolean {
+  if (!accept) {
+    return true;
+  }
+
+  const acceptedTypes = accept
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  const fileName = file.name.toLowerCase();
+  const fileType = file.type.toLowerCase();
+
+  return acceptedTypes.some((acceptedType) => {
+    if (acceptedType === 'image/*') {
+      return fileType.startsWith('image/')
+        || IMAGE_FILE_EXTENSIONS.some((extension) => fileName.endsWith(extension));
+    }
+
+    if (acceptedType.startsWith('.')) {
+      return fileName.endsWith(acceptedType);
+    }
+
+    return fileType === acceptedType;
+  });
+}
+
+function formatFileSizeLimit(maxSizeBytes: number): string {
+  if (maxSizeBytes < 1024 * 1024) {
+    return `${Math.round(maxSizeBytes / 1024)} KB`;
+  }
+
+  const sizeInMegabytes = maxSizeBytes / (1024 * 1024);
+
+  if (Number.isInteger(sizeInMegabytes)) {
+    return `${sizeInMegabytes} MB`;
+  }
+
+  return `${sizeInMegabytes.toFixed(1)} MB`;
+}
+
+export const FileUpload = ({
+  onChange,
+  multiple = false,
+  accept,
+  maxSizeBytes,
+}: IFileUploadProps) => {
   const inputId = useId();
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
 
   const updateFiles = (nextFiles: File[]) => {
     if (nextFiles.length === 0) {
       return;
     }
 
-    setFiles((currentFiles) => (multiple ? [...currentFiles, ...nextFiles] : nextFiles));
-    onChange?.(nextFiles);
+    let nextValidationMessage: string | null = null;
+    const validFiles = nextFiles.filter((file) => {
+      if (!isAcceptedFileType(file, accept)) {
+        nextValidationMessage ??= `${file.name} must be an image file.`;
+        return false;
+      }
+
+      if (maxSizeBytes && file.size > maxSizeBytes) {
+        nextValidationMessage ??= `${file.name} must be ${formatFileSizeLimit(maxSizeBytes)} or smaller.`;
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validFiles.length === 0) {
+      setValidationMessage(nextValidationMessage);
+      return;
+    }
+
+    setValidationMessage(nextValidationMessage);
+    setFiles((currentFiles) => (multiple ? [...currentFiles, ...validFiles] : validFiles));
+    onChange?.(validFiles);
   };
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -56,6 +128,7 @@ export const FileUpload = ({ onChange, multiple = false }: IFileUploadProps) => 
       <input
         id={inputId}
         type="file"
+        accept={accept}
         multiple={multiple}
         className="hidden"
         onChange={handleInputChange}
@@ -77,6 +150,12 @@ export const FileUpload = ({ onChange, multiple = false }: IFileUploadProps) => 
           </p>
         </div>
       </label>
+
+      {validationMessage ? (
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+          {validationMessage}
+        </div>
+      ) : null}
 
       {files.length > 0 && (
         <div className="mt-5 space-y-2 rounded-lg border border-[#D5C1C9]/40 bg-white p-3">

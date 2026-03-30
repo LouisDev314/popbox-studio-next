@@ -2,9 +2,11 @@
 
 import { Dispatch, SetStateAction, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { Save } from 'lucide-react';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
+import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IAdminProductEditor } from '@/interfaces/product';
 import { Button } from '@/components/ui/button';
 import { NumericInput } from '@/components/ui/numeric-input';
@@ -15,11 +17,20 @@ type ProductInventoryFormData = {
   lowStockThreshold: string;
 };
 
+type ProductInventoryFeedback = {
+  message: string;
+  type: 'error' | 'success';
+};
+
 function createInitialFormData(product: IAdminProductEditor): ProductInventoryFormData {
   return {
     onHand: String(product.inventory?.onHand ?? 0),
     lowStockThreshold: String(product.inventory?.lowStockThreshold ?? 0),
   };
+}
+
+function getInventoryErrorMessage(error: AxiosError<IBaseApiResponse>): string {
+  return error.response?.data?.message?.trim() || 'Failed to update inventory.';
 }
 
 interface IProductInventoryFormProps {
@@ -30,6 +41,7 @@ interface IProductInventoryFormProps {
 export function ProductInventoryForm({ product, onProductChange }: IProductInventoryFormProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<ProductInventoryFormData>(() => createInitialFormData(product));
+  const [feedback, setFeedback] = useState<ProductInventoryFeedback | null>(null);
 
   const { mutation: updateInventory, isPending } = useCustomizeMutation({
     mutationFn: MutationConfigs.updateAdminProductInventory,
@@ -58,14 +70,22 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
 
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
+      setFeedback({
+        message: response.data.message?.trim() || 'Inventory updated.',
+        type: 'success',
+      });
     },
-    onError: (e) => {
-      alert(`Failed to update product ${e}`);
+    onError: (error) => {
+      setFeedback({
+        message: getInventoryErrorMessage(error),
+        type: 'error',
+      });
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFeedback(null);
 
     updateInventory({
       productId: product.id,
@@ -89,6 +109,19 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
           {isPending ? 'Saving...' : 'Save Inventory'}
         </Button>
       </div>
+
+      {feedback ? (
+        <div
+          className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
+            feedback.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              : 'border-red-200 bg-red-50 text-red-900'
+          }`}
+          role={feedback.type === 'error' ? 'alert' : 'status'}
+        >
+          {feedback.message}
+        </div>
+      ) : null}
 
       <div className="grid gap-6 sm:grid-cols-3">
         <div>

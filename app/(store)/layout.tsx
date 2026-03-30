@@ -1,7 +1,7 @@
 import { StoreHeader } from '@/components/layout/store-header';
 import { StoreFooter } from '@/components/layout/store-footer';
 import { Suspense, type ReactNode } from 'react';
-import getEnvConfig from '@/configs/env';
+import getPublicEnvConfig from '@/configs/public-env';
 import { Toaster } from '@/components/ui/sonner'
 
 interface IStoreLayoutProps {
@@ -9,7 +9,7 @@ interface IStoreLayoutProps {
 }
 
 export default function StoreLayout(props: IStoreLayoutProps) {
-  if (!getEnvConfig().isSiteOpen) {
+  if (!getPublicEnvConfig().isSiteOpen) {
     return (
       <main>
         <div className="flex min-h-screen items-center justify-center text-xl">

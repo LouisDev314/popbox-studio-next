@@ -25,6 +25,7 @@ import {
   buildRefundPayload,
   buildShipmentUpdatePayload,
   getAdminOrderId,
+  normalizeTrackingUrl,
   type IShipmentFormValues,
 } from '@/utils/admin-order';
 
@@ -45,7 +46,7 @@ function createShipmentForm(shipment: IShipment | null): IShipmentFormValues {
   return {
     carrierName: shipment?.carrierName || '',
     trackingNumber: shipment?.trackingNumber || '',
-    trackingUrl: shipment?.trackingUrl || '',
+    trackingUrl: normalizeTrackingUrl(shipment?.trackingUrl) ?? shipment?.trackingUrl ?? '',
   };
 }
 
@@ -338,6 +339,8 @@ function OrderSidebar({
 }: {
   order: IOrderDetail;
 }) {
+  const normalizedTrackingUrl = normalizeTrackingUrl(order.shipment?.trackingUrl);
+
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
@@ -374,8 +377,8 @@ function OrderSidebar({
             </div>
             <div>
               <span className="block text-xs text-[#514349]">Tracking Number</span>
-              {order.shipment.trackingUrl ? (
-                <a href={order.shipment.trackingUrl} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">{order.shipment.trackingNumber}</a>
+              {normalizedTrackingUrl ? (
+                <a href={normalizedTrackingUrl} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">{order.shipment.trackingNumber}</a>
               ) : (
                 <span className="font-medium text-[#191C1E]">{order.shipment.trackingNumber}</span>
               )}
@@ -563,8 +566,7 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
 
     try {
       return getAdminOrderId(order);
-    } catch (error) {
-      console.error(error);
+    } catch {
       setActionFeedback({
         type: 'error',
         message: 'Unable to run the admin action because the internal order id is missing.',

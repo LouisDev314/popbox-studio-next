@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildCheckoutRequest } from '@/utils/checkout';
+import { buildCheckoutRequest, getValidatedCheckoutUrl } from '@/utils/checkout';
 import {
   createCartItem,
   createCartProduct,
@@ -38,5 +38,26 @@ describe('buildCheckoutRequest', () => {
     if (!result.success) {
       expect(result.message).toContain('invalid checkout data');
     }
+  });
+
+  it('accepts valid Stripe Checkout URLs only', () => {
+    expect(getValidatedCheckoutUrl('https://checkout.stripe.com/pay/cs_test_123')).toBe(
+      'https://checkout.stripe.com/pay/cs_test_123',
+    );
+    expect(getValidatedCheckoutUrl('https://checkout.stripe.com/c/pay/cs_test_456')).toBe(
+      'https://checkout.stripe.com/c/pay/cs_test_456',
+    );
+  });
+
+  it('rejects invalid or non-https checkout URLs', () => {
+    expect(() => getValidatedCheckoutUrl('http://checkout.stripe.com/pay/cs_test_123')).toThrow(
+      'payment link was invalid',
+    );
+    expect(() => getValidatedCheckoutUrl('https://example.com/pay/cs_test_123')).toThrow(
+      'payment link was invalid',
+    );
+    expect(() => getValidatedCheckoutUrl('not-a-url')).toThrow(
+      'payment link was invalid',
+    );
   });
 });

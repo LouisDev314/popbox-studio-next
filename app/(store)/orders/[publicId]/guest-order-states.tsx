@@ -59,3 +59,30 @@ export function GuestAccessFailedState(props: { retryHref: string }) {
     </div>
   );
 }
+
+function GuestUnavailableState(props: { title: string; retryHref: string }) {
+  return (
+    <div className="container mx-auto px-4 py-32 text-center flex flex-col items-center">
+      <h1 className="text-3xl font-bold text-destructive mb-4">{props.title}</h1>
+      <p className="text-muted-foreground mb-8 max-w-lg">
+        We couldn&apos;t load this page right now. Please try again in a moment.
+      </p>
+      <div className="flex gap-3">
+        <Button asChild>
+          <Link href={props.retryHref}>Try Again</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/">Return to Home</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function GuestOrderUnavailableState(props: { retryHref: string }) {
+  return <GuestUnavailableState title="Order Unavailable" retryHref={props.retryHref} />;
+}
+
+export function GuestTicketsUnavailableState(props: { retryHref: string }) {
+  return <GuestUnavailableState title="Tickets Unavailable" retryHref={props.retryHref} />;
+}
