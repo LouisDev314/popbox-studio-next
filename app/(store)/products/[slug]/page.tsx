@@ -14,29 +14,85 @@ import {
 import { type IProduct } from '@/interfaces/product';
 import { getPublicProductBySlug, isPublicApiNotFoundError } from '@/lib/api/public-storefront';
 import { formatPrice } from '@/lib/utils';
+import {
+  buildAbsoluteUrl,
+  createPageMetadata,
+  truncateMetaDescription,
+} from '@/lib/seo';
+import { getProductInventoryState } from '@/utils/product-stock';
 
 type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+function getProductMetadataDescription(product: IProduct) {
+  if (product.description?.trim()) {
+    return truncateMetaDescription(product.description, 165);
+  }
+
+  const collectionText = product.collection ? `${product.collection.name} ` : '';
+
+  if (product.productType === 'kuji') {
+    return truncateMetaDescription(
+      `Shop ${product.name} from the ${collectionText}Ichiban Kuji lineup at PopBox Studio. Browse collector-focused ticket releases and anime prizes online.`,
+      165,
+    );
+  }
+
+  return truncateMetaDescription(
+    `Shop ${product.name} from the ${collectionText}collection at PopBox Studio. Browse anime figures, gifts, and collectible merchandise online.`,
+    165,
+  );
+}
+
+function getProductOfferAvailability(product: IProduct) {
+  const inventoryState = getProductInventoryState(product);
+
+  if (!inventoryState.hasInventoryData) {
+    return undefined;
+  }
+
+  if (inventoryState.status === 'sold_out') {
+    return 'https://schema.org/OutOfStock';
+  }
+
+  if (inventoryState.status === 'low_stock') {
+    return 'https://schema.org/LimitedAvailability';
+  }
+
+  return 'https://schema.org/InStock';
+}
+
 export async function generateMetadata(
   props: ProductDetailPageProps,
 ): Promise<Metadata> {
   const params = await props.params;
+  const path = `/products/${encodeURIComponent(params.slug)}`;
 
   try {
     const product = await getPublicProductBySlug(params.slug);
+    const primaryImage = product.images[0]?.url;
 
-    return {
-      title: `${product.name} - PopBox Studio`,
-      description:
-        product.description ||
-        `Shop ${product.name} at PopBox Studio.`,
-    };
+    return createPageMetadata({
+      title: product.name,
+      description: getProductMetadataDescription(product),
+      path,
+      openGraphImages: primaryImage
+        ? [
+            {
+              url: primaryImage,
+              alt: product.images[0]?.altText || product.name,
+            },
+          ]
+        : undefined,
+    });
   } catch {
-    return {
-      title: 'Product - PopBox Studio',
-    };
+    return createPageMetadata({
+      title: 'Product unavailable',
+      description: 'The requested product is temporarily unavailable.',
+      path,
+      noIndex: true,
+    });
   }
 }
 
@@ -72,19 +128,118 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
     );
   }
 
+  const productPath = `/products/${product.slug}`;
+  const productDescription = product.description?.trim() || 'No description available.';
+  const productCategory = product.productType === 'kuji' ? 'Ichiban Kuji' : 'Anime merchandise';
+  const productOfferAvailability = getProductOfferAvailability(product);
+  const breadcrumbItems = [
+    {
+      label: 'Home',
+      path: '/',
+    },
+    {
+      label: 'Products',
+      path: '/products',
+    },
+    ...(product.collection
+      ? [
+          {
+            label: product.collection.name,
+            path: `/collections/${encodeURIComponent(product.collection.slug)}`,
+          },
+        ]
+      : []),
+    {
+      label: product.name,
+      path: productPath,
+    },
+  ];
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: productDescription,
+    url: buildAbsoluteUrl(productPath),
+    image: product.images.map((image) => image.url).filter(Boolean),
+    category: productCategory,
+    ...(product.sku
+      ? {
+          sku: product.sku,
+        }
+      : {}),
+    offers: {
+      '@type': 'Offer',
+      url: buildAbsoluteUrl(productPath),
+      price: (product.priceCents / 100).toFixed(2),
+      priceCurrency: product.currency,
+      ...(productOfferAvailability
+        ? {
+            availability: productOfferAvailability,
+          }
+        : {}),
+    },
+  };
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbItems.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.label,
+      item: buildAbsoluteUrl(item.path),
+    })),
+  };
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-16">
         <div className="lg:sticky lg:top-24 lg:self-start">
           <ProductGallery product={product} />
         </div>
 
         <div className="relative z-10 flex flex-col">
+          <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
+            <ol className="flex flex-wrap items-center gap-2">
+              {breadcrumbItems.map((item, index) => {
+                const isCurrentPage = index === breadcrumbItems.length - 1;
+
+                return (
+                  <li key={item.path} className="flex items-center gap-2">
+                    {isCurrentPage ? (
+                      <span aria-current="page" className="font-medium text-foreground">
+                        {item.label}
+                      </span>
+                    ) : (
+                      <Link
+                        href={item.path}
+                        className="transition-colors hover:text-foreground"
+                      >
+                        {item.label}
+                      </Link>
+                    )}
+                    {!isCurrentPage ? <span aria-hidden="true">/</span> : null}
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+
           <div className="flex flex-wrap items-center gap-2">
             {product.collection ? (
-              <div className="rounded-full bg-primary/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              <Link
+                href={`/collections/${encodeURIComponent(product.collection.slug)}`}
+                className="rounded-full bg-primary/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary transition-colors hover:bg-primary/18"
+              >
                 {product.collection.name}
-              </div>
+              </Link>
             ) : null}
           </div>
 
@@ -123,8 +278,13 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
 
       <div className="mt-12 rounded-4xl border border-border/60 bg-card/70 p-5 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Product details</p>
+        {product.sku ? (
+          <p className="mt-4 text-sm font-medium text-foreground">
+            Product code: <span className="font-normal text-muted-foreground">{product.sku}</span>
+          </p>
+        ) : null}
         <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
-          {product.description || 'No description available.'}
+          {productDescription}
         </p>
       </div>
 

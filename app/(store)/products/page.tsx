@@ -10,6 +10,11 @@ import {
   parseTagSearchParam,
   serializeTagSearchParam,
 } from '@/lib/storefront-product-filters';
+import {
+  createPageMetadata,
+  getProductsListingSeoState,
+  truncateMetaDescription,
+} from '@/lib/seo';
 
 type ProductsPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -17,43 +22,69 @@ type ProductsPageProps = {
 
 export async function generateMetadata(props: ProductsPageProps): Promise<Metadata> {
   const searchParams = await props.searchParams;
-  const rawCollection = getFirstParamValue(searchParams.collection)?.trim();
-  const type = parseProductTypeParam(searchParams.type);
+  const seoState = getProductsListingSeoState(searchParams);
   const sort = parseProductSortParam(searchParams.sort);
-  const collection = rawCollection ? rawCollection : undefined;
+  const collection = seoState.collection;
+  const type = seoState.type;
+  const noIndex = !seoState.shouldIndex;
 
   if (sort === 'trending') {
-    return {
-      title: 'Trending Products',
-      description: 'Browse the products trending now at PopBox Studio.',
-    };
+    return createPageMetadata({
+      title: 'Trending products',
+      description: truncateMetaDescription(
+        'Browse the products trending now at PopBox Studio, then keep shopping our wider anime merchandise and collectible catalog.',
+        165,
+      ),
+      path: seoState.canonicalPath,
+      noIndex,
+    });
   }
 
   if (collection) {
-    return {
-      title: `${formatCollectionLabel(collection)} - PopBox Studio`,
-      description: `Browse products in the ${formatCollectionLabel(collection)} collection.`,
-    };
+    return createPageMetadata({
+      title: `${formatCollectionLabel(collection)} collection`,
+      description: truncateMetaDescription(
+        `Browse products in the ${formatCollectionLabel(collection)} collection at PopBox Studio.`,
+        165,
+      ),
+      path: seoState.canonicalPath,
+      noIndex,
+    });
   }
 
   if (type === 'kuji') {
-    return {
-      title: 'Ichiban Kuji - PopBox Studio',
-      description: 'Browse PopBox Studio Ichiban Kuji ticket releases and prize drops.',
-    };
+    return createPageMetadata({
+      title: 'Ichiban Kuji',
+      description: truncateMetaDescription(
+        'Shop Ichiban Kuji online at PopBox Studio. Browse collector-focused ticket drops, prize-driven releases, and anime collectibles.',
+        165,
+      ),
+      path: seoState.canonicalPath,
+      noIndex,
+    });
   }
 
   if (type === 'standard') {
-    return {
-      title: 'Anime Merchandise - PopBox Studio',
-      description: 'Browse premium anime merchandise, figures, and collectibles.',
-    };
+    return createPageMetadata({
+      title: 'Anime merchandise',
+      description: truncateMetaDescription(
+        'Shop anime merchandise, figures, plushies, cards, gifts, and display-worthy collectibles from PopBox Studio.',
+        165,
+      ),
+      path: seoState.canonicalPath,
+      noIndex,
+    });
   }
 
-  return {
-    title: 'Products - PopBox Studio',
-    description: 'Browse premium anime merchandise and Ichiban Kuji collectibles.',
-  };
+  return createPageMetadata({
+    title: 'Products',
+    description: truncateMetaDescription(
+      'Shop anime merchandise, anime collectibles, figures, plushies, cards, gifts, and Ichiban Kuji online at PopBox Studio.',
+      165,
+    ),
+    path: seoState.canonicalPath,
+    noIndex,
+  });
 }
 
 export default async function ProductsPage(props: ProductsPageProps) {

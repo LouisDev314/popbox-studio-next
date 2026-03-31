@@ -2,6 +2,10 @@ import type { Metadata } from 'next';
 import { ProductCard } from '@/components/product/product-card';
 import type { IProductCard } from '@/interfaces/product';
 import { getPublicSearchResults } from '@/lib/api/public-storefront';
+import {
+  createPageMetadata,
+  truncateMetaDescription,
+} from '@/lib/seo';
 
 type SearchResultsPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -21,13 +25,17 @@ export async function generateMetadata(
   const searchParams = await props.searchParams;
   const query = normalizeQuery(searchParams.q);
 
-  return {
-    title: query ? `Search: ${query} - PopBox Studio` : 'Search - PopBox Studio',
-    robots: {
-      follow: true,
-      index: false,
-    },
-  };
+  return createPageMetadata({
+    title: query ? `Search results for "${query}"` : 'Search results',
+    description: truncateMetaDescription(
+      query
+        ? `Search results for "${query}" across PopBox Studio anime merchandise, anime collectibles, figures, plushies, cards, and Ichiban Kuji.`
+        : 'Browse search results across PopBox Studio anime merchandise and anime collectibles.',
+      165,
+    ),
+    path: '/search/results',
+    noIndex: true,
+  });
 }
 
 export default async function SearchResultsPage(props: SearchResultsPageProps) {

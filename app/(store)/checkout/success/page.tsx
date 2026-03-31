@@ -1,8 +1,17 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CheckCircle2, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPublicCheckoutSuccess } from '@/lib/api/public-storefront';
 import { CheckoutSuccessEffects } from './checkout-success-effects';
+import { createPageMetadata } from '@/lib/seo';
+
+export const metadata: Metadata = createPageMetadata({
+  title: 'Checkout success',
+  description: 'Review your PopBox Studio checkout confirmation and next steps.',
+  path: '/checkout/success',
+  noIndex: true,
+});
 
 function normalizeSessionId(sessionId: string | string[] | undefined) {
   if (Array.isArray(sessionId)) {

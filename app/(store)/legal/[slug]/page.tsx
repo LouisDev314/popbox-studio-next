@@ -5,6 +5,10 @@ import { PublicFaqPage } from '@/components/storefront/legal/public-faq-page';
 import { PublicLegalPage } from '@/components/storefront/legal/public-legal-page';
 import { getPublicFaqItems, getPublicLegalDocument, isPublicApiNotFoundError } from '@/lib/api/public-storefront';
 import type { LegalDocumentType } from '@/interfaces/legal';
+import {
+  buildExcerpt,
+  createPageMetadata,
+} from '@/lib/seo';
 
 const SLUG_TO_TYPE: Record<string, LegalDocumentType> = {
   'shipping-returns': 'shipping_returns',
@@ -26,27 +30,54 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params;
 
   if (params.slug === 'faq') {
-    return {
-      title: 'FAQ - PopBox Studio',
-    };
+    try {
+      const faqItems = await getPublicFaqItems();
+
+      return createPageMetadata({
+        title: 'FAQ',
+        description: 'Find answers to common questions about PopBox Studio orders, shipping, returns, and Ichiban Kuji support.',
+        path: '/legal/faq',
+        noIndex: faqItems.length === 0,
+      });
+    } catch {
+      return createPageMetadata({
+        title: 'FAQ',
+        description: 'Find answers to common questions about PopBox Studio orders, shipping, returns, and Ichiban Kuji support.',
+        path: '/legal/faq',
+        noIndex: true,
+      });
+    }
   }
 
   const type = SLUG_TO_TYPE[params.slug];
 
   if (!type) {
-    return { title: 'Not Found - PopBox Studio' };
+    return createPageMetadata({
+      title: 'Not found',
+      description: 'The requested legal page could not be found.',
+      path: `/legal/${params.slug}`,
+      noIndex: true,
+    });
   }
 
   try {
     const document = await getPublicLegalDocument(type);
 
-    return {
-      title: `${document.title || CANONICAL_LABELS[type]} - PopBox Studio`,
-    };
+    return createPageMetadata({
+      title: document.title || CANONICAL_LABELS[type],
+      description: buildExcerpt(
+        document.content,
+        `${CANONICAL_LABELS[type]} for shopping at PopBox Studio.`,
+      ),
+      path: `/legal/${params.slug}`,
+    });
   } catch {
-    return {
-      title: `${CANONICAL_LABELS[type]} - PopBox Studio`,
-    };
+    return createPageMetadata({
+      title: CANONICAL_LABELS[type],
+      description: `${CANONICAL_LABELS[type]} for shopping at PopBox Studio.`,
+      path: `/legal/${params.slug}`,
+      noIndex: true,
+    });
   }
 }
 

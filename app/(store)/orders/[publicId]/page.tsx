@@ -15,11 +15,23 @@ import {
   InvalidOrderLinkState,
 } from './guest-order-states';
 import { getPublicApiErrorStatus, getPublicGuestOrder } from '@/lib/api/public-storefront';
+import { createPageMetadata } from '@/lib/seo';
 
 type GuestOrderPageProps = {
   params: Promise<{ publicId: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
+
+export async function generateMetadata(props: GuestOrderPageProps) {
+  const params = await props.params;
+
+  return createPageMetadata({
+    title: 'Order details',
+    description: 'Review your PopBox Studio order details.',
+    path: `/orders/${encodeURIComponent(params.publicId)}`,
+    noIndex: true,
+  });
+}
 
 export default async function GuestOrderPage(props: GuestOrderPageProps) {
   const params = await props.params;

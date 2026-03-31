@@ -3,11 +3,47 @@ import { type ReactNode } from 'react';
 import './globals.css';
 import { ReactQueryProvider } from '@/components/react-query-provider';
 import { ThemeProvider } from '@/components/theme-provider';
-import { Analytics } from '@vercel/analytics/next'
+import { Analytics } from '@vercel/analytics/next';
+import getPublicEnvConfig from '@/configs/public-env';
+import {
+  BRAND_NAME,
+  DEFAULT_OG_IMAGE_PATH,
+  DEFAULT_SITE_DESCRIPTION,
+} from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'PopBox Studio',
-  description: 'Premium Collectibles and Ichiban Kuji',
+  metadataBase: new URL(getPublicEnvConfig().siteUrl),
+  title: {
+    default: 'PopBox Studio | Anime Merchandise, Collectibles & Ichiban Kuji',
+    template: '%s | PopBox Studio',
+  },
+  description: DEFAULT_SITE_DESCRIPTION,
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+  },
+  openGraph: {
+    title: BRAND_NAME,
+    description: DEFAULT_SITE_DESCRIPTION,
+    siteName: BRAND_NAME,
+    locale: 'en_CA',
+    type: 'website',
+    images: [
+      {
+        url: DEFAULT_OG_IMAGE_PATH,
+        width: 1200,
+        height: 630,
+        alt: 'PopBox Studio anime collectibles and Ichiban Kuji',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: BRAND_NAME,
+    description: DEFAULT_SITE_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE_PATH],
+  },
 };
 
 interface IRootLayoutProps {

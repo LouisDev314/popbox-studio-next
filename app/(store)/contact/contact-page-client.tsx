@@ -175,7 +175,7 @@ export default function ContactPageClient() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
           <div className="flex flex-col justify-between lg:justify-start">
@@ -432,6 +432,6 @@ export default function ContactPageClient() {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

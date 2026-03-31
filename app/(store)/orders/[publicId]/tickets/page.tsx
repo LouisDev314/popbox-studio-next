@@ -15,11 +15,23 @@ import {
   InvalidOrderLinkState,
 } from '../guest-order-states';
 import { getPublicApiErrorStatus, getPublicGuestTickets } from '@/lib/api/public-storefront';
+import { createPageMetadata } from '@/lib/seo';
 
 type OrderTicketsPageProps = {
   params: Promise<{ publicId: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
+
+export async function generateMetadata(props: OrderTicketsPageProps) {
+  const params = await props.params;
+
+  return createPageMetadata({
+    title: 'Ticket reveals',
+    description: 'Reveal and review your PopBox Studio Ichiban Kuji tickets.',
+    path: `/orders/${encodeURIComponent(params.publicId)}/tickets`,
+    noIndex: true,
+  });
+}
 
 export default async function OrderTicketsPage(props: OrderTicketsPageProps) {
   const params = await props.params;

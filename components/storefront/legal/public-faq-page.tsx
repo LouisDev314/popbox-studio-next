@@ -61,9 +61,29 @@ export function PublicFaqPage({ items }: { items: IPublicFaqItem[] }) {
   const lastUpdated = formatUpdatedDate(safeItems);
   const sections = groupFaqItems(safeItems);
   const defaultOpenItemId = sections[0]?.items[0]?.id;
+  const faqJsonLd = safeItems.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: safeItems.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: item.answer,
+          },
+        })),
+      }
+    : null;
 
   return (
     <div className="bg-background">
+      {faqJsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+      ) : null}
       <div className="container mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="mb-12 border-b border-border pb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">

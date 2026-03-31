@@ -13,6 +13,11 @@ import {
   parseTagSearchParam,
   serializeTagSearchParam,
 } from '@/lib/storefront-product-filters';
+import {
+  createPageMetadata,
+  getCollectionListingSeoState,
+  truncateMetaDescription,
+} from '@/lib/seo';
 
 type CollectionSlugPageProps = {
   params: Promise<{
@@ -23,23 +28,38 @@ type CollectionSlugPageProps = {
 
 export async function generateMetadata(props: CollectionSlugPageProps): Promise<Metadata> {
   const params = await props.params;
+  const searchParams = await props.searchParams;
+  const seoState = getCollectionListingSeoState(params.slug, searchParams);
 
   try {
     const collections = await getPublicCollections();
     const collection = collections.find((item) => item.slug === params.slug && item.isActive);
 
     if (!collection) {
-      return { title: 'Collection Not Found - PopBox Studio' };
+      return createPageMetadata({
+        title: 'Collection not found',
+        description: 'The requested collection could not be found.',
+        path: seoState.canonicalPath,
+        noIndex: true,
+      });
     }
 
-    return {
-      title: `${collection.name} - PopBox Studio`,
-      description: collection.description || `Browse products in the ${collection.name} collection.`,
-    };
+    return createPageMetadata({
+      title: collection.name,
+      description: truncateMetaDescription(
+        collection.description || `Browse products in the ${collection.name} collection at PopBox Studio.`,
+        165,
+      ),
+      path: seoState.canonicalPath,
+      noIndex: !seoState.shouldIndex,
+    });
   } catch {
-    return {
-      title: 'Collections - PopBox Studio',
-    };
+    return createPageMetadata({
+      title: 'Collections',
+      description: 'Browse collector-focused anime merchandise and collections at PopBox Studio.',
+      path: seoState.canonicalPath,
+      noIndex: true,
+    });
   }
 }
 

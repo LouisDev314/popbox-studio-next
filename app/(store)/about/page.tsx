@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { createPageMetadata } from '@/lib/seo';
 
-const PAGE_TITLE = 'About PopBox Studio | Premium Anime Collectibles & Ichiban Kuji';
+const PAGE_TITLE = 'About the Store';
 const PAGE_DESCRIPTION =
-  'Learn about PopBox Studio, a premium anime merchandise store focused on curated anime collectibles, anime figures, Ichiban Kuji releases, and collector-friendly shopping online.';
+  'Learn about PopBox Studio, a premium anime store focused on curated anime collectibles, anime figures, gifts, and Ichiban Kuji for collectors shopping in Canada.';
 
 const whatWeSell = [
   {
@@ -48,21 +49,11 @@ const trustPoints = [
   },
 ];
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: PAGE_TITLE,
   description: PAGE_DESCRIPTION,
-  openGraph: {
-    title: PAGE_TITLE,
-    description: PAGE_DESCRIPTION,
-    type: 'website',
-    siteName: 'PopBox Studio',
-  },
-  twitter: {
-    card: 'summary',
-    title: PAGE_TITLE,
-    description: PAGE_DESCRIPTION,
-  },
-};
+  path: '/about',
+});
 
 export default function AboutPage() {
   return (
