@@ -35,6 +35,11 @@ export function StoreFooter() {
             <h3 className="text-sm font-semibold text-foreground tracking-wider uppercase">Support</h3>
             <ul className="mt-4 space-y-4">
               <li>
+                <Link href="/about" className="text-sm text-muted-foreground hover:text-foreground">
+                  About Us
+                </Link>
+              </li>
+              <li>
                 <Link href="/legal/faq" className="text-sm text-muted-foreground hover:text-foreground">
                   FAQ
                 </Link>
