@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { Loader2, Mail, PackageSearch, Sparkles } from 'lucide-react';
-import * as z from 'zod';
+import { z } from 'zod';
 
 import {
   Field,
