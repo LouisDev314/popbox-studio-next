@@ -79,11 +79,11 @@ export async function generateMetadata(
       path,
       openGraphImages: primaryImage
         ? [
-            {
-              url: primaryImage,
-              alt: product.images[0]?.altText || product.name,
-            },
-          ]
+          {
+            url: primaryImage,
+            alt: product.images[0]?.altText || product.name,
+          },
+        ]
         : undefined,
     });
   } catch {
@@ -143,11 +143,11 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
     },
     ...(product.collection
       ? [
-          {
-            label: product.collection.name,
-            path: `/collections/${encodeURIComponent(product.collection.slug)}`,
-          },
-        ]
+        {
+          label: product.collection.name,
+          path: `/collections/${encodeURIComponent(product.collection.slug)}`,
+        },
+      ]
       : []),
     {
       label: product.name,
@@ -164,8 +164,8 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
     category: productCategory,
     ...(product.sku
       ? {
-          sku: product.sku,
-        }
+        sku: product.sku,
+      }
       : {}),
     offers: {
       '@type': 'Offer',
@@ -174,8 +174,8 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
       priceCurrency: product.currency,
       ...(productOfferAvailability
         ? {
-            availability: productOfferAvailability,
-          }
+          availability: productOfferAvailability,
+        }
         : {}),
     },
   };
