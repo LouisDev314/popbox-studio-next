@@ -1,6 +1,10 @@
 {
   "name": "popbox-studio-next",
   "version": "0.1.0",
+  "packageManager": "pnpm@10.30.2",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "next build",
