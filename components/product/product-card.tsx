@@ -41,7 +41,7 @@ export function ProductCard(props: IProductCardProps) {
         />
       </div>
 
-      <div className="z-20 flex flex-col gap-1.5">
+      <div className="z-20 flex flex-col">
         <h3 className="line-clamp-2 min-h-11 text-base font-semibold text-foreground transition-colors sm:min-h-7 sm:text-lg">
           {props.product.name}
         </h3>

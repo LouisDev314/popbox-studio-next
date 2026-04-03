@@ -1,3 +1,4 @@
+import { StorefrontBottomCta } from '@/components/home/storefront-bottom-cta';
 import { HomeProductSection } from '@/components/home/home-product-section';
 import { StorefrontFeaturedCarouselClient } from '@/components/home/storefront-featured-carousel-client';
 import { StorefrontHero } from '@/components/home/storefront-hero';
@@ -31,7 +32,7 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
 
       <StorefrontValueProps />
 
-      <div className="container mx-auto w-full px-4 pt-10 sm:px-6 lg:px-8">
+      <div className="container mx-auto w-full px-4 pt-0 sm:px-6 lg:px-8">
         <HomeProductSection
           title="Featured"
           products={featured}
@@ -50,6 +51,8 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
           viewAllHref="/products"
         />
       </div>
+
+      <StorefrontBottomCta />
     </div>
   );
 }

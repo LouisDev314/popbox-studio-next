@@ -59,3 +59,13 @@ body {
   @apply bg-background text-foreground;
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Hide scrollbar but keep scroll functionality */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE + Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
