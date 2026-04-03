@@ -68,10 +68,10 @@ function getFieldClasses(hasError: boolean): string {
 function CurrentPrizeImagePanel({ prize }: ICurrentPrizeImagePanelProps) {
   return (
     <div className="sm:col-span-2">
-      <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Current Image</label>
+      <label className="mb-1.5 block text-sm font-medium text-foreground">Current Image</label>
       {prize.imageUrl ? (
-        <div className="rounded-xl border border-[#D5C1C9]/30 bg-[#FBFAFB] p-4">
-          <div className="relative h-40 overflow-hidden rounded-lg bg-[#E6E8EA] sm:h-48">
+        <div className="rounded-xl border border-border/30 bg-background p-4">
+          <div className="relative h-40 overflow-hidden rounded-lg bg-muted sm:h-48">
             <Image
               src={prize.imageUrl}
               alt={prize.name}
@@ -81,10 +81,10 @@ function CurrentPrizeImagePanel({ prize }: ICurrentPrizeImagePanelProps) {
               unoptimized
             />
           </div>
-          <p className="mt-2 truncate text-xs text-[#514349]">{prize.imageUrl}</p>
+          <p className="mt-2 truncate text-xs text-muted-foreground">{prize.imageUrl}</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-[#D5C1C9]/40 bg-[#FBFAFB] px-4 py-6 text-sm text-[#514349]">
+        <div className="rounded-xl border border-dashed border-border/40 bg-background px-4 py-6 text-sm text-muted-foreground">
           No image assigned yet.
         </div>
       )}
@@ -101,7 +101,7 @@ function ReplacePrizeImageField({
 }: IReplacePrizeImageFieldProps) {
   return (
     <div className="sm:col-span-2">
-      <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Replace Image File</label>
+      <label className="mb-1.5 block text-sm font-medium text-foreground">Replace Image File</label>
       <Input
         key={inputKey}
         type="file"
@@ -110,10 +110,10 @@ function ReplacePrizeImageField({
         disabled={disabled}
         className="h-auto"
       />
-      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#514349]">
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         {selectedFile ? (
           <>
-            <span className="font-medium text-[#191C1E]">Selected:</span>
+            <span className="font-medium text-foreground">Selected:</span>
             <span className="max-w-full truncate">{selectedFile.name}</span>
             <Button
               type="button"
@@ -306,7 +306,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Rank (e.g. A)</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Rank (e.g. A)</label>
           <Select
             value={formData.invalidPrizeCode ? INVALID_PRIZE_CODE_SELECT_VALUE : formData.prizeCode}
             onValueChange={handlePrizeCodeChange}
@@ -347,7 +347,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Prize Name</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Prize Name</label>
           <Input
             required
             value={formData.name}
@@ -358,7 +358,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
         </div>
 
         <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Description</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
           <textarea
             value={formData.description}
             onChange={(event) => handleFieldChange('description', event.target.value)}
@@ -379,7 +379,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
         />
 
         <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Image URL</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Image URL</label>
           <Input
             type="url"
             value={formData.imageUrl}
@@ -391,7 +391,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Initial Quantity</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Initial Quantity</label>
           <Input
             type="number"
             min="0"
@@ -405,7 +405,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Remaining Quantity</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Remaining Quantity</label>
           <Input
             type="number"
             min="0"
@@ -419,7 +419,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Sort Order</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Sort Order</label>
           <Input
             type="number"
             min="0"
@@ -432,10 +432,10 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
           {errors.sortOrder ? <p className="mt-1 text-xs text-red-600">{errors.sortOrder}</p> : null}
         </div>
 
-        <div className="rounded-xl border border-[#D5C1C9]/30 bg-[#FBFAFB] p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#514349]">Sold Count</p>
-          <p className="mt-2 text-2xl font-semibold text-[#191C1E]">{soldCount ?? '—'}</p>
-          <p className="mt-1 text-xs text-[#514349]">Calculated as initial quantity minus remaining quantity.</p>
+        <div className="rounded-xl border border-border/30 bg-background p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Sold Count</p>
+          <p className="mt-2 text-2xl font-semibold text-foreground">{soldCount ?? '—'}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Calculated as initial quantity minus remaining quantity.</p>
         </div>
       </div>
 
@@ -446,7 +446,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
       ) : null}
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-[#514349]">
+        <p className="text-xs text-muted-foreground">
           {isDirty ? 'Unsaved changes.' : 'No changes to save.'}
         </p>
         <div className="flex gap-2 sm:justify-end">

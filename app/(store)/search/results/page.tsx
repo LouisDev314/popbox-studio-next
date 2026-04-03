@@ -54,24 +54,26 @@ export default async function SearchResultsPage(props: SearchResultsPageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="mb-2 text-3xl font-bold">Search Results</h1>
-      <p className="mb-8 text-muted-foreground">Showing results for &quot;{query}&quot;</p>
+    <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">Search Results</h1>
+        <p className="mt-2 text-muted-foreground">Showing results for &quot;{query}&quot;</p>
+      </div>
 
       {!query ? (
-        <div className="rounded-xl border border-dashed bg-muted/20 py-20 text-center">
+        <div className="rounded-2xl border border-dashed border-border bg-muted/30 py-20 text-center">
           <p className="text-lg text-muted-foreground">Enter a search term to browse products.</p>
         </div>
       ) : isError ? (
-        <div className="py-20 text-center text-destructive">
+        <div className="rounded-2xl border border-destructive/20 bg-destructive/5 py-20 text-center text-destructive">
           Failed to fetch search results.
         </div>
       ) : products.length === 0 ? (
-        <div className="rounded-xl border border-dashed bg-muted/20 py-20 text-center">
+        <div className="rounded-2xl border border-dashed border-border bg-muted/30 py-20 text-center">
           <p className="text-lg text-muted-foreground">No matching products found.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

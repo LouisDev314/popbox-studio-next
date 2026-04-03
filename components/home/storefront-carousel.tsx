@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, formatPrice } from '@/lib/utils';
 import { IProductCard } from '@/interfaces/product';
 
 interface IStorefrontCarouselProps {
@@ -109,7 +109,7 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
   return (
     <section
       className={cn(
-        'group relative overflow-hidden rounded-[2.25rem] border border-border/60 bg-card shadow-sm',
+        'group relative overflow-hidden border-y border-border/60 bg-card md:rounded-[2rem] md:border',
         className,
       )}
     >
@@ -119,7 +119,7 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
             <div key={product.id} className="relative min-w-0 flex-[0_0_100%]">
               <Link
                 href={`/products/${product.slug}`}
-                className="group/slide relative block aspect-[4/3] w-full sm:aspect-video max-h-[500px]"
+                className="group/slide relative block aspect-[4/3] w-full md:aspect-[21/9]"
                 onClick={() => autoplay.current.stop()}
               >
                 <div className="absolute inset-0 bg-muted/20">
@@ -133,6 +133,20 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
                     />
                   ) : null}
                 </div>
+                <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 px-5 py-5 text-white sm:px-7 sm:py-6">
+                  <div className="min-w-0">
+                    <p className="line-clamp-2 text-xl font-semibold tracking-tight sm:text-2xl">
+                      {product.name}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-white/90 sm:text-base">
+                      {formatPrice(product.priceCents, product.currency)}
+                    </p>
+                  </div>
+                  {/*<span className="shrink-0 rounded-full border border-white/30 bg-white/12 px-4 py-2 text-sm font-medium text-white transition-colors group-hover/slide:bg-white/20">*/}
+                  {/*  Shop Now*/}
+                  {/*</span>*/}
+                </div>
               </Link>
             </div>
           ))}
@@ -143,7 +157,7 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
         <Button
           variant="outline"
           size="icon"
-          className="pointer-events-auto h-12 w-12 rounded-full border-border/50 bg-background/80 shadow-md backdrop-blur-sm transition-transform hover:scale-105 hover:bg-background"
+          className="pointer-events-auto h-12 w-12 rounded-full border-border bg-white text-foreground shadow-sm transition-transform hover:scale-105 hover:bg-muted"
           onClick={scrollPrev}
           aria-label="Previous slide"
         >
@@ -152,7 +166,7 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
         <Button
           variant="outline"
           size="icon"
-          className="pointer-events-auto h-12 w-12 rounded-full border-border/50 bg-background/80 shadow-md backdrop-blur-sm transition-transform hover:scale-105 hover:bg-background"
+          className="pointer-events-auto h-12 w-12 rounded-full border-border bg-white text-foreground shadow-sm transition-transform hover:scale-105 hover:bg-muted"
           onClick={scrollNext}
           aria-label="Next slide"
         >

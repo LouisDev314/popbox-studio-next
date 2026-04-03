@@ -99,7 +99,7 @@ export async function generateMetadata(
 function ProductUnavailableState() {
   return (
     <div className="container mx-auto px-4 py-24 text-center sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-xl rounded-4xl border border-dashed border-border/70 bg-card px-8 py-14 shadow-sm">
+      <div className="mx-auto max-w-xl rounded-2xl border border-dashed border-border/70 bg-card px-8 py-14 shadow-sm">
         <h1 className="text-3xl font-bold text-destructive">Failed to load product</h1>
         <p className="mt-3 text-base text-muted-foreground">
           The requested product is temporarily unavailable. Please try again shortly.
@@ -191,7 +191,7 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
   };
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+    <div className="container mx-auto px-4 py-12 sm:px-6 md:py-16 lg:px-8">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
@@ -243,12 +243,12 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
             ) : null}
           </div>
 
-          <h1 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl">
+          <h1 className="mt-4 text-2xl font-semibold leading-tight tracking-tight text-foreground md:text-3xl">
             {product.name}
           </h1>
 
           <div className="mt-5 flex flex-wrap items-end gap-2">
-            <span className="text-3xl font-bold text-foreground">
+            <span className="text-2xl font-semibold text-primary">
               {formatPrice(product.priceCents, product.currency)}
             </span>
             {product.productType === 'kuji' ? (
@@ -261,8 +261,8 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
           <ProductActions product={product} />
 
           {product.productType === 'kuji' ? (
-            <div className="mt-12 rounded-[1.75rem] border border-secondary/25 bg-secondary/10 p-5">
-              <p className="text-sm font-medium text-secondary-foreground">
+            <div className="mt-12 rounded-2xl border border-border/70 bg-accent/40 p-5">
+              <p className="text-sm font-medium text-foreground">
                 <span className="mb-1 block font-bold uppercase tracking-wider">How Ichiban Kuji Works</span>
                 Each ticket guarantees a prize from this lineup. Purchase the quantity of tickets you want, check out,
                 and reveal your prizes after payment.
@@ -276,7 +276,7 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
         <KujiPrizesView prizes={product.kujiPrizes} />
       ) : null}
 
-      <div className="mt-12 rounded-4xl border border-border/60 bg-card/70 p-5 shadow-sm">
+      <div className="mt-12 rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Product details</p>
         {product.sku ? (
           <p className="mt-4 text-sm font-medium text-foreground">

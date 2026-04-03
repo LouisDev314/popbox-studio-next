@@ -84,7 +84,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
           Back to Order
         </Link>
 
-        <div className="flex bg-muted/50 rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide border border-border">
+        <div className="flex rounded-full border border-border bg-muted/50 px-4 py-1.5 text-sm font-semibold tracking-wide">
           <span className="text-primary">{counts.revealed}</span>
           <span className="text-muted-foreground mx-1">/</span>
           <span className="text-foreground">{counts.total} Revealed</span>
@@ -93,8 +93,8 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-border pb-8">
         <div>
-          <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground flex items-center gap-4">
-            <TicketIcon className="h-10 w-10 lg:h-12 lg:w-12 text-primary drop-shadow-sm" />
+          <h1 className="flex items-center gap-4 text-4xl font-semibold tracking-tight text-foreground lg:text-5xl">
+            <TicketIcon className="h-10 w-10 text-primary lg:h-12 lg:w-12" />
             Your Ticket Box
           </h1>
           <p className="mt-4 text-muted-foreground text-lg max-w-2xl leading-relaxed">
@@ -109,7 +109,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
             size="lg"
             onClick={handleRevealAll}
             disabled={isRevealingAll || revealingId !== null}
-            className="rounded-full shadow-lg font-bold text-lg px-8 h-14 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 transition-all active:scale-95"
+            className="h-14 rounded-xl px-8 text-lg font-bold transition-all active:scale-95"
           >
             {isRevealingAll ? (
               <span className="flex items-center gap-2">
@@ -129,7 +129,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
       <div className="space-y-16">
         {unrevealed.length > 0 ? (
           <section>
-            <h2 className="text-2xl font-bold tracking-tight mb-8 flex items-center gap-3">
+            <h2 className="mb-8 flex items-center gap-3 text-2xl font-semibold tracking-tight">
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
@@ -152,7 +152,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
 
         {revealed.length > 0 ? (
           <section>
-            <h2 className="text-2xl font-bold tracking-tight mb-8 text-foreground/80">
+            <h2 className="mb-8 text-2xl font-semibold tracking-tight text-foreground/80">
               Revealed Prizes ({revealed.length})
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 lg:gap-8 justify-items-center">

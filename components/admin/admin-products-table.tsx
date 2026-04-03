@@ -84,7 +84,7 @@ function RowActions({ isUpdating, onStatusChange, product }: IRowActionsProps) {
         aria-label="Product actions"
         variant="ghost"
         size="icon"
-        className="h-8 w-8 rounded-md p-0 text-[#514349]/60 hover:bg-[#E6E8EA]/60 hover:text-[#191C1E]"
+        className="h-8 w-8 rounded-md p-0 text-muted-foreground/60 hover:bg-muted/60 hover:text-foreground"
         onClick={(event) => {
           event.stopPropagation();
           setIsOpen((open) => !open);
@@ -100,10 +100,10 @@ function RowActions({ isUpdating, onStatusChange, product }: IRowActionsProps) {
             aria-hidden="true"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute right-0 top-8 z-50 w-48 rounded-lg bg-white py-1 shadow-[0_20px_25px_-5px_rgba(25,28,30,0.04),0_10px_10px_-5px_rgba(25,28,30,0.02)] ring-1 ring-[#D5C1C9]/20">
+          <div className="absolute right-0 top-8 z-50 w-48 rounded-lg border border-border/40 bg-card py-1 shadow-sm">
             <Link
               href={`/admin/products/${product.id}`}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-[#514349] transition-colors hover:bg-[#F2F4F6]"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
               onClick={() => setIsOpen(false)}
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -113,7 +113,7 @@ function RowActions({ isUpdating, onStatusChange, product }: IRowActionsProps) {
               type="button"
               variant="ghost"
               disabled={isUpdating}
-              className="flex h-auto w-full justify-start gap-2.5 rounded-none px-3 py-2 text-sm font-normal text-[#514349] hover:bg-[#F2F4F6] hover:text-[#514349]"
+              className="flex h-auto w-full justify-start gap-2.5 rounded-none px-3 py-2 text-sm font-normal text-muted-foreground hover:bg-muted hover:text-muted-foreground"
               onClick={(event) => {
                 event.stopPropagation();
                 onStatusChange(product.id, toggleAction.newStatus);
@@ -159,7 +159,7 @@ function ProductTagsCell({ tags }: { tags?: ITag[] }) {
   );
 
   if (sortedTags.length === 0) {
-    return <span className="text-[#514349]/60">—</span>;
+    return <span className="text-muted-foreground/60">—</span>;
   }
 
   const visibleTags = sortedTags.slice(0, 2);
@@ -170,13 +170,13 @@ function ProductTagsCell({ tags }: { tags?: ITag[] }) {
       {visibleTags.map((tag) => (
         <span
           key={tag.id}
-          className="inline-flex max-w-full items-center rounded-full border border-[#D5C1C9]/40 bg-[#F7F4F6] px-2.5 py-1 text-[11px] font-medium text-[#514349]"
+          className="inline-flex max-w-full items-center rounded-full border border-border/40 bg-muted/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
         >
           <span className="truncate">{tag.name}</span>
         </span>
       ))}
       {remainingCount > 0 ? (
-        <span className="inline-flex items-center rounded-full border border-dashed border-[#D5C1C9]/50 px-2.5 py-1 text-[11px] font-medium text-[#514349]/80">
+        <span className="inline-flex items-center rounded-full border border-dashed border-border/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground/80">
           +{remainingCount} more
         </span>
       ) : null}
@@ -198,11 +198,11 @@ function AdminProductsEmptyState(props: IAdminProductsEmptyStateProps) {
       : 'No products yet. Create your first product to get started.';
 
   return (
-    <div className="rounded-xl border border-dashed border-[#D5C1C9]/40 bg-white py-20 text-center">
+    <div className="rounded-xl border border-dashed border-border/40 bg-card py-20 text-center">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
         <PackageIcon className="h-6 w-6 text-primary" />
       </div>
-      <p className="text-sm text-[#514349]">{message}</p>
+      <p className="text-sm text-muted-foreground">{message}</p>
       {props.hasActiveRefinements ? (
         <Button
           type="button"
@@ -228,21 +228,21 @@ function AdminProductsEmptyState(props: IAdminProductsEmptyStateProps) {
 
 export function AdminProductsLoadingSkeleton() {
   return (
-    <div className="overflow-hidden rounded-xl border border-[#D5C1C9]/20 bg-white">
+    <div className="overflow-hidden rounded-xl border border-border/20 bg-card">
       <div className="px-4 py-3">
-        <div className="h-3 w-full rounded bg-[#E6E8EA]" />
+        <div className="h-3 w-full rounded bg-muted" />
       </div>
       {Array.from({ length: 5 }).map((_, index) => (
         <div key={index} className="flex items-center gap-4 px-4 py-3.5">
-          <div className="h-9 w-9 shrink-0 rounded-lg bg-[#E6E8EA]" />
+          <div className="h-9 w-9 shrink-0 rounded-lg bg-muted" />
           <div className="min-w-[180px] flex-1 space-y-2">
-            <div className="h-3.5 w-2/5 rounded bg-[#E6E8EA]" />
+            <div className="h-3.5 w-2/5 rounded bg-muted" />
           </div>
-          <div className="h-3 w-16 rounded bg-[#E6E8EA]" />
-          <div className="h-5 w-14 rounded-full bg-[#E6E8EA]" />
-          <div className="h-3 w-20 rounded bg-[#E6E8EA]" />
-          <div className="h-5 w-28 rounded-full bg-[#E6E8EA]" />
-          <div className="h-3 w-20 rounded bg-[#E6E8EA]" />
+          <div className="h-3 w-16 rounded bg-muted" />
+          <div className="h-5 w-14 rounded-full bg-muted" />
+          <div className="h-3 w-20 rounded bg-muted" />
+          <div className="h-5 w-28 rounded-full bg-muted" />
+          <div className="h-3 w-20 rounded bg-muted" />
         </div>
       ))}
     </div>
@@ -272,10 +272,10 @@ export function AdminProductsTable(props: IAdminProductsTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-[#D5C1C9]/20 bg-white">
+    <div className="overflow-x-auto rounded-xl border border-border/20 bg-card">
       <table className="min-w-[1220px] w-full text-left text-sm">
         <thead>
-          <tr className="text-[11px] font-semibold uppercase tracking-wider text-[#514349]">
+          <tr className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             <th className="px-4 py-3">Product</th>
             <th className="px-4 py-3">Type</th>
             <th className="px-4 py-3">Status</th>
@@ -293,24 +293,24 @@ export function AdminProductsTable(props: IAdminProductsTableProps) {
           {props.products.map((product) => (
             <tr
               key={product.id}
-              className="cursor-pointer transition-colors hover:bg-[#F2F4F6]/50"
+              className="cursor-pointer transition-colors hover:bg-muted/50"
               onClick={() => props.onRowClick(product.id)}
             >
               <td className="px-4 py-3">
                 <div className="flex min-w-[220px] items-center gap-3">
                   <ProductThumbnail product={product} />
-                  <span className="line-clamp-1 font-medium text-[#191C1E]">
+                  <span className="line-clamp-1 font-medium text-foreground">
                     {product.name}
                   </span>
                 </div>
               </td>
 
               <td className="px-4 py-3">
-                <span className="inline-flex items-center gap-1.5 text-[#514349]">
+                <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                   {product.productType === 'kuji' ? (
                     <Boxes className="h-3.5 w-3.5 text-secondary" />
                   ) : (
-                    <PackageIcon className="h-3.5 w-3.5 text-[#514349]/50" />
+                    <PackageIcon className="h-3.5 w-3.5 text-muted-foreground/50" />
                   )}
                   {product.productType === 'kuji' ? 'Kuji' : 'Standard'}
                 </span>
@@ -320,11 +320,11 @@ export function AdminProductsTable(props: IAdminProductsTableProps) {
                 <AdminProductStatusBadge status={product.status} />
               </td>
 
-              <td className="px-4 py-3 tabular-nums text-[#191C1E]">
+              <td className="px-4 py-3 tabular-nums text-foreground">
                 {formatPrice(product.priceCents, product.currency)}
               </td>
 
-              <td className="px-4 py-3 text-[#514349]">
+              <td className="px-4 py-3 text-muted-foreground">
                 <span className="line-clamp-1">
                   {getCollectionDisplayName(product, props.collectionNameById)}
                 </span>
@@ -334,13 +334,13 @@ export function AdminProductsTable(props: IAdminProductsTableProps) {
                 <ProductTagsCell tags={product.tags} />
               </td>
 
-              <td className="px-4 py-3 text-[#514349]">
-                <span className={cn(product.productType === 'kuji' && 'italic text-[#514349]/70')}>
+              <td className="px-4 py-3 text-muted-foreground">
+                <span className={cn(product.productType === 'kuji' && 'italic text-muted-foreground/70')}>
                   {getInventoryDisplay(product)}
                 </span>
               </td>
 
-              <td className="px-4 py-3 text-[#514349]">
+              <td className="px-4 py-3 text-muted-foreground">
                 {formatRelativeDate(product.updatedAt)}
               </td>
 

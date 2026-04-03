@@ -63,8 +63,8 @@ function SortableProductImageCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'flex items-center gap-4 rounded-xl border border-[#D5C1C9]/50 bg-[#FBFAFB] p-3 transition-[background-color,box-shadow,border-color] hover:border-primary/20 hover:bg-white',
-        isDragging && 'border-primary/30 bg-white shadow-[0_12px_32px_rgba(25,28,30,0.14)]',
+        'flex items-center gap-4 rounded-xl border border-border/50 bg-background p-3 transition-[background-color,box-shadow,border-color] hover:border-primary/20 hover:bg-card',
+        isDragging && 'border-primary/30 bg-card shadow-[0_12px_32px_rgba(25,28,30,0.14)]',
       )}
     >
       <SortableHandle
@@ -73,7 +73,7 @@ function SortableProductImageCard({
         handleProps={handleProps}
       />
 
-      <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-[#E6E8EA] shadow-sm">
+      <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-muted shadow-sm">
         {previewSrc ? (
           <Image
             src={previewSrc}
@@ -84,15 +84,15 @@ function SortableProductImageCard({
             unoptimized={previewSrc.includes('supabase')}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] font-medium uppercase tracking-wider text-[#514349]/60">
+          <div className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
             No preview
           </div>
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-[#191C1E]">{label}</p>
-        {image.altText ? <p className="mt-0.5 truncate text-xs text-[#514349]">{image.altText}</p> : null}
+        <p className="truncate text-sm font-medium text-foreground">{label}</p>
+        {image.altText ? <p className="mt-0.5 truncate text-xs text-muted-foreground">{image.altText}</p> : null}
       </div>
 
       <div className="flex items-center gap-2">
@@ -305,16 +305,16 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
   };
 
   return (
-    <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
       <div className="mb-6 space-y-4">
         <div>
-          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-[#191C1E]">Media & Images</h2>
-          <p className="text-sm text-[#514349]">Upload multiple images. Drag to reorder and changes save automatically.</p>
+          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-foreground">Media & Images</h2>
+          <p className="text-sm text-muted-foreground">Upload multiple images. Drag to reorder and changes save automatically.</p>
         </div>
-        <div className="relative border border-[#D5C1C9]/50 rounded-lg overflow-hidden transition-colors hover:border-primary/50">
+        <div className="relative border border-border/50 rounded-lg overflow-hidden transition-colors hover:border-primary/50">
           {isUploading && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-[1px]">
-              <span className="text-sm font-medium text-primary shadow-sm bg-white px-3 py-1.5 rounded-full border border-primary/20">Uploading...</span>
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/60 ">
+              <span className="text-sm font-medium text-primary shadow-sm bg-card px-3 py-1.5 rounded-full border border-primary/20">Uploading...</span>
             </div>
           )}
           <FileUpload onChange={handleFileChange} multiple accept="image/*" maxSizeBytes={5 * 1024 * 1024} />
@@ -322,9 +322,9 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
       </div>
 
       {images.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#D5C1C9] bg-[#FBFAFB] p-8 text-center shadow-sm">
-          <p className="text-sm font-medium text-[#191C1E]">No images uploaded yet.</p>
-          <p className="mt-1 text-sm text-[#514349]">Upload product photography, packaging shots, or promo art.</p>
+        <div className="rounded-xl border border-dashed border-border bg-background p-8 text-center shadow-sm">
+          <p className="text-sm font-medium text-foreground">No images uploaded yet.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Upload product photography, packaging shots, or promo art.</p>
         </div>
       ) : (
         <DndContext

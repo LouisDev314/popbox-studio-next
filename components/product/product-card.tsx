@@ -14,17 +14,17 @@ export function ProductCard(props: IProductCardProps) {
   const inventoryState = getProductInventoryState(props.product);
 
   return (
-    <div className="group relative flex h-full flex-col gap-3 rounded-[1.75rem] border border-border/50 bg-card p-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:gap-4 sm:p-4">
+    <div className="group relative flex h-full flex-col gap-3 rounded-2xl border border-border/60 bg-white p-3 transition-shadow duration-300 hover:shadow-md sm:gap-4 sm:p-4">
       <Link
         href={`/products/${props.product.slug}`}
-        className="absolute inset-0 z-10 rounded-[1.75rem] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="absolute inset-0 z-10 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="sr-only">View product {props.product.name}</span>
       </Link>
 
-      <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-[1.4rem] bg-muted/30">
+      <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-[1rem] bg-muted/30">
         {isKuji && (
-          <div className="absolute left-3 top-3 z-20 rounded-full bg-primary/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-secondary-foreground shadow-sm sm:text-[11px]">
+          <div className="absolute left-3 top-3 z-20 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary sm:text-[11px]">
             Ichiban Kuji
           </div>
         )}

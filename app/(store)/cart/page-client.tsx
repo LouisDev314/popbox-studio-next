@@ -44,7 +44,7 @@ export default function CartPageClient() {
   if (items.length === 0 && invalidItems.length === 0) {
     return (
       <div className="container mx-auto flex flex-1 px-4 py-20 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-xl flex-col items-center rounded-4xl border border-dashed border-border/70 bg-card px-8 py-14 text-center shadow-sm">
+        <div className="mx-auto flex max-w-xl flex-col items-center rounded-2xl border border-dashed border-border/70 bg-card px-8 py-14 text-center shadow-sm">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted/60">
             <ShoppingBag className="h-7 w-7 text-muted-foreground" />
           </div>
@@ -111,7 +111,7 @@ export default function CartPageClient() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-full px-5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  className="rounded-xl px-5 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   disabled={isCheckingOut}
                   onClick={clearCart}
                 >
@@ -132,7 +132,7 @@ export default function CartPageClient() {
             </div>
 
             <div className="flex justify-center">
-              <Button asChild variant="outline" className="rounded-full px-5 hover:bg-primary/60">
+              <Button asChild variant="outline" className="rounded-xl px-5">
                 <Link href="/products">Continue shopping</Link>
               </Button>
             </div>

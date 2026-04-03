@@ -68,7 +68,7 @@ export default async function CheckoutSuccessPage(props: { searchParams: Promise
     <div className="container mx-auto flex max-w-3xl flex-col items-center px-4 py-20 text-center">
       <CheckoutSuccessEffects sessionId={sessionId} order={order} />
 
-      <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-green-600 shadow-sm">
+      <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-accent text-primary shadow-sm">
         <CheckCircle2 className="h-10 w-10" />
       </div>
 
@@ -98,19 +98,18 @@ export default async function CheckoutSuccessPage(props: { searchParams: Promise
 
       <div className="flex w-full flex-col justify-center gap-4 sm:flex-row">
         {hasKujiTickets ? (
-          <Button asChild size="lg" className="group relative h-14 overflow-hidden rounded-full px-8 text-lg font-semibold">
+          <Button asChild size="lg" className="h-14 rounded-xl px-8 text-lg font-semibold">
             <Link href={publicTicketsUrl}>
-              <span className="absolute inset-0 h-full w-full translate-y-full bg-primary/10 transition-transform duration-300 group-hover:translate-y-0" />
-              <Ticket className="relative z-10 mr-2 h-5 w-5" />
-              <span className="relative z-10">Reveal My Tickets!</span>
+              <Ticket className="mr-2 h-5 w-5" />
+              Reveal My Tickets!
             </Link>
           </Button>
         ) : (
-          <Button asChild size="lg" className="h-14 rounded-full px-8 text-lg font-semibold">
+          <Button asChild size="lg" className="h-14 rounded-xl px-8 text-lg font-semibold">
             <Link href={publicOrderUrl}>View Order Details</Link>
           </Button>
         )}
-        <Button asChild variant="outline" size="lg" className="h-14 rounded-full border-border px-8 text-lg font-semibold hover:bg-muted">
+        <Button asChild variant="outline" size="lg" className="h-14 rounded-xl border-border px-8 text-lg font-semibold hover:bg-muted">
           <Link href="/">Continue Shopping</Link>
         </Button>
       </div>

@@ -18,23 +18,22 @@ export function HomeProductSection(props: IHomeProductSectionProps) {
 
   return (
     <section className="mb-14 md:mb-16">
-      <div className="mb-8 flex items-end justify-between gap-4">
-        <h2 className="text-4xl font-bold tracking-tight text-foreground">{props.title}</h2>
-        <Button asChild variant="outline" size="sm" className="hidden rounded-full px-4 sm:inline-flex hover:bg-primary/60">
-          <Link href={props.viewAllHref}>View all</Link>
-        </Button>
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{props.title}</h2>
+        <Link
+          href={props.viewAllHref}
+          className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          View All &rarr;
+        </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:gap-4 lg:grid-cols-4">
+      <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:pb-0">
         {props.products.slice(0, SECTION_PREVIEW_LIMIT).map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <div key={product.id} className="w-[200px] flex-none snap-start md:w-auto">
+            <ProductCard product={product} />
+          </div>
         ))}
-      </div>
-
-      <div className="mt-6 flex justify-center sm:hidden">
-        <Button asChild variant="outline" size="lg" className="rounded-full px-6 hover:bg-primary/60">
-          <Link href={props.viewAllHref}>View all</Link>
-        </Button>
       </div>
     </section>
   );

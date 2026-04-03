@@ -21,7 +21,7 @@ export function InvalidCartItems(props: IInvalidCartItemsProps) {
   return (
     <section
       className={cn(
-        'rounded-[1.75rem] border border-destructive/30 bg-destructive/5 p-4',
+        'rounded-2xl border border-destructive/30 bg-destructive/5 p-4',
         props.compact ? 'space-y-3' : 'space-y-4 p-5',
       )}
       aria-label="Cart issues"
@@ -42,7 +42,7 @@ export function InvalidCartItems(props: IInvalidCartItemsProps) {
         {props.items.map((item) => (
           <article
             key={item.id}
-            className="rounded-[1.5rem] border border-destructive/20 bg-background/90 p-4 shadow-sm"
+            className="rounded-2xl border border-destructive/20 bg-background p-4 shadow-sm"
           >
             <div className="flex gap-4">
               <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-muted/30">

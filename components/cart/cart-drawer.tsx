@@ -86,7 +86,7 @@ export function CartDrawer(props: ICartDrawerProps) {
     <>
       <div
         className={cn(
-          'fixed inset-0 z-[70] bg-foreground/12 backdrop-blur-sm transition-opacity duration-300',
+          'fixed inset-0 z-[70] bg-foreground/12 transition-opacity duration-300',
           isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
         )}
         onClick={isCheckingOut ? undefined : onClose}
@@ -99,7 +99,7 @@ export function CartDrawer(props: ICartDrawerProps) {
         inert={!isOpen}
         aria-labelledby={titleId}
         className={cn(
-          'fixed inset-y-0 right-0 z-[71] flex w-full max-w-sm flex-col border-l border-border/70 bg-background shadow-[0_24px_60px_-28px_hsl(var(--foreground)/0.4)] backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          'fixed inset-y-0 right-0 z-[71] flex w-full max-w-sm flex-col border-l border-border/70 bg-background shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
           isOpen ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full',
         )}
       >
@@ -151,7 +151,7 @@ export function CartDrawer(props: ICartDrawerProps) {
                     onRemove={removeInvalidItem}
                   />
                   {items.map((item) => (
-                    <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card/80 p-4 shadow-sm">
+                  <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card p-4">
                       {(() => {
                         const quantityLimit = getProductSellableQuantity(item.product);
                         const limitMessage = getProductCartLimitMessage(item.product, item.quantity);
@@ -218,7 +218,7 @@ export function CartDrawer(props: ICartDrawerProps) {
             </div>
 
             {hasHydrated && items.length > 0 ? (
-              <div className="border-t border-border/70 bg-card/60 px-5 py-5 sm:px-6">
+              <div className="border-t border-border/70 bg-card px-5 py-5 sm:px-6">
                 <div className="mb-4 flex items-center justify-between">
                   <span className="text-sm font-medium text-muted-foreground">Subtotal</span>
                   <span className="text-lg font-bold text-foreground">

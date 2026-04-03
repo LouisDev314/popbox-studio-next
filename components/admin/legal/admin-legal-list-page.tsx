@@ -62,8 +62,8 @@ export function AdminLegalListPage() {
       {/* Page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#191C1E]">Legal Documents</h1>
-          <p className="mt-1 text-sm text-[#514349]">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Legal Documents</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage your store policies, terms, and FAQs.
           </p>
         </div>
@@ -119,7 +119,7 @@ function DocumentCard({
   const exists = !!activeDoc;
 
   return (
-    <div className="flex flex-col justify-between rounded-xl border border-[#D5C1C9]/40 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="flex flex-col justify-between rounded-xl border border-border/40 bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
       <div>
         <div className="flex items-start justify-between">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -130,16 +130,16 @@ function DocumentCard({
               'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
               exists
                 ? 'bg-[#E7F0E7] text-[#116211]' // Published
-                : 'bg-[#F2F4F6] text-[#514349]', // Not created
+                : 'bg-muted text-muted-foreground', // Not created
             )}
           >
             {exists ? 'Published' : 'Not created'}
           </span>
         </div>
-        <h3 className="mt-4 font-semibold text-[#191C1E]">{label}</h3>
-        <p className="mt-1 text-sm text-[#514349] line-clamp-2">{description}</p>
+        <h3 className="mt-4 font-semibold text-foreground">{label}</h3>
+        <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{description}</p>
 
-        <div className="mt-4 flex flex-col gap-1 text-xs text-[#514349]">
+        <div className="mt-4 flex flex-col gap-1 text-xs text-muted-foreground">
           <div className="flex justify-between">
             <span className="font-medium">Active Version</span>
             <span>{exists ? `v${activeDoc.version}` : '—'}</span>
@@ -158,7 +158,7 @@ function DocumentCard({
           className={cn(
             'w-full rounded-lg shadow-none',
             !exists && 'bg-primary text-white hover:opacity-90',
-            exists && 'border border-[#D5C1C9] bg-white text-[#191C1E] hover:bg-[#F2F4F6]',
+            exists && 'border border-border bg-card text-foreground hover:bg-muted',
           )}
           variant={exists ? 'outline' : 'default'}
         >
@@ -191,7 +191,7 @@ function FaqCard({ faqItems }: { faqItems: IAdminFaqItem[] }) {
   }, null);
   const exists = faqItems.length > 0;
   const statusClassName = !exists
-    ? 'bg-[#F2F4F6] text-[#514349]'
+    ? 'bg-muted text-muted-foreground'
     : publishedCount > 0
       ? 'bg-[#E7F0E7] text-[#116211]'
       : 'bg-[#FFF7E6] text-[#8A6116]';
@@ -202,7 +202,7 @@ function FaqCard({ faqItems }: { faqItems: IAdminFaqItem[] }) {
       : 'Draft only';
 
   return (
-    <div className="flex flex-col justify-between rounded-xl border border-[#D5C1C9]/40 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="flex flex-col justify-between rounded-xl border border-border/40 bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
       <div>
         <div className="flex items-start justify-between">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -212,12 +212,12 @@ function FaqCard({ faqItems }: { faqItems: IAdminFaqItem[] }) {
             {statusLabel}
           </span>
         </div>
-        <h3 className="mt-4 font-semibold text-[#191C1E]">FAQ</h3>
-        <p className="mt-1 text-sm text-[#514349] line-clamp-2">
+        <h3 className="mt-4 font-semibold text-foreground">FAQ</h3>
+        <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
           Manage published FAQ items for the storefront accordion.
         </p>
 
-        <div className="mt-4 flex flex-col gap-1 text-xs text-[#514349]">
+        <div className="mt-4 flex flex-col gap-1 text-xs text-muted-foreground">
           <div className="flex justify-between">
             <span className="font-medium">FAQ Items</span>
             <span>{faqItems.length}</span>
@@ -240,7 +240,7 @@ function FaqCard({ faqItems }: { faqItems: IAdminFaqItem[] }) {
           className={cn(
             'w-full rounded-lg shadow-none',
             !exists && 'bg-primary text-white hover:opacity-90',
-            exists && 'border border-[#D5C1C9] bg-white text-[#191C1E] hover:bg-[#F2F4F6]',
+            exists && 'border border-border bg-card text-foreground hover:bg-muted',
           )}
           variant={exists ? 'outline' : 'default'}
         >
@@ -265,21 +265,21 @@ function LoadingSkeleton() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="flex flex-col justify-between rounded-xl border border-[#D5C1C9]/40 bg-white p-5 shadow-sm">
+        <div key={i} className="flex flex-col justify-between rounded-xl border border-border/40 bg-card p-5 shadow-sm">
           <div>
             <div className="flex items-start justify-between">
-              <div className="h-10 w-10 shrink-0 rounded-lg bg-[#E6E8EA]" />
-              <div className="h-5 w-16 rounded-full bg-[#E6E8EA]" />
+              <div className="h-10 w-10 shrink-0 rounded-lg bg-muted" />
+              <div className="h-5 w-16 rounded-full bg-muted" />
             </div>
-            <div className="mt-4 h-5 w-1/2 rounded bg-[#E6E8EA]" />
-            <div className="mt-2 h-3 w-3/4 rounded bg-[#E6E8EA]" />
+            <div className="mt-4 h-5 w-1/2 rounded bg-muted" />
+            <div className="mt-2 h-3 w-3/4 rounded bg-muted" />
             
             <div className="mt-4 gap-2 flex flex-col">
-              <div className="h-3 w-full rounded bg-[#E6E8EA]" />
-              <div className="h-3 w-full rounded bg-[#E6E8EA]" />
+              <div className="h-3 w-full rounded bg-muted" />
+              <div className="h-3 w-full rounded bg-muted" />
             </div>
           </div>
-          <div className="mt-6 h-9 w-full rounded-lg bg-[#E6E8EA]" />
+          <div className="mt-6 h-9 w-full rounded-lg bg-muted" />
         </div>
       ))}
     </div>

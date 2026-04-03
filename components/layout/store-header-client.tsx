@@ -60,14 +60,14 @@ interface IStoreHeaderClientProps {
 
 function getDesktopNavItemClassName(isActive: boolean, isTrigger = false) {
   return cn(
-    'inline-flex h-9 items-center rounded-full px-3 py-2 text-sm font-medium tracking-tight transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+    'relative inline-flex h-9 items-center px-3 py-2 text-sm font-medium tracking-tight whitespace-nowrap transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 after:absolute after:right-3 after:bottom-1 after:left-3 after:h-0.5 after:origin-center after:rounded-full after:bg-primary after:transition-transform after:duration-200 after:content-[""]',
     isActive
-      ? 'bg-primary/60 text-primary-foreground shadow-[0_10px_24px_-20px_hsl(var(--foreground)/0.55)] hover:bg-primary/60 focus:bg-primary/60'
-      : 'text-muted-foreground hover:bg-primary/60 hover:text-foreground',
+      ? 'text-foreground after:scale-x-100'
+      : 'text-muted-foreground after:scale-x-0 hover:text-foreground hover:after:scale-x-100',
     isTrigger &&
       (isActive
-        ? 'data-popup-open:bg-primary/60 data-popup-open:text-primary-foreground data-open:bg-primary/60 data-open:text-primary-foreground data-open:focus:bg-primary/60'
-        : 'hover:bg-muted hover:text-foreground data-popup-open:bg-muted data-popup-open:text-foreground data-open:bg-muted data-open:text-foreground data-open:focus:bg-muted'),
+        ? 'data-popup-open:text-foreground data-popup-open:after:scale-x-100 data-open:text-foreground data-open:after:scale-x-100 data-open:focus:text-foreground'
+        : 'data-popup-open:text-foreground data-popup-open:after:scale-x-100 data-open:text-foreground data-open:after:scale-x-100 data-open:focus:text-foreground'),
   );
 }
 
@@ -80,8 +80,8 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
         aria-expanded={props.isSearchOpen}
         aria-label={props.isSearchOpen ? 'Close search' : 'Open search'}
         className={cn(
-          'rounded-full border border-transparent p-2 text-muted-foreground transition-all duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-          props.isSearchOpen ? 'bg-primary/20 text-foreground shadow-sm' : 'bg-background/70',
+          'rounded-full border border-transparent p-2 text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          props.isSearchOpen ? 'bg-accent text-foreground' : 'bg-background',
         )}
         onClick={props.onSearchToggle}
       >
@@ -91,7 +91,7 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
       <button
         id={WISHLIST_BUTTON_ID}
         type="button"
-        className="relative rounded-full border border-transparent bg-background/70 p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="relative rounded-full border border-transparent bg-background p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={props.onWishlistOpen}
       >
         <span className="sr-only">Open wishlist</span>
@@ -106,7 +106,7 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
       <button
         id={MOBILE_CART_BUTTON_ID}
         type="button"
-        className="relative rounded-full border border-transparent bg-background/70 p-2 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="relative rounded-full border border-transparent bg-background p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={props.onCartOpen}
       >
         <span className="sr-only">Open cart</span>
@@ -125,7 +125,7 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
         aria-label={props.isMenuOpen ? 'Close menu' : 'Open menu'}
         className={cn(
           'relative inline-flex h-10 w-10 items-center justify-center rounded-full border p-2 text-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:hidden',
-          props.isMenuOpen ? 'border-primary/30 bg-primary/20 shadow-sm' : 'border-border/60 bg-background/80',
+          props.isMenuOpen ? 'border-primary/30 bg-accent' : 'border-border/60 bg-background',
         )}
         onClick={props.onMenuToggle}
       >
@@ -283,9 +283,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
         className={cn(
           'fixed inset-x-0 top-0 z-50 w-full border-b border-border/60 bg-background transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
           shouldShowMobileNavbar ? 'translate-y-0' : '-translate-y-full',
-          activeMobilePanel !== null
-            ? 'shadow-[0_24px_54px_-36px_hsl(var(--foreground)/0.48)]'
-            : 'shadow-[0_18px_40px_-36px_hsl(var(--foreground)/0.42)]',
+          'shadow-sm',
         )}
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -312,14 +310,14 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
                         <NavigationMenuTrigger
                           className={cn(
                             getDesktopNavItemClassName(isCollectionsActive, true),
-                            'gap-1.5',
+                            'gap-1.5 rounded-none bg-transparent hover:bg-transparent focus:bg-transparent data-popup-open:bg-transparent data-open:bg-transparent data-open:focus:bg-transparent',
                           )}
                           aria-current={isCollectionsActive ? 'page' : undefined}
                         >
                           <span className={cn(isCollectionsActive && 'font-semibold')}>All Collections</span>
                         </NavigationMenuTrigger>
                         <NavigationMenuContent className="p-0">
-                          <div className="grid max-h-[min(70vh,24rem)] w-[min(52rem,calc(100vw-2rem))] gap-1 overflow-y-auto p-2 sm:grid-cols-2 lg:grid-cols-3">
+                          <div className="grid max-h-[min(70vh,24rem)] w-[min(42rem,calc(100vw-2rem))] grid-cols-2 gap-2 overflow-y-auto p-3">
                             {collectionMenuItems.map((item) => {
                               const isActive = isStoreNavItemActive(pathname, searchParams, item.href);
 
@@ -330,8 +328,8 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
                                   aria-current={isActive ? 'page' : undefined}
                                   render={<Link href={item.href} />}
                                   className={cn(
-                                    'min-h-12 items-start px-3 py-2.5',
-                                    isActive && 'bg-primary/60 text-primary-foreground',
+                                    'min-h-12 items-start rounded-xl bg-muted/40 px-3 py-2 text-sm font-medium hover:!bg-muted focus:!bg-muted data-[active]:!bg-accent data-[active]:!text-foreground',
+                                    isActive && 'border border-primary/20 !bg-accent !text-foreground',
                                   )}
                                 >
                                   <span className="text-sm font-medium leading-snug break-words">

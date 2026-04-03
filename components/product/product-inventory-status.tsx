@@ -57,11 +57,11 @@ export function ProductInventoryStatus(props: IProductInventoryStatusProps) {
 
 function getCardTextClasses(status: ReturnType<typeof getProductInventoryState>['status'], isKuji: boolean): string {
   if (status === 'sold_out') {
-    return 'text-rose-700';
+    return 'text-foreground';
   }
 
   if (status === 'low_stock') {
-    return 'text-orange-700';
+    return 'text-primary';
   }
 
   return isKuji ? 'text-muted-foreground' : 'text-emerald-700';
@@ -69,11 +69,11 @@ function getCardTextClasses(status: ReturnType<typeof getProductInventoryState>[
 
 function getCardDotClasses(status: ReturnType<typeof getProductInventoryState>['status'], isKuji: boolean): string {
   if (status === 'sold_out') {
-    return 'bg-rose-600';
+    return 'bg-foreground';
   }
 
   if (status === 'low_stock') {
-    return 'bg-orange-500';
+    return 'bg-primary';
   }
 
   return isKuji ? 'bg-muted-foreground/70' : 'bg-emerald-600';
@@ -84,11 +84,11 @@ function getDetailContainerClasses(
   isKuji: boolean,
 ): string {
   if (status === 'sold_out') {
-    return 'border-rose-200/80 bg-rose-50/90 text-rose-800';
+    return 'border-border/70 bg-muted/70 text-foreground';
   }
 
   if (status === 'low_stock') {
-    return 'border-orange-200/80 bg-orange-50/90 text-orange-800';
+    return 'border-primary/25 bg-accent/50 text-foreground';
   }
 
   return isKuji

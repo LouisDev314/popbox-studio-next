@@ -27,7 +27,7 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
   const collectionMenuItems = props.collectionNavItems.filter((item) => item.href !== FEATURED_NAV_HREF);
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden border border-border/70 bg-background shadow-[0_32px_72px_-40px_hsl(var(--foreground)/0.58)]">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden border border-border/70 bg-background shadow-sm">
       <nav className="flex-1 overflow-y-auto px-4 py-4 mb-4">
         <div className="space-y-6">
           <div className="space-y-3">
@@ -46,16 +46,16 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
                     'group flex items-center justify-between rounded-[26px] border px-4 py-4 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                     props.isOpen ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0',
                     isActive
-                      ? 'border-primary/40 bg-primary/12 shadow-[0_18px_38px_-30px_hsl(var(--foreground)/0.45)]'
-                      : 'border-border/70 bg-gradient-to-br from-background to-muted/45 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/60',
+                      ? 'border-primary/40 bg-accent text-primary'
+                      : 'border-border/70 bg-background hover:border-primary/30 hover:bg-muted',
                   )}
                   onClick={props.onNavigate}
                 >
                   <div className="min-w-0">
-                    <p className="text-base font-semibold text-foreground">{item.label}</p>
+                    <p className={cn('text-base font-semibold', isActive ? 'text-primary' : 'text-foreground')}>{item.label}</p>
                     <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
                   </div>
-                  <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
+                  <ArrowUpRight className={cn('h-4 w-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
                 </Link>
               );
             })}
@@ -64,6 +64,9 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
           {collectionMenuItems.length > 0 ? (
             <div className="space-y-3 border-t border-border/60 pt-4">
               <div className="px-1">
+                <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">
+                  Collections
+                </p>
                 <p
                   className={cn(
                     'text-sm font-semibold tracking-tight',
@@ -94,7 +97,7 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
                         'flex items-center justify-between gap-3 rounded-2xl px-4 py-3 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                         props.isOpen ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0',
                         isActive
-                          ? 'bg-primary/12 text-foreground'
+                          ? 'bg-accent text-primary'
                           : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                       )}
                       onClick={props.onNavigate}

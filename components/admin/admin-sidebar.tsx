@@ -32,7 +32,7 @@ export function AdminSidebar() {
         type="button"
         aria-label={isMobileOpen ? 'Close admin menu' : 'Open admin menu'}
         aria-expanded={isMobileOpen}
-        className="fixed top-3 left-3 z-50 flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-md md:hidden"
+        className="fixed top-3 left-3 z-50 flex h-10 w-10 items-center justify-center rounded-lg bg-card shadow-md md:hidden"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
       >
         {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -41,7 +41,7 @@ export function AdminSidebar() {
       {/* Mobile overlay */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-30 bg-foreground/10 md:hidden"
           onClick={() => setIsMobileOpen(false)}
           aria-hidden="true"
         />
@@ -50,7 +50,7 @@ export function AdminSidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-[#F2F4F6] transition-transform duration-200 ease-out md:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-muted transition-transform duration-200 ease-out md:translate-x-0',
           isMobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -61,10 +61,10 @@ export function AdminSidebar() {
             className="flex flex-col leading-tight"
             onClick={() => setIsMobileOpen(false)}
           >
-            <span className="text-base font-bold tracking-tight text-[#191C1E]">
+            <span className="text-base font-bold tracking-tight text-foreground">
               PopBox Studio
             </span>
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-[#514349]/70">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
               Admin
             </span>
           </Link>
@@ -86,7 +86,7 @@ export function AdminSidebar() {
                       'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
                       isActive
                         ? 'bg-primary/12 text-primary'
-                        : 'text-[#514349] hover:bg-[#E6E8EA]/60 hover:text-[#191C1E]',
+                        : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                     )}
                     onClick={() => setIsMobileOpen(false)}
                   >
@@ -95,7 +95,7 @@ export function AdminSidebar() {
                         'h-[18px] w-[18px] shrink-0 transition-colors duration-150',
                         isActive
                           ? 'text-primary'
-                          : 'text-[#514349]/70 group-hover:text-[#191C1E]',
+                          : 'text-muted-foreground/70 group-hover:text-foreground',
                       )}
                     />
                     {item.label}

@@ -23,7 +23,7 @@ export function CartPageItem(props: ICartPageItemProps) {
 
   return (
     <article
-      className="rounded-[2rem] border border-border/60 bg-card p-4 shadow-sm transition-opacity data-[disabled=true]:opacity-70 sm:p-5"
+      className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-opacity data-[disabled=true]:opacity-70 sm:p-5"
       data-disabled={props.disabled ? 'true' : undefined}
     >
       <div className="flex flex-row gap-4">
@@ -52,7 +52,7 @@ export function CartPageItem(props: ICartPageItemProps) {
                 <Button
                   type="button"
                   variant="ghost"
-                  className="h-10 w-fit rounded-full px-4 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  className="h-10 w-fit rounded-xl px-4 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   disabled={props.disabled}
                   onClick={props.onRemove}
                 >

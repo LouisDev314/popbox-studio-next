@@ -97,9 +97,9 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
   };
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-[#191C1E]">Inventory Tracking</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">Inventory Tracking</h2>
         <Button
           type="submit"
           disabled={isPending}
@@ -114,8 +114,8 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
         <div
           className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
             feedback.type === 'success'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-              : 'border-red-200 bg-red-50 text-red-900'
+              ? 'border-primary/20 bg-primary/10 text-foreground'
+              : 'border-primary/20 bg-accent text-foreground'
           }`}
           role={feedback.type === 'error' ? 'alert' : 'status'}
         >
@@ -125,7 +125,7 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
 
       <div className="grid gap-6 sm:grid-cols-3">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">On Hand</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">On Hand</label>
           <NumericInput
             required
             value={formData.onHand}
@@ -137,11 +137,11 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
             }
             placeholder="0"
           />
-          <p className="mt-1 text-xs text-[#514349]">Total physical items available.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Total physical items available.</p>
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Low Stock Alerts</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Low Stock Alerts</label>
           <NumericInput
             required
             value={formData.lowStockThreshold}
@@ -153,22 +153,22 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
             }
             placeholder="0"
           />
-          <p className="mt-1 text-xs text-[#514349]">Threshold for low stock warnings.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Threshold for low stock warnings.</p>
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">
-            Reserved <span className="text-[10px] uppercase text-[#514349]/60">(Read-only)</span>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">
+            Reserved <span className="text-[10px] uppercase text-muted-foreground/60">(Read-only)</span>
           </label>
-          <div className="flex h-10 w-full rounded-md border border-input bg-[#F2F4F6] px-3 py-2 text-sm text-[#514349]">
+          <div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
             {product.inventory?.reserved ?? 0}
           </div>
-          <p className="mt-1 text-xs text-[#514349]">Items currently in active carts.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Items currently in active carts.</p>
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between border-t border-[#D5C1C9]/20 pt-4">
-        <span className="text-sm font-medium text-[#191C1E]">Available to sell</span>
+      <div className="mt-6 flex items-center justify-between border-t border-border/20 pt-4">
+        <span className="text-sm font-medium text-foreground">Available to sell</span>
         <span className="tabular-nums text-lg font-bold text-primary">{product.inventory?.available ?? 0}</span>
       </div>
     </form>

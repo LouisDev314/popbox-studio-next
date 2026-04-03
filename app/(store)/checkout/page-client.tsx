@@ -33,7 +33,7 @@ export default function CheckoutPageClient() {
 
   return (
     <div className="container mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6 lg:px-8">
-      <div className="w-full rounded-4xl border border-border/60 bg-card px-8 py-12 shadow-sm">
+      <div className="w-full rounded-2xl border border-border/60 bg-card px-8 py-12 shadow-sm">
         <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Continue to Stripe Checkout</h1>
         <p className="mt-4 text-base leading-7 text-muted-foreground">
           Stripe handles the payment form, shipping details, and final confirmation. If you returned from a canceled
@@ -47,15 +47,15 @@ export default function CheckoutPageClient() {
 
         <CheckoutButton
           size="lg"
-          className="mt-8 h-12 w-full rounded-full text-base font-semibold"
+          className="mt-8 h-12 w-full rounded-xl text-base font-semibold"
           label="Continue to Stripe Checkout"
         />
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Button asChild variant="outline" size="lg" className="rounded-full">
+          <Button asChild variant="outline" size="lg" className="rounded-xl">
             <Link href="/cart">Return to Cart</Link>
           </Button>
-          <Button asChild variant="ghost" size="lg" className="rounded-full">
+          <Button asChild variant="ghost" size="lg" className="rounded-xl">
             <Link href="/products">Continue Shopping</Link>
           </Button>
         </div>

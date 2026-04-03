@@ -104,8 +104,8 @@ export default function AdminProductsPage() {
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#191C1E]">Products</h1>
-          <p className="mt-1 text-sm text-[#514349]">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Products</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage your product catalog, inventory, merchandising, and pricing.
           </p>
         </div>
@@ -117,7 +117,7 @@ export default function AdminProductsPage() {
         </Button>
       </div>
 
-      <div className="mt-6 flex gap-1 border-b border-[#D5C1C9]/20">
+      <div className="mt-6 flex gap-1 border-b border-border/20">
         {ADMIN_PRODUCT_STATUS_TABS.map((tab) => (
           <Button
             key={tab.value}
@@ -126,8 +126,8 @@ export default function AdminProductsPage() {
             className={cn(
               'relative h-auto rounded-none px-4 py-2.5 text-sm font-medium transition-colors',
               activeTab === tab.value
-                ? 'text-[#191C1E]'
-                : 'text-[#514349]/70 hover:text-[#191C1E]',
+                ? 'text-foreground'
+                : 'text-muted-foreground/70 hover:text-foreground',
             )}
             onClick={() => setStatus(tab.value)}
           >

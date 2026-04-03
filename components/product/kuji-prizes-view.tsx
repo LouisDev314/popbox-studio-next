@@ -58,9 +58,9 @@ function KujiPrizeCard(props: IKujiPrizeCardProps) {
       type="button"
       aria-haspopup="dialog"
       className={cn(
-        'group flex h-full w-full flex-col overflow-hidden rounded-[1.75rem] border bg-card text-left shadow-sm transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:-translate-y-1 hover:shadow-[0_28px_60px_-42px_hsl(var(--foreground)/0.48)]',
+        'group flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-sm transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:shadow-md',
         isSoldOut
-          ? 'border-rose-200/70 bg-[linear-gradient(180deg,rgba(255,241,242,0.72),rgba(255,255,255,0.96))]'
+          ? 'border-border/70 bg-muted/35'
           : 'border-border/60 hover:border-primary/40',
       )}
       onClick={() => props.onSelect(props.prize)}
@@ -74,12 +74,10 @@ function KujiPrizeCard(props: IKujiPrizeCardProps) {
           imageClassName="h-full w-full transition-transform duration-500 ease-out group-hover:scale-105"
         />
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background/75 via-background/20 to-transparent" />
-
         <div className="absolute left-4 top-4">
           <span
             className={cn(
-              'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm backdrop-blur-sm',
+              'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
               getPrizeBadgeClasses(props.prize.prizeCode),
             )}
           >
@@ -90,7 +88,7 @@ function KujiPrizeCard(props: IKujiPrizeCardProps) {
         <div className="absolute right-4 top-4">
           <span
             className={cn(
-              'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold shadow-sm backdrop-blur-sm',
+              'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold',
               getPrizeStockClasses(props.prize.remainingQuantity, props.prize.initialQuantity),
             )}
           >
@@ -147,12 +145,12 @@ function KujiPrizeDialog(props: IKujiPrizeDialogProps) {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-5xl p-0">
         <div className="grid max-h-[min(88vh,960px)] overflow-y-auto lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-          <div className="bg-[radial-gradient(circle_at_top,rgba(249,168,212,0.18),transparent_58%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(252,244,248,0.92))] p-4 sm:p-6 lg:p-8">
-            <div className="relative overflow-hidden rounded-[1.9rem] border border-border/60 bg-muted/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
+          <div className="bg-background p-4 sm:p-6 lg:p-8">
+            <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-muted/25">
               <div className="absolute left-4 top-4 z-10">
                 <span
                   className={cn(
-                    'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] shadow-sm backdrop-blur-sm',
+                    'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
                     getPrizeBadgeClasses(prize.prizeCode),
                   )}
                 >
@@ -178,9 +176,9 @@ function KujiPrizeDialog(props: IKujiPrizeDialogProps) {
                     aria-label={`View prize image ${index + 1}`}
                     aria-pressed={activeImageIndex === index}
                     className={cn(
-                      'relative aspect-square w-20 shrink-0 overflow-hidden rounded-2xl border bg-background/80 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-24',
+                      'relative aspect-square w-20 shrink-0 overflow-hidden rounded-2xl border bg-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-24',
                       activeImageIndex === index
-                        ? 'border-primary/60 shadow-[0_16px_30px_-24px_hsl(var(--foreground)/0.45)]'
+                        ? 'border-primary/60 shadow-sm'
                         : 'border-border/60 hover:border-primary/30',
                     )}
                     onClick={() => setActiveImageIndex(index)}
@@ -228,22 +226,22 @@ function KujiPrizeDialog(props: IKujiPrizeDialogProps) {
             </DialogDescription>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[1.35rem] border border-border/60 bg-card/80 p-4 shadow-sm">
+              <div className="rounded-[1.35rem] border border-border/60 bg-card p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Prize Tier</p>
                 <p className="mt-2 text-lg font-semibold text-foreground">{badgeLabel}</p>
               </div>
-              <div className="rounded-[1.35rem] border border-border/60 bg-card/80 p-4 shadow-sm">
+              <div className="rounded-[1.35rem] border border-border/60 bg-card p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Initial Qty</p>
                 <p className="mt-2 text-lg font-semibold text-foreground">{prize.initialQuantity}</p>
               </div>
-              <div className="rounded-[1.35rem] border border-border/60 bg-card/80 p-4 shadow-sm">
+              <div className="rounded-[1.35rem] border border-border/60 bg-card p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Remaining</p>
                 <p className="mt-2 text-lg font-semibold text-foreground">{prize.remainingQuantity}</p>
               </div>
             </div>
 
             {prize.description ? (
-              <div className="mt-6 rounded-[1.5rem] border border-border/60 bg-card/70 p-5 shadow-sm">
+              <div className="mt-6 rounded-[1.5rem] border border-border/60 bg-card p-5 shadow-sm">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Prize Details
                 </p>
@@ -251,7 +249,7 @@ function KujiPrizeDialog(props: IKujiPrizeDialogProps) {
               </div>
             ) : null}
 
-            <div className="mt-6 rounded-[1.5rem] border border-border/60 bg-[linear-gradient(180deg,rgba(249,168,212,0.12),rgba(255,255,255,0.96))] p-5 shadow-sm">
+            <div className="mt-6 rounded-[1.5rem] border border-border/60 bg-accent/35 p-5 shadow-sm">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Availability</p>
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
                 {prize.remainingQuantity > 0
@@ -275,9 +273,9 @@ export function KujiPrizesView(props: IKujiPrizesViewProps) {
 
   return (
     <>
-      <div className="mt-8 rounded-3xl border border-border/50 bg-card p-6 shadow-sm sm:p-8">
+      <div className="mt-8 rounded-2xl border border-border/50 bg-card p-6 shadow-sm sm:p-8">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/30 text-secondary-foreground">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Tickets className="h-5 w-5" />
           </div>
           <div>

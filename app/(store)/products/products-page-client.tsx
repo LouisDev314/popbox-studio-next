@@ -1,14 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import QueryConfigs from '@/configs/api/query-config';
 import { IProductListPage, ITag, productSort, productType } from '@/interfaces/product';
 import { ProductCard } from '@/components/product/product-card';
+import { FilterPanelContent } from '@/components/product/filter-panel-content';
 import { ProductFilterSidebar } from '@/components/product/product-filter-sidebar';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, SlidersHorizontal } from 'lucide-react';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   formatCollectionLabel,
   normalizeTagSlug,
@@ -34,6 +37,7 @@ interface IProductsPageClientProps {
 export default function ProductsPageClient(props: IProductsPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const serializedSelectedTags = serializeTagSearchParam(props.initialTags);
 
   const productsQuery = useInfiniteQuery({
@@ -153,29 +157,25 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
     }
   };
 
-  const pageDescription = () => {
-    if (props.headingDescription) return props.headingDescription;
-
-    if (props.initialSort === 'trending') return 'Browse what’s trending right now.';
-
-    return props.initialType === 'kuji'
-      ? 'Test your luck with premium prizes.'
-      : 'Browse our premium collection.';
-  };
-
   return (
     <div className="container mx-auto w-full px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-col justify-between gap-5 sm:mb-8 lg:flex-row lg:items-end">
         <div className="max-w-3xl">
-          <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-[2.75rem]">
+          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-[2.75rem]">
             {pageTitle()}
           </h1>
-          <p className="mt-2 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            {pageDescription()}
-          </p>
         </div>
 
         <div className="flex items-center gap-3 self-start lg:self-auto">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-11 rounded-full px-4 lg:hidden"
+            onClick={() => setIsFiltersOpen(true)}
+          >
+            <SlidersHorizontal className="mr-2 h-4 w-4" />
+            Filters
+          </Button>
           <Select
             value={props.initialSort}
             onValueChange={handleSortChange}
@@ -201,14 +201,16 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-10">
-        <ProductFilterSidebar
-          availableTags={props.availableTags}
-          selectedTags={props.initialTags}
-          selectedType={props.initialType}
-          onClearAll={handleClearAllFilters}
-          onTagToggle={handleTagToggle}
-          onTypeChange={handleTypeChange}
-        />
+        <div className="hidden lg:block">
+          <ProductFilterSidebar
+            availableTags={props.availableTags}
+            selectedTags={props.initialTags}
+            selectedType={props.initialType}
+            onClearAll={handleClearAllFilters}
+            onTagToggle={handleTagToggle}
+            onTypeChange={handleTypeChange}
+          />
+        </div>
 
         <section className="min-w-0">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -254,6 +256,25 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
           )}
         </section>
       </div>
+
+      <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+        <SheetContent side="left" className="w-[min(24rem,calc(100vw-1rem))] p-0">
+          <SheetHeader className="border-b border-border/70 pr-14">
+            <SheetTitle>Filters</SheetTitle>
+          </SheetHeader>
+          <div className="overflow-y-auto p-4">
+            <FilterPanelContent
+              availableTags={props.availableTags}
+              selectedTags={props.initialTags}
+              selectedType={props.initialType}
+              onClearAll={handleClearAllFilters}
+              onTagToggle={handleTagToggle}
+              onTypeChange={handleTypeChange}
+              className="rounded-2xl"
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

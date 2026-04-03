@@ -67,7 +67,7 @@ export function WishlistDrawer(props: IWishlistDrawerProps) {
     <>
       <div
         className={cn(
-          'fixed inset-0 z-[70] bg-foreground/12 backdrop-blur-sm transition-opacity duration-300',
+          'fixed inset-0 z-[70] bg-foreground/12 transition-opacity duration-300',
           isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
         )}
         onClick={onClose}
@@ -80,7 +80,7 @@ export function WishlistDrawer(props: IWishlistDrawerProps) {
         inert={!isOpen}
         aria-labelledby={titleId}
         className={cn(
-          'fixed inset-y-0 right-0 z-[71] flex w-full max-w-sm flex-col border-l border-border/70 bg-background shadow-[0_24px_60px_-28px_hsl(var(--foreground)/0.4)] backdrop-blur-xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          'fixed inset-y-0 right-0 z-[71] flex w-full max-w-sm flex-col border-l border-border/70 bg-background shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
           isOpen ? 'pointer-events-auto translate-x-0' : 'pointer-events-none translate-x-full',
         )}
       >
@@ -127,7 +127,7 @@ export function WishlistDrawer(props: IWishlistDrawerProps) {
           ) : (
             <div className="space-y-4">
               {items.map((item) => (
-                <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card/80 p-4 shadow-sm">
+                <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card p-4">
                   <div className="flex gap-4">
                     <Link
                       href={`/products/${item.slug}`}

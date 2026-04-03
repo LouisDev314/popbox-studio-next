@@ -2,9 +2,9 @@ import { cn } from '@/lib/utils';
 import type { productStatus } from '@/interfaces/product';
 
 const STATUS_STYLES: Record<productStatus, string> = {
-  draft: 'bg-[#E6E8EA] text-[#514349]',
+  draft: 'bg-muted text-muted-foreground',
   active: 'bg-[#C1F0A4]/70 text-[#2D5A1B]',
-  archived: 'bg-[#E6E8EA]/60 text-[#514349]/70',
+  archived: 'bg-muted/60 text-muted-foreground/70',
 };
 
 const STATUS_LABELS: Record<productStatus, string> = {

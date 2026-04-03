@@ -101,10 +101,10 @@ function KujiPrizeToastBanner({ toast, onDismiss }: IKujiPrizeToastBannerProps) 
   return (
     <div className="fixed right-4 top-4 z-[70] w-[min(calc(100vw-2rem),24rem)]">
       <div
-        className={`flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-lg backdrop-blur ${
+        className={`flex items-start gap-3 rounded-2xl border px-4 py-3 ${
           toast.type === 'success'
-            ? 'border-emerald-200 bg-emerald-50/95 text-emerald-900'
-            : 'border-red-200 bg-red-50/95 text-red-900'
+            ? 'border-primary/20 bg-primary/10 text-foreground'
+            : 'border-primary/20 bg-accent text-foreground'
         }`}
       >
         <div className="min-w-0 flex-1">
@@ -134,7 +134,7 @@ function CreatePrizeImageField({
 }: ICreatePrizeImageFieldProps) {
   return (
     <div className="sm:col-span-2">
-      <label className="mb-1 block text-xs font-medium text-[#514349]">Prize Image File</label>
+      <label className="mb-1 block text-xs font-medium text-muted-foreground">Prize Image File</label>
       <Input
         key={inputKey}
         type="file"
@@ -143,10 +143,10 @@ function CreatePrizeImageField({
         disabled={disabled}
         className="h-auto text-sm"
       />
-      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[#514349]">
+      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         {selectedFile && (
           <>
-            <span className="font-medium text-[#191C1E]">Selected:</span>
+            <span className="font-medium text-foreground">Selected:</span>
             <span className="max-w-full truncate">{selectedFile.name}</span>
             <Button
               type="button"
@@ -183,8 +183,8 @@ function SortablePrizeRow({
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group transition-[background-color,box-shadow] hover:bg-[#F2F4F6]/50',
-        isDragging && 'bg-white shadow-[0_10px_24px_rgba(25,28,30,0.12)]',
+        'group transition-[background-color,box-shadow] hover:bg-muted/50',
+        isDragging && 'bg-card shadow-[0_10px_24px_rgba(25,28,30,0.12)]',
       )}
     >
       <td className="px-2 py-2">
@@ -196,15 +196,15 @@ function SortablePrizeRow({
         />
       </td>
       <td className="px-3 py-2 font-semibold text-primary">{prize.prizeCode}</td>
-      <td className="px-3 py-2 font-medium text-[#191C1E]">{prize.name}</td>
-      <td className="px-3 py-2 text-right text-[#514349]">{prize.sortOrder}</td>
-      <td className="px-3 py-2 text-right text-[#514349]">{prize.initialQuantity}</td>
+      <td className="px-3 py-2 font-medium text-foreground">{prize.name}</td>
+      <td className="px-3 py-2 text-right text-muted-foreground">{prize.sortOrder}</td>
+      <td className="px-3 py-2 text-right text-muted-foreground">{prize.initialQuantity}</td>
       <td className="px-3 py-2 text-right">
-        <span className={`inline-flex items-center justify-center rounded-sm px-1.5 py-0.5 font-medium ${prize.remainingQuantity === 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
+        <span className={`inline-flex items-center justify-center rounded-sm px-1.5 py-0.5 font-medium ${prize.remainingQuantity === 0 ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
           {prize.remainingQuantity}
         </span>
       </td>
-      <td className="px-3 py-2 text-right text-[#514349]">
+      <td className="px-3 py-2 text-right text-muted-foreground">
         {prize.initialQuantity - prize.remainingQuantity}
       </td>
       <td className="px-3 py-2 text-right">
@@ -215,7 +215,7 @@ function SortablePrizeRow({
             size="icon"
             disabled={isInteractionDisabled}
             onClick={() => onEdit(prize)}
-            className="h-8 w-8 rounded-md text-[#514349] hover:text-[#191C1E]"
+            className="h-8 w-8 rounded-md text-muted-foreground hover:text-foreground"
             title="Edit Prize"
           >
             <Pencil className="h-4 w-4" />
@@ -535,11 +535,11 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
     <>
       {toast ? <KujiPrizeToastBanner toast={toast} onDismiss={() => setToast(null)} /> : null}
 
-      <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-[#D5C1C9]/20 pb-4">
+      <div className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/20 pb-4">
           <div>
-            <h2 className="text-sm font-semibold text-[#191C1E] uppercase tracking-wider">Kuji Prizes</h2>
-            <p className="mt-1 text-xs text-[#514349]">Manage the prize pool for this Kuji product. Drag rows to reorder and save automatically.</p>
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Kuji Prizes</h2>
+            <p className="mt-1 text-xs text-muted-foreground">Manage the prize pool for this Kuji product. Drag rows to reorder and save automatically.</p>
           </div>
           <div className="flex items-center gap-2">
             {isReorderingPrizes ? (
@@ -555,7 +555,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
                 setOptimisticPrizeIds(null);
                 void refetch();
               }}
-              className="h-8 gap-1.5 rounded-lg px-3 text-sm font-medium text-[#191C1E] hover:bg-primary/60"
+              className="h-8 gap-1.5 rounded-lg px-3 text-sm font-medium text-foreground hover:bg-primary/60"
             >
               <RotateCw className="h-3.5 w-3.5" />
               Refresh Pool
@@ -565,13 +565,13 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
 
         <div className="space-y-4 mb-8">
           {isPending ? (
-            <div className="py-8 text-center text-sm text-[#514349]">Loading prizes...</div>
+            <div className="py-8 text-center text-sm text-muted-foreground">Loading prizes...</div>
           ) : sortedPrizes.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[#D5C1C9] bg-white p-8 text-center shadow-sm">
-              <p className="text-sm text-[#514349]">No prizes added to this pull list yet.</p>
+            <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center shadow-sm">
+              <p className="text-sm text-muted-foreground">No prizes added to this pull list yet.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-[#D5C1C9]/50">
+            <div className="overflow-x-auto rounded-lg border border-border/50">
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -579,7 +579,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
               >
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="bg-[#E6E8EA]/30 text-[#514349]">
+                    <tr className="bg-muted/40 text-muted-foreground">
                       <th className="w-11 px-2 py-2">
                         <span className="sr-only">Reorder</span>
                       </th>
@@ -596,7 +596,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
                     items={sortedPrizes.map((prize) => prize.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <tbody className="divide-y divide-[#D5C1C9]/30">
+                    <tbody className="divide-y divide-border/30">
                       {sortedPrizes.map((prize) => (
                         <SortablePrizeRow
                           key={prize.id}
@@ -615,9 +615,9 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
           )}
         </div>
 
-        <div className="rounded-lg bg-[#F9FAFB] p-4 border border-[#D5C1C9]/30">
+        <div className="rounded-lg bg-muted/30 p-4 border border-border/30">
           <div className='flex justify-between mb-8'>
-            <h3 className="mb-3 text-md font-medium text-[#191C1E]">Add New Prize</h3>
+            <h3 className="mb-3 text-md font-medium text-foreground">Add New Prize</h3>
             <Button
               type="submit"
               form="create-kuji-prize-form"
@@ -630,7 +630,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
           </div>
           <form id="create-kuji-prize-form" onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-start">
             <div>
-              <label className="mb-1 block text-xs font-medium text-[#514349]">Rank (e.g. A)</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Rank (e.g. A)</label>
               <Select
                 value={newPrize.prizeCode}
                 onValueChange={handleCreatePrizeCodeChange}
@@ -658,7 +658,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
             </div>
 
             <div className="lg:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-[#514349]">Prize Name</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Prize Name</label>
               <Input
                 required
                 value={newPrize.name}
@@ -670,7 +670,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-[#514349]">Initial Qty</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Initial Qty</label>
               <NumericInput
                 required
                 value={newPrize.initialQuantity}
@@ -682,7 +682,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
             </div>
 
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-[#514349]">Description</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Description</label>
               <textarea
                 value={newPrize.description}
                 onChange={(event) => handleCreateFieldChange('description', event.target.value)}
@@ -701,7 +701,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
             />
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-[#514349]">Remaining Qty</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Remaining Qty</label>
               <NumericInput
                 required
                 value={newPrize.remainingQuantity}
@@ -713,7 +713,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-medium text-[#514349]">Sort Order</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Sort Order</label>
               <NumericInput
                 required
                 value={newPrize.sortOrder}

@@ -58,13 +58,7 @@ export const metadata: Metadata = createPageMetadata({
 export default function AboutPage() {
   return (
     <div className="bg-background">
-      <section className="relative overflow-hidden border-b border-border/60">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-primary/10 to-transparent" />
-          <div className="absolute -right-24 top-16 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
-          <div className="absolute -left-16 bottom-0 h-64 w-64 rounded-full bg-secondary/15 blur-3xl" />
-        </div>
-
+      <section className="relative border-b border-border/60">
         <div className="container relative z-10 mx-auto px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] lg:items-end">
             <div className="max-w-3xl">
@@ -91,7 +85,7 @@ export default function AboutPage() {
               </div>
             </div>
 
-            <aside className="rounded-[2rem] border border-border/70 bg-background/80 p-6 shadow-sm backdrop-blur-sm sm:p-7">
+            <aside className="rounded-[2rem] border border-border/70 bg-background p-6 shadow-sm sm:p-7">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                 What guides the store
               </p>
@@ -206,7 +200,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="border-y border-border/60 bg-[linear-gradient(180deg,hsl(var(--background)),hsl(var(--primary)/0.08))]">
+      <section className="border-y border-border/60 bg-muted/20">
         <div className="container mx-auto px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-center">
             <div className="max-w-2xl">
@@ -261,13 +255,6 @@ export default function AboutPage() {
             <Link href="/contact" className="font-medium text-foreground underline-offset-4 hover:underline">
               contact page
             </Link>
-            . For shipping and return information, you can also review{' '}
-            <Link
-              href="/legal/shipping-returns"
-              className="font-medium text-foreground underline-offset-4 hover:underline"
-            >
-              shipping &amp; returns
-            </Link>
             .
           </p>
         </div>
@@ -275,7 +262,7 @@ export default function AboutPage() {
 
       <section className="pb-16 sm:pb-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-[2.25rem] border border-border/70 bg-[linear-gradient(145deg,hsl(var(--background)),hsl(var(--primary)/0.14))] px-6 py-10 shadow-sm sm:px-8 sm:py-12 lg:px-12">
+          <div className="rounded-[2.25rem] border border-border/70 bg-card px-6 py-10 shadow-sm sm:px-8 sm:py-12 lg:px-12">
             <div className="max-w-3xl">
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                 Keep exploring

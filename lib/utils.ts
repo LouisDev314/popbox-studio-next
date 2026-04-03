@@ -48,20 +48,20 @@ export function getPrizeStockLabel(count: number, total: number): string {
 
 export function getPrizeStockClasses(count: number, total: number): string {
   if (count <= 0) {
-    return 'border-rose-200/80 bg-rose-100/90 text-rose-700';
+    return 'border-border/80 bg-muted/80 text-foreground';
   }
 
   const percentage = total > 0 ? count / total : 0;
 
   if (count === 1 || percentage <= 0.15) {
-    return 'border-orange-200/80 bg-orange-100/90 text-orange-800';
+    return 'border-primary/25 bg-accent/80 text-foreground';
   }
 
   if (percentage <= 0.4 || count <= 5) {
-    return 'border-amber-200/80 bg-amber-100/90 text-amber-800';
+    return 'border-primary/20 bg-accent/60 text-foreground';
   }
 
-  return 'border-pink-200/80 bg-pink-100/90 text-pink-700';
+  return 'border-border/70 bg-background text-muted-foreground';
 }
 
 export function getPrizeBadgeLabel(prizeCode: string): string {
@@ -78,18 +78,18 @@ export function getPrizeBadgeClasses(prizeCode: string): string {
   const code = prizeCode.toUpperCase();
 
   if (code.includes('LAST')) {
-    return 'border-amber-200/80 bg-[linear-gradient(135deg,rgba(253,230,138,0.92),rgba(251,207,232,0.82))] text-amber-900';
+    return 'border-primary/30 bg-accent text-foreground';
   }
 
   if (code === 'A') {
-    return 'border-pink-200/80 bg-[linear-gradient(135deg,rgba(252,231,243,0.96),rgba(254,205,211,0.82))] text-rose-800';
+    return 'border-primary/25 bg-primary/10 text-primary';
   }
 
   if (code === 'B') {
-    return 'border-violet-200/80 bg-[linear-gradient(135deg,rgba(245,243,255,0.96),rgba(243,232,255,0.92))] text-violet-800';
+    return 'border-border/80 bg-muted text-foreground';
   }
 
-  return 'border-secondary/20 bg-secondary/10 text-secondary-foreground';
+  return 'border-border/70 bg-background text-foreground';
 }
 
 export function formatPrice(cents: number, currency: string = 'CAD'): string {

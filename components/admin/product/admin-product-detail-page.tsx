@@ -40,21 +40,21 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
 
   const product = productOverride?.id === productId ? productOverride : hydratedProduct;
 
-  if (isPending) return <div className="p-12 text-center text-[#514349]">Loading product details...</div>;
+  if (isPending) return <div className="p-12 text-center text-muted-foreground">Loading product details...</div>;
   if (isError) return <div className="p-12 text-center text-red-500">Failed to load product.</div>;
-  if (!product) return <div className="p-12 text-center text-[#514349]">Product not found.</div>;
+  if (!product) return <div className="p-12 text-center text-muted-foreground">Product not found.</div>;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex items-start gap-4">
-        <Button asChild type="button" variant="outline" size="icon" className="h-9 w-9 rounded-lg border-[#D5C1C9]/50 text-[#514349]">
+        <Button asChild type="button" variant="outline" size="icon" className="h-9 w-9 rounded-lg border-border/50 text-muted-foreground">
           <Link href="/admin/products" aria-label="Back to products">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#191C1E]">{product.name}</h1>
-          <p className="mt-1 text-sm text-[#514349]">Manage product details, inventory, media, and tags.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{product.name}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage product details, inventory, media, and tags.</p>
         </div>
       </div>
 
@@ -71,36 +71,36 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-[#514349]">Summary</h2>
+          <div className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
+            <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Summary</h2>
             <dl className="space-y-4 text-sm">
               <div>
-                <dt className="text-[#514349]/70 mb-1">Type</dt>
-                <dd className="font-medium text-[#191C1E] capitalize">{product.productType}</dd>
+                <dt className="text-muted-foreground/70 mb-1">Type</dt>
+                <dd className="font-medium text-foreground capitalize">{product.productType}</dd>
               </div>
               <div>
-                <dt className="text-[#514349]/70 mb-1">Status</dt>
-                <dd className="font-medium text-[#191C1E] capitalize">{product.status}</dd>
+                <dt className="text-muted-foreground/70 mb-1">Status</dt>
+                <dd className="font-medium text-foreground capitalize">{product.status}</dd>
               </div>
               <div>
-                <dt className="text-[#514349]/70 mb-1">Collection</dt>
-                <dd className="font-medium text-[#191C1E]">{product.collection?.name ?? 'None'}</dd>
+                <dt className="text-muted-foreground/70 mb-1">Collection</dt>
+                <dd className="font-medium text-foreground">{product.collection?.name ?? 'None'}</dd>
               </div>
               <div>
-                <dt className="text-[#514349]/70 mb-1">Images</dt>
-                <dd className="font-medium text-[#191C1E]">{product.images.length}</dd>
+                <dt className="text-muted-foreground/70 mb-1">Images</dt>
+                <dd className="font-medium text-foreground">{product.images.length}</dd>
               </div>
               <div>
-                <dt className="text-[#514349]/70 mb-1">Tags</dt>
-                <dd className="font-medium text-[#191C1E]">{product.tagIds.length}</dd>
+                <dt className="text-muted-foreground/70 mb-1">Tags</dt>
+                <dd className="font-medium text-foreground">{product.tagIds.length}</dd>
               </div>
               <div>
-                <dt className="text-[#514349]/70 mb-1">Created</dt>
-                <dd className="font-medium text-[#191C1E]">{new Date(product.createdAt).toLocaleDateString()}</dd>
+                <dt className="text-muted-foreground/70 mb-1">Created</dt>
+                <dd className="font-medium text-foreground">{new Date(product.createdAt).toLocaleDateString()}</dd>
               </div>
               <div>
-                <dt className="text-[#514349]/70 mb-1">Last Updated</dt>
-                <dd className="font-medium text-[#191C1E]">{new Date(product.updatedAt).toLocaleDateString()}</dd>
+                <dt className="text-muted-foreground/70 mb-1">Last Updated</dt>
+                <dd className="font-medium text-foreground">{new Date(product.updatedAt).toLocaleDateString()}</dd>
               </div>
             </dl>
           </div>

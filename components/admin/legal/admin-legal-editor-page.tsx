@@ -134,7 +134,7 @@ function AdminLegalDocumentEditor({ type }: { type: LegalDocumentType }) {
   if (isListPending) {
     return (
       <div className="flex h-40 items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#191C1E] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
       </div>
     );
   }
@@ -148,15 +148,15 @@ function AdminLegalDocumentEditor({ type }: { type: LegalDocumentType }) {
           variant="ghost"
           size="icon"
           onClick={() => router.back()}
-          className="h-8 w-8 shrink-0 text-[#514349]"
+          className="h-8 w-8 shrink-0 text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#191C1E]">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
             {exists ? `Edit ${label}` : `Create ${label}`}
           </h1>
-          <p className="mt-1 text-sm text-[#514349]">
+          <p className="mt-1 text-sm text-muted-foreground">
             {exists 
               ? `Currently editing version ${activeDoc.version}. Saving will publish a new version.`
               : 'Create the first version of this document.'}
@@ -178,35 +178,35 @@ function AdminLegalDocumentEditor({ type }: { type: LegalDocumentType }) {
       {/* Version History */}
       {typeDocs.length > 0 && (
         <div className="mt-16">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[#191C1E]">
-            <History className="h-5 w-5 text-[#514349]" />
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
+            <History className="h-5 w-5 text-muted-foreground" />
             Version History
           </h2>
-          <div className="overflow-hidden rounded-xl border border-[#D5C1C9]/40 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-border/40 bg-card shadow-sm">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-[#D5C1C9]/20 bg-[#F9FAFB] text-[#514349]">
+                <tr className="border-b border-border/20 bg-muted/30 text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Version</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#D5C1C9]/20">
+              <tbody className="divide-y divide-border/20">
                 {typeDocs.map((doc) => (
                   <tr key={doc.id}>
-                    <td className="px-4 py-3 font-medium text-[#191C1E]">v{doc.version}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">v{doc.version}</td>
                     <td className="px-4 py-3">
                       {doc.isActive ? (
-                        <span className="inline-flex rounded-full bg-[#E7F0E7] px-2 py-0.5 text-xs font-medium text-[#116211]">
+                        <span className="inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                           Active
                         </span>
                       ) : (
-                        <span className="inline-flex rounded-full bg-[#F2F4F6] px-2 py-0.5 text-xs font-medium text-[#514349]">
+                        <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                           Archived
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-[#514349]">
+                    <td className="px-4 py-3 text-muted-foreground">
                       {formatRelativeDate(doc.createdAt)}
                     </td>
                   </tr>
@@ -341,7 +341,7 @@ function AdminFaqEditor() {
   if (isPending) {
     return (
       <div className="flex h-40 items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#191C1E] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
       </div>
     );
   }
@@ -354,13 +354,13 @@ function AdminFaqEditor() {
           variant="ghost"
           size="icon"
           onClick={() => router.back()}
-          className="h-8 w-8 shrink-0 text-[#514349]"
+          className="h-8 w-8 shrink-0 text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#191C1E]">Manage FAQ</h1>
-          <p className="mt-1 text-sm text-[#514349]">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Manage FAQ</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Create, edit, and publish FAQ items from the same legal admin area.
           </p>
         </div>
@@ -374,11 +374,11 @@ function AdminFaqEditor() {
         </div>
       ) : (
         <>
-          <div className="mt-8 rounded-xl border border-[#D5C1C9]/40 bg-white p-6 shadow-sm">
+          <div className="mt-8 rounded-xl border border-border/40 bg-card p-6 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-semibold text-[#191C1E]">FAQ Items</h2>
-                <p className="mt-1 text-sm text-[#514349]">
+                <h2 className="text-base font-semibold text-foreground">FAQ Items</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
                   Published items appear on the storefront FAQ page in sort order.
                 </p>
               </div>
@@ -389,9 +389,9 @@ function AdminFaqEditor() {
             </div>
 
             {faqItems.length === 0 ? (
-              <div className="mt-6 rounded-xl border border-dashed border-[#D5C1C9]/60 bg-[#FBFAFB] px-6 py-10 text-center">
-                <p className="text-sm font-medium text-[#191C1E]">No FAQ items yet.</p>
-                <p className="mt-1 text-sm text-[#514349]">
+              <div className="mt-6 rounded-xl border border-dashed border-border/60 bg-background px-6 py-10 text-center">
+                <p className="text-sm font-medium text-foreground">No FAQ items yet.</p>
+                <p className="mt-1 text-sm text-muted-foreground">
                   Create the first FAQ item below. Leave it unpublished until it is ready.
                 </p>
               </div>
@@ -407,25 +407,25 @@ function AdminFaqEditor() {
                         'rounded-xl border px-4 py-4 transition-colors',
                         isEditingThisItem
                           ? 'border-primary/30 bg-primary/5'
-                          : 'border-[#D5C1C9]/40 bg-[#FBFAFB]',
+                          : 'border-border/40 bg-background',
                       )}
                     >
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-medium text-[#191C1E]">{item.question}</h3>
+                            <h3 className="font-medium text-foreground">{item.question}</h3>
                             <span
                               className={cn(
                                 'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
                                 item.isPublished
-                                  ? 'bg-[#E7F0E7] text-[#116211]'
-                                  : 'bg-[#F2F4F6] text-[#514349]',
+                                  ? 'bg-primary/10 text-primary'
+                                  : 'bg-muted text-muted-foreground',
                               )}
                             >
                               {item.isPublished ? 'Published' : 'Draft'}
                             </span>
                           </div>
-                          <div className="mt-2 flex flex-wrap gap-4 text-xs text-[#514349]">
+                          <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
                             <span>Category: {item.category}</span>
                             <span>Sort Order: {item.sortOrder}</span>
                             <span>Updated: {formatRelativeDate(item.updatedAt)}</span>
@@ -461,13 +461,13 @@ function AdminFaqEditor() {
             }}
             className="mt-8 space-y-8"
           >
-            <div ref={formSectionRef} className="rounded-xl border border-[#D5C1C9]/40 bg-white p-6 shadow-sm">
+            <div ref={formSectionRef} className="rounded-xl border border-border/40 bg-card p-6 shadow-sm">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-base font-semibold text-[#191C1E]">
+                  <h2 className="text-base font-semibold text-foreground">
                     {isCreatingNewItem ? 'Create FAQ Item' : 'Edit FAQ Item'}
                   </h2>
-                  <p className="mt-1 text-sm text-[#514349]">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {selectedItem
                       ? `Editing ${selectedItem.question}.`
                       : 'Add a new FAQ item to the storefront list.'}
@@ -482,7 +482,7 @@ function AdminFaqEditor() {
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
-                  <label htmlFor="faq-question" className="mb-1.5 block text-sm font-medium text-[#191C1E]">
+                  <label htmlFor="faq-question" className="mb-1.5 block text-sm font-medium text-foreground">
                     Question
                   </label>
                   <Input
@@ -499,7 +499,7 @@ function AdminFaqEditor() {
                 </div>
 
                 <div>
-                  <label htmlFor="faq-category" className="mb-1.5 block text-sm font-medium text-[#191C1E]">
+                  <label htmlFor="faq-category" className="mb-1.5 block text-sm font-medium text-foreground">
                     Category
                   </label>
                   <Input
@@ -515,7 +515,7 @@ function AdminFaqEditor() {
                 </div>
 
                 <div>
-                  <label htmlFor="faq-sort-order" className="mb-1.5 block text-sm font-medium text-[#191C1E]">
+                  <label htmlFor="faq-sort-order" className="mb-1.5 block text-sm font-medium text-foreground">
                     Sort Order
                   </label>
                   <Input
@@ -532,7 +532,7 @@ function AdminFaqEditor() {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label htmlFor="faq-answer" className="mb-1.5 block text-sm font-medium text-[#191C1E]">
+                  <label htmlFor="faq-answer" className="mb-1.5 block text-sm font-medium text-foreground">
                     Answer
                   </label>
                   <Textarea
@@ -549,7 +549,7 @@ function AdminFaqEditor() {
                 </div>
               </div>
 
-              <label className="mt-5 flex items-center gap-3 text-sm text-[#191C1E]">
+              <label className="mt-5 flex items-center gap-3 text-sm text-foreground">
                 <input
                   type="checkbox"
                   checked={formState.isPublished}
@@ -563,7 +563,7 @@ function AdminFaqEditor() {
               </label>
             </div>
 
-            <div className="flex items-center justify-end gap-4 border-t border-[#D5C1C9]/20 pt-6">
+            <div className="flex items-center justify-end gap-4 border-t border-border/20 pt-6">
               <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
                 Cancel
               </Button>
@@ -620,8 +620,8 @@ function LegalDocumentForm({
       }}
       className="mt-8 space-y-8"
     >
-      <div className="rounded-xl border border-[#D5C1C9]/40 bg-white p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-[#191C1E]">Document Content</h2>
+      <div className="rounded-xl border border-border/40 bg-card p-6 shadow-sm">
+        <h2 className="text-base font-semibold text-foreground">Document Content</h2>
         <div className="mt-4">
           <label htmlFor="content" className="sr-only">
             Content
@@ -638,7 +638,7 @@ function LegalDocumentForm({
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-4 border-t border-[#D5C1C9]/20 pt-6">
+      <div className="flex items-center justify-end gap-4 border-t border-border/20 pt-6">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>

@@ -129,9 +129,9 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
   const inputClasses = 'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-[#D5C1C9]/30 bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-[#191C1E] uppercase tracking-wider">Core Information</h2>
+        <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Core Information</h2>
         <Button
           type="submit"
           disabled={isPending}
@@ -144,7 +144,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Name</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Name</label>
           <Input
             required
             value={formData.name}
@@ -153,7 +153,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         </div>
 
         <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Description</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
           <textarea
             className={inputClasses + ' min-h-25 resize-y py-3'}
             value={formData.description}
@@ -162,7 +162,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Status</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Status</label>
           <select
             className={inputClasses}
             value={formData.status}
@@ -175,9 +175,9 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Price (CAD)</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Price (CAD)</label>
           <div className="relative">
-            <span className="absolute left-3 top-2.5 text-sm text-[#514349]">$</span>
+            <span className="absolute left-3 top-2.5 text-sm text-muted-foreground">$</span>
             <Input
               type="text"
               inputMode="decimal"
@@ -201,7 +201,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">SKU</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">SKU</label>
           <Input
             value={formData.sku}
             onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
@@ -209,7 +209,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Collection</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Collection</label>
           <select
             className={inputClasses}
             value={formData.collectionId}
@@ -223,8 +223,8 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         </div>
 
         <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Tags</label>
-          <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto rounded-xl border border-input bg-[#FBFAFB] p-3">
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Tags</label>
+          <div className="flex max-h-48 flex-wrap gap-2 overflow-y-auto rounded-xl border border-input bg-background p-3">
             {tags.length === 0 ? (
               <p className="p-2 text-xs text-muted-foreground">No tags available.</p>
             ) : (
@@ -238,7 +238,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
                     className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors md:cursor-pointer ${
                       isSelected
                         ? 'border-primary/30 bg-primary/10 text-primary shadow-sm'
-                        : 'border-[#D5C1C9]/50 bg-white text-[#514349] hover:border-[#D5C1C9] hover:bg-[#F7F4F6]'
+                        : 'border-border/50 bg-card text-muted-foreground hover:border-border hover:bg-[#F7F4F6]'
                     }`}
                   >
                     <input
@@ -248,7 +248,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
                       className="hidden"
                     />
                     <span>{tag.name}</span>
-                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${isSelected ? 'bg-primary/10 text-primary' : 'bg-[#F2F4F6] text-[#514349]/70'}`}>
+                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${isSelected ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground/70'}`}>
                       {tag.tagType}
                     </span>
                   </label>

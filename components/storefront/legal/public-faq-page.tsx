@@ -112,7 +112,7 @@ export function PublicFaqPage({ items }: { items: IPublicFaqItem[] }) {
                 </div>
 
                 <Accordion
-                  className="w-full rounded-2xl border border-border/60 bg-background px-5 sm:px-6"
+                  className="w-full rounded-2xl border border-border/60 bg-card px-5 shadow-sm sm:px-6"
                   defaultValue={index === 0 && defaultOpenItemId ? [defaultOpenItemId] : undefined}
                 >
                   {section.items.map((item) => (

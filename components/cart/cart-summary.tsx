@@ -71,7 +71,7 @@ export function CartSummary(props: ICartSummaryProps) {
             <div className='flex justify-center items-center gap-2'>
               <span className="text-base font-semibold text-foreground">Estimated total</span>
               <Tooltip
-                containerClassName="text-neutral-600 dark:text-neutral-400"
+                containerClassName="text-muted-foreground"
                 content="The sales tax listed on the checkout page is only an estimate. Your invoice will contain the final sales tax, including federal and province taxes, as well as any applicable rebates or fees."
               >
                 <CircleQuestionMark className='size-4.5' />

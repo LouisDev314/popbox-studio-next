@@ -15,7 +15,7 @@ export function ProductGallery(props: IProductGalleryProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative aspect-square w-full overflow-hidden rounded-4xl border border-border/50 bg-muted/20">
+      <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-border/50 bg-muted/20">
         <StorefrontImage
           src={activeImageData?.url}
           alt={activeImageData?.altText || props.product.name}
@@ -23,12 +23,12 @@ export function ProductGallery(props: IProductGalleryProps) {
           imageClassName="transition-transform duration-500 ease-out"
         />
         {props.product.productType === 'kuji' && (
-          <div className="absolute top-4 left-4 z-20 rounded-full bg-primary/60 px-3 py-1.5 text-xs font-bold tracking-wider text-secondary-foreground shadow-sm">
+          <div className="absolute top-4 left-4 z-20 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold tracking-wider text-primary">
             Ichiban Kuji
           </div>
         )}
         {images.length > 1 ? (
-          <div className="absolute right-4 bottom-4 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
+          <div className="absolute right-4 bottom-4 rounded-full bg-background px-3 py-1 text-xs font-medium text-foreground shadow-sm">
             {activeImage + 1} / {images.length}
           </div>
         ) : null}
@@ -45,7 +45,7 @@ export function ProductGallery(props: IProductGalleryProps) {
               onClick={() => setActiveImage(idx)}
               className={`relative aspect-square w-20 shrink-0 overflow-hidden rounded-2xl border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-24 ${
                 activeImage === idx
-                  ? 'border-primary bg-primary/5 shadow-[0_12px_30px_-22px_hsl(var(--foreground)/0.45)]'
+                  ? 'border-primary bg-primary/5 shadow-sm'
                   : 'border-border/60 hover:border-primary/30'
               }`}
             >

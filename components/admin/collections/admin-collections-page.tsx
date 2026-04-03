@@ -90,30 +90,30 @@ export default function AdminCollectionsPageClient() {
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#191C1E]">Collections</h1>
-          <p className="mt-1 text-sm text-[#514349]">Manage product collections and display order.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Collections</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage product collections and display order.</p>
         </div>
         <button
           onClick={openCreateDialog}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/60 active:bg-[#6A3553]"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white transition-colors hover:bg-primary/90 active:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
           New Collection
         </button>
       </div>
 
-      <div className="rounded-xl border border-[#D5C1C9]/30 bg-white">
+      <div className="rounded-xl border border-border/30 bg-card">
         {isPending ? (
-          <div className="p-8 text-center text-sm text-[#514349]">Loading collections...</div>
+          <div className="p-8 text-center text-sm text-muted-foreground">Loading collections...</div>
         ) : sortedCollections.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-sm text-[#514349]">No collections found. Create your first collection to organize products.</p>
+            <p className="text-sm text-muted-foreground">No collections found. Create your first collection to organize products.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-[#D5C1C9]/30 bg-[#F9FAFB] text-[11px] font-semibold uppercase tracking-wider text-[#514349]">
+                <tr className="border-b border-border/30 bg-muted/30 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <th className="px-4 py-3">Order</th>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Slug</th>
@@ -121,21 +121,21 @@ export default function AdminCollectionsPageClient() {
                   <th className="px-4 py-3 text-right"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#D5C1C9]/30">
+              <tbody className="divide-y divide-border/30">
                 {sortedCollections.map((c) => (
-                  <tr key={c.id} className="transition-colors hover:bg-slate-50">
-                    <td className="px-4 py-3 text-[#514349] tabular-nums">{c.sortOrder}</td>
-                    <td className="px-4 py-3 font-medium text-[#191C1E]">{c.name}</td>
-                    <td className="px-4 py-3 text-[#514349]"><code className="rounded bg-[#E6E8EA] px-1.5 py-0.5 text-xs">{c.slug}</code></td>
+                  <tr key={c.id} className="transition-colors hover:bg-muted/40">
+                    <td className="px-4 py-3 text-muted-foreground tabular-nums">{c.sortOrder}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">{c.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground"><code className="rounded bg-muted px-1.5 py-0.5 text-xs">{c.slug}</code></td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${c.isActive ? 'bg-green-100 text-green-700' : 'bg-[#E6E8EA] text-[#514349]'}`}>
+                      <span className={`inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${c.isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
                         {c.isActive ? 'Active' : 'Hidden'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => openEditDialog(c)}
-                        className="inline-flex items-center gap-1.5 rounded-md p-1.5 text-[#514349] hover:bg-[#E6E8EA] hover:text-[#191C1E] transition-colors"
+                        className="inline-flex items-center gap-1.5 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                       >
                         <Pencil className="h-4 w-4" />
                         <span className="sr-only">Edit</span>
@@ -150,23 +150,23 @@ export default function AdminCollectionsPageClient() {
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md p-6 bg-white border-[#D5C1C9]/50 rounded-2xl">
+        <DialogContent className="sm:max-w-md p-6 bg-card border-border/50 rounded-2xl">
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-xl text-[#191C1E] font-semibold">
+            <DialogTitle className="text-xl text-foreground font-semibold">
               {formData.id ? 'Edit Collection' : 'Create Collection'}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Name</label>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Name</label>
               <Input required value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Slug <span className="text-[#514349] font-normal">(Optional)</span></label>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Slug <span className="text-muted-foreground font-normal">(Optional)</span></label>
               <Input value={formData.slug} onChange={e => setFormData(p => ({ ...p, slug: e.target.value }))} placeholder="Auto-generated if empty" />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Description</label>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
               <textarea
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 value={formData.description}
@@ -175,7 +175,7 @@ export default function AdminCollectionsPageClient() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Sort Order</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Sort Order</label>
                 <NumericInput
                   required
                   value={formData.sortOrder}
@@ -189,7 +189,7 @@ export default function AdminCollectionsPageClient() {
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-[#191C1E]">Status</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Status</label>
                 <select
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   value={formData.isActive ? 'true' : 'false'}
@@ -200,11 +200,11 @@ export default function AdminCollectionsPageClient() {
                 </select>
               </div>
             </div>
-            <DialogFooter className="mt-6 pt-4 border-t border-[#D5C1C9]/20 gap-2">
+            <DialogFooter className="mt-6 pt-4 border-t border-border/20 gap-2">
               <button
                 type="button"
                 onClick={() => setIsDialogOpen(false)}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-[#514349] hover:bg-[#E6E8EA] transition-colors"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
                 disabled={isCreating || isUpdating}
               >
                 Cancel
@@ -212,7 +212,7 @@ export default function AdminCollectionsPageClient() {
               <button
                 type="submit"
                 disabled={isCreating || isUpdating}
-                className="rounded-lg bg-[#191C1E] px-4 py-2 text-sm font-medium text-white hover:bg-black transition-colors disabled:opacity-50"
+                className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors disabled:opacity-50"
               >
                 {isCreating || isUpdating ? 'Saving...' : 'Save Collection'}
               </button>

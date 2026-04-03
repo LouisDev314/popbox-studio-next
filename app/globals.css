@@ -1,8 +1,6 @@
 @import "tailwindcss";
 @import "./kuji.css";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme {
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
@@ -21,6 +19,8 @@
   --color-accent-foreground: hsl(var(--accent-foreground));
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -30,45 +30,25 @@
   --font-geist-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --font-geist-mono: "SFMono-Regular", "SF Mono", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
 
-  /* Blush-white / soft pink neutrals */
-  --background: 330 30% 98%;
-  --foreground: 330 5% 10%;
+  --background: 45 20% 98%;
+  --foreground: 33 19% 7%;
   --card: 0 0% 100%;
-  --card-foreground: 330 5% 10%;
-  --border: 330 20% 90%;
-  --input: 330 20% 90%;
-  --ring: 328 86% 81%; /* Primary Pink Ring */
-  --primary: 328 86% 81%; /* #F9A8D4 */
-  --primary-foreground: 330 5% 10%;
-  --secondary: 269 97% 85%; /* #D8B4FE */
-  --secondary-foreground: 330 5% 10%;
-  --accent: 330 30% 96%;
-  --accent-foreground: 330 5% 10%;
+  --card-foreground: 33 19% 7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 33 19% 7%;
+  --border: 36 21% 88%;
+  --input: 36 21% 88%;
+  --ring: 38 91% 55%;
+  --primary: 38 91% 55%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 43 100% 88%;
+  --secondary-foreground: 33 19% 7%;
+  --accent: 53 100% 88%;
+  --accent-foreground: 33 19% 7%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
-  --muted: 330 20% 95%;
-  --muted-foreground: 330 5% 40%;
-}
-
-.dark {
-  /* Muted plum-charcoal dark neutrals */
-  --background: 330 20% 8%;
-  --foreground: 330 20% 98%;
-  --card: 330 20% 12%;
-  --card-foreground: 330 20% 98%;
-  --border: 330 20% 20%;
-  --input: 330 20% 20%;
-  --ring: 328 86% 81%;
-  --primary: 328 86% 81%; /* #F9A8D4 preserved */
-  --primary-foreground: 330 5% 10%;
-  --secondary: 269 97% 85%; /* #D8B4FE preserved */
-  --secondary-foreground: 330 5% 10%;
-  --accent: 330 20% 16%;
-  --accent-foreground: 330 20% 98%;
-  --destructive: 0 62% 50%;
-  --destructive-foreground: 0 0% 98%;
-  --muted: 330 20% 16%;
-  --muted-foreground: 330 10% 65%;
+  --muted: 33 20% 92%;
+  --muted-foreground: 24 6% 40%;
 }
 
 * {

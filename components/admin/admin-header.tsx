@@ -6,7 +6,7 @@ interface IAdminHeaderProps {
 
 export function AdminHeader(props: IAdminHeaderProps) {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#D5C1C9]/20 bg-white/80 px-6 backdrop-blur-sm">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/20 bg-background/80 px-6 ">
       <div className="flex-1">{props.children}</div>
 
       {/* Avatar placeholder */}

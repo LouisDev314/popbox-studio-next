@@ -60,7 +60,7 @@ export function SortableHandle({
       aria-label={label}
       title={label}
       className={cn(
-        'h-8 w-8 rounded-md text-[#514349] hover:bg-white hover:text-[#191C1E] focus-visible:ring-2 focus-visible:ring-primary/40',
+        'h-8 w-8 rounded-md text-muted-foreground hover:bg-card hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40',
         'cursor-grab active:cursor-grabbing touch-none disabled:cursor-not-allowed',
         className,
       )}

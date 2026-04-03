@@ -26,12 +26,12 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
 
       <div className="mb-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div>
-          <h1 className="text-5xl font-black">Thank you for your purchase!</h1>
-          <p className="text-lg">
+          <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">Thank you for your purchase!</h1>
+          <p className="mt-3 text-base leading-7 text-muted-foreground">
             Your order will be processed within 24 hours during business days. We will notify you
             by email once your order has been shipped.
           </p>
-          <p className="text-3xl font-extrabold tracking-tight text-foreground">
+          <p className="mt-4 text-2xl font-semibold tracking-tight text-primary">
             Order Number {order.publicId}
           </p>
           <p className="mt-2 text-muted-foreground">
@@ -43,7 +43,7 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
           <Button
             asChild
             size="lg"
-            className="rounded-full px-8 py-6 text-base font-semibold shadow-md"
+            className="rounded-xl px-8 py-6 text-base font-semibold"
           >
             <Link href={ticketsHref}>
               <Ticket className="mr-2 h-5 w-5" />

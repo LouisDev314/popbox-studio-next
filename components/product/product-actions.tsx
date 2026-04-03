@@ -146,9 +146,9 @@ export function ProductActions(props: IProductActionsProps) {
         variant="outline"
         aria-pressed={hasWishlistHydrated && isWishlisted}
         className={cn(
-          'h-12 w-full rounded-full border-border/70 bg-background/80 text-sm font-semibold shadow-sm',
+          'h-12 w-full rounded-xl border-border/70 bg-background text-sm font-semibold',
           hasWishlistHydrated && isWishlisted
-            ? 'border-primary/30 bg-primary/10 text-foreground hover:bg-primary/15'
+            ? 'border-primary/30 bg-accent text-foreground hover:bg-accent'
             : 'hover:bg-accent/70',
         )}
         onClick={handleWishlistToggle}
@@ -162,7 +162,7 @@ export function ProductActions(props: IProductActionsProps) {
         {hasWishlistHydrated && isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
       </Button>
 
-      <div className="rounded-4xl border border-border/60 bg-card/70 p-5 shadow-sm">
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
         <div className="flex flex-row items-center justify-between gap-4">
           <div>
             <p className="font-medium text-foreground">Quantity</p>
@@ -195,12 +195,12 @@ export function ProductActions(props: IProductActionsProps) {
         ) : null}
 
         {!actionState.hasReachedCartLimit && feedbackMessage ? (
-          <p className="mt-3 text-sm font-medium text-secondary-foreground">{feedbackMessage}</p>
+          <p className="mt-3 text-sm font-medium text-foreground">{feedbackMessage}</p>
         ) : null}
 
         <Button
           size="lg"
-          className="mt-5 h-14 w-full rounded-full text-lg font-semibold"
+          className="mt-5 h-14 w-full rounded-xl text-lg font-semibold"
           disabled={actionState.isAddDisabled}
           onClick={handleAdd}
         >
