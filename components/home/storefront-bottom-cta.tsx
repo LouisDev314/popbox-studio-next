@@ -15,12 +15,12 @@ export function StorefrontBottomCta() {
         </div>
 
         <div className="mt-8 flex items-center justify-center gap-3 sm:flex-row">
-          <Button className="h-12 w-full rounded-2xl px-8 text-base font-semibold sm:w-auto sm:min-w-44">
+          <Button className="h-12 w-36 rounded-2xl px-8 text-base font-semibold sm:w-auto sm:min-w-44">
             <Link href="/contact">Contact Us</Link>
           </Button>
           <Button
             variant="outline"
-            className="h-12 w-full rounded-2xl border-border/80 bg-background text-base font-semibold text-foreground hover:bg-muted/45 sm:w-auto sm:min-w-44"
+            className="h-12 w-40 rounded-2xl border-border/80 bg-background text-base font-semibold text-foreground hover:bg-muted/45 sm:w-auto sm:min-w-44"
           >
             <Link href="/products">Browse All</Link>
           </Button>
