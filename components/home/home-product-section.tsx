@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/product/product-card';
 import { IProductCard } from '@/interfaces/product';
 

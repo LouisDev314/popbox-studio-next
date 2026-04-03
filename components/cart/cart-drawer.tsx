@@ -151,7 +151,7 @@ export function CartDrawer(props: ICartDrawerProps) {
                     onRemove={removeInvalidItem}
                   />
                   {items.map((item) => (
-                  <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card p-4">
+                    <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card p-4">
                       {(() => {
                         const quantityLimit = getProductSellableQuantity(item.product);
                         const limitMessage = getProductCartLimitMessage(item.product, item.quantity);
