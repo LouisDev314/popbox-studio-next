@@ -17,16 +17,16 @@ export function StorefrontCarouselDots(props: IStorefrontCarouselDotsProps) {
   }
 
   return (
-    <div className={cn('flex justify-center gap-2', className)}>
+    <div className={cn('flex justify-center gap-1.5 md:gap-2', className)}>
       {scrollSnaps.map((_, index) => (
         <button
           key={index}
           type="button"
           className={cn(
-            'h-1.5 rounded-full transition-all duration-300',
+            'rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             index === selectedIndex
-              ? 'w-8 bg-primary'
-              : 'w-2 bg-primary/40 hover:bg-primary/60',
+              ? 'h-1.5 w-6 bg-primary'
+              : 'h-1.5 w-1.5 bg-primary/35 hover:bg-primary/55',
           )}
           onClick={() => onDotClick(index)}
           aria-label={`Go to slide ${index + 1}`}

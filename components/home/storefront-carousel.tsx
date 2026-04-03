@@ -3,11 +3,11 @@
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import type { EmblaCarouselType } from 'embla-carousel';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { StorefrontImage } from '@/components/ui/storefront-image';
 import { cn, formatPrice } from '@/lib/utils';
 import { IProductCard } from '@/interfaces/product';
 
@@ -23,6 +23,14 @@ export interface IStorefrontCarouselState {
   scrollTo: (index: number) => void;
   scrollPrev: () => void;
   scrollNext: () => void;
+}
+
+function getCarouselEyebrowLabel(product: IProductCard) {
+  if (product.productType === 'kuji') {
+    return 'Ichiban Kuji';
+  }
+
+  return product.collection?.name ?? 'PopBox Studio Pick';
 }
 
 export function StorefrontCarousel(props: IStorefrontCarouselProps) {
@@ -109,43 +117,43 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
   return (
     <section
       className={cn(
-        'group relative overflow-hidden border-y border-border/60 bg-card md:rounded-[2rem] md:border',
+        'group relative overflow-hidden border-b border-border/60 bg-card md:rounded-[2rem] md:border',
         className,
       )}
     >
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex touch-pan-y">
-          {featuredProducts.map((product) => (
+          {featuredProducts.map((product, index) => (
             <div key={product.id} className="relative min-w-0 flex-[0_0_100%]">
               <Link
                 href={`/products/${product.slug}`}
-                className="group/slide relative block aspect-[4/3] w-full md:aspect-[21/9]"
+                className="group/slide relative block aspect-[6/5] w-full md:aspect-[21/9]"
                 onClick={() => autoplay.current.stop()}
               >
                 <div className="absolute inset-0 bg-muted/20">
-                  {product.images?.[0]?.url ? (
-                    <Image
-                      src={product.images[0].url}
-                      alt={product.name}
-                      width={1600}
-                      height={900}
-                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover/slide:scale-105"
-                    />
-                  ) : null}
+                  <StorefrontImage
+                    src={product.images?.[0]?.url}
+                    alt={product.images?.[0]?.altText ?? product.name}
+                    label={product.name}
+                    priority={index === 0}
+                    className="h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(244,162,28,0.38),transparent_34%),linear-gradient(160deg,#17110d_0%,#2b1d13_54%,#110d0a_100%)]"
+                    imageClassName="transition-transform duration-700 ease-out group-hover/slide:scale-105"
+                    fallbackClassName="border-white/15 bg-white/10 text-white/82 shadow-none backdrop-blur-sm"
+                  />
                 </div>
-                <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 px-5 py-5 text-white sm:px-7 sm:py-6">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/28 via-45% to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-16 text-white sm:px-7 sm:pb-6 sm:pt-20">
                   <div className="min-w-0">
-                    <p className="line-clamp-2 text-xl font-semibold tracking-tight sm:text-2xl">
+                    <p className="mb-2 text-[10px] font-semibold tracking-[0.28em] text-white/72 uppercase sm:mb-3 sm:text-xs">
+                      {getCarouselEyebrowLabel(product)}
+                    </p>
+                    <p className="line-clamp-2 text-[1.75rem] leading-[0.98] font-semibold tracking-[-0.03em] sm:text-2xl">
                       {product.name}
                     </p>
-                    <p className="mt-1 text-sm font-medium text-white/90 sm:text-base">
+                    <p className="mt-1.5 text-sm font-medium text-white/78 sm:mt-2 sm:text-base">
                       {formatPrice(product.priceCents, product.currency)}
                     </p>
                   </div>
-                  {/*<span className="shrink-0 rounded-full border border-white/30 bg-white/12 px-4 py-2 text-sm font-medium text-white transition-colors group-hover/slide:bg-white/20">*/}
-                  {/*  Shop Now*/}
-                  {/*</span>*/}
                 </div>
               </Link>
             </div>

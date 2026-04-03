@@ -13,7 +13,7 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
   const hasFeatured = featured.length > 0;
 
   return (
-    <div className="w-full py-8">
+    <div className="w-full pb-8 md:py-8">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="-mx-4 sm:-mx-6 lg:-mx-8">
           {hasFeatured ? (
