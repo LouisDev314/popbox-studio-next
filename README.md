@@ -91,6 +91,30 @@ reflect real production auth and http-only cookie-based session handling**.
 
 ---
 
+## System overview
+
+```mermaid
+flowchart LR
+
+    U[Users] --> N[Next.js Frontend]
+
+    subgraph Frontend_App
+        N --> S[Storefront]
+        N --> A[Admin]
+    end
+
+    N --> API[Express Backend /api/v1]
+
+    subgraph Backend_Services
+        API --> STRIPE[Stripe]
+        API --> DB[(PostgreSQL / Drizzle ORM)]
+        API --> SUPA[Supabase]
+        API --> EMAIL[Resend Email]
+    end
+```
+
+---
+
 ## Key flows
 
 - **Guest checkout → order access**
@@ -111,6 +135,8 @@ reflect real production auth and http-only cookie-based session handling**.
     - Storefront reflects changes via API-driven SSR + client updates
 
 ```mermaid
+flowchart TD
+
     subgraph Checkout_and_Guest_Orders
         A[Guest checkout] --> B[Redirect to Stripe Checkout]
         B --> C[Return to success page]
@@ -130,26 +156,6 @@ reflect real production auth and http-only cookie-based session handling**.
         L[Admin updates catalog or Kuji config] --> M[Backend validates and persists changes]
         M --> N[Storefront reads updated API data]
         N --> O[SSR and client UI reflect latest state]
-    end
-```
-
-System overview
-
-```mermaid
-    U[Users] --> N[Next.js Frontend]
-
-    subgraph Frontend_App
-        N --> S[Storefront]
-        N --> A[Admin]
-    end
-
-    N --> API[Express Backend /api/v1]
-
-    subgraph Backend_Services
-        API --> STRIPE[Stripe]
-        API --> DB[(PostgreSQL / Drizzle ORM)]
-        API --> SUPA[Supabase]
-        API --> EMAIL[Resend Email]
     end
 ```
 
