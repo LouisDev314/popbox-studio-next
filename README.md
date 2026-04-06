@@ -123,17 +123,6 @@ flowchart LR
     - Backend verifies payment and sets HttpOnly session cookie
     - Subsequent order and ticket requests require cookie (no token fallback)
 
-- **Ichiban Kuji purchase → ticket reveal**
-    - User purchases Kuji tickets
-    - Order stores ticket allocations
-    - Frontend renders reveal flows based on backend state
-    - No prize logic is computed on the client
-
-- **Admin → catalog → storefront**
-    - Admin updates products, inventory, or Kuji configuration
-    - Backend persists and enforces rules
-    - Storefront reflects changes via API-driven SSR + client updates
-
 ```mermaid
 flowchart TD
 
@@ -144,6 +133,16 @@ flowchart TD
         D --> E[Backend sets HttpOnly session cookie]
         E --> F[Order and ticket APIs require cookie]
     end
+```
+
+- **Ichiban Kuji purchase → ticket reveal**
+    - User purchases Kuji tickets
+    - Order stores ticket allocations
+    - Frontend renders reveal flows based on backend state
+    - No prize logic is computed on the client
+
+```mermaid
+flowchart TD
 
     subgraph Kuji_Flow
         G[Kuji ticket purchase] --> H[Backend creates order and ticket allocations]
@@ -151,6 +150,15 @@ flowchart TD
         I --> J[User reveals tickets in UI]
         J --> K[Prize outcome comes from backend state]
     end
+```
+
+- **Admin → catalog → storefront**
+    - Admin updates products, inventory, or Kuji configuration
+    - Backend persists and enforces rules
+    - Storefront reflects changes via API-driven SSR + client updates
+
+```mermaid
+flowchart TD
 
     subgraph Admin_to_Storefront
         L[Admin updates catalog or Kuji config] --> M[Backend validates and persists changes]
