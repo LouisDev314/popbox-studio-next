@@ -1,13 +1,26 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { type ImgHTMLAttributes } from 'react';
-import { act, screen } from '@testing-library/react';
+import { type ImgHTMLAttributes, useState } from 'react';
+import {
+  act,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { CartDrawer } from '@/components/cart/cart-drawer';
 import { useCartStore } from '@/hooks/use-cart';
 import { createCartItem } from '../fixtures';
-import { renderWithProviders } from '../test-utils';
+import {
+  renderWithProviders,
+  resetStores,
+} from '../test-utils';
 
 const push = vi.fn();
 
@@ -37,12 +50,38 @@ vi.mock('@/components/cart/checkout-button', () => ({
   ),
 }));
 
+interface ICartDrawerHarnessProps {
+  onClose?: () => void;
+}
+
+function CartDrawerHarness(props: ICartDrawerHarnessProps) {
+  const { onClose } = props;
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      <button id="cart-trigger" type="button" onClick={() => setIsOpen(true)}>
+        Open cart
+      </button>
+      <CartDrawer
+        isOpen={isOpen}
+        onClose={() => {
+          onClose?.();
+          setIsOpen(false);
+        }}
+        triggerButtonId="cart-trigger"
+      />
+    </>
+  );
+}
+
 describe('CartDrawer', () => {
   beforeEach(() => {
     push.mockReset();
+    resetStores();
   });
 
-  it('renders a continue shopping button in the empty state', async () => {
+  it('closes the empty-state continue shopping action and restores focus without navigation', async () => {
     act(() => {
       useCartStore.setState({
         hasHydrated: true,
@@ -52,17 +91,24 @@ describe('CartDrawer', () => {
     });
 
     const onClose = vi.fn();
-    renderWithProviders(<CartDrawer isOpen={true} onClose={onClose} triggerButtonId="cart-trigger" />);
+    renderWithProviders(<CartDrawerHarness onClose={onClose} />);
 
-    const continueShoppingButton = screen.getByRole('button', { name: 'Continue Shopping' });
+    const triggerButton = screen.getByRole('button', { name: 'Open cart' });
+    await userEvent.click(triggerButton);
 
-    await userEvent.click(continueShoppingButton);
+    await userEvent.click(screen.getByRole('button', { name: 'Continue Shopping' }));
 
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(triggerButton).toHaveFocus();
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(push).toHaveBeenCalledWith('/products');
+    expect(push).not.toHaveBeenCalled();
   });
 
-  it('renders a continue shopping button in the footer when the cart has items', async () => {
+  it('closes the footer continue shopping action and restores focus without navigation', async () => {
     act(() => {
       useCartStore.setState({
         hasHydrated: true,
@@ -72,13 +118,20 @@ describe('CartDrawer', () => {
     });
 
     const onClose = vi.fn();
-    renderWithProviders(<CartDrawer isOpen={true} onClose={onClose} triggerButtonId="cart-trigger" />);
+    renderWithProviders(<CartDrawerHarness onClose={onClose} />);
 
-    const continueShoppingButton = screen.getByRole('button', { name: 'Continue Shopping' });
+    const triggerButton = screen.getByRole('button', { name: 'Open cart' });
+    await userEvent.click(triggerButton);
 
-    await userEvent.click(continueShoppingButton);
+    await userEvent.click(screen.getByRole('button', { name: 'Continue Shopping' }));
 
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(triggerButton).toHaveFocus();
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(push).toHaveBeenCalledWith('/products');
+    expect(push).not.toHaveBeenCalled();
   });
 });

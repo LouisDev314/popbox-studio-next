@@ -105,7 +105,7 @@ export function CartDrawer(props: ICartDrawerProps) {
         inert={isCheckingOut}
         aria-busy={isCheckingOut}
       >
-        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+        <div className="flex-1 overflow-y-auto py-5">
           {!hasHydrated ? (
             <div className="space-y-4">
               <div className="h-6 w-28 rounded-full bg-muted/40" />

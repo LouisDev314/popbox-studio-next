@@ -146,7 +146,7 @@ export function ProductActions(props: IProductActionsProps) {
         variant="outline"
         aria-pressed={hasWishlistHydrated && isWishlisted}
         className={cn(
-          'h-12 w-full rounded-xl border-border/70 bg-background text-sm font-semibold',
+          'h-12 w-full rounded-full border-border/70 bg-background text-sm font-semibold',
           hasWishlistHydrated && isWishlisted
             ? 'border-primary/30 bg-accent text-foreground hover:bg-accent'
             : 'hover:bg-accent/70',

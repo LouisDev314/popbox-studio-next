@@ -11,7 +11,7 @@
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "check": "pnpm lint && pnpm build",
+    "check": "pnpm lint:fix && pnpm test && pnpm build",
     "test": "vitest run"
   },
   "dependencies": {

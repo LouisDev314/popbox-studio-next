@@ -38,7 +38,7 @@ export function WishlistDrawer(props: IWishlistDrawerProps) {
       }
     >
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+        <div className="flex-1 overflow-y-auto py-5">
           {!hasHydrated ? (
             <div className="space-y-4">
               <div className="h-6 w-32 rounded-full bg-muted/40" />
