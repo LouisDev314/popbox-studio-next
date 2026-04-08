@@ -131,7 +131,7 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
               </div>
 
               {autocompleteSuggestions.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-2 mb-8">
                   {autocompleteSuggestions.map((suggestion) => (
                     <button
                       key={suggestion.id}

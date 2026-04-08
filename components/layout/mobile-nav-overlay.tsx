@@ -83,7 +83,7 @@ export function MobileNavOverlay(props: IMobileNavOverlayProps) {
       <button
         type="button"
         className={cn(
-          'absolute inset-0 bg-foreground/12 transition-opacity duration-300',
+          'absolute inset-0 bg-black/20 backdrop-blur-sm backdrop-saturate-150 transition-opacity duration-300',
           isOpen ? 'opacity-100' : 'opacity-0',
         )}
         aria-label="Close navigation overlay"
