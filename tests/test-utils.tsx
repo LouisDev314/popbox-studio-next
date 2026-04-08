@@ -6,7 +6,9 @@ import {
 } from '@tanstack/react-query';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
+import { useWishlistStore } from '@/hooks/use-wishlist';
 import { CART_STORAGE_KEY } from '@/utils/cart-storage';
+import { WISHLIST_STORAGE_KEY } from '@/utils/wishlist';
 
 function createTestQueryClient() {
   return new QueryClient({
@@ -41,5 +43,10 @@ export function resetStores() {
     checkoutErrorMessage: null,
     isCheckingOut: false,
   });
+  useWishlistStore.setState({
+    hasHydrated: true,
+    items: [],
+  });
   window.localStorage.removeItem(CART_STORAGE_KEY);
+  window.localStorage.removeItem(WISHLIST_STORAGE_KEY);
 }

@@ -133,7 +133,7 @@ export default function CartPageClient() {
 
             <div className="flex justify-center">
               <Button asChild variant="outline" className="rounded-xl px-5">
-                <Link href="/products">Continue shopping</Link>
+                Continue shopping
               </Button>
             </div>
           </div>
