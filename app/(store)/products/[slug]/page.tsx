@@ -20,6 +20,12 @@ import {
   truncateMetaDescription,
 } from '@/lib/seo';
 import { getProductInventoryState } from '@/utils/product-stock';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 
 type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -132,28 +138,6 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
   const productDescription = product.description?.trim() || 'No description available.';
   const productCategory = product.productType === 'kuji' ? 'Ichiban Kuji' : 'Anime merchandise';
   const productOfferAvailability = getProductOfferAvailability(product);
-  const breadcrumbItems = [
-    {
-      label: 'Home',
-      path: '/',
-    },
-    {
-      label: 'Products',
-      path: '/products',
-    },
-    ...(product.collection
-      ? [
-        {
-          label: product.collection.name,
-          path: `/collections/${encodeURIComponent(product.collection.slug)}`,
-        },
-      ]
-      : []),
-    {
-      label: product.name,
-      path: productPath,
-    },
-  ];
   const productJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -179,59 +163,35 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
         : {}),
     },
   };
-  const breadcrumbJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: breadcrumbItems.map((item, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: item.label,
-      item: buildAbsoluteUrl(item.path),
-    })),
-  };
+
+  const accordionItems = [
+    {
+      value: 'details',
+      trigger: 'Product Details',
+      content: productDescription,
+    },
+  ]
+
+  if (product.productType === 'kuji') {
+    accordionItems.unshift({
+      value: 'kuji-instructions',
+      trigger: 'How Ichiban Kuji Works',
+      content: 'Each ticket guarantees a prize from this lineup. Purchase the quantity of tickets you want, check out, and reveal your prizes after payment.',
+    })
+  }
 
   return (
-    <div className="container mx-auto px-4 py-12 sm:px-6 md:py-16 lg:px-8">
+    <div className="container mx-auto px-4 pt-8 pb-12 sm:px-6 md:pb-16 md:pt-12 lg:px-8">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
-      <div className="grid grid-cols-1 items-start gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-16">
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-16">
         <div className="lg:sticky lg:top-24 lg:self-start">
           <ProductGallery product={product} />
         </div>
 
         <div className="relative z-10 flex flex-col">
-          <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
-            <ol className="flex flex-wrap items-center gap-2">
-              {breadcrumbItems.map((item, index) => {
-                const isCurrentPage = index === breadcrumbItems.length - 1;
-
-                return (
-                  <li key={item.path} className="flex items-center gap-2">
-                    {isCurrentPage ? (
-                      <span aria-current="page" className="font-medium text-foreground">
-                        {item.label}
-                      </span>
-                    ) : (
-                      <Link
-                        href={item.path}
-                        className="transition-colors hover:text-foreground"
-                      >
-                        {item.label}
-                      </Link>
-                    )}
-                    {!isCurrentPage ? <span aria-hidden="true">/</span> : null}
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
-
           <div className="flex flex-wrap items-center gap-2">
             {product.collection ? (
               <Link
@@ -243,7 +203,7 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
             ) : null}
           </div>
 
-          <h1 className="mt-4 text-2xl font-semibold leading-tight tracking-tight text-foreground md:text-3xl">
+          <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-foreground md:text-4xl">
             {product.name}
           </h1>
 
@@ -259,16 +219,6 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
           <ProductInventoryStatus product={product} variant="detail" />
 
           <ProductActions product={product} />
-
-          {product.productType === 'kuji' ? (
-            <div className="mt-12 rounded-2xl border border-border/70 bg-accent/40 p-5">
-              <p className="text-sm font-medium text-foreground">
-                <span className="mb-1 block font-bold uppercase tracking-wider">How Ichiban Kuji Works</span>
-                Each ticket guarantees a prize from this lineup. Purchase the quantity of tickets you want, check out,
-                and reveal your prizes after payment.
-              </p>
-            </div>
-          ) : null}
         </div>
       </div>
 
@@ -276,17 +226,20 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
         <KujiPrizesView prizes={product.kujiPrizes} />
       ) : null}
 
-      <div className="mt-12 rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Product details</p>
-        {product.sku ? (
-          <p className="mt-4 text-sm font-medium text-foreground">
-            Product code: <span className="font-normal text-muted-foreground">{product.sku}</span>
-          </p>
-        ) : null}
-        <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
-          {productDescription}
-        </p>
-      </div>
+      <Accordion
+        className="max-w-lg border mt-8"
+      >
+        {accordionItems.map((item) => (
+          <AccordionItem
+            key={item.value}
+            value={item.value}
+            className="border-b last:border-b-0"
+          >
+            <AccordionTrigger>{item.trigger}</AccordionTrigger>
+            <AccordionContent>{item.content}</AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
 
       <Suspense fallback={<ProductRecommendationsFallback />}>
         <ProductRecommendations product={product} />

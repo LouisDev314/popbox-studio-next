@@ -27,7 +27,7 @@ export function HomeProductSection(props: IHomeProductSectionProps) {
         </Link>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 snap-x snap-mandatory md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:pb-0">
+      <div className="flex gap-2 overflow-x-auto pb-4 -mb-4 snap-x snap-mandatory md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:pb-0">
         {props.products.slice(0, SECTION_PREVIEW_LIMIT).map((product) => (
           <div key={product.id} className="w-50 flex-none snap-start md:w-auto">
             <ProductCard product={product} />

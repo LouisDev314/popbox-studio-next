@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { IKujiPrize } from '@/interfaces/product';
@@ -65,7 +65,7 @@ function KujiPrizeCard(props: IKujiPrizeCardProps) {
       )}
       onClick={() => props.onSelect(props.prize)}
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted/25">
+      <div className="relative aspect-4/3 overflow-hidden bg-muted/25">
         <StorefrontImage
           src={props.prize.imageUrl}
           alt={props.prize.name}
@@ -77,7 +77,7 @@ function KujiPrizeCard(props: IKujiPrizeCardProps) {
         <div className="absolute left-4 top-4">
           <span
             className={cn(
-              'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
+              'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] bg-primary/10',
               getPrizeBadgeClasses(props.prize.prizeCode),
             )}
           >
@@ -85,7 +85,7 @@ function KujiPrizeCard(props: IKujiPrizeCardProps) {
           </span>
         </div>
 
-        <div className="absolute right-4 top-4">
+        {props.prize.prizeCode !== 'LO' && <div className="absolute right-4 top-4">
           <span
             className={cn(
               'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold',
@@ -94,7 +94,7 @@ function KujiPrizeCard(props: IKujiPrizeCardProps) {
           >
             {stockLabel}
           </span>
-        </div>
+        </div>}
       </div>
 
       <div className="flex flex-1 flex-col gap-4 p-4 sm:p-5">
@@ -129,6 +129,10 @@ function KujiPrizeDialog(props: IKujiPrizeDialogProps) {
   const prizeImages = buildPrizeImages(props.prize);
   const activeImage = prizeImages[activeImageIndex] ?? prizeImages[0] ?? null;
 
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [props.prize?.id]);
+
   if (!props.prize) {
     return (
       <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -147,17 +151,6 @@ function KujiPrizeDialog(props: IKujiPrizeDialogProps) {
         <div className="grid max-h-[min(88vh,960px)] overflow-y-auto lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
           <div className="bg-background p-4 sm:p-6 lg:p-8">
             <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-muted/25">
-              <div className="absolute left-4 top-4 z-10">
-                <span
-                  className={cn(
-                    'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
-                    getPrizeBadgeClasses(prize.prizeCode),
-                  )}
-                >
-                  {badgeLabel}
-                </span>
-              </div>
-
               <StorefrontImage
                 src={activeImage?.src ?? prize.imageUrl}
                 alt={activeImage?.alt ?? prize.name}
@@ -216,47 +209,12 @@ function KujiPrizeDialog(props: IKujiPrizeDialogProps) {
             </div>
 
             <DialogTitle className="mt-5 text-3xl sm:text-4xl">{prize.name}</DialogTitle>
-            <DialogDescription className="mt-3 max-w-2xl text-base leading-7">
-              {stockLabel}
-              . This tier opened with
-              {' '}
-              {prize.initialQuantity}
-              {' '}
-              prizes in the lineup.
-            </DialogDescription>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[1.35rem] border border-border/60 bg-card p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Prize Tier</p>
-                <p className="mt-2 text-lg font-semibold text-foreground">{badgeLabel}</p>
-              </div>
-              <div className="rounded-[1.35rem] border border-border/60 bg-card p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Initial Qty</p>
-                <p className="mt-2 text-lg font-semibold text-foreground">{prize.initialQuantity}</p>
-              </div>
-              <div className="rounded-[1.35rem] border border-border/60 bg-card p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Remaining</p>
-                <p className="mt-2 text-lg font-semibold text-foreground">{prize.remainingQuantity}</p>
-              </div>
-            </div>
 
             {prize.description ? (
-              <div className="mt-6 rounded-[1.5rem] border border-border/60 bg-card p-5 shadow-sm">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Prize Details
-                </p>
-                <p className="mt-3 text-sm leading-7 text-muted-foreground">{prize.description}</p>
-              </div>
+              <DialogDescription className="mt-3 max-w-2xl text-base leading-7">
+                {prize.description}
+              </DialogDescription>
             ) : null}
-
-            <div className="mt-6 rounded-[1.5rem] border border-border/60 bg-accent/35 p-5 shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Availability</p>
-              <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                {prize.remainingQuantity > 0
-                  ? `${prize.remainingQuantity} of ${prize.initialQuantity} prizes are still available in this tier.`
-                  : 'This prize tier is currently sold out.'}
-              </p>
-            </div>
           </div>
         </div>
       </DialogContent>
@@ -275,7 +233,7 @@ export function KujiPrizesView(props: IKujiPrizesViewProps) {
     <>
       <div className="mt-8 rounded-2xl border border-border/50 bg-card p-6 shadow-sm sm:p-8">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
             <Tickets className="h-5 w-5" />
           </div>
           <div>
@@ -292,7 +250,6 @@ export function KujiPrizesView(props: IKujiPrizesViewProps) {
       </div>
 
       <KujiPrizeDialog
-        key={selectedPrize?.id ?? 'kuji-prize-dialog'}
         open={selectedPrize !== null}
         prize={selectedPrize}
         onOpenChange={(open) => {

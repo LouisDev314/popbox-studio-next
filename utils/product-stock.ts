@@ -72,7 +72,7 @@ export function getProductInventoryStatusLabel(product: Pick<IProductCard, 'inve
 
   if (inventoryState.isKuji) {
     const ticketLabel = `${inventoryState.availableStock} ticket${inventoryState.availableStock === 1 ? '' : 's'} left`;
-    return inventoryState.status === 'low_stock' ? `Only ${ticketLabel}` : ticketLabel;
+    return inventoryState.status === 'low_stock' ? `${ticketLabel}` : ticketLabel;
   }
 
   return inventoryState.status === 'low_stock' ? 'Low in Stock' : 'Stock Available';
@@ -110,10 +110,10 @@ export function getProductSellableQuantity(product: TProductStockLike): number {
 
 export function getRemainingQuantityMessage(product: Pick<IProductCard, 'productType'>, quantity: number): string {
   if (isKujiProduct(product)) {
-    return `Only ${quantity} ticket${quantity === 1 ? '' : 's'} left.`;
+    return `${quantity} ticket${quantity === 1 ? '' : 's'} left.`;
   }
 
-  return `Only ${quantity} left.`;
+  return `${quantity} left.`;
 }
 
 export function getProductSoldOutMessage(product: Pick<IProductCard, 'productType'>): string {

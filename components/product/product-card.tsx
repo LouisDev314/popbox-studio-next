@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { ProductInventoryStatus } from '@/components/product/product-inventory-status';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type IProductCard } from '@/interfaces/product';
 import { formatPrice } from '@/lib/utils';
@@ -25,7 +24,7 @@ export function ProductCard(props: IProductCardProps) {
       <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-[1rem] bg-muted/30">
         {isKuji && (
           <div className="absolute left-3 top-3 z-20 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary sm:text-[11px]">
-            Ichiban Kuji
+            Kuji
           </div>
         )}
         {inventoryState.hasInventoryData && inventoryState.status === 'sold_out' ? (
@@ -52,9 +51,7 @@ export function ProductCard(props: IProductCardProps) {
         )}
       </div>
 
-      <ProductInventoryStatus product={props.product} className="mt-0.5" />
-
-      <p className="mt-auto pt-1 text-base font-bold text-primary sm:text-lg">
+      <p className="mt-auto pt-1 text-base font-semibold text-primary sm:text-lg">
         {formatPrice(props.product.priceCents, props.product.currency)}
       </p>
     </div>
