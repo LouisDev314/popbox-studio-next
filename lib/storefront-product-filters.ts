@@ -3,21 +3,25 @@ import { TAG_TYPE_OPTIONS } from '@/lib/tag-types';
 
 const VALID_PRODUCT_TYPES = ['standard', 'kuji'] as const satisfies readonly productType[];
 const VALID_PRODUCT_SORTS = ['trending', 'newest', 'price_asc', 'price_desc', 'name_asc', 'name_desc'] as const satisfies readonly productSort[];
+const VALID_STOREFRONT_PRODUCT_SORTS = ['featured', ...VALID_PRODUCT_SORTS] as const;
+
+export type storefrontProductSort = (typeof VALID_STOREFRONT_PRODUCT_SORTS)[number];
 
 export const PRODUCT_TYPE_ITEMS = [
-  { label: 'All Products', value: '' },
-  { label: 'Anime Merchandise', value: 'standard' },
-  { label: 'Ichiban Kuji', value: 'kuji' },
+  { label: 'All Products', compactLabel: 'All', value: '' },
+  { label: 'Anime Merchandise', compactLabel: 'Merch', value: 'standard' },
+  { label: 'Ichiban Kuji', compactLabel: 'Kuji', value: 'kuji' },
 ] as const;
 
 export const PRODUCT_SORT_ITEMS = [
+  { label: 'Featured', value: 'featured' },
   { label: 'Trending', value: 'trending' },
   { label: 'Newest', value: 'newest' },
   { label: 'Price: Low to High', value: 'price_asc' },
   { label: 'Price: High to Low', value: 'price_desc' },
   { label: 'Name (A-Z)', value: 'name_asc' },
   { label: 'Name (Z-A)', value: 'name_desc' },
-] as const satisfies readonly { label: string; value: productSort }[];
+] as const satisfies readonly { label: string; value: storefrontProductSort }[];
 
 type SearchParamValue = string | string[] | undefined;
 
@@ -50,6 +54,16 @@ export function parseProductSortParam(value: SearchParamValue): productSort | un
 
   if (normalizedValue && VALID_PRODUCT_SORTS.includes(normalizedValue as productSort)) {
     return normalizedValue as productSort;
+  }
+
+  return undefined;
+}
+
+export function parseStorefrontProductSortParam(value: SearchParamValue): storefrontProductSort | undefined {
+  const normalizedValue = getFirstParamValue(value);
+
+  if (normalizedValue && VALID_STOREFRONT_PRODUCT_SORTS.includes(normalizedValue as storefrontProductSort)) {
+    return normalizedValue as storefrontProductSort;
   }
 
   return undefined;

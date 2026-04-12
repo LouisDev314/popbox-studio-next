@@ -12,4 +12,13 @@ describe('buildProductsQueryParams', () => {
       sort: 'newest',
     });
   });
+
+  it('omits undefined sort values for default storefront ordering', () => {
+    expect(buildProductsQueryParams({
+      collection: 'featured',
+      sort: undefined,
+    })).toEqual({
+      collection: 'featured',
+    });
+  });
 });

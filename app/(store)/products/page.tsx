@@ -5,10 +5,11 @@ import { getPublicProductsPage, getPublicTags } from '@/lib/api/public-storefron
 import {
   formatCollectionLabel,
   getFirstParamValue,
-  parseProductTypeParam,
   parseProductSortParam,
+  parseProductTypeParam,
   parseTagSearchParam,
   serializeTagSearchParam,
+  storefrontProductSort,
 } from '@/lib/storefront-product-filters';
 import {
   createPageMetadata,
@@ -91,7 +92,8 @@ export default async function ProductsPage(props: ProductsPageProps) {
   const searchParams = await props.searchParams;
   const rawCollection = getFirstParamValue(searchParams.collection)?.trim();
   const type = parseProductTypeParam(searchParams.type);
-  const sort = parseProductSortParam(searchParams.sort) ?? 'newest';
+  const sort = parseProductSortParam(searchParams.sort);
+  const storefrontSort: storefrontProductSort = sort ?? 'newest';
   const collection = rawCollection ? rawCollection : undefined;
   const selectedTags = parseTagSearchParam(searchParams.tag);
   const serializedTags = serializeTagSearchParam(selectedTags);
@@ -122,7 +124,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
       availableTags={availableTags}
       initialCollection={collection}
       initialPage={initialPage}
-      initialSort={sort}
+      initialSort={storefrontSort}
       initialTags={selectedTags}
       initialType={type}
     />

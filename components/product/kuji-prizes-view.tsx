@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { IKujiPrize } from '@/interfaces/product';
@@ -129,10 +129,6 @@ function KujiPrizeDialog(props: IKujiPrizeDialogProps) {
   const prizeImages = buildPrizeImages(props.prize);
   const activeImage = prizeImages[activeImageIndex] ?? prizeImages[0] ?? null;
 
-  useEffect(() => {
-    setActiveImageIndex(0);
-  }, [props.prize?.id]);
-
   if (!props.prize) {
     return (
       <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -147,7 +143,10 @@ function KujiPrizeDialog(props: IKujiPrizeDialogProps) {
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent className="max-w-5xl p-0">
+      <DialogContent
+        key={prize.id}
+        className="max-w-5xl p-0"
+      >
         <div className="grid max-h-[min(88vh,960px)] overflow-y-auto lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
           <div className="bg-background p-4 sm:p-6 lg:p-8">
             <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-muted/25">

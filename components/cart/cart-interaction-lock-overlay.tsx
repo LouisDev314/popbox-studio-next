@@ -8,8 +8,8 @@ interface ICartInteractionLockOverlayProps {
 }
 
 export function CartInteractionLockOverlay(props: ICartInteractionLockOverlayProps) {
-  const title = props.title ?? 'Preparing secure checkout';
-  const message = props.message ?? 'Your cart is temporarily locked while we create your checkout session.';
+  const title = props.title ?? 'Preparing secure checkout...';
+  const message = props.message ?? 'Your items are reserved for a moment.';
 
   return (
     <div

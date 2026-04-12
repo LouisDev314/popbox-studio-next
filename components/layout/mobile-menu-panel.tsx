@@ -23,7 +23,6 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeTopLevelNavKey = getActiveTopLevelNavKey(pathname, searchParams);
-  const isCollectionsActive = activeTopLevelNavKey === 'collections';
   const collectionMenuItems = props.collectionNavItems.filter((item) => item.href !== FEATURED_NAV_HREF);
 
   return (
@@ -63,22 +62,9 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
 
           {collectionMenuItems.length > 0 ? (
             <div className="space-y-3 border-t border-border/60 pt-4">
-              <div className="px-1">
-                <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">
-                  Collections
-                </p>
-                <p
-                  className={cn(
-                    'text-sm font-semibold tracking-tight',
-                    isCollectionsActive ? 'text-primary' : 'text-foreground',
-                  )}
-                >
-                  All Collections
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Browse every collection in a simple list on mobile.
-                </p>
-              </div>
+              <p className="ml-2 text-xs uppercase tracking-wider text-muted-foreground">
+                All Collections
+              </p>
               <div className="space-y-2">
                 {collectionMenuItems.map((item, index) => {
                   const isActive = isStoreNavItemActive(pathname, searchParams, item.href);

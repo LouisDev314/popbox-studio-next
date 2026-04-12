@@ -1,4 +1,5 @@
 import { ICollection } from '@/interfaces/product';
+import { parseProductSortParam, type storefrontProductSort } from '@/lib/storefront-product-filters';
 
 export interface IStoreCollectionNavItem {
   description: string;
@@ -9,6 +10,7 @@ export interface IStoreCollectionNavItem {
 export type TTopLevelNavKey = 'show-all' | 'featured' | 'trending' | 'kuji' | 'standard' | 'collections';
 
 type TStorefrontSearchParamReader = Pick<URLSearchParams, 'get'>;
+type TStorefrontSearchParamSerializer = Pick<URLSearchParams, 'toString'>;
 
 export const FEATURED_NAV_HREF = '/collections/featured';
 export const TRENDING_NAV_HREF = '/products?sort=trending';
@@ -57,6 +59,15 @@ export const MOBILE_PRIMARY_NAV_ITEMS = [
 function normalizeStorefrontPathname(pathname: string) {
   const normalizedPathname = pathname.replace(/\/+$/, '');
   return normalizedPathname || '/';
+}
+
+function buildHref(pathname: string, searchParams: URLSearchParams) {
+  const queryString = searchParams.toString();
+  return queryString ? `${pathname}?${queryString}` : pathname;
+}
+
+function getProductsRoutePathname() {
+  return TRENDING_NAV_HREF.split('?')[0] ?? '/products';
 }
 
 function getCollectionSlugFromHref(href: string) {
@@ -151,6 +162,61 @@ export function isStoreNavItemActive(
   href: string,
 ) {
   return isNavHrefActive(href, normalizeStorefrontPathname(pathname), searchParams);
+}
+
+export function getStorefrontSortValue(
+  pathname: string,
+  searchParams: TStorefrontSearchParamReader,
+): storefrontProductSort {
+  const explicitSort = parseProductSortParam(searchParams.get('sort') ?? undefined);
+  const normalizedPathname = normalizeStorefrontPathname(pathname);
+
+  if (explicitSort) {
+    return explicitSort;
+  }
+
+  if (normalizedPathname === FEATURED_NAV_HREF) {
+    return 'featured';
+  }
+
+  return 'newest';
+}
+
+export function getStorefrontSortHref({
+  pathname,
+  searchParams,
+  sort,
+}: {
+  pathname: string;
+  searchParams: TStorefrontSearchParamReader & TStorefrontSearchParamSerializer;
+  sort: storefrontProductSort;
+}) {
+  const normalizedPathname = normalizeStorefrontPathname(pathname);
+  const nextSearchParams = new URLSearchParams(searchParams.toString());
+
+  nextSearchParams.delete('collection');
+
+  if (sort === 'featured') {
+    nextSearchParams.delete('sort');
+    return buildHref(FEATURED_NAV_HREF, nextSearchParams);
+  }
+
+  if (sort === 'trending') {
+    nextSearchParams.set('sort', 'trending');
+    return buildHref(getProductsRoutePathname(), nextSearchParams);
+  }
+
+  nextSearchParams.set('sort', sort);
+
+  if (normalizedPathname === FEATURED_NAV_HREF) {
+    return buildHref(getProductsRoutePathname(), nextSearchParams);
+  }
+
+  if (normalizedPathname.startsWith('/collections/')) {
+    return buildHref(normalizedPathname, nextSearchParams);
+  }
+
+  return buildHref(getProductsRoutePathname(), nextSearchParams);
 }
 
 export function mapCollectionToNavItem(collection: ICollection): IStoreCollectionNavItem {

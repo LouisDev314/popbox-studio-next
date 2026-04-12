@@ -28,7 +28,7 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
           isRevealed ? '[transform:rotateY(180deg)]' : '',
         )}
       >
-        {/* Front of ticket (Unrevealed) */}
+        {/* TODO: Front of ticket (Unrevealed) */}
         <div className="absolute inset-0 backface-hidden flex flex-col items-center justify-center rounded-xl bg-card p-6">
           <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-primary/20 bg-primary/10">
             <HelpCircle className="h-8 w-8 text-primary/70" />
@@ -36,9 +36,6 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
           <h3 className="font-extrabold text-2xl tracking-tight text-foreground opacity-90 text-center uppercase">
             Ichiban Kuji
           </h3>
-          <p className="text-sm font-medium text-muted-foreground mt-2 tracking-widest uppercase">
-            {props.ticket.ticketNumber.substring(0, 8)}
-          </p>
 
           <div className="absolute bottom-6 left-0 w-full flex justify-center">
             <span className={cn(
@@ -56,7 +53,7 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
           )}
         </div>
 
-        {/* Back of ticket (Revealed) */}
+        {/* TODO: Back of ticket (Revealed) */}
         <div className="absolute inset-0 backface-hidden [transform:rotateY(180deg)] flex flex-col overflow-hidden rounded-xl bg-card">
           <div className="h-1/2 bg-muted/40 relative">
             {props.ticket.prize?.imageUrl ? (

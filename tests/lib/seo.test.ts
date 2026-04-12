@@ -40,6 +40,17 @@ describe('getProductsListingSeoState', () => {
     });
   });
 
+  it('treats featured sort on the products route as a non-canonical duplicate', () => {
+    expect(getProductsListingSeoState({
+      sort: 'featured',
+    })).toEqual({
+      canonicalPath: '/products',
+      collection: undefined,
+      shouldIndex: false,
+      type: undefined,
+    });
+  });
+
   it('treats unknown query params as non-indexable duplicates', () => {
     expect(getProductsListingSeoState({
       ref: 'campaign',
@@ -69,6 +80,16 @@ describe('getCollectionListingSeoState', () => {
       canonicalPath: '/collections/featured',
       shouldIndex: false,
       type: 'kuji',
+    });
+  });
+
+  it('treats featured sort on a collection route as a non-canonical duplicate', () => {
+    expect(getCollectionListingSeoState('featured', {
+      sort: 'featured',
+    })).toEqual({
+      canonicalPath: '/collections/featured',
+      shouldIndex: false,
+      type: undefined,
     });
   });
 });

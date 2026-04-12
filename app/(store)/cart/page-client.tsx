@@ -20,7 +20,6 @@ export default function CartPageClient() {
   const removeItem = useCartStore((state) => state.removeItem);
   const removeInvalidItem = useCartStore((state) => state.removeInvalidItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
-  const clearCart = useCartStore((state) => state.clearCart);
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
   const isHydrated = useCartStore((state) => state.hasHydrated);
 
@@ -106,18 +105,6 @@ export default function CartPageClient() {
                   );
                 })()
               ))}
-
-              <div className="flex justify-center">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-xl px-5 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  disabled={isCheckingOut}
-                  onClick={clearCart}
-                >
-                  Clear cart
-                </Button>
-              </div>
             </section>
 
             <div className="lg:sticky lg:top-24">

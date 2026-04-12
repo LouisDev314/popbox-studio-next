@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Sparkles, Ticket as TicketIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, PanelRightOpen, Ticket as TicketIcon } from 'lucide-react';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import MutationConfigs from '@/configs/api/mutation-config';
 import QueryConfigs from '@/configs/api/query-config';
@@ -91,16 +91,15 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-border pb-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 border-b border-border pb-8">
         <div>
           <h1 className="flex items-center gap-4 text-4xl font-semibold tracking-tight text-foreground lg:text-5xl">
             <TicketIcon className="h-10 w-10 text-primary lg:h-12 lg:w-12" />
-            Your Ticket Box
+            Your Tickets
           </h1>
           <p className="mt-4 text-muted-foreground text-lg max-w-2xl leading-relaxed">
             {allRevealed
-              ? 'All your prizes have been revealed! They will be shipped to you soon.'
-              : 'Click a ticket to reveal your prize instantly, or use the button below to reveal all simultaneously.'}
+              && 'All your prizes have been revealed! They will be shipped to you soon.'}
           </p>
         </div>
 
@@ -118,8 +117,8 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5" />
-                Reveal All Now
+                <PanelRightOpen className="h-5 w-5" />
+                Reveal All
               </span>
             )}
           </Button>
@@ -134,9 +133,10 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
               </span>
-              Awaiting Reveal ({unrevealed.length})
+              <p className='text-xl'>Awaiting Reveal ({unrevealed.length})</p>
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 lg:gap-8 justify-items-center">
+            {/* TODO: use ticket pictures */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-6 justify-items-center">
               {unrevealed.map((ticket: IOrderTicket) => (
                 <div key={ticket.id} className="w-full max-w-[200px]">
                   <TicketRevealCard
@@ -150,12 +150,13 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
           </section>
         ) : null}
 
+        {/* TODO: use ticket pictures and show real prizes with dialog */}
         {revealed.length > 0 ? (
           <section>
             <h2 className="mb-8 text-2xl font-semibold tracking-tight text-foreground/80">
               Revealed Prizes ({revealed.length})
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 lg:gap-8 justify-items-center">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-6 justify-items-center">
               {revealed.map((ticket: IOrderTicket) => (
                 <div key={ticket.id} className="w-full max-w-[200px]">
                   <TicketRevealCard

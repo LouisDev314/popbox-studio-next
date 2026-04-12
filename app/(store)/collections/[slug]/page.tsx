@@ -12,6 +12,7 @@ import {
   parseProductTypeParam,
   parseTagSearchParam,
   serializeTagSearchParam,
+  storefrontProductSort,
 } from '@/lib/storefront-product-filters';
 import {
   createPageMetadata,
@@ -67,7 +68,7 @@ export default async function CollectionSlugPage(props: CollectionSlugPageProps)
   const params = await props.params;
   const searchParams = await props.searchParams;
   const type = parseProductTypeParam(searchParams.type);
-  const sort = parseProductSortParam(searchParams.sort) ?? 'newest';
+  const sort = parseProductSortParam(searchParams.sort);
   const selectedTags = parseTagSearchParam(searchParams.tag);
   const serializedTags = serializeTagSearchParam(selectedTags);
 
@@ -99,6 +100,10 @@ export default async function CollectionSlugPage(props: CollectionSlugPageProps)
     availableTags = tagsResult.value;
   }
 
+  const storefrontSort: storefrontProductSort = collection.slug === 'featured'
+    ? sort ?? 'featured'
+    : sort ?? 'newest';
+
   return (
     <ProductsPageClient
       availableTags={availableTags}
@@ -109,7 +114,7 @@ export default async function CollectionSlugPage(props: CollectionSlugPageProps)
       headingTitle={collection.name}
       initialCollection={collection.slug}
       initialPage={initialPage}
-      initialSort={sort}
+      initialSort={storefrontSort}
       initialTags={selectedTags}
       initialType={type}
     />

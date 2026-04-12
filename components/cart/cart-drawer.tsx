@@ -96,7 +96,7 @@ export function CartDrawer(props: ICartDrawerProps) {
       overlay={isCheckingOut ? (
         <CartInteractionLockOverlay
           title="Preparing checkout"
-          message="Your cart is locked until we hand you off to the secure checkout page."
+          message="Your cart is reserved until we hand you off to the secure checkout page."
         />
       ) : null}
     >
@@ -105,7 +105,7 @@ export function CartDrawer(props: ICartDrawerProps) {
         inert={isCheckingOut}
         aria-busy={isCheckingOut}
       >
-        <div className="flex-1 overflow-y-auto py-5">
+        <div className="flex-1 overflow-y-auto py-5 px-4">
           {!hasHydrated ? (
             <div className="space-y-4">
               <div className="h-6 w-28 rounded-full bg-muted/40" />

@@ -15,7 +15,7 @@ interface IProductFilterSidebarProps {
 export function ProductFilterSidebar(props: IProductFilterSidebarProps) {
   return (
     <aside className="lg:sticky lg:top-24">
-      <FilterPanelContent {...props} />
+      <FilterPanelContent {...props} variant="sidebar" />
     </aside>
   );
 }
