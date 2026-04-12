@@ -43,6 +43,12 @@ export interface IAdminProductImagePatch {
 
 export type IAdminProductImageUpload = IAdminProductImagePatch;
 
+export interface IAdminProductListPrimaryImage {
+  storageKey: string | null;
+  altText: string | null;
+  url: string | null;
+}
+
 export interface IProductInventory {
   onHand: number;
   reserved: number;
@@ -117,6 +123,22 @@ export type productStatus = 'draft' | 'active' | 'archived';
 
 // --- Admin-specific types ---
 
+export interface IAdminProductListItem {
+  id: string;
+  name: string;
+  slug: string;
+  productType: productType;
+  status: productStatus;
+  priceCents: number;
+  currency: string;
+  sku: string | null;
+  collection: Pick<ICollection, 'id' | 'name' | 'slug'> | null;
+  inventory: IProductInventory | null;
+  tags: ITag[];
+  primaryImage: IAdminProductListPrimaryImage | null;
+  updatedAt: string;
+}
+
 export interface IAdminProduct {
   id: string;
   name: string;
@@ -163,7 +185,8 @@ export interface IAdminProductEditor extends Omit<IAdminProductDetail, 'images'>
 }
 
 export interface IAdminProductListResponse {
-  items: IAdminProduct[];
+  items: IAdminProductListItem[];
+  nextCursor: string | null;
 }
 
 export interface IAdminProductStatusUpdate {

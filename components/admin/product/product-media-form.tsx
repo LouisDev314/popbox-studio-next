@@ -23,8 +23,7 @@ import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { IAdminProductEditor, IAdminProductImage } from '@/interfaces/product';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Button } from '@/components/ui/button';
-import getPublicEnvConfig from '@/configs/public-env';
-import { mergeAdminImages } from '@/utils/admin';
+import { mergeAdminImages, resolveAdminImageSrc } from '@/utils/admin';
 import { cn } from '@/lib/utils';
 
 import { buildSortOrderUpdates, moveSortableItems } from './reorder-utils';
@@ -279,18 +278,6 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
     deleteImage({ productId: product.id, imageId });
   };
 
-  const getImagePreviewSrc = (url: string | null, storageKey: string | null) => {
-    if (url) {
-      return url;
-    }
-
-    if (!storageKey) {
-      return null;
-    }
-
-    return `${getPublicEnvConfig().supabaseUrl}/storage/v1/object/public/${storageKey}`;
-  };
-
   const getImageLabel = (storageKey: string | null, url: string | null, index: number) => {
     const candidate = storageKey ?? url;
 
@@ -344,7 +331,7 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
                   isDeleting={isDeleting}
                   isReordering={isReordering}
                   onDelete={handleDelete}
-                  previewSrc={getImagePreviewSrc(image.url, image.storageKey)}
+                  previewSrc={resolveAdminImageSrc(image.url, image.storageKey)}
                   label={getImageLabel(image.storageKey, image.url, index)}
                 />
               ))}

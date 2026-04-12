@@ -39,7 +39,7 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
           </p>
         </div>
 
-        {hasKujiTickets ? (
+        {hasKujiTickets && (
           <Button
             asChild
             size="lg"
@@ -50,7 +50,7 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
               Go to My Tickets
             </Link>
           </Button>
-        ) : null}
+        )}
       </div>
 
       <div className="mb-12 grid grid-cols-1 gap-8 md:grid-cols-3">

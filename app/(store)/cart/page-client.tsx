@@ -126,7 +126,7 @@ export default function CartPageClient() {
           </div>
         </div>
 
-        {isCheckingOut ? <CartInteractionLockOverlay /> : null}
+        {isCheckingOut && <CartInteractionLockOverlay />}
       </div>
     </div>
   );

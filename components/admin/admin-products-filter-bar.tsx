@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   ADMIN_PRODUCT_SORT_ITEMS,
@@ -12,7 +12,7 @@ import { getTagTypeLabel } from '@/lib/tag-types';
 import { cn } from '@/lib/utils';
 import type { ICollection, ITag } from '@/interfaces/product';
 
-const FILTER_FIELD_CLASSES = 'h-9 w-full rounded-lg border border-border/30 bg-card px-3 text-sm text-foreground outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/10';
+const FILTER_FIELD_CLASSES = 'h-11 w-full rounded-[16px] border border-[#ded5c7] bg-white px-3.5 text-sm text-[#111827] outline-none transition focus:border-[#f4c57d] focus:ring-2 focus:ring-[#f6dfb4]';
 
 interface ITagFilterDropdownProps {
   availableTags: ITag[];
@@ -54,7 +54,9 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
 
   const selectedTagSet = useMemo(() => new Set(props.selectedTagIds), [props.selectedTagIds]);
   const selectedTags = useMemo(
-    () => props.availableTags.filter((tag) => selectedTagSet.has(tag.id)),
+    () => props.availableTags
+      .filter((tag) => selectedTagSet.has(tag.id))
+      .sort((left, right) => left.name.localeCompare(right.name)),
     [props.availableTags, selectedTagSet],
   );
   const groupedTags = useMemo(() => {
@@ -74,61 +76,50 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
   }, [props.availableTags]);
 
   const selectedTagCount = props.selectedTagIds.length;
-  const triggerLabel = (() => {
-    if (selectedTagCount === 0) {
-      return 'All tags';
-    }
-
-    if (selectedTags.length === 0) {
-      return `${selectedTagCount} tag${selectedTagCount === 1 ? '' : 's'} selected`;
-    }
-
-    if (selectedTags.length === 1) {
-      return selectedTags[0].name;
-    }
-
-    return `${selectedTags[0].name} +${selectedTagCount - 1}`;
-  })();
+  const triggerLabel = selectedTags[0]?.name
+    ?? (selectedTagCount > 0 ? `${selectedTagCount} tags selected` : 'All tags');
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8f8577]">
         Tags
       </label>
       <button
         type="button"
         className={cn(
           FILTER_FIELD_CLASSES,
-          'flex items-center justify-between gap-3 text-left',
-          isOpen && 'border-primary/40 ring-2 ring-primary/10',
+          'flex items-center justify-between gap-2.5 text-left shadow-[0_8px_18px_-18px_rgba(17,24,39,0.32)]',
+          isOpen && 'border-[#f4c57d] ring-2 ring-[#f6dfb4]',
         )}
         aria-expanded={isOpen}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <span className="truncate">{triggerLabel}</span>
-        <span className="flex shrink-0 items-center gap-2">
-          {selectedTagCount > 0 ? (
-            <span className="rounded-full bg-[#F7F4F6] px-2 py-0.5 text-xs font-medium text-muted-foreground">
+        <span className="flex min-w-0 items-center gap-2">
+          <span className={cn('truncate', selectedTagCount === 0 && 'text-[#6b7280]')}>{triggerLabel}</span>
+          {selectedTagCount > 0 && (
+            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#f8f1e7] px-2 text-[11px] font-semibold text-[#8c5f1f]">
               {selectedTagCount}
             </span>
-          ) : null}
-          <ChevronDown className={cn('h-4 w-4 text-muted-foreground/70 transition-transform', isOpen && 'rotate-180')} />
+          )}
+        </span>
+        <span className="flex shrink-0 items-center gap-2 text-[#8f8577]">
+          <ChevronDown className={cn('h-4 w-4 transition-transform', isOpen && 'rotate-180')} />
         </span>
       </button>
 
-      {isOpen ? (
-        <div className="absolute left-0 top-full z-30 mt-2 w-full min-w-[280px] rounded-xl border border-border/30 bg-card shadow-[0_20px_40px_-24px_rgba(25,28,30,0.2)]">
+      {isOpen && (
+        <div className="absolute left-0 top-full z-30 mt-2 w-full min-w-[300px] rounded-[20px] border border-[#e4dccf] bg-[#fffdfa] shadow-[0_24px_50px_-36px_rgba(17,24,39,0.35)]">
           <div className="flex items-start justify-between gap-3 border-b border-border/20 px-3 py-3">
             <div>
-              <p className="text-sm font-semibold text-foreground">Filter by tags</p>
-              <p className="mt-1 text-xs text-muted-foreground/75">Matches any selected tag.</p>
+              <p className="text-sm font-semibold text-[#111827]">Filter by tags</p>
+              <p className="mt-1 text-xs text-[#6b7280]">Matches products with any selected tag.</p>
             </div>
-            {selectedTagCount > 0 ? (
+            {selectedTagCount > 0 && (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-8 rounded-md px-2.5 text-xs"
+                className="h-7 rounded-full border border-[#ece4d8] bg-[#f8f4eb] px-3 text-xs text-[#111827] hover:bg-[#fff7ea]"
                 onClick={() => {
                   props.onClearTags();
                   setIsOpen(false);
@@ -136,18 +127,18 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
               >
                 Clear
               </Button>
-            ) : null}
+            )}
           </div>
 
           {props.isUnavailable ? (
-            <div className="px-3 py-4 text-sm text-muted-foreground">Tag filters are temporarily unavailable.</div>
+            <div className="px-4 py-4 text-sm text-[#6b7280]">Tag filters are temporarily unavailable.</div>
           ) : groupedTags.length === 0 ? (
-            <div className="px-3 py-4 text-sm text-muted-foreground">No tags available.</div>
+            <div className="px-4 py-4 text-sm text-[#6b7280]">No tags available.</div>
           ) : (
-            <div className="max-h-80 overflow-y-auto p-2">
+            <div className="max-h-72 overflow-y-auto p-2">
               {groupedTags.map((group) => (
                 <div key={group.tagType} className="pb-2 last:pb-0">
-                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/65">
+                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8f8577]">
                     {group.label}
                   </p>
                   <div className="space-y-1.5">
@@ -158,10 +149,10 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
                         <label
                           key={tag.id}
                           className={cn(
-                            'flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors',
+                            'flex cursor-pointer items-center gap-2 rounded-[16px] border px-3 py-2 text-sm transition-colors',
                             isSelected
-                              ? 'border-primary/20 bg-primary/10 text-primary'
-                              : 'border-transparent text-muted-foreground hover:border-border/40 hover:bg-[#F7F4F6]',
+                              ? 'border-[#f4d39f] bg-[#fff3df] text-[#8c5f1f]'
+                              : 'border-transparent text-[#4b5563] hover:border-[#ece4d8] hover:bg-[#f8f4eb]',
                           )}
                         >
                           <input
@@ -171,12 +162,12 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
                             className="sr-only"
                           />
                           <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium">{tag.name}</p>
+                            <p className="truncate font-medium text-[#111827]">{tag.name}</p>
                           </div>
-                          <span className="rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80">
+                          <span className="rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8f8577]">
                             {getTagTypeLabel(tag.tagType)}
                           </span>
-                          {isSelected ? <Check className="h-3.5 w-3.5 shrink-0" /> : null}
+                          {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-[#8c5f1f]" />}
                         </label>
                       );
                     })}
@@ -186,7 +177,7 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
             </div>
           )}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -195,57 +186,38 @@ interface IAdminProductsFilterBarProps {
   collections: ICollection[];
   collectionNameById: Map<string, string>;
   filters: IAdminProductListQueryParams;
-  hasActiveRefinements: boolean;
+  hasActiveView: boolean;
   isCollectionsError: boolean;
-  isPending: boolean;
   isTagsError: boolean;
-  onClearRefinements: () => void;
+  onClearView: () => void;
   onClearTags: () => void;
   onCollectionChange: (value: string) => void;
   onSortChange: (value: string) => void;
   onTagToggle: (tagId: string) => void;
   onTypeChange: (value: string) => void;
-  productsCount: number;
   tags: ITag[];
 }
 
 export function AdminProductsFilterBar(props: IAdminProductsFilterBarProps) {
   return (
-    <div className="mt-6 rounded-xl border border-border/30 bg-card p-4 shadow-sm">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <SlidersHorizontal className="h-4 w-4" />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground">
-              Refine Catalog
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Filter by type, collection, and tags, then sort for quicker catalog review.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span>{props.isPending ? 'Loading products...' : `${props.productsCount} shown`}</span>
-          {props.hasActiveRefinements ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8 rounded-md px-2.5"
-              onClick={props.onClearRefinements}
-            >
-              Reset filters
-            </Button>
-          ) : null}
-        </div>
+    <div className="mt-5 rounded-[20px] border border-[#ece4d8] bg-white/80 p-3.5 shadow-[0_18px_44px_-40px_rgba(17,24,39,0.45)]">
+      <div className="flex justify-end gap-3 text-sm text-[#6b7280]">
+        {props.hasActiveView && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 rounded-full border border-[#ece4d8] bg-[#f8f4eb] px-3 text-xs text-[#111827] hover:bg-[#fff7ea]"
+            onClick={props.onClearView}
+          >
+            Reset
+          </Button>
+        )}
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)]">
+      <div className="mt-3 grid gap-2.5 md:grid-cols-2 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)]">
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8f8577]">
             Product Type
           </label>
           <select
@@ -262,7 +234,7 @@ export function AdminProductsFilterBar(props: IAdminProductsFilterBarProps) {
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8f8577]">
             Collection
           </label>
           <select
@@ -291,7 +263,7 @@ export function AdminProductsFilterBar(props: IAdminProductsFilterBarProps) {
         />
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
+          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8f8577]">
             Sort
           </label>
           <select
@@ -308,11 +280,11 @@ export function AdminProductsFilterBar(props: IAdminProductsFilterBarProps) {
         </div>
       </div>
 
-      {props.isCollectionsError || props.isTagsError ? (
+      {(props.isCollectionsError || props.isTagsError) && (
         <p className="mt-3 text-xs text-muted-foreground/75">
           Some filter options are temporarily unavailable. The product list will continue to load.
         </p>
-      ) : null}
+      )}
     </div>
   );
 }

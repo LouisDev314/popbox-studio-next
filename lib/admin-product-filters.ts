@@ -1,4 +1,4 @@
-import type { productStatus, productType } from '@/interfaces/product';
+import type { IAdminProductListItem, productStatus, productType } from '@/interfaces/product';
 
 type SearchParamValue = string | string[] | undefined;
 
@@ -9,7 +9,6 @@ const VALID_ADMIN_PRODUCT_SORTS = [
   'inventory_desc',
   'inventory_asc',
 ] as const;
-
 export type adminProductSort = (typeof VALID_ADMIN_PRODUCT_SORTS)[number];
 
 export interface IAdminProductListQueryParams {
@@ -19,6 +18,19 @@ export interface IAdminProductListQueryParams {
   tagIds?: string[];
   sort?: adminProductSort;
 }
+
+export interface IAdminProductSearchState {
+  query?: string;
+}
+
+export interface IAdminProductSearchResult {
+  items: IAdminProductListItem[];
+}
+
+const hasOwn = <Key extends PropertyKey>(
+  value: object,
+  key: Key,
+): value is Record<Key, unknown> => Object.prototype.hasOwnProperty.call(value, key);
 
 export const ADMIN_PRODUCT_STATUS_TABS: { label: string; value: productStatus | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -137,4 +149,52 @@ export function hasActiveAdminProductRefinements(filters: IAdminProductListQuery
     || (filters.tagIds && filters.tagIds.length > 0)
     || filters.sort,
   );
+}
+
+function getAdminProductSearchFields(
+  product: IAdminProductListItem,
+): string[] {
+  const productRecord = product as unknown as Record<string, unknown>;
+  const collectionName = hasOwn(productRecord, 'collection') && product.collection
+    ? product.collection.name
+    : '';
+  const tagNames = Array.isArray(productRecord.tags)
+    ? product.tags.map((tag) => tag.name)
+    : [];
+
+  return [
+    product.name,
+    product.slug,
+    product.sku ?? '',
+    collectionName ?? '',
+    ...tagNames,
+  ].filter(Boolean);
+}
+
+function matchesAdminProductTextSearch(
+  product: IAdminProductListItem,
+  normalizedQuery: string,
+) {
+  return getAdminProductSearchFields(product).some((field) => (
+    field.toLocaleLowerCase().includes(normalizedQuery)
+  ));
+}
+
+export function filterAdminProductsBySearch(
+  products: IAdminProductListItem[],
+  searchState: IAdminProductSearchState,
+): IAdminProductSearchResult {
+  const query = searchState.query?.trim();
+
+  if (!query) {
+    return {
+      items: products,
+    };
+  }
+
+  return {
+    items: products.filter((product) => (
+      matchesAdminProductTextSearch(product, query.toLocaleLowerCase())
+    )),
+  };
 }

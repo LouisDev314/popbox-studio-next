@@ -27,11 +27,11 @@ export function ProductGallery(props: IProductGalleryProps) {
             Ichiban Kuji
           </div>
         )}
-        {images.length > 1 ? (
+        {images.length > 1 && (
           <div className="absolute right-4 bottom-4 rounded-full bg-background px-3 py-1 text-xs font-medium text-foreground shadow-sm">
             {activeImage + 1} / {images.length}
           </div>
-        ) : null}
+        )}
       </div>
 
       {images.length > 1 && (

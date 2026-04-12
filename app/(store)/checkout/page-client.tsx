@@ -39,11 +39,11 @@ export default function CheckoutPageClient() {
           Stripe handles the payment form, shipping details, and final confirmation. If you returned from a canceled
           payment attempt, your cart is still saved and you can retry below or head back to your cart first.
         </p>
-        {invalidItems.length > 0 ? (
+        {invalidItems.length > 0 && (
           <p className="mt-4 text-sm font-medium text-destructive">
             Some saved cart items need attention before checkout. Return to your cart and remove them first.
           </p>
-        ) : null}
+        )}
 
         <CheckoutButton
           size="lg"

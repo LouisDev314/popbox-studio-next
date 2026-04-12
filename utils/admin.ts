@@ -7,6 +7,7 @@ import {
   IAdminProductImageUploadResponse,
   ITag,
 } from '@/interfaces/product';
+import getPublicEnvConfig from '@/configs/public-env';
 
 const hasOwn = <Key extends PropertyKey>(
   value: object,
@@ -102,6 +103,31 @@ export const normalizeAdminImages = (
     .map((image, index) => normalizeAdminImage(image, index))
     .filter((image): image is IAdminProductImage => image !== null)
     .sort((left, right) => left.sortOrder - right.sortOrder);
+};
+
+export const resolveAdminImageSrc = (
+  url: string | null | undefined,
+  storageKey: string | null | undefined,
+) => {
+  const normalizedUrl = normalizeOptionalString(url);
+
+  if (normalizedUrl) {
+    return normalizedUrl;
+  }
+
+  const normalizedStorageKey = normalizeOptionalString(storageKey);
+
+  if (!normalizedStorageKey) {
+    return null;
+  }
+
+  const normalizedSupabaseUrl = normalizeOptionalString(getPublicEnvConfig().supabaseUrl);
+
+  if (!normalizedSupabaseUrl) {
+    return null;
+  }
+
+  return `${normalizedSupabaseUrl}/storage/v1/object/public/${normalizedStorageKey.replace(/^\/+/, '')}`;
 };
 
 export const mergeAdminImages = (

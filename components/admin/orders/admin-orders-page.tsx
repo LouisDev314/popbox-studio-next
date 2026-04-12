@@ -1,6 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import QueryConfigs from '@/configs/api/query-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { IAdminOrderListResponse, IOrderStatus } from '@/interfaces/order';
@@ -38,27 +39,52 @@ function OrderStatusBadge({ status }: { status: IOrderStatus }) {
 
 export default function AdminOrdersPageClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get('q')?.trim().toLocaleLowerCase() ?? '';
 
   const { data: fetchRes, isPending } = useCustomizeQuery<IAdminOrderListResponse>({
     queryKey: ['admin', 'orders'],
     queryFn: QueryConfigs.fetchAdminOrders,
   });
 
-  const orders = fetchRes?.data?.data?.items ?? [];
+  const orders = useMemo(
+    () => fetchRes?.data?.data?.items ?? [],
+    [fetchRes?.data?.data?.items],
+  );
+  const visibleOrders = useMemo(() => {
+    if (!searchQuery) {
+      return orders;
+    }
+
+    return orders.filter((order) => {
+      const customerName = [order.customer.firstName, order.customer.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase();
+
+      return order.publicId.toLocaleLowerCase().includes(searchQuery)
+        || order.customer.email.toLocaleLowerCase().includes(searchQuery)
+        || customerName.includes(searchQuery);
+    });
+  }, [orders, searchQuery]);
 
   return (
     <div>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Orders</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Monitor and process customer transactions.</p>
         </div>
+        {searchQuery ? (
+          <div className="rounded-full border border-[#dfd5c5] bg-[#fbfaf7] px-3 py-1.5 text-sm text-[#6b7280]">
+            {visibleOrders.length} result{visibleOrders.length === 1 ? '' : 's'}
+          </div>
+        ) : null}
       </div>
 
       <div className="rounded-xl border border-border/30 bg-card">
         {isPending ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Loading orders...</div>
-        ) : orders.length === 0 ? (
+        ) : visibleOrders.length === 0 ? (
           <div className="rounded-xl p-16 text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
               <Package className="h-6 w-6 text-primary" />
@@ -79,7 +105,7 @@ export default function AdminOrdersPageClient() {
               </thead>
 
               <tbody className="divide-y divide-border/30">
-                {orders.map((order) => {
+                {visibleOrders.map((order) => {
                   const customerName = [order.customer.firstName, order.customer.lastName]
                     .filter(Boolean)
                     .join(' ');

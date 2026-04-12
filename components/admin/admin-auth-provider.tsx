@@ -4,13 +4,13 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
+import { ADMIN_SIDEBAR_WIDTH } from '@/lib/admin-navigation';
 
 function LoadingScreen() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F7F9FB]">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-900" />
+    <div className="flex min-h-screen items-center justify-center bg-[#f6f3ec]">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#e7ddd0] border-t-[#111827]" />
     </div>
   );
 }
@@ -77,14 +77,15 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F7F9FB]">
+    <div className="min-h-screen bg-[#f6f3ec] text-[#111827]">
       <AdminSidebar />
 
-      <div className="flex flex-1 flex-col md:ml-60">
-        <AdminHeader />
-
+      <div
+        className="flex min-h-screen flex-1 flex-col md:pl-[var(--admin-sidebar-width)]"
+        style={{ ['--admin-sidebar-width' as string]: `${ADMIN_SIDEBAR_WIDTH}px` }}
+      >
         <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
             {children}
           </div>
         </main>
