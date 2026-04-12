@@ -89,10 +89,7 @@ export default function AdminTagsPageClient() {
   return (
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tags</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage fixed tag groups to categorize your products.</p>
-        </div>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tags</h1>
         <Button
           type="button"
           onClick={openCreateDialog}
@@ -124,7 +121,7 @@ export default function AdminTagsPageClient() {
               <tbody className="divide-y divide-border/30">
                 {sortedTags.map((t) => (
                   <tr key={t.id} className="transition-colors hover:bg-muted/40">
-                    <td className="px-4 py-3 font-medium text-secondary">{getTagTypeLabel(t.tagType)}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">{getTagTypeLabel(t.tagType)}</td>
                     <td className="px-4 py-3 font-medium text-foreground">{t.name}</td>
                     <td className="px-4 py-3 text-muted-foreground"><code className="rounded bg-muted px-1.5 py-0.5 text-xs">{t.slug}</code></td>
                     <td className="px-4 py-3 text-right">

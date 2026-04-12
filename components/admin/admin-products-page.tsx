@@ -41,14 +41,9 @@ interface IProductsSearchPanelProps {
 function ProductsSearchPanel(props: IProductsSearchPanelProps) {
   return (
     <section className="rounded-[24px] border border-[#e4dccf] bg-[#fbfaf7] p-4 shadow-[0_20px_50px_-44px_rgba(17,24,39,0.4)] lg:p-5">
-      <div>
-        <h2 className="text-[1.4rem] font-semibold tracking-[-0.03em] text-[#111827] sm:text-[1.6rem]">
+      <h2 className="text-[1.4rem] font-semibold tracking-[-0.03em] text-[#111827] sm:text-[1.6rem]">
           Search products
-        </h2>
-        <p className="mt-1 text-[13px] text-[#6b7280]">
-          Narrow the current catalog instantly by product name, SKU, collection, or tag.
-        </p>
-      </div>
+      </h2>
 
       <div className="mt-4 flex flex-col gap-2.5 xl:flex-row xl:items-center">
         <div className="relative flex-1">
@@ -215,12 +210,7 @@ export default function AdminProductsPage() {
         )}
       >
         <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-[#111827]">Products</h1>
-            <p className="mt-1.5 text-sm text-[#6b7280]">
-              Manage your product catalog, inventory, merchandising, and pricing.
-            </p>
-          </div>
+          <h1 className="text-3xl font-semibold tracking-tight text-[#111827]">Products</h1>
           <Button
             asChild
             className="h-10 rounded-xl bg-[#f59e0b] px-4 text-sm font-semibold text-[#111827] shadow-[0_16px_34px_-26px_rgba(245,158,11,0.9)] hover:bg-[#f3aa2f]"

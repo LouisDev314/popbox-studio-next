@@ -89,10 +89,7 @@ export default function AdminCollectionsPageClient() {
   return (
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Collections</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage product collections and display order.</p>
-        </div>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Collections</h1>
         <button
           onClick={openCreateDialog}
           className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white transition-colors hover:bg-primary/90 active:bg-primary/90"

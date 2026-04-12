@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowUpRight, ChevronsRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { Sidebar, SidebarBody, useSidebar } from '@/components/ui/sidebar';
 import {
   ADMIN_BRAND,
@@ -83,7 +83,6 @@ function AdminSidebarContent() {
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[14px]">{item.label}</span>
                         </span>
-                        {isActive ? <ChevronsRight className="h-3.5 w-3.5 shrink-0" /> : null}
                       </Link>
                     </li>
                   );
