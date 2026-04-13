@@ -3,6 +3,7 @@ import {
   type ICartItem,
   type ICartProduct,
 } from '@/interfaces/cart';
+import { type IProductCard, type IKujiTicketSummary } from '@/interfaces/product';
 
 export const VALID_PRODUCT_ID = '11111111-1111-4111-8111-111111111111';
 
@@ -39,6 +40,42 @@ export function createCartProduct(
       lowStockThreshold: 2,
     },
     ...overrides,
+  };
+}
+
+export function createProductCard(
+  overrides: Partial<IProductCard> & { ticketSummary?: IKujiTicketSummary } = {},
+): IProductCard {
+  return {
+    id: overrides.id ?? VALID_PRODUCT_ID,
+    name: overrides.name ?? 'Ichiban Figure',
+    slug: overrides.slug ?? 'ichiban-figure',
+    description: overrides.description ?? 'Premium collectible figure',
+    productType: overrides.productType ?? 'standard',
+    status: overrides.status ?? 'active',
+    priceCents: overrides.priceCents ?? 4999,
+    currency: overrides.currency ?? 'CAD',
+    collection: overrides.collection ?? {
+      id: 'collection-1',
+      name: 'Featured',
+      slug: 'featured',
+    },
+    images: overrides.images ?? [
+      {
+        id: 'image-1',
+        storageKey: 'products/figure-1.jpg',
+        altText: null,
+        sortOrder: 0,
+        url: 'https://example.com/products/figure-1.jpg',
+      },
+    ],
+    inventory: overrides.inventory ?? {
+      onHand: 10,
+      reserved: 0,
+      available: 10,
+      lowStockThreshold: 2,
+    },
+    ticketSummary: overrides.ticketSummary,
   };
 }
 

@@ -61,12 +61,27 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Hide scrollbar but keep scroll functionality */
-.no-scrollbar {
-  -ms-overflow-style: none; /* IE + Edge */
-  scrollbar-width: none; /* Firefox */
+.surface-scrollbar {
+  scrollbar-color: hsl(var(--muted-foreground) / 0.38) hsl(var(--muted) / 0.45);
+  scrollbar-width: thin;
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari */
+.surface-scrollbar::-webkit-scrollbar {
+  height: 10px;
+}
+
+.surface-scrollbar::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.45);
+  border-radius: 9999px;
+  margin-inline: 2px;
+}
+
+.surface-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.38);
+  border: 2px solid hsl(var(--background));
+  border-radius: 9999px;
+}
+
+.surface-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.48);
 }

@@ -67,6 +67,11 @@ export interface IKujiPrize {
   sortOrder: number;
 }
 
+export interface IKujiTicketSummary {
+  remainingTickets: number;
+  totalTickets: number;
+}
+
 export interface IProductCard {
   id: string;
   name: string;
@@ -79,6 +84,7 @@ export interface IProductCard {
   collection: Pick<ICollection, 'id' | 'name' | 'slug'> | null;
   images: IProductImage[];
   inventory: IProductInventory | null;
+  ticketSummary?: IKujiTicketSummary;
 }
 
 export interface IProduct extends IProductCard {

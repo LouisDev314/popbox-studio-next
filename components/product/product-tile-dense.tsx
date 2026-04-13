@@ -16,8 +16,10 @@ interface IProductTileDenseProps {
 export function ProductTileDense(props: IProductTileDenseProps) {
   const { product, priority = false, sizes = DENSE_PRODUCT_IMAGE_SIZES } = props;
   const inventoryState = getProductInventoryState(product);
-  const stockLabel = getProductInventoryStatusLabel(product);
   const isSoldOut = inventoryState.hasInventoryData && inventoryState.status === 'sold_out';
+  const stockLabel = product.productType === 'kuji' && !isSoldOut
+    ? getProductInventoryStatusLabel(product)
+    : null;
 
   return (
     <Link
@@ -51,21 +53,20 @@ export function ProductTileDense(props: IProductTileDenseProps) {
         ) : null}
       </div>
 
-      <div className="mt-1 space-y-0.5 px-0.5">
-        <p className="line-clamp-2 text-[11px] leading-4 text-foreground">
+      <div className="mt-2 px-0.5 flex flex-col gap-1">
+        <p className="line-clamp-2 text-sm leading-4 text-foreground">
           {product.name}
         </p>
 
-        <div className="flex flex-col gap-0.5">
-          {stockLabel && (
-            <span className="text-[10px] text-muted-foreground">
-              {stockLabel}
-            </span>
-          )}
-          <span className="text-sm font-semibold text-amber-500">
-            {formatPrice(product.priceCents, product.currency)}
+        <span className="text-sm font-semibold text-amber-500">
+          {formatPrice(product.priceCents, product.currency)}
+        </span>
+
+        {stockLabel && (
+          <span className="text-xs text-muted-foreground">
+            {stockLabel}
           </span>
-        </div>
+        )}
       </div>
     </Link>
   );

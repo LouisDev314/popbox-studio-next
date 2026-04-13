@@ -1,8 +1,10 @@
-import { type IKujiPrize, type IProductCard } from '@/interfaces/product';
+import { type IKujiPrize, type IKujiTicketSummary, type IProductCard } from '@/interfaces/product';
 
-type TProductStockLike = Pick<IProductCard, 'inventory' | 'productType'> & {
+type TProductStockLike = Pick<IProductCard, 'inventory' | 'productType' | 'ticketSummary'> & {
   kujiPrizes?: IKujiPrize[];
 };
+
+type KujiPrizeLike = Pick<IKujiPrize, 'prizeCode' | 'initialQuantity' | 'remainingQuantity'>;
 
 export type InventoryStatus = 'sold_out' | 'low_stock' | 'in_stock';
 
@@ -17,6 +19,30 @@ export const MAX_IN_CART_MESSAGE = 'You already have the maximum available quant
 
 function normalizePrizeCode(prizeCode: string): string {
   return prizeCode.trim().toUpperCase();
+}
+
+function normalizeTicketCount(value: number | null | undefined): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, value);
+}
+
+function createKujiTicketSummary(
+  remainingTickets: number,
+  totalTickets: number,
+): IKujiTicketSummary {
+  const normalizedTotalTickets = normalizeTicketCount(totalTickets);
+  const normalizedRemainingTickets = Math.min(
+    normalizeTicketCount(remainingTickets),
+    normalizedTotalTickets,
+  );
+
+  return {
+    remainingTickets: normalizedRemainingTickets,
+    totalTickets: normalizedTotalTickets,
+  };
 }
 
 export function isKujiProduct(product: Pick<IProductCard, 'productType'>): boolean {
@@ -59,7 +85,7 @@ export function getProductInventoryState(product: Pick<IProductCard, 'inventory'
   };
 }
 
-export function getProductInventoryStatusLabel(product: Pick<IProductCard, 'inventory' | 'productType'>): string | null {
+export function getProductInventoryStatusLabel(product: TProductStockLike): string | null {
   const inventoryState = getProductInventoryState(product);
 
   if (!inventoryState.hasInventoryData) {
@@ -71,6 +97,12 @@ export function getProductInventoryStatusLabel(product: Pick<IProductCard, 'inve
   }
 
   if (inventoryState.isKuji) {
+    const ticketSummary = getProductKujiTicketSummary(product);
+
+    if (ticketSummary) {
+      return formatKujiTicketSummaryLabel(ticketSummary);
+    }
+
     const ticketLabel = `${inventoryState.availableStock} ticket${inventoryState.availableStock === 1 ? '' : 's'} left`;
     return inventoryState.status === 'low_stock' ? `${ticketLabel}` : ticketLabel;
   }
@@ -80,6 +112,42 @@ export function getProductInventoryStatusLabel(product: Pick<IProductCard, 'inve
 
 export function isLastOnePrize(prizeCode: string): boolean {
   return normalizePrizeCode(prizeCode) === 'LO';
+}
+
+export function getKujiTicketSummary(prizes: KujiPrizeLike[]): IKujiTicketSummary {
+  return prizes.reduce<IKujiTicketSummary>((summary, prize) => {
+    if (isLastOnePrize(prize.prizeCode)) {
+      return summary;
+    }
+
+    return createKujiTicketSummary(
+      summary.remainingTickets + normalizeTicketCount(prize.remainingQuantity),
+      summary.totalTickets + normalizeTicketCount(prize.initialQuantity),
+    );
+  }, createKujiTicketSummary(0, 0));
+}
+
+export function getProductKujiTicketSummary(product: TProductStockLike): IKujiTicketSummary | null {
+  if (!isKujiProduct(product)) {
+    return null;
+  }
+
+  if (product.ticketSummary) {
+    return createKujiTicketSummary(
+      product.ticketSummary.remainingTickets,
+      product.ticketSummary.totalTickets,
+    );
+  }
+
+  if (Array.isArray(product.kujiPrizes) && product.kujiPrizes.length > 0) {
+    return getKujiTicketSummary(product.kujiPrizes);
+  }
+
+  return null;
+}
+
+export function formatKujiTicketSummaryLabel(summary: IKujiTicketSummary): string {
+  return `${summary.remainingTickets}/${summary.totalTickets} tickets`;
 }
 
 export function getKujiSellableQuantity(product: TProductStockLike): number | null {

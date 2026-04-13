@@ -35,7 +35,10 @@ export function ProductGridDense(props: IProductGridDenseProps) {
   }
 
   return (
-    <div className={cn('grid grid-cols-3 gap-2 px-0.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6', className)}>
+    <div
+      data-slot="product-grid-dense"
+      className={cn('grid grid-cols-3 gap-2 px-0.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6', className)}
+    >
       {products.map((product, index) => (
         <ProductTileDense
           key={product.id}
@@ -52,7 +55,10 @@ export function ProductGridDenseSkeleton(props: IProductGridDenseSkeletonProps) 
   const { count = DEFAULT_PRIORITY_COUNT, className } = props;
 
   return (
-    <div className={cn('grid grid-cols-3 gap-2 px-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6', className)}>
+    <div
+      data-slot="product-grid-dense-skeleton"
+      className={cn('grid grid-cols-3 gap-2 px-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6', className)}
+    >
       {Array.from({ length: count }).map((_, index) => (
         <div key={index} className="space-y-1">
           <div className="aspect-square rounded-xl bg-muted animate-pulse" />

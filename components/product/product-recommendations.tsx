@@ -1,4 +1,5 @@
-import { ProductGridDense, ProductGridDenseSkeleton } from '@/components/product/product-grid-dense';
+import { ProductCarousel, ProductCarouselSkeleton } from '@/components/product/product-carousel';
+import { ProductTileDense } from '@/components/product/product-tile-dense';
 import { type IProduct, type IProductCard } from '@/interfaces/product';
 import { getPublicProductRecommendations } from '@/lib/api/public-storefront';
 
@@ -17,7 +18,7 @@ export function ProductRecommendationsFallback() {
         </h2>
       </div>
 
-      <ProductGridDenseSkeleton className="mt-6 sm:mt-8" count={RELATED_PRODUCTS_LIMIT} />
+      <ProductCarouselSkeleton className="mt-6 sm:mt-8" count={RELATED_PRODUCTS_LIMIT} />
     </section>
   );
 }
@@ -50,10 +51,18 @@ export async function ProductRecommendations(props: IProductRecommendationsProps
         </h2>
       </div>
 
-      <ProductGridDense
-        products={relatedProducts}
+      <ProductCarousel
+        items={relatedProducts}
         className="mt-6 sm:mt-8"
-        priorityCount={4}
+        ariaLabel="Recommended products"
+        getItemKey={(product) => product.id}
+        renderItem={(product, index) => (
+          <ProductTileDense
+            product={product}
+            priority={index < RELATED_PRODUCTS_LIMIT}
+            sizes="(max-width: 640px) 46vw, (max-width: 768px) 31vw, (max-width: 1200px) 23vw, 15vw"
+          />
+        )}
       />
     </section>
   );

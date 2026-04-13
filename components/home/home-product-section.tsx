@@ -1,16 +1,15 @@
 import Link from 'next/link';
-import { ProductCard } from '@/components/product/product-card';
 import { ProductGridDense } from '@/components/product/product-grid-dense';
 import { IProductCard } from '@/interfaces/product';
-
-const SECTION_PREVIEW_LIMIT = 8;
-type HomeProductSectionVariant = 'featured-card' | 'dense-grid';
+import { cn } from '@/lib/utils';
 
 interface IHomeProductSectionProps {
   title: string;
   products: IProductCard[];
-  variant?: HomeProductSectionVariant;
   viewAllHref: string;
+  limit: number;
+  className?: string;
+  headerClassName?: string;
 }
 
 export function HomeProductSection(props: IHomeProductSectionProps) {
@@ -18,12 +17,11 @@ export function HomeProductSection(props: IHomeProductSectionProps) {
     return null;
   }
 
-  const previewProducts = props.products.slice(0, SECTION_PREVIEW_LIMIT);
-  const variant = props.variant ?? 'dense-grid';
+  const previewProducts = props.products.slice(0, props.limit);
 
   return (
-    <section className="mb-14 md:mb-16">
-      <div className="mb-4 flex items-end justify-between gap-4">
+    <section className={cn('mb-14 md:mb-16', props.className)}>
+      <div className={cn('mb-4 flex items-end justify-between gap-4', props.headerClassName)}>
         <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">{props.title}</h2>
         <Link
           href={props.viewAllHref}
@@ -33,17 +31,7 @@ export function HomeProductSection(props: IHomeProductSectionProps) {
         </Link>
       </div>
 
-      {variant === 'featured-card' ? (
-        <div className="flex gap-2 overflow-x-auto pb-4 -mb-4 snap-x snap-mandatory md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:pb-0">
-          {previewProducts.map((product) => (
-            <div key={product.id} className="w-50 flex-none snap-start md:w-auto">
-              <ProductCard product={product} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <ProductGridDense products={previewProducts} priorityCount={6} />
-      )}
+      <ProductGridDense products={previewProducts} priorityCount={6} />
     </section>
   );
 }
