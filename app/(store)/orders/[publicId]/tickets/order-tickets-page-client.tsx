@@ -149,7 +149,6 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
           </section>
         ) : null}
 
-        {/* TODO: use ticket pictures and show real prizes with dialog */}
         {revealed.length > 0 ? (
           <section>
             <h2 className="mb-8 text-xl font-semibold tracking-tight text-foreground/80">

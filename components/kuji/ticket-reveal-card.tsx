@@ -98,22 +98,17 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
           isRevealed ? '[transform:rotateY(180deg)]' : '',
         )}
       >
-        {/* TODO: Front of ticket (Unrevealed) */}
         <div className="absolute inset-0 backface-hidden">
           <TicketShell>
             <div className={TICKET_MEDIA_CLASSNAME}>
-              {props.ticket.kujiProduct.imageUrl ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={props.ticket.kujiProduct.imageUrl}
-                    alt={kujiProductImageAlt}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
-                  />
-                  <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,10,10,0.12)_0%,rgba(10,10,10,0.02)_48%,rgba(10,10,10,0.28)_100%)]" />
-                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/48 via-black/12 to-transparent" />
-                </>
-              ) : null}
+              {/* eslint-disable-next-line @next/next/no-img-element*/}
+              <img
+                src={props.ticket.kujiProduct.imageUrl!}
+                alt={kujiProductImageAlt}
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,10,10,0.12)_0%,rgba(10,10,10,0.02)_48%,rgba(10,10,10,0.28)_100%)]" />
+              <div className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-black/48 via-black/12 to-transparent" />
 
               <TicketPerforation />
             </div>
@@ -146,7 +141,6 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
           )}
         </div>
 
-        {/* TODO: Back of ticket (Revealed) */}
         <div className="absolute inset-0 backface-hidden [transform:rotateY(180deg)]">
           {prize ? (
             <TicketShell
@@ -154,18 +148,14 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
               dividerOffsetClassName="left-[calc(100%-9.6rem)]"
             >
               <div className={TICKET_MEDIA_CLASSNAME}>
-                {prize.imageUrl ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={prize.imageUrl}
-                      alt={prize.name}
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.04)_0%,rgba(15,23,42,0.01)_48%,rgba(15,23,42,0.26)_100%)]" />
-                    <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/34 via-black/8 to-transparent" />
-                  </>
-                ) : null}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={prize.imageUrl!}
+                  alt={prize.name}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.04)_0%,rgba(15,23,42,0.01)_48%,rgba(15,23,42,0.26)_100%)]" />
+                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/34 via-black/8 to-transparent" />
 
                 <TicketPerforation />
               </div>
