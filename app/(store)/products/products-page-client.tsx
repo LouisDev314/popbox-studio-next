@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import QueryConfigs from '@/configs/api/query-config';
 import { IProductListPage, ITag, productType } from '@/interfaces/product';
 import { getStorefrontSortHref } from '@/components/layout/store-navigation';
-import { ProductCard } from '@/components/product/product-card';
+import { ProductGridDense } from '@/components/product/product-grid-dense';
 import { FilterPanelContent } from '@/components/product/filter-panel-content';
 import { ProductFilterSidebar } from '@/components/product/product-filter-sidebar';
 import { Button } from '@/components/ui/button';
@@ -87,11 +87,7 @@ function ProductsResults(props: IProductsResultsProps) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-4">
-        {props.products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+      <ProductGridDense products={props.products} priorityCount={6} />
 
       {props.hasNextPage ? (
         <div className="mt-12 flex justify-center">

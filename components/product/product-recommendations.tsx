@@ -1,4 +1,4 @@
-import { ProductCard } from '@/components/product/product-card';
+import { ProductGridDense, ProductGridDenseSkeleton } from '@/components/product/product-grid-dense';
 import { type IProduct, type IProductCard } from '@/interfaces/product';
 import { getPublicProductRecommendations } from '@/lib/api/public-storefront';
 
@@ -17,16 +17,7 @@ export function ProductRecommendationsFallback() {
         </h2>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 sm:mt-8 sm:gap-4 lg:grid-cols-4">
-        {Array.from({ length: RELATED_PRODUCTS_LIMIT }).map((_, index) => (
-          <div key={index} className="overflow-hidden rounded-[1.75rem] border border-border/50 bg-card p-4">
-            <div className="aspect-square rounded-[1.4rem] bg-muted/35" />
-            <div className="mt-4 h-5 rounded-full bg-muted/35" />
-            <div className="mt-2 h-4 w-2/3 rounded-full bg-muted/25" />
-            <div className="mt-6 h-5 w-1/3 rounded-full bg-muted/35" />
-          </div>
-        ))}
-      </div>
+      <ProductGridDenseSkeleton className="mt-6 sm:mt-8" count={RELATED_PRODUCTS_LIMIT} />
     </section>
   );
 }
@@ -59,11 +50,11 @@ export async function ProductRecommendations(props: IProductRecommendationsProps
         </h2>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 sm:mt-8 sm:gap-4 lg:grid-cols-4">
-        {relatedProducts.map((relatedProduct: IProductCard) => (
-          <ProductCard key={relatedProduct.id} product={relatedProduct} />
-        ))}
-      </div>
+      <ProductGridDense
+        products={relatedProducts}
+        className="mt-6 sm:mt-8"
+        priorityCount={4}
+      />
     </section>
   );
 }

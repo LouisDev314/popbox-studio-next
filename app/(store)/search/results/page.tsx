@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ProductCard } from '@/components/product/product-card';
+import { ProductGridDense } from '@/components/product/product-grid-dense';
 import type { IProductCard } from '@/interfaces/product';
 import { getPublicSearchResults } from '@/lib/api/public-storefront';
 import {
@@ -73,11 +73,7 @@ export default async function SearchResultsPage(props: SearchResultsPageProps) {
           <p className="text-lg text-muted-foreground">No matching products found.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <ProductGridDense products={products} priorityCount={6} />
       )}
     </div>
   );

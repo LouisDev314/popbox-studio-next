@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/product/product-card';
+import { ProductGridDense } from '@/components/product/product-grid-dense';
 import { IProductCard } from '@/interfaces/product';
 
 const SECTION_PREVIEW_LIMIT = 8;
+type HomeProductSectionVariant = 'featured-card' | 'dense-grid';
 
 interface IHomeProductSectionProps {
   title: string;
   products: IProductCard[];
+  variant?: HomeProductSectionVariant;
   viewAllHref: string;
 }
 
@@ -14,6 +17,9 @@ export function HomeProductSection(props: IHomeProductSectionProps) {
   if (props.products.length === 0) {
     return null;
   }
+
+  const previewProducts = props.products.slice(0, SECTION_PREVIEW_LIMIT);
+  const variant = props.variant ?? 'dense-grid';
 
   return (
     <section className="mb-14 md:mb-16">
@@ -27,13 +33,17 @@ export function HomeProductSection(props: IHomeProductSectionProps) {
         </Link>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-4 -mb-4 snap-x snap-mandatory md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:pb-0">
-        {props.products.slice(0, SECTION_PREVIEW_LIMIT).map((product) => (
-          <div key={product.id} className="w-50 flex-none snap-start md:w-auto">
-            <ProductCard product={product} />
-          </div>
-        ))}
-      </div>
+      {variant === 'featured-card' ? (
+        <div className="flex gap-2 overflow-x-auto pb-4 -mb-4 snap-x snap-mandatory md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:pb-0">
+          {previewProducts.map((product) => (
+            <div key={product.id} className="w-50 flex-none snap-start md:w-auto">
+              <ProductCard product={product} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <ProductGridDense products={previewProducts} priorityCount={6} />
+      )}
     </section>
   );
 }

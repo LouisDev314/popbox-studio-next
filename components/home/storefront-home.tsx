@@ -36,18 +36,21 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
         <HomeProductSection
           title="Featured"
           products={featured}
+          variant="featured-card"
           viewAllHref="/collections/featured"
         />
 
         <HomeProductSection
           title="Trending Now"
           products={trendingNow}
+          variant="dense-grid"
           viewAllHref="/products?sort=trending"
         />
 
         <HomeProductSection
           title="More to Explore"
           products={allProductsPreview}
+          variant="dense-grid"
           viewAllHref="/products"
         />
       </div>
