@@ -10,7 +10,7 @@ import {
 
 vi.mock('next/headers', () => ({
   cookies: vi.fn(async () => ({
-    toString: () => '',
+    toString: (): string => '',
   })),
 }));
 

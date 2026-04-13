@@ -108,7 +108,7 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-30 mt-2 w-full min-w-[300px] rounded-[20px] border border-[#e4dccf] bg-[#fffdfa] shadow-[0_24px_50px_-36px_rgba(17,24,39,0.35)]">
+        <div className="absolute left-0 top-full z-30 mt-2 w-full min-w-75 rounded-[20px] border border-[#e4dccf] bg-[#fffdfa] shadow-[0_24px_50px_-36px_rgba(17,24,39,0.35)]">
           <div className="flex items-start justify-between gap-3 border-b border-border/20 px-3 py-3">
             <div>
               <p className="text-sm font-semibold text-[#111827]">Filter by tags</p>

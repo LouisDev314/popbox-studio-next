@@ -31,8 +31,8 @@ function createTicket(overrides: Partial<IOrderTicket> = {}): IOrderTicket {
 }
 
 describe('TicketRevealCard', () => {
-  it('renders the revealed prize result card with prize info and kuji set context', () => {
-    render(
+  it('renders the revealed prize result inside the shared ticket layout', () => {
+    const { container } = render(
       <TicketRevealCard
         ticket={createTicket()}
         onReveal={() => {}}
@@ -40,10 +40,16 @@ describe('TicketRevealCard', () => {
       />,
     );
 
+    const ticketRoot = container.firstElementChild;
+
+    expect(ticketRoot).toHaveAttribute('data-ticket-shape', 'kuji-ticket');
+    expect(ticketRoot).toHaveAttribute('data-ticket-state', 'revealed');
+    expect(ticketRoot).toHaveClass('aspect-[2.38/1]');
     expect(screen.getByAltText('Grand Figure')).toHaveAttribute('src', 'https://cdn.example.com/prizes/grand-figure.jpg');
-    expect(screen.getByText('PRIZE B')).toBeInTheDocument();
+    expect(screen.getByText((content, node) => {
+      return content === 'Prize B' && node?.tagName === 'P';
+    })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Grand Figure' })).toBeInTheDocument();
-    expect(screen.getByText('This is prize a for testing')).toBeInTheDocument();
     expect(screen.getAllByText('Test Product 2')).toHaveLength(2);
   });
 
@@ -82,8 +88,10 @@ describe('TicketRevealCard', () => {
 
     expect(screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Test Product 2' })).toBeInTheDocument();
-    expect(screen.getByAltText('Test Product 2')).toHaveAttribute('src', 'https://cdn.example.com/products/test-product-2.jpg');
-    expect(screen.getByText('Tap to Reveal')).toBeInTheDocument();
+    const unrevealedImage = screen.getByAltText('Test Product 2');
+    expect(unrevealedImage).toHaveAttribute('src', 'https://cdn.example.com/products/test-product-2.jpg');
+    expect(unrevealedImage).toBeVisible();
+    expect(screen.getByText('Reveal Me')).toBeInTheDocument();
   });
 
   it('keeps the unrevealed interaction behavior unchanged and calls onReveal', async () => {
@@ -101,7 +109,7 @@ describe('TicketRevealCard', () => {
       />,
     );
 
-    expect(screen.getByText('Tap to Reveal')).toBeInTheDocument();
+    expect(screen.getByText('Reveal Me')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' }));
 
