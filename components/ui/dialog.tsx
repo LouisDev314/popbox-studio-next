@@ -12,6 +12,7 @@ import {
   type ComponentPropsWithoutRef,
   type ElementRef,
 } from 'react';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 import { cn } from '@/lib/utils';
 
@@ -145,8 +146,10 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = forwardRef<
   ElementRef<typeof DialogPrimitive.Content>,
-  ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ children, className, ...props }, ref) => {
+  ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+  title?: string; // optional override
+}
+>(({ children, className, title = 'Dialog', ...props }, ref) => {
   const { visualState } = useDialogAnimationState();
   const lastChildrenRef = useRef(children);
   const lastClassNameRef = useRef(className);
@@ -158,8 +161,10 @@ const DialogContent = forwardRef<
     }
   }, [children, className, visualState]);
 
-  const renderedChildren = visualState === 'open' ? children : lastChildrenRef.current;
-  const renderedClassName = visualState === 'open' ? className : lastClassNameRef.current;
+  const renderedChildren =
+    visualState === 'open' ? children : lastChildrenRef.current;
+  const renderedClassName =
+    visualState === 'open' ? className : lastClassNameRef.current;
 
   return (
     <DialogPortal>
@@ -171,9 +176,9 @@ const DialogContent = forwardRef<
           className={cn(
             'relative grid w-full max-w-[72rem] max-h-[calc(100dvh-1.5rem)] gap-4 overflow-hidden',
             'rounded-[2rem] border border-border/70 bg-background shadow-[0_32px_90px_-34px_rgba(15,23,42,0.55)]',
-            'duration-300 ease-out will-change-transform fill-mode-both data-[state=closed]:!pointer-events-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
+            'duration-300 ease-out will-change-transform fill-mode-both',
+            'data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
             'data-[state=closed]:zoom-out-95 data-[state=closed]:slide-out-to-bottom-6',
-            'data-[state=open]:!pointer-events-auto',
             'data-[state=open]:animate-in data-[state=open]:fade-in-0',
             'data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-6',
             'sm:max-h-[calc(100dvh-3rem)]',
@@ -181,6 +186,11 @@ const DialogContent = forwardRef<
           )}
           {...props}
         >
+          {/* AUTO-INJECTED ACCESSIBLE TITLE */}
+          <VisuallyHidden>
+            <DialogTitle>{title}</DialogTitle>
+          </VisuallyHidden>
+
           {renderedChildren}
 
           <DialogPrimitive.Close

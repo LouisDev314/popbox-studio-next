@@ -85,7 +85,7 @@ function KujiPrizeCard(props: IKujiPrizeCardProps) {
           </span>
         </div>
 
-        {props.prize.prizeCode !== 'LO' && <div className="absolute right-4 top-4">
+        {props.prize.prizeCode !== 'LO' && props.prize.remainingQuantity <= 0 && <div className="absolute right-4 top-4">
           <span
             className={cn(
               'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold',
@@ -100,20 +100,17 @@ function KujiPrizeCard(props: IKujiPrizeCardProps) {
       <div className="flex flex-1 flex-col gap-4 p-4 sm:p-5">
         <div className="space-y-2">
           <h3 className="text-lg font-semibold leading-tight text-foreground">{props.prize.name}</h3>
-          {props.prize.description ? (
-            <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">{props.prize.description}</p>
-          ) : null}
         </div>
 
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-border/50 pt-4">
           <p className="text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">{props.prize.remainingQuantity}</span>
             {' '}
-            of
+            /
             {' '}
             <span className="font-semibold text-foreground">{props.prize.initialQuantity}</span>
             {' '}
-            remaining
+            left
           </p>
           <span className="text-sm font-semibold text-primary transition-transform duration-300 ease-out group-hover:translate-x-0.5">
             View details

@@ -133,12 +133,11 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
               </span>
-              <p className='text-xl'>Awaiting Reveal ({unrevealed.length})</p>
+              <p className="text-xl">Awaiting Reveal ({unrevealed.length})</p>
             </h2>
-            {/* TODO: use ticket pictures */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-6 justify-items-center">
+            <div className="grid grid-cols-1 gap-4 justify-items-center sm:gap-5 xl:grid-cols-2 xl:gap-6">
               {unrevealed.map((ticket: IOrderTicket) => (
-                <div key={ticket.id} className="w-full max-w-[200px]">
+                <div key={ticket.id} className="w-full max-w-[38rem]">
                   <TicketRevealCard
                     ticket={ticket}
                     onReveal={handleReveal}
@@ -153,7 +152,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
         {/* TODO: use ticket pictures and show real prizes with dialog */}
         {revealed.length > 0 ? (
           <section>
-            <h2 className="mb-8 text-2xl font-semibold tracking-tight text-foreground/80">
+            <h2 className="mb-8 text-xl font-semibold tracking-tight text-foreground/80">
               Revealed Prizes ({revealed.length})
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-6 justify-items-center">

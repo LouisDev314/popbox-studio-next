@@ -1,0 +1,136 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import { TicketRevealCard } from '@/components/kuji/ticket-reveal-card';
+import type { IOrderTicket } from '@/interfaces/order';
+
+function createTicket(overrides: Partial<IOrderTicket> = {}): IOrderTicket {
+  return {
+    id: 'ticket-1',
+    ticketNumber: '0001',
+    revealedAt: '2026-04-12T00:00:00.000Z',
+    voidedAt: null,
+    voidReason: null,
+    prize: {
+      id: 'prize-1',
+      prizeCode: 'B',
+      name: 'Grand Figure',
+      description: 'This is prize a for testing',
+      imageUrl: 'https://cdn.example.com/prizes/grand-figure.jpg',
+    },
+    kujiProduct: {
+      id: 'product-1',
+      name: 'Test Product 2',
+      slug: 'test-product-2',
+      imageUrl: 'https://cdn.example.com/products/test-product-2.jpg',
+      imageAltText: 'Test Product 2',
+    },
+    createdAt: '2026-04-12T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+describe('TicketRevealCard', () => {
+  it('renders the revealed prize result card with prize info and kuji set context', () => {
+    render(
+      <TicketRevealCard
+        ticket={createTicket()}
+        onReveal={() => {}}
+        isRevealing={false}
+      />,
+    );
+
+    expect(screen.getByAltText('Grand Figure')).toHaveAttribute('src', 'https://cdn.example.com/prizes/grand-figure.jpg');
+    expect(screen.getByText('PRIZE B')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Grand Figure' })).toBeInTheDocument();
+    expect(screen.getByText('This is prize a for testing')).toBeInTheDocument();
+    expect(screen.getAllByText('Test Product 2')).toHaveLength(2);
+  });
+
+  it('omits the description block when the prize description is not provided', () => {
+    render(
+      <TicketRevealCard
+        ticket={createTicket({
+          prize: {
+            id: 'prize-1',
+            prizeCode: 'B',
+            name: 'Grand Figure',
+            description: null,
+            imageUrl: 'https://cdn.example.com/prizes/grand-figure.jpg',
+          },
+        })}
+        onReveal={() => {}}
+        isRevealing={false}
+      />,
+    );
+
+    expect(screen.queryByText('This is prize a for testing')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Grand Figure' })).toBeInTheDocument();
+  });
+
+  it('renders the unrevealed kuji set name and image', () => {
+    render(
+      <TicketRevealCard
+        ticket={createTicket({
+          revealedAt: null,
+          prize: null,
+        })}
+        onReveal={() => {}}
+        isRevealing={false}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Test Product 2' })).toBeInTheDocument();
+    expect(screen.getByAltText('Test Product 2')).toHaveAttribute('src', 'https://cdn.example.com/products/test-product-2.jpg');
+    expect(screen.getByText('Tap to Reveal')).toBeInTheDocument();
+  });
+
+  it('keeps the unrevealed interaction behavior unchanged and calls onReveal', async () => {
+    const user = userEvent.setup();
+    const onReveal = vi.fn();
+
+    render(
+      <TicketRevealCard
+        ticket={createTicket({
+          revealedAt: null,
+          prize: null,
+        })}
+        onReveal={onReveal}
+        isRevealing={false}
+      />,
+    );
+
+    expect(screen.getByText('Tap to Reveal')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' }));
+
+    expect(onReveal).toHaveBeenCalledWith('ticket-1');
+  });
+
+  it('keeps the unrevealed ticket keyboard accessible', async () => {
+    const user = userEvent.setup();
+    const onReveal = vi.fn();
+
+    render(
+      <TicketRevealCard
+        ticket={createTicket({
+          revealedAt: null,
+          prize: null,
+        })}
+        onReveal={onReveal}
+        isRevealing={false}
+      />,
+    );
+
+    const revealTicketButton = screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' });
+    revealTicketButton.focus();
+
+    await user.keyboard('{Enter}');
+    await user.keyboard(' ');
+
+    expect(onReveal).toHaveBeenCalledTimes(2);
+    expect(onReveal).toHaveBeenNthCalledWith(1, 'ticket-1');
+    expect(onReveal).toHaveBeenNthCalledWith(2, 'ticket-1');
+  });
+});
