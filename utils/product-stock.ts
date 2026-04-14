@@ -147,7 +147,7 @@ export function getProductKujiTicketSummary(product: TProductStockLike): IKujiTi
 }
 
 export function formatKujiTicketSummaryLabel(summary: IKujiTicketSummary): string {
-  return `${summary.remainingTickets}/${summary.totalTickets} tickets`;
+  return `Remaining: ${summary.remainingTickets}/${summary.totalTickets} tickets`;
 }
 
 export function getKujiSellableQuantity(product: TProductStockLike): number | null {

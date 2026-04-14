@@ -192,15 +192,26 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
         </div>
 
         <div className="relative z-10 flex flex-col">
+
+          {/* Collection badge */}
           <div className="flex flex-wrap items-center gap-2">
-            {product.collection ? (
+            {product.collection && (
               <Link
                 href={`/collections/${encodeURIComponent(product.collection.slug)}`}
-                className="rounded-full bg-primary/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary transition-colors hover:bg-primary/18"
+                className="
+                  inline-flex items-center
+                  rounded-full border border-primary/30
+                  bg-primary/10 px-3 py-1
+                  text-xs font-semibold uppercase tracking-[0.2em] text-primary
+                  transition-all duration-150
+                  hover:bg-primary/15 hover:border-primary/50
+                  active:scale-[0.97]
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
+                "
               >
                 {product.collection.name}
               </Link>
-            ) : null}
+            )}
           </div>
 
           <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-foreground md:text-4xl">
@@ -211,9 +222,9 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
             <span className="text-2xl font-semibold text-primary">
               {formatPrice(product.priceCents, product.currency)}
             </span>
-            {product.productType === 'kuji' ? (
+            {product.productType === 'kuji' && (
               <span className="text-sm text-muted-foreground">per ticket</span>
-            ) : null}
+            )}
           </div>
 
           <ProductInventoryStatus product={product} variant="detail" />

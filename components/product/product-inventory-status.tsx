@@ -32,31 +32,18 @@ export function ProductInventoryStatus(props: IProductInventoryStatusProps) {
     return (
       <div
         className={cn(
-          'mt-5 w-fit rounded-2xl border border-border/60 bg-muted/30 p-4',
+          'mt-5 w-fit rounded-2xl px-4 py-2 bg-primary/12 text-primary',
           props.className,
         )}
       >
-        <div className="flex items-center gap-2">
-          {isSoldOut ? (
-            <CircleX className="h-5 w-5 shrink-0 text-destructive" />
-          ) : (
-            <CheckCircle2
-              className={cn(
-                'h-5 w-5 shrink-0',
-                getStatusIconClasses(inventoryState.status),
-              )}
-            />
+        <span
+          className={cn(
+            'text-base font-semibold leading-none',
+            getDetailTextClasses(inventoryState.status),
           )}
-
-          <span
-            className={cn(
-              'text-base font-semibold leading-none',
-              getDetailTextClasses(inventoryState.status),
-            )}
-          >
-            {label}
-          </span>
-        </div>
+        >
+          {label}
+        </span>
       </div>
     );
   }
@@ -102,10 +89,10 @@ function getDetailTextClasses(
   }
 
   if (status === 'low_stock') {
-    return 'text-primary';
+    return 'text-amber-500';
   }
 
-  return 'text-foreground';
+  return 'text-primary';
 }
 
 function getStatusIconClasses(

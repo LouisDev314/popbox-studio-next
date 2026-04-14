@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type IProduct } from '@/interfaces/product';
+import Image from 'next/image';
 
 interface IProductGalleryProps {
   product: IProduct;
@@ -23,9 +24,13 @@ export function ProductGallery(props: IProductGalleryProps) {
           imageClassName="transition-transform duration-500 ease-out"
         />
         {props.product.productType === 'kuji' && (
-          <div className="absolute top-4 left-4 z-20 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold tracking-wider text-primary">
-            Ichiban Kuji
-          </div>
+          <Image
+            src="/logo-kuji.png"
+            alt="Kuji"
+            width={40}
+            height={40}
+            className="absolute left-4 top-4 z-10 h-12 w-auto"
+          />
         )}
         {images.length > 1 && (
           <div className="absolute right-4 bottom-4 rounded-full bg-background px-3 py-1 text-xs font-medium text-foreground shadow-sm">
