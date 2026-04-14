@@ -116,7 +116,7 @@ export function CartDrawer(props: ICartDrawerProps) {
             <StorefrontDrawerEmptyState
               icon={<ShoppingBag className="h-7 w-7 text-muted-foreground" />}
               title="Your cart is empty"
-              description="Add a few collectibles first, then return here for a quick checkout handoff."
+              description="Pick a few things you like, then come back here to finish checkout."
               action={(
                 <Button
                   variant="outline"

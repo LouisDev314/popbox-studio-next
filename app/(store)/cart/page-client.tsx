@@ -49,7 +49,7 @@ export default function CartPageClient() {
           </div>
           <h1 className="mt-6 text-3xl font-bold tracking-tight text-foreground">Your cart is empty</h1>
           <p className="mt-3 text-base text-muted-foreground">
-            Add a few collectibles first, then come back here to review quantity, shipping, and checkout totals.
+            Pick a few things you like, then come back here to finish checkout.
           </p>
           <Button asChild size="lg" className="mt-8 rounded-full px-8">
             <Link href="/products">Browse products</Link>

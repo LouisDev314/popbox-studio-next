@@ -61,12 +61,6 @@ export function ProductTileDense(props: IProductTileDenseProps) {
         <span className="text-sm font-semibold text-amber-500">
           {formatPrice(product.priceCents, product.currency)}
         </span>
-
-        {stockLabel && (
-          <span className="text-xs text-muted-foreground">
-            {stockLabel}
-          </span>
-        )}
       </div>
     </Link>
   );
