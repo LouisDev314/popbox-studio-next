@@ -20,7 +20,7 @@ vi.mock('next/image', () => ({
 }));
 
 describe('ProductTileDense', () => {
-  it('renders the kuji ticket summary label from ticketSummary on storefront cards', () => {
+  it('renders the kuji badge for kuji storefront cards', () => {
     renderWithProviders(
       <ProductTileDense
         product={createProductCard({
@@ -36,7 +36,7 @@ describe('ProductTileDense', () => {
       />,
     );
 
-    expect(screen.getByText('23/80 tickets')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Kuji' })).toBeInTheDocument();
   });
 
   it('does not render a ticket summary for non-kuji cards', () => {

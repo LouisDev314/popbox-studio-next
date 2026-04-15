@@ -143,6 +143,7 @@ A task is done when:
 - it works on mobile and desktop
 - it keeps server/client boundaries correct
 - it is production-appropriate and explainable in an interview
+- pnpm check passes everything with no warning or errors or issues
 
 ---
 

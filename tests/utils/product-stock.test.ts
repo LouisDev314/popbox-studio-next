@@ -35,7 +35,7 @@ describe('product-stock', () => {
       remainingTickets: 26,
       totalTickets: 80,
     });
-    expect(formatKujiTicketSummaryLabel(summary)).toBe('26/80 tickets');
+    expect(formatKujiTicketSummaryLabel(summary)).toBe('Remaining: 26/80 tickets');
   });
 
   it('prefers backend ticketSummary over kujiPrizes when both are present', () => {
@@ -112,6 +112,6 @@ describe('product-stock', () => {
         },
       ],
       productType: 'kuji',
-    })).toBe('23/80 tickets');
+    })).toBe('Remaining: 23/80 tickets');
   });
 });

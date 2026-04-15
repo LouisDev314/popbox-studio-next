@@ -94,13 +94,3 @@ function getDetailTextClasses(
 
   return 'text-primary';
 }
-
-function getStatusIconClasses(
-  status: ReturnType<typeof getProductInventoryState>['status'],
-): string {
-  if (status === 'low_stock') {
-    return 'text-primary';
-  }
-
-  return 'text-emerald-600';
-}

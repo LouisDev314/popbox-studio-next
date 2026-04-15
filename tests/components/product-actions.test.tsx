@@ -39,7 +39,7 @@ describe('ProductActions', () => {
     expect(useCartStore.getState().items).toHaveLength(1);
   });
 
-  it('shows a success alert only when adding to wishlist', async () => {
+  it('shows success alerts when adding to and removing from wishlist', async () => {
     vi.useFakeTimers();
 
     renderWithProviders(<ProductActions product={createProduct()} />);
@@ -58,7 +58,7 @@ describe('ProductActions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove from Wishlist' }));
 
     expect(useWishlistStore.getState().items).toHaveLength(0);
-    expect(screen.queryByText('Added to wishlist')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Removed from wishlist');
   });
 
   it('auto-dismisses the success alert after the configured duration', async () => {

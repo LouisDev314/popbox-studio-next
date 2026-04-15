@@ -4,6 +4,7 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query';
+import { StorefrontAlertProvider } from '@/components/storefront/storefront-alert-provider';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { useWishlistStore } from '@/hooks/use-wishlist';
@@ -28,7 +29,9 @@ export function renderWithProviders(ui: ReactElement) {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      {ui}
+      <StorefrontAlertProvider>
+        {ui}
+      </StorefrontAlertProvider>
     </QueryClientProvider>,
   );
 }

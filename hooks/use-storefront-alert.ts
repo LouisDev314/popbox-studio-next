@@ -1,44 +1,14 @@
 'use client';
 
-import { useRef, useState } from 'react';
-
-interface IStorefrontAlertState {
-  id: number;
-  message: string;
-  description?: string;
-}
+import { useContext } from 'react';
+import { StorefrontAlertContext } from '@/components/storefront/storefront-alert-provider';
 
 export function useStorefrontAlert() {
-  const nextAlertIdRef = useRef(0);
-  const [alert, setAlert] = useState<IStorefrontAlertState | null>(null);
+  const context = useContext(StorefrontAlertContext);
 
-  const showSuccess = (message: string, description?: string) => {
-    nextAlertIdRef.current += 1;
+  if (!context) {
+    throw new Error('useStorefrontAlert must be used within a StorefrontAlertProvider.');
+  }
 
-    setAlert({
-      id: nextAlertIdRef.current,
-      message,
-      description,
-    });
-  };
-
-  const dismissAlert = (id?: number) => {
-    setAlert((currentAlert) => {
-      if (!currentAlert) {
-        return null;
-      }
-
-      if (id !== undefined && currentAlert.id !== id) {
-        return currentAlert;
-      }
-
-      return null;
-    });
-  };
-
-  return {
-    alert,
-    dismissAlert,
-    showSuccess,
-  };
+  return context;
 }

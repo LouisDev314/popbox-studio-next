@@ -1,9 +1,9 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import type { IProductCard } from '@/interfaces/product';
 import { formatPrice } from '@/lib/utils';
-import { getProductInventoryState, getProductInventoryStatusLabel } from '@/utils/product-stock';
-import Image from 'next/image';
+import { getProductInventoryState } from '@/utils/product-stock';
 
 const DENSE_PRODUCT_IMAGE_SIZES = '(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw';
 
@@ -17,9 +17,6 @@ export function ProductTileDense(props: IProductTileDenseProps) {
   const { product, priority = false, sizes = DENSE_PRODUCT_IMAGE_SIZES } = props;
   const inventoryState = getProductInventoryState(product);
   const isSoldOut = inventoryState.hasInventoryData && inventoryState.status === 'sold_out';
-  const stockLabel = product.productType === 'kuji' && !isSoldOut
-    ? getProductInventoryStatusLabel(product)
-    : null;
 
   return (
     <Link

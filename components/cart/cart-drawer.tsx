@@ -38,6 +38,10 @@ export function CartDrawer(props: ICartDrawerProps) {
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
   const totalItems = cartSummary.totalItems + invalidItems.reduce((count, item) => count + item.quantity, 0);
 
+  const handleRemoveItem = (cartItemId: string) => {
+    removeItem(cartItemId);
+  };
+
   return (
     <StorefrontDrawer
       isOpen={isOpen}
@@ -174,7 +178,7 @@ export function CartDrawer(props: ICartDrawerProps) {
                               variant="ghost"
                               className="h-9 rounded-full px-3 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
                               disabled={isCheckingOut}
-                              onClick={() => removeItem(item.id)}
+                              onClick={() => handleRemoveItem(item.id)}
                             >
                               Remove
                             </Button>

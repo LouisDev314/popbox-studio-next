@@ -30,7 +30,7 @@ export function QuantityStepper(props: IQuantityStepperProps) {
   return (
     <div
       className={cn(
-        'inline-flex w-fit items-center rounded-full border border-border/70 bg-background/80 shadow-sm',
+        'inline-flex w-fit items-center rounded-full border border-border/70 bg-muted shadow-sm',
         QUANTITY_STEPPER_SIZE_STYLES[size],
         props.className,
       )}

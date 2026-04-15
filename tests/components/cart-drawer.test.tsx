@@ -134,4 +134,22 @@ describe('CartDrawer', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(push).not.toHaveBeenCalled();
   });
+
+  it('removes a cart item without showing a success alert', async () => {
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartDrawerHarness />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
+
+    expect(useCartStore.getState().items).toHaveLength(0);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
 });

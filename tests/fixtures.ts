@@ -4,6 +4,7 @@ import {
   type ICartProduct,
 } from '@/interfaces/cart';
 import { type IProductCard, type IKujiTicketSummary } from '@/interfaces/product';
+import { type IWishlistItem } from '@/interfaces/wishlist';
 
 export const VALID_PRODUCT_ID = '11111111-1111-4111-8111-111111111111';
 
@@ -90,6 +91,20 @@ export function createCartItem(
     id: overrides.id ?? 'cart-item-1',
     product: createCartProduct(overrides.product ?? {}),
     quantity: overrides.quantity ?? 1,
+  };
+}
+
+export function createWishlistItem(
+  overrides: Partial<IWishlistItem> = {},
+): IWishlistItem {
+  return {
+    id: overrides.id ?? VALID_PRODUCT_ID,
+    name: overrides.name ?? 'Ichiban Figure',
+    slug: overrides.slug ?? 'ichiban-figure',
+    imageUrl: overrides.imageUrl ?? 'https://example.com/products/figure-1.jpg',
+    priceCents: overrides.priceCents ?? 4999,
+    currency: overrides.currency ?? 'CAD',
+    productType: overrides.productType ?? 'standard',
   };
 }
 

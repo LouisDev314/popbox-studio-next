@@ -52,6 +52,6 @@ describe('ProductInventoryStatus', () => {
       />,
     );
 
-    expect(screen.getByText('23/80 tickets')).toBeInTheDocument();
+    expect(screen.getByText('Remaining: 23/80 tickets')).toBeInTheDocument();
   });
 });

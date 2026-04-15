@@ -16,6 +16,7 @@ import {
 } from 'vitest';
 import { WishlistDrawer } from '@/components/wishlist/wishlist-drawer';
 import { useWishlistStore } from '@/hooks/use-wishlist';
+import { createWishlistItem } from '../fixtures';
 import {
   renderWithProviders,
   resetStores,
@@ -86,5 +87,22 @@ describe('WishlistDrawer', () => {
       expect(triggerButton).toHaveFocus();
     });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a removal success alert when deleting a wishlist item', async () => {
+    act(() => {
+      useWishlistStore.setState({
+        hasHydrated: true,
+        items: [createWishlistItem()],
+      });
+    });
+
+    renderWithProviders(<WishlistDrawerHarness />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open wishlist' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
+
+    expect(useWishlistStore.getState().items).toHaveLength(0);
+    expect(screen.getByRole('status')).toHaveTextContent('Removed from wishlist');
   });
 });

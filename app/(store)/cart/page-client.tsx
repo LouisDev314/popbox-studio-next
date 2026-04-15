@@ -22,8 +22,11 @@ export default function CartPageClient() {
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
   const isHydrated = useCartStore((state) => state.hasHydrated);
-
   const summary = getCartSummary();
+
+  const handleRemoveItem = (cartItemId: string) => {
+    removeItem(cartItemId);
+  };
 
   if (!isHydrated) {
     return (
@@ -100,7 +103,7 @@ export default function CartPageClient() {
                       limitMessage={limitMessage}
                       onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
                       onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
-                      onRemove={() => removeItem(item.id)}
+                      onRemove={() => handleRemoveItem(item.id)}
                     />
                   );
                 })()

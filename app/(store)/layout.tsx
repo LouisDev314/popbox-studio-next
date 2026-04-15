@@ -2,6 +2,7 @@ import { StoreHeader } from '@/components/layout/store-header';
 import { StoreFooter } from '@/components/layout/store-footer';
 import { Suspense, type ReactNode } from 'react';
 import getPublicEnvConfig from '@/configs/public-env';
+import { StorefrontAlertProvider } from '@/components/storefront/storefront-alert-provider';
 import { Toaster } from '@/components/ui/sonner'
 
 interface IStoreLayoutProps {
@@ -20,7 +21,7 @@ export default function StoreLayout(props: IStoreLayoutProps) {
   }
 
   return (
-    <>
+    <StorefrontAlertProvider>
       <Suspense fallback={<div aria-hidden="true" className="h-16" />}>
         <StoreHeader />
       </Suspense>
@@ -29,6 +30,6 @@ export default function StoreLayout(props: IStoreLayoutProps) {
         {props.children}
       </main>
       <StoreFooter />
-    </>
+    </StorefrontAlertProvider>
   );
 }

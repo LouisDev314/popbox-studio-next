@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Heart, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
-import { StorefrontSuccessAlert } from '@/components/ui/storefront-success-alert';
 import { useCartStore } from '@/hooks/use-cart';
 import { useStorefrontAlert } from '@/hooks/use-storefront-alert';
 import { useWishlistStore } from '@/hooks/use-wishlist';
@@ -139,7 +138,7 @@ export function ProductActions(props: IProductActionsProps) {
     cart: null,
     wishlist: null,
   });
-  const { alert, dismissAlert, showSuccess } = useStorefrontAlert();
+  const { showSuccess } = useStorefrontAlert();
 
   const currentCartQuantity = cartItems.find((item) => item.product.id === props.product.id)?.quantity ?? 0;
   const actionState = getProductActionState(props.product, currentCartQuantity);
@@ -149,9 +148,9 @@ export function ProductActions(props: IProductActionsProps) {
   const isWishlistBusy = disabledActions.wishlist;
 
   useEffect(() => {
-    return () => {
-      const releaseTimeouts = releaseTimeoutRef.current;
+    const releaseTimeouts = releaseTimeoutRef.current;
 
+    return () => {
       if (releaseTimeouts.cart !== null) {
         window.clearTimeout(releaseTimeouts.cart);
       }
@@ -226,93 +225,84 @@ export function ProductActions(props: IProductActionsProps) {
 
       toggleWishlistItem(mapProductToWishlistItem(props.product));
 
-      if (shouldShowSuccess) {
-        showSuccess('Added to wishlist');
-      }
+      showSuccess(
+        shouldShowSuccess ? 'Added to wishlist' : 'Removed from wishlist',
+        undefined,
+        shouldShowSuccess ? 'success' : 'warning',
+      );
     });
   };
 
   return (
-    <>
-      {alert ? (
-        <StorefrontSuccessAlert
-          alertId={alert.id}
-          message={alert.message}
-          description={alert.description}
-          onDismiss={dismissAlert}
-        />
-      ) : null}
-
-      <div className="mt-8 space-y-4">
-        <Button
-          type="button"
-          variant="outline"
-          aria-pressed={hasWishlistHydrated && isWishlisted}
+    <div className="mt-8 space-y-4">
+      <Button
+        type="button"
+        variant="outline"
+        aria-pressed={hasWishlistHydrated && isWishlisted}
+        className={cn(
+          'h-12 w-full rounded-full border-border/70 bg-background text-sm font-semibold',
+          hasWishlistHydrated && isWishlisted
+            ? 'border-primary/30 bg-accent text-foreground hover:bg-accent'
+            : 'hover:bg-accent/70',
+        )}
+        disabled={isWishlistBusy}
+        onClick={handleWishlistToggle}
+      >
+        <Heart
           className={cn(
-            'h-12 w-full rounded-full border-border/70 bg-background text-sm font-semibold',
-            hasWishlistHydrated && isWishlisted
-              ? 'border-primary/30 bg-accent text-foreground hover:bg-accent'
-              : 'hover:bg-accent/70',
+            'mr-2 h-5 w-5',
+            hasWishlistHydrated && isWishlisted ? 'text-primary' : 'text-muted-foreground',
           )}
-          disabled={isWishlistBusy}
-          onClick={handleWishlistToggle}
-        >
-          <Heart
-            className={cn(
-              'mr-2 h-5 w-5',
-              hasWishlistHydrated && isWishlisted ? 'text-primary' : 'text-muted-foreground',
-            )}
-          />
-          {hasWishlistHydrated && isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
-        </Button>
+        />
+        {hasWishlistHydrated && isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+      </Button>
 
-        <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-          <div className="flex flex-row items-center justify-between gap-4">
-            <div>
-              <p className="font-medium text-foreground">Quantity</p>
-            </div>
-            <QuantityStepper
-              disabled={actionState.isAddDisabled || isCartBusy}
-              value={clampedQuantity}
-              decreaseDisabled={clampedQuantity <= 1}
-              increaseDisabled={clampedQuantity >= quantityCap}
-              onDecrease={() => {
-                setFeedbackMessage(null);
-                setQuantity(Math.max(1, clampedQuantity - 1));
-              }}
-              onIncrease={() => {
-                if (clampedQuantity >= quantityCap) {
-                  setFeedbackMessage(actionState.increaseLimitMessage);
-                  return;
-                }
-
-                setFeedbackMessage(null);
-                setQuantity(Math.min(quantityCap, clampedQuantity + 1));
-              }}
-            />
+      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+        <div className="flex flex-row items-center justify-between gap-4">
+          <div>
+            <p className="font-medium text-foreground">Quantity</p>
           </div>
-
-          {actionState.hasReachedCartLimit ? (
-            <p className="mt-3 text-sm font-medium text-muted-foreground">
-              {MAX_IN_CART_MESSAGE}
-            </p>
-          ) : null}
-
-          {!actionState.hasReachedCartLimit && feedbackMessage ? (
-            <p className="mt-3 text-sm font-medium text-foreground">{feedbackMessage}</p>
-          ) : null}
-
-          <Button
-            size="lg"
-            className="mt-5 h-14 w-full rounded-xl text-lg font-semibold"
+          <QuantityStepper
             disabled={actionState.isAddDisabled || isCartBusy}
-            onClick={handleAdd}
-          >
-            <ShoppingBag className="mr-2 h-5 w-5" />
-            {actionState.addButtonLabel}
-          </Button>
+            value={clampedQuantity}
+            decreaseDisabled={clampedQuantity <= 1}
+            increaseDisabled={clampedQuantity >= quantityCap}
+            onDecrease={() => {
+              setFeedbackMessage(null);
+              setQuantity(Math.max(1, clampedQuantity - 1));
+            }}
+            onIncrease={() => {
+              if (clampedQuantity >= quantityCap) {
+                setFeedbackMessage(actionState.increaseLimitMessage);
+                return;
+              }
+
+              setFeedbackMessage(null);
+              setQuantity(Math.min(quantityCap, clampedQuantity + 1));
+            }}
+          />
         </div>
+
+        {actionState.hasReachedCartLimit ? (
+          <p className="mt-3 text-sm font-medium text-muted-foreground">
+            {MAX_IN_CART_MESSAGE}
+          </p>
+        ) : null}
+
+        {!actionState.hasReachedCartLimit && feedbackMessage ? (
+          <p className="mt-3 text-sm font-medium text-foreground">{feedbackMessage}</p>
+        ) : null}
+
+        <Button
+          size="lg"
+          className="mt-5 h-14 w-full rounded-xl text-lg font-semibold"
+          disabled={actionState.isAddDisabled || isCartBusy}
+          onClick={handleAdd}
+        >
+          <ShoppingBag className="mr-2 h-5 w-5" />
+          {actionState.addButtonLabel}
+        </Button>
       </div>
-    </>
+    </div>
   );
 }
