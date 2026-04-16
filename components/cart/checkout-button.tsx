@@ -43,11 +43,11 @@ export function CheckoutButton(props: ICheckoutButtonProps) {
         {isCheckingOut ? pendingLabel : label}
       </Button>
 
-      {blockingMessage ? (
+      {blockingMessage && (
         <p className="text-sm font-medium text-destructive" role="alert">
           {blockingMessage}
         </p>
-      ) : null}
+      )}
     </div>
   );
 }

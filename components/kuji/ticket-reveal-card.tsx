@@ -4,17 +4,18 @@ import { type KeyboardEvent, type ReactNode } from 'react';
 import { IOrderTicket } from '@/interfaces/order';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 interface ITicketRevealCardProps {
   ticket: IOrderTicket;
-  onReveal: (id: string) => void;
+  onReveal: (id: string, focusTarget?: HTMLElement | null) => void;
   isRevealing: boolean;
 }
 
 const TICKET_SHELL_CLASSNAME = 'relative h-full overflow-hidden rounded-[1.45rem] border border-border/70 bg-[linear-gradient(140deg,hsl(var(--background))_0%,hsl(var(--card))_65%,hsl(var(--muted)/0.55)_100%)] [clip-path:polygon(0_18px,18px_0,calc(100%-18px)_0,100%_18px,100%_calc(100%-18px),calc(100%-18px)_100%,18px_100%,0_calc(100%-18px))]';
 const TICKET_GRID_CLASSNAME = 'grid h-full grid-cols-[minmax(0,1.3fr)_minmax(9.5rem,0.94fr)]';
 const TICKET_MEDIA_CLASSNAME = 'relative overflow-hidden bg-muted/20';
-const TICKET_RAIL_CLASSNAME = 'relative flex h-full flex-col justify-between bg-[linear-gradient(180deg,hsl(var(--card))_0%,hsl(var(--background))_100%)] px-4 pb-4 pt-10 text-left';
+const TICKET_RAIL_CLASSNAME = 'relative flex h-full flex-col justify-between bg-[linear-gradient(180deg,hsl(var(--card))_0%,hsl(var(--background))_100%)] px-4 pb-4 pt-8 text-left';
 
 function getTicketRootClassName(isRevealed: boolean, isRevealing: boolean) {
   return cn(
@@ -49,18 +50,22 @@ function TicketPerforation() {
   );
 }
 
-function handleRevealClick(canReveal: boolean, onReveal: () => void) {
+function handleRevealClick(
+  canReveal: boolean,
+  onReveal: (focusTarget: HTMLElement) => void,
+  focusTarget: HTMLElement,
+) {
   if (!canReveal) {
     return;
   }
 
-  onReveal();
+  onReveal(focusTarget);
 }
 
 function handleRevealKeyDown(
   event: KeyboardEvent<HTMLDivElement>,
   disabled: boolean,
-  onReveal: () => void,
+  onReveal: (focusTarget: HTMLElement) => void,
 ) {
   if (disabled) {
     return;
@@ -68,7 +73,7 @@ function handleRevealKeyDown(
 
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault();
-    onReveal();
+    onReveal(event.currentTarget);
   }
 }
 
@@ -77,13 +82,13 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
   const isRevealed = prize !== null;
   const kujiProductImageAlt = props.ticket.kujiProduct.imageAltText ?? props.ticket.kujiProduct.name;
   const canReveal = !isRevealed && !props.isRevealing;
-  const revealTicket = () => props.onReveal(props.ticket.id);
+  const revealTicket = (focusTarget: HTMLElement) => props.onReveal(props.ticket.id, focusTarget);
 
   return (
     <div
       className={getTicketRootClassName(isRevealed, props.isRevealing)}
       style={{ perspective: '1000px' }}
-      onClick={() => handleRevealClick(canReveal, revealTicket)}
+      onClick={(event) => handleRevealClick(canReveal, revealTicket, event.currentTarget)}
       onKeyDown={(event) => handleRevealKeyDown(event, isRevealed || props.isRevealing, revealTicket)}
       role={isRevealed ? undefined : 'button'}
       tabIndex={isRevealed || props.isRevealing ? -1 : 0}
@@ -95,7 +100,7 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
       <div
         className={cn(
           'absolute inset-0 w-full h-full transition-transform duration-1000 preserve-3d',
-          isRevealed ? '[transform:rotateY(180deg)]' : '',
+          isRevealed ? 'transform-[rotateY(180deg)]' : '',
         )}
       >
         <div className="absolute inset-0 backface-hidden">
@@ -106,6 +111,13 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
                 src={props.ticket.kujiProduct.imageUrl!}
                 alt={kujiProductImageAlt}
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+              />
+              <Image
+                src="/logo-kuji.png"
+                alt="Kuji"
+                width={40}
+                height={40}
+                className="absolute left-2 top-2 z-10 h-8 w-auto"
               />
               <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,10,10,0.12)_0%,rgba(10,10,10,0.02)_48%,rgba(10,10,10,0.28)_100%)]" />
               <div className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-black/48 via-black/12 to-transparent" />
@@ -122,7 +134,7 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
                 <div className="h-px w-full bg-[linear-gradient(90deg,hsl(var(--border)),transparent)]" />
                 <span
                   className={cn(
-                    'inline-flex whitespace-nowrap items-center rounded-full border border-border/70 bg-background px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/80 transition-opacity duration-300',
+                    'inline-flex whitespace-nowrap items-center rounded-full border border-border/70 bg-background px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/80 transition-opacity duration-300',
                     props.isRevealing ? 'opacity-0' : 'opacity-100',
                   )}
                 >
@@ -142,7 +154,7 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
         </div>
 
         <div className="absolute inset-0 backface-hidden [transform:rotateY(180deg)]">
-          {prize ? (
+          {prize && (
             <TicketShell
               accentClassName="bg-[linear-gradient(90deg,#2d4e85_0%,#4c74b3_48%,rgba(15,23,42,0.18)_100%)]"
               dividerOffsetClassName="left-[calc(100%-9.6rem)]"
@@ -153,6 +165,13 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
                   src={prize.imageUrl!}
                   alt={prize.name}
                   className="absolute inset-0 h-full w-full object-cover"
+                />
+                <Image
+                  src="/logo-kuji.png"
+                  alt="Kuji"
+                  width={40}
+                  height={40}
+                  className="absolute left-2 top-2 z-10 h-8 w-auto"
                 />
                 <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.04)_0%,rgba(15,23,42,0.01)_48%,rgba(15,23,42,0.26)_100%)]" />
                 <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/34 via-black/8 to-transparent" />
@@ -174,7 +193,7 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
                 </div>
               </div>
             </TicketShell>
-          ) : null}
+          )}
         </div>
       </div>
     </div>

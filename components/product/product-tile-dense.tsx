@@ -30,7 +30,7 @@ export function ProductTileDense(props: IProductTileDenseProps) {
             alt="Kuji"
             width={40}
             height={40}
-            className="absolute left-2 top-2 z-10 h-5 w-auto"
+            className="absolute left-2 top-2 z-10 h-5 sm:h-7 w-auto"
           />
         )}
 

@@ -113,7 +113,7 @@ describe('TicketRevealCard', () => {
 
     await user.click(screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' }));
 
-    expect(onReveal).toHaveBeenCalledWith('ticket-1');
+    expect(onReveal).toHaveBeenCalledWith('ticket-1', expect.any(HTMLDivElement));
   });
 
   it('keeps the unrevealed ticket keyboard accessible', async () => {
@@ -138,7 +138,7 @@ describe('TicketRevealCard', () => {
     await user.keyboard(' ');
 
     expect(onReveal).toHaveBeenCalledTimes(2);
-    expect(onReveal).toHaveBeenNthCalledWith(1, 'ticket-1');
-    expect(onReveal).toHaveBeenNthCalledWith(2, 'ticket-1');
+    expect(onReveal).toHaveBeenNthCalledWith(1, 'ticket-1', expect.any(HTMLDivElement));
+    expect(onReveal).toHaveBeenNthCalledWith(2, 'ticket-1', expect.any(HTMLDivElement));
   });
 });
