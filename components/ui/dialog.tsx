@@ -131,7 +131,7 @@ const DialogOverlay = forwardRef<
       ref={ref}
       data-state={visualState}
       className={cn(
-        'fixed inset-0 z-50 bg-black/65 backdrop-blur-md',
+        'fixed inset-0 z-[90] bg-black/65 backdrop-blur-md',
         'duration-300 ease-out fill-mode-both data-[state=closed]:!pointer-events-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
         'data-[state=open]:!pointer-events-auto',
         'data-[state=open]:animate-in data-[state=open]:fade-in-0',
@@ -170,7 +170,7 @@ const DialogContent = forwardRef<
   return (
     <DialogPortal>
       <DialogOverlay />
-      <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
+      <div className="pointer-events-none fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-6">
         <DialogPrimitive.Content
           ref={ref}
           data-state={visualState}
@@ -179,7 +179,6 @@ const DialogContent = forwardRef<
             'rounded-[2rem] border border-border/70 bg-background shadow-[0_32px_90px_-34px_rgba(15,23,42,0.55)]',
             'duration-300 ease-out will-change-transform fill-mode-both',
             'data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
-            'data-[state=closed]:zoom-out-95 data-[state=closed]:slide-out-to-bottom-6',
             'data-[state=open]:animate-in data-[state=open]:fade-in-0',
             'data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-6',
             'sm:max-h-[calc(100dvh-3rem)]',

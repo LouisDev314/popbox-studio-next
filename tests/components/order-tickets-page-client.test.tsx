@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { type ImgHTMLAttributes } from 'react';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpStatusCode, type AxiosResponse } from 'axios';
 import { describe, expect, it, vi } from 'vitest';
@@ -138,7 +138,7 @@ describe('OrderTicketsPageClient', () => {
       publicId: 'pbs-TICKETS',
       ticketId: 'ticket-1',
     });
-    expect(screen.getByTestId('kuji-reveal-mobile-video')).toBeInTheDocument();
+    expect(screen.getByTestId('kuji-reveal-video')).toBeInTheDocument();
   });
 
   it('keeps leaked prize data under Awaiting Reveal and still starts the reveal flow', async () => {
@@ -183,7 +183,7 @@ describe('OrderTicketsPageClient', () => {
       publicId: 'pbs-TICKETS',
       ticketId: 'ticket-1',
     });
-    expect(screen.getByTestId('kuji-reveal-mobile-video')).toBeInTheDocument();
+    expect(screen.getByTestId('kuji-reveal-video')).toBeInTheDocument();
   });
 
   it('keeps the overlay mounted until both the video and API are complete', async () => {
@@ -208,12 +208,12 @@ describe('OrderTicketsPageClient', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Reveal ticket for Test Product 1' })[0]);
 
-    expect(screen.getByTestId('kuji-reveal-mobile-video')).toBeInTheDocument();
+    expect(screen.getByTestId('kuji-reveal-video')).toBeInTheDocument();
 
-    fireEvent.ended(screen.getByTestId('kuji-reveal-mobile-video'));
+    fireEvent.ended(screen.getByTestId('kuji-reveal-video'));
 
     await waitFor(() => {
-      expect(screen.getByText('Finalizing your prize')).toBeInTheDocument();
+      expect(screen.getByText('Preparing your result')).toBeInTheDocument();
     });
 
     deferredReveal.resolve(
@@ -326,7 +326,7 @@ describe('OrderTicketsPageClient', () => {
     );
 
     await user.click(screen.getAllByRole('button', { name: 'Reveal ticket for Test Product 1' })[0]);
-    fireEvent.ended(screen.getByTestId('kuji-reveal-mobile-video'));
+    fireEvent.ended(screen.getByTestId('kuji-reveal-video'));
 
     await waitFor(() => {
       expect(screen.getByText('Ticket 1 / 2')).toBeInTheDocument();
@@ -341,7 +341,7 @@ describe('OrderTicketsPageClient', () => {
       });
     });
 
-    fireEvent.ended(screen.getByTestId('kuji-reveal-mobile-video'));
+    fireEvent.ended(screen.getByTestId('kuji-reveal-video'));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Return' })).toBeInTheDocument();
@@ -361,11 +361,18 @@ describe('OrderTicketsPageClient', () => {
         revealed: [
           createTicket({
             id: 'ticket-1',
+            kujiProduct: {
+              id: 'product-1',
+              name: 'Ichiban Kuji Moonlight Parade',
+              slug: 'moonlight-parade',
+              imageUrl: 'https://cdn.example.com/products/test-product-1.jpg',
+              imageAltText: 'Ichiban Kuji Moonlight Parade',
+            },
             prize: {
               id: 'prize-1',
               prizeCode: 'A',
               name: 'Prize One',
-              description: null,
+              description: 'Overlay prize dialog copy',
               imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
             },
             revealedAt: '2026-04-12T00:00:00.000Z',
@@ -391,13 +398,21 @@ describe('OrderTicketsPageClient', () => {
     await user.click(screen.getByRole('button', { name: 'Reveal All' }));
 
     expect(vi.mocked(MutationConfigs.revealAllTickets)).toHaveBeenCalledWith('pbs-TICKETS');
-    expect(screen.getByTestId('kuji-reveal-mobile-video')).toBeInTheDocument();
+    expect(screen.getByTestId('kuji-reveal-video')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Skip' }));
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Return' })).toBeInTheDocument();
     });
+
+    const revealOverlay = screen.getByRole('dialog', { name: 'Ticket reveal overlay' });
+
+    expect(within(revealOverlay).getByText('Ichiban Kuji Moonlight Parade')).toBeInTheDocument();
+    const summaryPrizeTile = within(revealOverlay).getByRole('article');
+
+    expect(summaryPrizeTile).toHaveClass('rounded-[1.15rem]');
+    expect(within(summaryPrizeTile).getByText('Prize One')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Return' }));
 
@@ -428,11 +443,11 @@ describe('OrderTicketsPageClient', () => {
       expect(screen.getByRole('status')).toHaveTextContent('Unable to reveal ticket');
     });
 
-    expect(screen.queryByTestId('kuji-reveal-mobile-video')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('kuji-reveal-video')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reveal ticket for Test Product 1' })).toBeInTheDocument();
   });
 
-  it('renders revealed tickets as shared prize tiles with the product-style detail dialog', async () => {
+  it('renders revealed tickets as compact shared prize tiles with the product-style detail dialog', async () => {
     const user = userEvent.setup();
 
     renderWithProviders(
@@ -441,6 +456,13 @@ describe('OrderTicketsPageClient', () => {
           revealed: [
             createTicket({
               revealedAt: '2026-04-12T00:00:00.000Z',
+              kujiProduct: {
+                id: 'product-1',
+                name: 'Ichiban Kuji Moonlight Parade',
+                slug: 'moonlight-parade',
+                imageUrl: 'https://cdn.example.com/products/test-product-1.jpg',
+                imageAltText: 'Ichiban Kuji Moonlight Parade',
+              },
               prize: {
                 id: 'prize-1',
                 prizeCode: 'A',
@@ -456,7 +478,12 @@ describe('OrderTicketsPageClient', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /Prize One/i }));
+    const revealedPrizeTile = screen.getByRole('button', { name: /Prize One/i });
+
+    expect(revealedPrizeTile).toHaveClass('rounded-[1.15rem]');
+    expect(screen.getByText('Ichiban Kuji Moonlight Parade')).toBeInTheDocument();
+
+    await user.click(revealedPrizeTile);
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toHaveTextContent('Prize dialog copy');

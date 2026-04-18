@@ -99,7 +99,7 @@ export function CartDrawer(props: ICartDrawerProps) {
       ) : undefined}
       overlay={isCheckingOut ? (
         <CartInteractionLockOverlay
-          title="Preparing checkout..."
+          title="Preparing secure checkout..."
           message="Your cart is reserved until we hand you off to the secure checkout page."
         />
       ) : null}

@@ -32,7 +32,7 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
             by email once your order has been shipped.
           </p>
           <p className="mt-4 text-2xl font-semibold tracking-tight text-primary">
-            Order Number {order.publicId}
+            Order Number: {order.publicId}
           </p>
           <p className="mt-2 text-muted-foreground">
             Placed on {order.placedAt ? new Date(order.placedAt).toLocaleDateString() : 'N/A'}

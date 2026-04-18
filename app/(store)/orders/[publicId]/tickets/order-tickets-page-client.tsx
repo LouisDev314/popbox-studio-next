@@ -74,9 +74,9 @@ function buildRevealedPrizeTiles(tickets: IOrderTicket[]): IKujiPrizeTileItem[] 
       description: ticket.prize.description,
       id: ticket.id,
       imageUrl: ticket.prize.imageUrl,
+      kujiProductName: ticket.kujiProduct.name,
       name: ticket.prize.name,
       prizeCode: ticket.prize.prizeCode,
-      subtitle: `Ticket #${ticket.ticketNumber}`,
     }];
   });
 }
@@ -555,15 +555,10 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
 
           {revealedPrizeTiles.length > 0 ? (
             <section>
-              <div className="mb-8 space-y-2">
-                <h2 className="text-xl font-semibold tracking-tight text-foreground/80">
-                  Revealed Prizes ({revealedPrizeTiles.length})
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Select any prize tile to preview the revealed item in the shared Kuji detail dialog.
-                </p>
-              </div>
-              <KujiPrizeTiles items={revealedPrizeTiles} />
+              <h2 className="mb-8 text-xl font-semibold tracking-tight text-foreground/80">
+                Revealed Prizes ({revealedPrizeTiles.length})
+              </h2>
+              <KujiPrizeTiles compact items={revealedPrizeTiles} />
             </section>
           ) : null}
         </div>

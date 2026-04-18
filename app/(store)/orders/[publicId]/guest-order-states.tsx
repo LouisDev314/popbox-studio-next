@@ -65,7 +65,7 @@ function GuestUnavailableState(props: { title: string; retryHref: string }) {
     <div className="container mx-auto px-4 py-32 text-center flex flex-col items-center">
       <h1 className="text-3xl font-bold text-destructive mb-4">{props.title}</h1>
       <p className="text-muted-foreground mb-8 max-w-lg">
-        We couldn&apos;t load this page right now. Please try again in a moment.
+        We can&apos;t load this page right now.{<br/>}Please try again in a moment, or open your order from the link in your email.
       </p>
       <div className="flex gap-3">
         <Button asChild className="rounded-xl">

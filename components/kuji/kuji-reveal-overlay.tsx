@@ -58,9 +58,9 @@ function buildSummaryPrizeTiles(tickets: IOrderTicket[]): IKujiPrizeTileItem[] {
       description: ticket.prize.description,
       id: ticket.id,
       imageUrl: ticket.prize.imageUrl,
+      kujiProductName: ticket.kujiProduct.name,
       name: ticket.prize.name,
       prizeCode: ticket.prize.prizeCode,
-      subtitle: `Ticket #${ticket.ticketNumber}`,
     }];
   });
 }
@@ -80,9 +80,9 @@ function KujiRevealVideoView(props: {
           onError={props.onVideoComplete}
           playsInline
           preload="auto"
-          src="/kuji-reveal-mobile.mp4"
+          src="/kuji-reveal.mp4"
           className="absolute inset-0 h-full w-full object-cover"
-          data-testid="kuji-reveal-mobile-video"
+          data-testid="kuji-reveal-video"
         />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.18)_0%,rgba(2,6,23,0.02)_32%,rgba(2,6,23,0.48)_100%)]" />
         <div
@@ -122,17 +122,17 @@ function KujiRevealWaitingView(props: {
 
             <div className="mt-5 space-y-2">
               <p className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                {props.mode === 'all' ? 'Finalizing every prize' : 'Finalizing your prize'}
+                {props.mode === 'all' ? 'Preparing your results' : 'Preparing your result'}
               </p>
 
               <p className="mx-auto max-w-xs text-sm leading-6 text-muted-foreground sm:text-base">
-                The reveal is still syncing with the order. This should only take a moment.
+                Your draw is still processing. It’ll appear here shortly.
               </p>
             </div>
 
             <div className="mt-5 flex items-center justify-center">
               <span className="inline-flex rounded-full border border-border/70 bg-muted/50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-foreground/80 uppercase">
-                Syncing
+            Processing
               </span>
             </div>
           </div>
@@ -227,6 +227,7 @@ function KujiAllPrizesSummaryView(props: {
             <KujiPrizeTiles
               compact
               enableDialog={false}
+              dialogModal={false}
               items={prizeTiles}
               emptyState={(
                 <div className="flex min-h-56 items-center justify-center rounded-[1.25rem] border border-dashed border-border/70 bg-muted/20 px-6 text-center text-sm text-muted-foreground sm:text-base">

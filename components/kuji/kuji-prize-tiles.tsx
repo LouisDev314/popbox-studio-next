@@ -15,14 +15,15 @@ export interface IKujiPrizeTileItem {
   name: string;
   description: string | null;
   imageUrl: string | null;
+  kujiProductName?: string | null;
   stockClassName?: string;
   stockLabel?: string | null;
-  subtitle?: string | null;
 }
 
 interface IKujiPrizeTilesProps {
   items: IKujiPrizeTileItem[];
   compact?: boolean;
+  dialogModal?: boolean;
   enableDialog?: boolean;
   emptyState?: ReactNode;
   gridClassName?: string;
@@ -83,7 +84,7 @@ function KujiPrizeTileCard(props: IKujiPrizeTileCardProps) {
 
       <div className={cn(
         'flex flex-1 flex-col text-center',
-        props.compact ? 'gap-1.5 p-2.5 sm:p-3' : 'gap-2.5 p-4 sm:p-5',
+        props.compact ? 'gap-1 p-2.5 sm:p-3' : 'gap-2.5 p-4 sm:p-5',
       )}
       >
         <h3 className={cn(
@@ -93,6 +94,16 @@ function KujiPrizeTileCard(props: IKujiPrizeTileCardProps) {
         >
           {props.item.name}
         </h3>
+
+        {props.item.kujiProductName ? (
+          <p className={cn(
+            'text-muted-foreground',
+            props.compact ? 'line-clamp-2 text-xs leading-4' : 'text-sm leading-6',
+          )}
+          >
+            {props.item.kujiProductName}
+          </p>
+        ) : null}
       </div>
     </>
   );
@@ -129,13 +140,14 @@ function KujiPrizeTileCard(props: IKujiPrizeTileCardProps) {
 
 function KujiPrizeDialog(props: {
   item: IKujiPrizeTileItem | null;
+  modal?: boolean;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 }) {
   if (!props.item) {
     return (
-      <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-        <DialogContent className="max-w-5xl p-0" />
+      <Dialog modal={props.modal} open={props.open} onOpenChange={props.onOpenChange}>
+        <DialogContent aria-describedby={undefined} className="max-w-5xl p-0" />
       </Dialog>
     );
   }
@@ -143,7 +155,7 @@ function KujiPrizeDialog(props: {
   const badgeLabel = getPrizeBadgeLabel(props.item.prizeCode);
 
   return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+    <Dialog modal={props.modal} open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent
         key={props.item.id}
         className="max-w-5xl p-0"
@@ -186,11 +198,13 @@ function KujiPrizeDialog(props: {
 
             <DialogTitle className="mt-5 text-3xl sm:text-4xl">{props.item.name}</DialogTitle>
 
-            {props.item.description ? (
-              <DialogDescription className="mt-4 max-w-2xl text-base leading-7">
-                {props.item.description}
-              </DialogDescription>
-            ) : null}
+            <DialogDescription className={cn(
+              'mt-4 max-w-2xl text-base leading-7',
+              !props.item.description && 'sr-only',
+            )}
+            >
+              {props.item.description ?? 'Prize details preview.'}
+            </DialogDescription>
           </div>
         </div>
       </DialogContent>
@@ -230,6 +244,7 @@ export function KujiPrizeTiles(props: IKujiPrizeTilesProps) {
 
       {interactive ? (
         <KujiPrizeDialog
+          modal={props.dialogModal}
           open={selectedPrize !== null}
           item={selectedPrize}
           onOpenChange={(open) => {
