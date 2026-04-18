@@ -72,7 +72,7 @@ describe('AdminCustomersPageClient', () => {
       'alex',
     );
 
-    expect(screen.getByText('Alex Chen')).toBeInTheDocument();
+    expect(screen.getAllByText('Alex Chen').length).toBeGreaterThan(0);
     expect(screen.queryByText('Jordan Lee')).not.toBeInTheDocument();
 
     await waitFor(() => {
@@ -92,7 +92,15 @@ describe('AdminCustomersPageClient', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /^Clear search$/i }));
 
-    expect(screen.getByText('Alex Chen')).toBeInTheDocument();
-    expect(screen.getByText('Jordan Lee')).toBeInTheDocument();
+    expect(screen.getAllByText('Alex Chen').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Jordan Lee').length).toBeGreaterThan(0);
+  });
+
+  it('renders the mobile card list for customer browsing', () => {
+    renderWithProviders(<AdminCustomersPageClient />);
+
+    expect(screen.getByTestId('admin-customers-mobile-list')).toBeInTheDocument();
+    expect(screen.getAllByText('Alex Chen').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Jordan Lee').length).toBeGreaterThan(0);
   });
 });

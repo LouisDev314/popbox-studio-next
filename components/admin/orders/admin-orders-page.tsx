@@ -118,6 +118,46 @@ function EmptyOrdersState({
   );
 }
 
+function OrderMobileCard({
+  onOpen,
+  order,
+}: {
+  onOpen: () => void;
+  order: IAdminOrderListResponse['items'][number];
+}) {
+  const customerName = getAdminOrderCustomerName(order);
+
+  return (
+    <article
+      className="cursor-pointer rounded-[24px] border border-[#ece4d8] bg-white p-4 shadow-[0_18px_44px_-40px_rgba(17,24,39,0.45)] transition-colors hover:bg-[#fcf8f0]"
+      onClick={onOpen}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-mono text-sm font-semibold text-[#111827]">{order.publicId}</span>
+            {order.includesLastOnePrize ? <LastOnePrizeBadge /> : null}
+          </div>
+          <p className="mt-1 text-sm font-medium text-[#111827]">{customerName || 'Guest'}</p>
+          <p className="mt-1 break-all text-xs text-[#6b7280]">{order.customer.email}</p>
+        </div>
+        <OrderStatusBadge status={order.status} />
+      </div>
+
+      <dl className="mt-4 grid gap-3 text-sm text-[#6b7280] sm:grid-cols-2">
+        <div>
+          <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">Total</dt>
+          <dd className="mt-1 font-semibold text-[#111827]">{formatPrice(order.totalCents, order.currency)}</dd>
+        </div>
+        <div>
+          <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">Placed</dt>
+          <dd className="mt-1 text-[#111827]">{order.placedAt ? new Date(order.placedAt).toLocaleString() : '—'}</dd>
+        </div>
+      </dl>
+    </article>
+  );
+}
+
 export default function AdminOrdersPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -272,59 +312,71 @@ export default function AdminOrdersPageClient() {
                 onClearSearch={clearSearch}
               />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-[#ece4d8] text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">
-                      <th className="px-4 py-4">Order ID</th>
-                      <th className="px-4 py-4">Customer</th>
-                      <th className="px-4 py-4">Status</th>
-                      <th className="px-4 py-4">Total</th>
-                      <th className="px-4 py-4 text-right">Date</th>
-                    </tr>
-                  </thead>
+              <>
+                <div className="space-y-3 md:hidden" data-testid="admin-orders-mobile-list">
+                  {visibleOrders.map((order) => (
+                    <OrderMobileCard
+                      key={order.id}
+                      order={order}
+                      onOpen={() => router.push(buildAdminOrderPath(order.id))}
+                    />
+                  ))}
+                </div>
 
-                  <tbody className="divide-y divide-[#f1e9dc]">
-                    {visibleOrders.map((order) => {
-                      const customerName = getAdminOrderCustomerName(order);
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="w-full min-w-[760px] text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-[#ece4d8] text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">
+                        <th className="px-4 py-4">Order ID</th>
+                        <th className="px-4 py-4">Customer</th>
+                        <th className="px-4 py-4">Status</th>
+                        <th className="px-4 py-4">Total</th>
+                        <th className="px-4 py-4 text-right">Date</th>
+                      </tr>
+                    </thead>
 
-                      return (
-                        <tr
-                          key={order.id}
-                          className="cursor-pointer transition-colors hover:bg-[#fcf8f0]"
-                          onClick={() => router.push(buildAdminOrderPath(order.id))}
-                        >
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-sm font-semibold text-[#111827]">
-                                {order.publicId}
-                              </span>
-                              {order.includesLastOnePrize ? <LastOnePrizeBadge /> : null}
-                            </div>
-                          </td>
+                    <tbody className="divide-y divide-[#f1e9dc]">
+                      {visibleOrders.map((order) => {
+                        const customerName = getAdminOrderCustomerName(order);
 
-                          <td className="px-4 py-4">
-                            <div className="font-semibold text-[#111827]">{customerName || 'Guest'}</div>
-                            <div className="mt-1 text-xs text-[#6b7280]">{order.customer.email}</div>
-                          </td>
+                        return (
+                          <tr
+                            key={order.id}
+                            className="cursor-pointer transition-colors hover:bg-[#fcf8f0]"
+                            onClick={() => router.push(buildAdminOrderPath(order.id))}
+                          >
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-sm font-semibold text-[#111827]">
+                                  {order.publicId}
+                                </span>
+                                {order.includesLastOnePrize ? <LastOnePrizeBadge /> : null}
+                              </div>
+                            </td>
 
-                          <td className="px-4 py-4">
-                            <OrderStatusBadge status={order.status} />
-                          </td>
+                            <td className="px-4 py-4">
+                              <div className="font-semibold text-[#111827]">{customerName || 'Guest'}</div>
+                              <div className="mt-1 text-xs text-[#6b7280]">{order.customer.email}</div>
+                            </td>
 
-                          <td className="px-4 py-4 font-semibold text-[#111827]">
-                            {formatPrice(order.totalCents, order.currency)}
-                          </td>
+                            <td className="px-4 py-4">
+                              <OrderStatusBadge status={order.status} />
+                            </td>
 
-                          <td className="px-4 py-4 text-right text-xs text-[#6b7280]">
-                            {order.placedAt ? new Date(order.placedAt).toLocaleString() : '—'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                            <td className="px-4 py-4 font-semibold text-[#111827]">
+                              {formatPrice(order.totalCents, order.currency)}
+                            </td>
+
+                            <td className="px-4 py-4 text-right text-xs text-[#6b7280]">
+                              {order.placedAt ? new Date(order.placedAt).toLocaleString() : '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </div>

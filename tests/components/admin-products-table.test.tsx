@@ -71,9 +71,9 @@ describe('AdminProductsTable', () => {
       />,
     );
 
-    expect(screen.getByText('Anime')).toBeInTheDocument();
-    expect(screen.getByText('Limited')).toBeInTheDocument();
-    expect(screen.getByAltText('Hero thumbnail')).toHaveAttribute('src', 'https://cdn.example.com/hero.jpg');
+    expect(screen.getAllByText('Anime').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Limited').length).toBeGreaterThan(0);
+    expect(screen.getAllByAltText('Hero thumbnail').at(0)).toHaveAttribute('src', 'https://cdn.example.com/hero.jpg');
   });
 
   it('treats tags: [] and primaryImage: null as valid empty states', () => {
@@ -93,9 +93,25 @@ describe('AdminProductsTable', () => {
       />,
     );
 
-    expect(screen.getByText('HF')).toBeInTheDocument();
+    expect(screen.getAllByText('HF').length).toBeGreaterThan(0);
     expect(screen.queryByText('Missing tags field')).not.toBeInTheDocument();
     expect(screen.queryByText('Missing primaryImage field')).not.toBeInTheDocument();
+  });
+
+  it('renders the mobile card list alongside the desktop table structure', () => {
+    render(
+      <AdminProductsTable
+        hasActiveView={false}
+        isPatching={false}
+        onClearView={() => {}}
+        onRowClick={() => {}}
+        onStatusChange={() => {}}
+        products={[createProduct()]}
+      />,
+    );
+
+    expect(screen.getByTestId('admin-products-mobile-list')).toBeInTheDocument();
+    expect(screen.getAllByText('Inventory').length).toBeGreaterThan(0);
   });
 
   it('shows inline contract badges when required list fields are missing', () => {
@@ -132,8 +148,8 @@ describe('AdminProductsTable', () => {
       />,
     );
 
-    expect(screen.getByText('Missing tags field')).toBeInTheDocument();
-    expect(screen.getByText('Missing primaryImage field')).toBeInTheDocument();
-    expect(screen.getByText('Missing inventory.available')).toBeInTheDocument();
+    expect(screen.getAllByText('Missing tags field').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Missing primaryImage field').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Missing inventory.available').length).toBeGreaterThan(0);
   });
 });

@@ -88,12 +88,12 @@ export default function AdminTagsPageClient() {
 
   return (
     <div>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Tags</h1>
         <Button
           type="button"
           onClick={openCreateDialog}
-          className="h-9 gap-1.5 rounded-lg px-4 text-sm font-medium text-white hover:bg-primary/90 active:bg-primary/90"
+          className="h-9 w-full justify-center gap-1.5 rounded-lg px-4 text-sm font-medium text-white hover:bg-primary/90 active:bg-primary/90 sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           New Tag
@@ -108,44 +108,70 @@ export default function AdminTagsPageClient() {
             <p className="text-sm text-muted-foreground">No tags found. Create tags to organize products.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-border/30 bg-muted/30 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  <th className="px-4 py-3">Tag Type</th>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Slug</th>
-                  <th className="px-4 py-3 text-right"><span className="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/30">
-                {sortedTags.map((t) => (
-                  <tr key={t.id} className="transition-colors hover:bg-muted/40">
-                    <td className="px-4 py-3 font-medium text-foreground">{getTagTypeLabel(t.tagType)}</td>
-                    <td className="px-4 py-3 font-medium text-foreground">{t.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground"><code className="rounded bg-muted px-1.5 py-0.5 text-xs">{t.slug}</code></td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditDialog(t)}
-                        className="h-8 w-8 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                    </td>
+          <>
+            <div className="space-y-3 p-4 sm:hidden" data-testid="admin-tags-mobile-list">
+              {sortedTags.map((tag) => (
+                <article key={tag.id} className="rounded-2xl border border-border/30 bg-background p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{tag.name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{getTagTypeLabel(tag.tagType)}</p>
+                      <code className="mt-2 inline-flex rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{tag.slug}</code>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openEditDialog(tag)}
+                      className="h-8 w-8 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      <span className="sr-only">Edit</span>
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border/30 bg-muted/30 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-4 py-3">Tag Type</th>
+                    <th className="px-4 py-3">Name</th>
+                    <th className="px-4 py-3">Slug</th>
+                    <th className="px-4 py-3 text-right"><span className="sr-only">Actions</span></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {sortedTags.map((t) => (
+                    <tr key={t.id} className="transition-colors hover:bg-muted/40">
+                      <td className="px-4 py-3 font-medium text-foreground">{getTagTypeLabel(t.tagType)}</td>
+                      <td className="px-4 py-3 font-medium text-foreground">{t.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground"><code className="rounded bg-muted px-1.5 py-0.5 text-xs">{t.slug}</code></td>
+                      <td className="px-4 py-3 text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditDialog(t)}
+                          className="h-8 w-8 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md p-6 bg-card border-border/50 rounded-2xl">
+        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border-border/50 bg-card p-4 sm:max-w-md sm:p-6">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl text-foreground font-semibold">
               {formData.id ? 'Edit Tag' : 'Create Tag'}
@@ -169,7 +195,7 @@ export default function AdminTagsPageClient() {
               </select>
               <p className="mt-1 text-xs text-muted-foreground">Only supported storefront tag groups can be assigned here.</p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">Name</label>
                 <Input required value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Holographic" />
@@ -179,12 +205,12 @@ export default function AdminTagsPageClient() {
                 <Input value={formData.slug} onChange={e => setFormData(p => ({ ...p, slug: e.target.value }))} placeholder="Auto-generated" />
               </div>
             </div>
-            <DialogFooter className="mt-6 pt-4 border-t border-border/20 gap-2">
+            <DialogFooter className="mt-6 flex-col-reverse gap-2 border-t border-border/20 pt-4 sm:flex-row">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => setIsDialogOpen(false)}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+                className="w-full rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted sm:w-auto"
                 disabled={isCreating || isUpdating}
               >
                 Cancel
@@ -192,7 +218,7 @@ export default function AdminTagsPageClient() {
               <Button
                 type="submit"
                 disabled={isCreating || isUpdating}
-                className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 transition-colors disabled:opacity-50"
+                className="w-full rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-foreground/90 disabled:opacity-50 sm:w-auto"
               >
                 {isCreating || isUpdating ? 'Saving...' : 'Save Tag'}
               </Button>

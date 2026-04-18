@@ -87,7 +87,7 @@ describe('AdminOrdersPageClient', () => {
     );
 
     expect(screen.queryByText('PBX-1001')).not.toBeInTheDocument();
-    expect(screen.getByText('PBX-1002')).toBeInTheDocument();
+    expect(screen.getAllByText('PBX-1002').length).toBeGreaterThan(0);
 
     await waitFor(() => {
       expect(replace).toHaveBeenLastCalledWith('/admin/orders?q=jordan', { scroll: false });
@@ -99,7 +99,7 @@ describe('AdminOrdersPageClient', () => {
     const view = renderWithProviders(<AdminOrdersPageClient />);
 
     expect(screen.queryByText('PBX-1001')).not.toBeInTheDocument();
-    expect(screen.getByText('PBX-1002')).toBeInTheDocument();
+    expect(screen.getAllByText('PBX-1002').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /Paid \(1\)/i })).toBeInTheDocument();
 
     await userEvent.type(
@@ -113,5 +113,13 @@ describe('AdminOrdersPageClient', () => {
     view.rerender(<AdminOrdersPageClient />);
 
     expect(screen.getByRole('button', { name: /All \(2\)/i })).toBeInTheDocument();
+  });
+
+  it('renders the mobile card list for authenticated order browsing', () => {
+    renderWithProviders(<AdminOrdersPageClient />);
+
+    expect(screen.getByTestId('admin-orders-mobile-list')).toBeInTheDocument();
+    expect(screen.getAllByText('PBX-1001').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('PBX-1002').length).toBeGreaterThan(0);
   });
 });

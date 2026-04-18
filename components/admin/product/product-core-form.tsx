@@ -130,12 +130,12 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
 
   return (
     <form onSubmit={handleSubmit} className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Core Information</h2>
         <Button
           type="submit"
           disabled={isPending}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors"
+          className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors sm:w-auto"
         >
           <Save className="h-3.5 w-3.5" />
           {isPending ? 'Saving...' : 'Save Info'}

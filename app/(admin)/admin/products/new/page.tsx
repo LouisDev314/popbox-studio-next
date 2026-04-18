@@ -96,26 +96,26 @@ export default function NewProductPage() {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-4xl space-y-8">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
           <Button asChild type="button" variant="outline" size="icon" className="h-9 w-9 rounded-lg border-border/50 text-muted-foreground">
             <Link href="/admin/products" aria-label="Back to products">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">Create Product</h1>
             <p className="mt-1 text-sm text-muted-foreground">Add a new product to your catalog.</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button asChild type="button" variant="outline" className="h-9 rounded-lg border-border/50 text-foreground">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <Button asChild type="button" variant="outline" className="h-9 w-full rounded-lg border-border/50 text-foreground sm:w-auto">
             <Link href="/admin/products">Cancel</Link>
           </Button>
           <Button
             type="submit"
             disabled={isPending}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-4 text-sm font-medium shadow-sm transition-colors"
+            className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-medium shadow-sm transition-colors sm:w-auto"
           >
             <Save className="h-4 w-4" />
             {isPending ? 'Saving...' : 'Save Product'}
@@ -123,8 +123,8 @@ export default function NewProductPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="space-y-6">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="min-w-0 space-y-6">
           <div className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold text-foreground uppercase tracking-wider">Core Information</h2>
             <div className="space-y-4">
@@ -230,7 +230,7 @@ export default function NewProductPage() {
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <div className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold text-foreground uppercase tracking-wider">Organization</h2>
             <div className="space-y-4">

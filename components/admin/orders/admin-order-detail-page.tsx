@@ -149,7 +149,7 @@ function OrderActionButtons({
       : null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
       {order.status === 'pending_payment' && (
         <Button
           type="button"
@@ -157,7 +157,7 @@ function OrderActionButtons({
           disabled={isStatusUpdating}
           variant="outline"
           size="sm"
-          className="gap-1.5 rounded-lg border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="w-full justify-center gap-1.5 rounded-lg border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground sm:w-auto"
         >
           <XCircle className="h-4 w-4" />
           Cancel
@@ -171,7 +171,7 @@ function OrderActionButtons({
           disabled={isStatusUpdating}
           variant="outline"
           size="sm"
-          className="gap-1.5 rounded-lg border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+          className="w-full justify-center gap-1.5 rounded-lg border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary sm:w-auto"
         >
           <Package className="h-4 w-4" />
           Mark Packed
@@ -185,7 +185,7 @@ function OrderActionButtons({
           disabled={isRefunding}
           variant="outline"
           size="sm"
-          className="gap-1.5 rounded-lg border-border bg-card text-foreground hover:bg-muted"
+          className="w-full justify-center gap-1.5 rounded-lg border-border bg-card text-foreground hover:bg-muted sm:w-auto"
         >
           <CreditCard className="h-4 w-4" />
           Refund
@@ -198,7 +198,7 @@ function OrderActionButtons({
         disabled={isResendingConfirmation}
         variant="outline"
         size="sm"
-        className="gap-1.5 rounded-lg border-border bg-card text-foreground hover:bg-muted"
+        className="w-full justify-center gap-1.5 rounded-lg border-border bg-card text-foreground hover:bg-muted sm:w-auto"
       >
         <Mail className="h-4 w-4" />
         {isResendingConfirmation ? 'Resending...' : 'Resend confirmation email'}
@@ -212,8 +212,8 @@ function OrderActionButtons({
           variant={shipmentActionMode === 'ship' ? 'default' : 'outline'}
           size="sm"
           className={shipmentActionMode === 'ship'
-            ? 'gap-1.5 rounded-lg px-4'
-            : 'gap-1.5 rounded-lg border-border bg-card px-4 text-foreground hover:bg-muted'}
+            ? 'w-full justify-center gap-1.5 rounded-lg px-4 sm:w-auto'
+            : 'w-full justify-center gap-1.5 rounded-lg border-border bg-card px-4 text-foreground hover:bg-muted sm:w-auto'}
         >
           <Truck className="h-4 w-4" />
           {shipmentActionMode === 'ship' ? 'Ship Order' : 'Edit Shipment'}
@@ -259,19 +259,19 @@ function OrderItemsSection({ order }: { order: IOrderDetail }) {
       </div>
       <div className="divide-y divide-border/30">
         {order.items.map((item) => (
-          <div key={item.id} className="flex gap-4 p-6">
+          <div key={item.id} className="flex flex-col gap-4 p-6 sm:flex-row">
             <OrderItemImage
               imageUrl={item.imageUrl}
               altText={item.imageAltText}
               productName={item.productName}
             />
             <div className="flex flex-1 flex-col">
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <p className="font-medium text-foreground">{item.productName}</p>
                 <p className="font-medium text-foreground">{formatPrice(item.lineTotalCents, order.currency)}</p>
               </div>
               <p className="mt-1 text-sm capitalize text-muted-foreground">{item.productType} Product</p>
-              <div className="mt-auto flex justify-between text-sm">
+              <div className="mt-auto flex flex-col gap-2 text-sm sm:flex-row sm:justify-between">
                 <p className="text-muted-foreground">{formatPrice(item.unitPriceCents, order.currency)}</p>
                 <p className="font-medium text-muted-foreground">Qty: {item.quantity}</p>
               </div>
@@ -313,12 +313,12 @@ function OrderTicketsSection({ order }: { order: IOrderDetail }) {
       </div>
       <div className="divide-y divide-border/30">
         {order.tickets.map((ticket) => (
-          <div key={ticket.id} className="flex items-center justify-between p-4 px-6 text-sm">
-            <div className="flex items-center gap-3">
+          <div key={ticket.id} className="flex flex-col gap-3 p-4 px-6 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
               <span className="font-mono font-medium text-muted-foreground">#{ticket.ticketNumber}</span>
-              <span className="text-foreground">{ticket.kujiProduct.name}</span>
+              <span className="min-w-0 truncate text-foreground">{ticket.kujiProduct.name}</span>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               {ticket.prize ? (
                 <span className="font-semibold text-primary">Prize {ticket.prize.prizeCode}: {ticket.prize.name}</span>
               ) : ticket.voidedAt ? (
@@ -342,7 +342,7 @@ function OrderSidebar({
   const normalizedTrackingUrl = normalizeTrackingUrl(order.shipment?.trackingUrl);
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Customer</h2>
         <p className="font-medium text-foreground">{order.shippingAddress.fullName}</p>
@@ -416,7 +416,7 @@ function ShipmentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-2xl border-border/50 bg-card p-6 sm:max-w-md">
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border-border/50 bg-card p-4 sm:max-w-md sm:p-6">
         <DialogHeader className="mb-4">
           <DialogTitle className="text-xl font-semibold text-foreground">{title}</DialogTitle>
         </DialogHeader>
@@ -445,12 +445,12 @@ function ShipmentDialog({
               onChange={(e) => onShipmentFormChange({ ...shipmentForm, trackingUrl: e.target.value })}
             />
           </div>
-          <DialogFooter className="mt-6 gap-2 border-t border-border/20 pt-4">
+          <DialogFooter className="mt-6 flex-col-reverse gap-2 border-t border-border/20 pt-4 sm:flex-row">
             <Button
               type="button"
               onClick={() => onOpenChange(false)}
               variant="secondary"
-              className="rounded-lg text-muted-foreground"
+              className="w-full rounded-lg text-muted-foreground sm:w-auto"
               disabled={isPending}
             >
               Cancel
@@ -458,7 +458,7 @@ function ShipmentDialog({
             <Button
               type="submit"
               disabled={isPending}
-              className="rounded-lg"
+              className="w-full rounded-lg sm:w-auto"
             >
               {submitLabel}
             </Button>
@@ -488,7 +488,7 @@ function RefundDialog({
 }: IRefundDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-2xl border-border/50 bg-card p-6 sm:max-w-md">
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border-border/50 bg-card p-4 sm:max-w-md sm:p-6">
         <DialogHeader className="mb-4">
           <DialogTitle className="text-xl font-semibold text-foreground">Refund Order</DialogTitle>
         </DialogHeader>
@@ -507,12 +507,12 @@ function RefundDialog({
               <option value="Other">Other</option>
             </select>
           </div>
-          <DialogFooter className="mt-6 gap-2 border-t border-border/20 pt-4">
+          <DialogFooter className="mt-6 flex-col-reverse gap-2 border-t border-border/20 pt-4 sm:flex-row">
             <Button
               type="button"
               onClick={() => onOpenChange(false)}
               variant="secondary"
-              className="rounded-lg text-muted-foreground"
+              className="w-full rounded-lg text-muted-foreground sm:w-auto"
               disabled={isPending}
             >
               Cancel
@@ -521,7 +521,7 @@ function RefundDialog({
               type="submit"
               variant="destructive"
               disabled={isPending}
-              className="rounded-lg"
+              className="w-full rounded-lg sm:w-auto"
             >
               Process Refund
             </Button>

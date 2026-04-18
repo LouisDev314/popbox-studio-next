@@ -81,11 +81,11 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       <AdminSidebar />
 
       <div
-        className="flex min-h-screen flex-1 flex-col md:pl-[var(--admin-sidebar-width)]"
+        className="flex min-h-screen min-w-0 flex-1 flex-col md:pl-[var(--admin-sidebar-width)]"
         style={{ ['--admin-sidebar-width' as string]: `${ADMIN_SIDEBAR_WIDTH}px` }}
       >
         <main className="flex-1 overflow-y-auto">
-          <div className="w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <div className="min-w-0 w-full px-4 pb-6 pt-[4.5rem] sm:px-6 sm:pb-6 sm:pt-20 md:py-6 lg:px-8 lg:py-8">
             {children}
           </div>
         </main>

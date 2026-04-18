@@ -46,20 +46,20 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex items-start gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         <Button asChild type="button" variant="outline" size="icon" className="h-9 w-9 rounded-lg border-border/50 text-muted-foreground">
           <Link href="/admin/products" aria-label="Back to products">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">{product.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">Manage product details, inventory, media, and tags.</p>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="space-y-6">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="min-w-0 space-y-6">
           <ProductCoreForm product={product} onProductChange={handleProductChange} />
           {product.productType === 'standard' && (
             <ProductInventoryForm product={product} onProductChange={handleProductChange} />
@@ -70,7 +70,7 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <div className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
             <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Summary</h2>
             <dl className="space-y-4 text-sm">

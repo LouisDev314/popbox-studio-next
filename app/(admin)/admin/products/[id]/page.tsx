@@ -1,16 +1,11 @@
-import type { Metadata } from 'next';
+'use client';
+
+import { useParams } from 'next/navigation';
 import AdminProductDetailPageClient from '@/components/admin/product/admin-product-detail-page';
 
-export const metadata: Metadata = {
-  title: 'Product Detail — PopBox Studio Admin',
-};
+export default function AdminProductDetailPage() {
+  const params = useParams<{ id: string }>();
+  const productId = typeof params.id === 'string' ? params.id : '';
 
-interface IAdminProductDetailPageProps {
-  params: Promise<{ id: string }>
-}
-
-export default async function AdminProductDetailPage(props: IAdminProductDetailPageProps) {
-  const { id } = await props.params;
-
-  return <AdminProductDetailPageClient productId={id} />;
+  return <AdminProductDetailPageClient productId={productId} />;
 }

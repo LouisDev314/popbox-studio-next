@@ -142,7 +142,7 @@ function AdminLegalDocumentEditor({ type }: { type: LegalDocumentType }) {
   return (
     <div className="mx-auto max-w-4xl pb-16">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
         <Button
           type="button"
           variant="ghost"
@@ -152,7 +152,7 @@ function AdminLegalDocumentEditor({ type }: { type: LegalDocumentType }) {
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
             {exists ? `Edit ${label}` : `Create ${label}`}
           </h1>
@@ -182,8 +182,8 @@ function AdminLegalDocumentEditor({ type }: { type: LegalDocumentType }) {
             <History className="h-5 w-5 text-muted-foreground" />
             Version History
           </h2>
-          <div className="overflow-hidden rounded-xl border border-border/40 bg-card shadow-sm">
-            <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto rounded-xl border border-border/40 bg-card shadow-sm">
+            <table className="w-full min-w-[28rem] text-left text-sm">
               <thead>
                 <tr className="border-b border-border/20 bg-muted/30 text-muted-foreground">
                   <th className="px-4 py-3 font-medium">Version</th>

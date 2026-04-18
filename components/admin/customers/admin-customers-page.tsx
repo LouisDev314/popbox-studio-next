@@ -49,6 +49,38 @@ function EmptyCustomersState({
   );
 }
 
+function CustomerMobileCard({
+  customer,
+}: {
+  customer: IAdminCustomerListResponse['items'][number];
+}) {
+  return (
+    <article className="rounded-[24px] border border-[#ece4d8] bg-white p-4 shadow-[0_18px_44px_-40px_rgba(17,24,39,0.45)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[#111827]">{getAdminCustomerName(customer) || '—'}</p>
+          <p className="mt-1 break-all text-xs text-[#6b7280]">{customer.email}</p>
+          <p className="mt-1 text-xs text-[#6b7280]">{customer.phone || 'No phone on file'}</p>
+        </div>
+        <div className="rounded-full border border-[#ece4d8] bg-[#fbfaf7] px-3 py-1 text-xs font-medium text-[#111827]">
+          {customer.orderCount} order{customer.orderCount === 1 ? '' : 's'}
+        </div>
+      </div>
+
+      <dl className="mt-4 grid gap-3 text-sm text-[#6b7280] sm:grid-cols-2">
+        <div>
+          <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">Total spent</dt>
+          <dd className="mt-1 font-semibold text-[#11844d]">{formatPrice(customer.totalSpentCents || 0, 'CAD')}</dd>
+        </div>
+        <div>
+          <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">Joined</dt>
+          <dd className="mt-1 text-[#111827]">{customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : '—'}</dd>
+        </div>
+      </dl>
+    </article>
+  );
+}
+
 export default function AdminCustomersPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -148,44 +180,52 @@ export default function AdminCustomersPageClient() {
                 onClearSearch={() => setSearchInput('')}
               />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-[#ece4d8] text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">
-                      <th className="px-4 py-4">Name</th>
-                      <th className="px-4 py-4">Email</th>
-                      <th className="px-4 py-4">Phone</th>
-                      <th className="px-4 py-4">Orders</th>
-                      <th className="px-4 py-4">Total Spent</th>
-                      <th className="px-4 py-4 text-right">Joined</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#f1e9dc]">
-                    {visibleCustomers.map((customer) => (
-                      <tr key={customer.id} className="transition-colors hover:bg-[#fcf8f0]">
-                        <td className="px-4 py-4 font-semibold text-[#111827]">
-                          {getAdminCustomerName(customer) || '—'}
-                        </td>
-                        <td className="px-4 py-4 text-[#6b7280]">
-                          {customer.email}
-                        </td>
-                        <td className="px-4 py-4 text-[#6b7280]">
-                          {customer.phone || '—'}
-                        </td>
-                        <td className="px-4 py-4 font-semibold text-[#111827]">
-                          {customer.orderCount}
-                        </td>
-                        <td className="px-4 py-4 font-semibold text-[#11844d]">
-                          {formatPrice(customer.totalSpentCents || 0, 'CAD')}
-                        </td>
-                        <td className="px-4 py-4 text-right text-xs text-[#6b7280]">
-                          {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : '—'}
-                        </td>
+              <>
+                <div className="space-y-3 md:hidden" data-testid="admin-customers-mobile-list">
+                  {visibleCustomers.map((customer) => (
+                    <CustomerMobileCard key={customer.id} customer={customer} />
+                  ))}
+                </div>
+
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="w-full min-w-[760px] text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-[#ece4d8] text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">
+                        <th className="px-4 py-4">Name</th>
+                        <th className="px-4 py-4">Email</th>
+                        <th className="px-4 py-4">Phone</th>
+                        <th className="px-4 py-4">Orders</th>
+                        <th className="px-4 py-4">Total Spent</th>
+                        <th className="px-4 py-4 text-right">Joined</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-[#f1e9dc]">
+                      {visibleCustomers.map((customer) => (
+                        <tr key={customer.id} className="transition-colors hover:bg-[#fcf8f0]">
+                          <td className="px-4 py-4 font-semibold text-[#111827]">
+                            {getAdminCustomerName(customer) || '—'}
+                          </td>
+                          <td className="px-4 py-4 text-[#6b7280]">
+                            {customer.email}
+                          </td>
+                          <td className="px-4 py-4 text-[#6b7280]">
+                            {customer.phone || '—'}
+                          </td>
+                          <td className="px-4 py-4 font-semibold text-[#111827]">
+                            {customer.orderCount}
+                          </td>
+                          <td className="px-4 py-4 font-semibold text-[#11844d]">
+                            {formatPrice(customer.totalSpentCents || 0, 'CAD')}
+                          </td>
+                          <td className="px-4 py-4 text-right text-xs text-[#6b7280]">
+                            {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </div>

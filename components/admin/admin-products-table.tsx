@@ -297,6 +297,65 @@ function ProductTagsCell({ tags }: { tags: ITag[] }) {
   );
 }
 
+function ProductInfoBlock({
+  collectionState,
+  inventoryState,
+  product,
+  tagsState,
+}: {
+  collectionState: ContractState<NonNullable<IAdminProductListItem['collection']>>;
+  inventoryState: ContractState<string>;
+  product: IAdminProductListItem;
+  tagsState: ContractState<ITag[]>;
+}) {
+  return (
+    <dl className="grid gap-3 text-sm text-[#6b7280] sm:grid-cols-2">
+      <div>
+        <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">Type</dt>
+        <dd className="mt-1 text-[#111827]">{product.productType === 'kuji' ? 'Kuji' : 'Standard'}</dd>
+      </div>
+      <div>
+        <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">Price</dt>
+        <dd className="mt-1 text-[#111827]">{formatPrice(product.priceCents, product.currency)}</dd>
+      </div>
+      <div>
+        <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">Collection</dt>
+        <dd className="mt-1">
+          {collectionState.kind === 'violation' ? (
+            <ContractNotice message={collectionState.message} />
+          ) : (
+            <span className="text-[#111827]">
+              {collectionState.kind === 'ready' ? collectionState.value.name : '—'}
+            </span>
+          )}
+        </dd>
+      </div>
+      <div>
+        <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">Inventory</dt>
+        <dd className="mt-1">
+          {inventoryState.kind === 'violation' ? (
+            <ContractNotice message={inventoryState.message} />
+          ) : (
+            <span className={cn('text-[#111827]', product.productType === 'kuji' && 'italic text-[#8f8577]')}>
+              {inventoryState.kind === 'ready' ? inventoryState.value : '—'}
+            </span>
+          )}
+        </dd>
+      </div>
+      <div className="sm:col-span-2">
+        <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">Tags</dt>
+        <dd className="mt-1">
+          {tagsState.kind === 'violation' ? (
+            <ContractNotice message={tagsState.message} />
+          ) : (
+            <ProductTagsCell tags={tagsState.kind === 'ready' ? tagsState.value : []} />
+          )}
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
 interface IAdminProductsEmptyStateProps {
   hasActiveView: boolean;
   onClearView: () => void;
@@ -384,104 +443,154 @@ export function AdminProductsTable(props: IAdminProductsTableProps) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-[20px] border border-[#ece4d8] bg-white shadow-[0_18px_44px_-40px_rgba(17,24,39,0.45)]">
-      <table className="min-w-[1040px] w-full text-left text-sm">
-        <thead>
-          <tr className="border-b border-[#f1e8dc] text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8f8577]">
-            <th className="px-5 py-3">Product</th>
-            <th className="px-3.5 py-3">Type</th>
-            <th className="px-3.5 py-3">Status</th>
-            <th className="px-3.5 py-3">Price</th>
-            <th className="px-3.5 py-3">Collection</th>
-            <th className="px-3.5 py-3">Tags</th>
-            <th className="px-3.5 py-3">Inventory</th>
-            <th className="px-3.5 py-3">Updated</th>
-            <th className="px-5 py-3 text-right">
-              <span className="sr-only">Actions</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {props.products.map((product) => {
-            const collectionState = getCollectionState(product);
-            const tagsState = getTagsState(product);
-            const imageState = getPrimaryImageState(product);
-            const inventoryState = getInventoryDisplayState(product);
+    <>
+      <div className="space-y-3 md:hidden" data-testid="admin-products-mobile-list">
+        {props.products.map((product) => {
+          const collectionState = getCollectionState(product);
+          const tagsState = getTagsState(product);
+          const imageState = getPrimaryImageState(product);
+          const inventoryState = getInventoryDisplayState(product);
 
-            return (
-              <tr
-                key={product.id}
-                className="cursor-pointer border-b border-[#f5efe5] transition-colors last:border-b-0 hover:bg-[#fcfaf6]"
-                onClick={() => props.onRowClick(product.id)}
-              >
-                <td className="px-5 py-3">
-                  <div className="flex min-w-[240px] items-center gap-3">
-                    <ProductThumbnail imageState={imageState} productName={product.name} />
-                    <div className="min-w-0 space-y-0.5">
-                      <p className="line-clamp-1 text-[14px] font-medium text-[#111827]">{product.name}</p>
-                      {imageState.kind === 'violation' ? <ContractNotice message={imageState.message} /> : null}
+          return (
+            <article
+              key={product.id}
+              className="cursor-pointer rounded-[20px] border border-[#ece4d8] bg-white p-4 shadow-[0_18px_44px_-40px_rgba(17,24,39,0.45)] transition-colors hover:bg-[#fcfaf6]"
+              onClick={() => props.onRowClick(product.id)}
+            >
+              <div className="flex items-start gap-3">
+                <ProductThumbnail imageState={imageState} productName={product.name} />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="line-clamp-2 text-[15px] font-semibold text-[#111827]">{product.name}</p>
+                      <p className="mt-1 text-xs text-[#6b7280]">Updated {formatRelativeDate(product.updatedAt)}</p>
+                    </div>
+                    <div onClick={(event) => event.stopPropagation()}>
+                      <RowActions
+                        product={product}
+                        onStatusChange={props.onStatusChange}
+                        isUpdating={props.isPatching}
+                      />
                     </div>
                   </div>
-                </td>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <AdminProductStatusBadge status={product.status} />
+                    {imageState.kind === 'violation' ? <ContractNotice message={imageState.message} /> : null}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4">
+                <ProductInfoBlock
+                  collectionState={collectionState}
+                  inventoryState={inventoryState}
+                  product={product}
+                  tagsState={tagsState}
+                />
+              </div>
+            </article>
+          );
+        })}
+      </div>
 
-                <td className="px-3.5 py-3 text-[#6b7280]">
-                  <span className="inline-flex items-center gap-1 text-sm">
-                    {product.productType === 'kuji' ? 'Kuji' : 'Standard'}
-                  </span>
-                </td>
+      <div className="hidden overflow-x-auto rounded-[20px] border border-[#ece4d8] bg-white shadow-[0_18px_44px_-40px_rgba(17,24,39,0.45)] md:block">
+        <table className="w-full min-w-[1040px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-[#f1e8dc] text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8f8577]">
+              <th className="px-5 py-3">Product</th>
+              <th className="px-3.5 py-3">Type</th>
+              <th className="px-3.5 py-3">Status</th>
+              <th className="px-3.5 py-3">Price</th>
+              <th className="px-3.5 py-3">Collection</th>
+              <th className="px-3.5 py-3">Tags</th>
+              <th className="px-3.5 py-3">Inventory</th>
+              <th className="px-3.5 py-3">Updated</th>
+              <th className="px-5 py-3 text-right">
+                <span className="sr-only">Actions</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {props.products.map((product) => {
+              const collectionState = getCollectionState(product);
+              const tagsState = getTagsState(product);
+              const imageState = getPrimaryImageState(product);
+              const inventoryState = getInventoryDisplayState(product);
 
-                <td className="px-3.5 py-3">
-                  <AdminProductStatusBadge status={product.status} />
-                </td>
+              return (
+                <tr
+                  key={product.id}
+                  className="cursor-pointer border-b border-[#f5efe5] transition-colors last:border-b-0 hover:bg-[#fcfaf6]"
+                  onClick={() => props.onRowClick(product.id)}
+                >
+                  <td className="px-5 py-3">
+                    <div className="flex min-w-[240px] items-center gap-3">
+                      <ProductThumbnail imageState={imageState} productName={product.name} />
+                      <div className="min-w-0 space-y-0.5">
+                        <p className="line-clamp-1 text-[14px] font-medium text-[#111827]">{product.name}</p>
+                        {imageState.kind === 'violation' ? <ContractNotice message={imageState.message} /> : null}
+                      </div>
+                    </div>
+                  </td>
 
-                <td className="px-3.5 py-3 tabular-nums text-sm text-[#111827]">
-                  {formatPrice(product.priceCents, product.currency)}
-                </td>
-
-                <td className="px-3.5 py-3 text-sm text-[#6b7280]">
-                  {collectionState.kind === 'violation' ? (
-                    <ContractNotice message={collectionState.message} />
-                  ) : (
-                    <span className="line-clamp-1">
-                      {collectionState.kind === 'ready' ? collectionState.value.name : '—'}
+                  <td className="px-3.5 py-3 text-[#6b7280]">
+                    <span className="inline-flex items-center gap-1 text-sm">
+                      {product.productType === 'kuji' ? 'Kuji' : 'Standard'}
                     </span>
-                  )}
-                </td>
+                  </td>
 
-                <td className="px-3.5 py-3">
-                  {tagsState.kind === 'violation' ? (
-                    <ContractNotice message={tagsState.message} />
-                  ) : (
-                    <ProductTagsCell tags={tagsState.kind === 'ready' ? tagsState.value : []} />
-                  )}
-                </td>
+                  <td className="px-3.5 py-3">
+                    <AdminProductStatusBadge status={product.status} />
+                  </td>
 
-                <td className="px-3.5 py-3 text-sm text-[#6b7280]">
-                  {inventoryState.kind === 'violation' ? (
-                    <ContractNotice message={inventoryState.message} />
-                  ) : (
-                    <span className={cn(product.productType === 'kuji' && 'italic text-[#8f8577]')}>
-                      {inventoryState.kind === 'ready' ? inventoryState.value : '—'}
-                    </span>
-                  )}
-                </td>
+                  <td className="px-3.5 py-3 tabular-nums text-sm text-[#111827]">
+                    {formatPrice(product.priceCents, product.currency)}
+                  </td>
 
-                <td className="px-3.5 py-3 text-sm text-[#6b7280]">
-                  {formatRelativeDate(product.updatedAt)}
-                </td>
+                  <td className="px-3.5 py-3 text-sm text-[#6b7280]">
+                    {collectionState.kind === 'violation' ? (
+                      <ContractNotice message={collectionState.message} />
+                    ) : (
+                      <span className="line-clamp-1">
+                        {collectionState.kind === 'ready' ? collectionState.value.name : '—'}
+                      </span>
+                    )}
+                  </td>
 
-                <td className="px-5 py-3 text-right" onClick={(event) => event.stopPropagation()}>
-                  <RowActions
-                    product={product}
-                    onStatusChange={props.onStatusChange}
-                    isUpdating={props.isPatching}
-                  />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                  <td className="px-3.5 py-3">
+                    {tagsState.kind === 'violation' ? (
+                      <ContractNotice message={tagsState.message} />
+                    ) : (
+                      <ProductTagsCell tags={tagsState.kind === 'ready' ? tagsState.value : []} />
+                    )}
+                  </td>
+
+                  <td className="px-3.5 py-3 text-sm text-[#6b7280]">
+                    {inventoryState.kind === 'violation' ? (
+                      <ContractNotice message={inventoryState.message} />
+                    ) : (
+                      <span className={cn(product.productType === 'kuji' && 'italic text-[#8f8577]')}>
+                        {inventoryState.kind === 'ready' ? inventoryState.value : '—'}
+                      </span>
+                    )}
+                  </td>
+
+                  <td className="px-3.5 py-3 text-sm text-[#6b7280]">
+                    {formatRelativeDate(product.updatedAt)}
+                  </td>
+
+                  <td className="px-5 py-3 text-right" onClick={(event) => event.stopPropagation()}>
+                    <RowActions
+                      product={product}
+                      onStatusChange={props.onStatusChange}
+                      isUpdating={props.isPatching}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

@@ -108,7 +108,7 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-30 mt-2 w-full min-w-75 rounded-[20px] border border-[#e4dccf] bg-[#fffdfa] shadow-[0_24px_50px_-36px_rgba(17,24,39,0.35)]">
+        <div className="absolute left-0 top-full z-30 mt-2 w-full rounded-[20px] border border-[#e4dccf] bg-[#fffdfa] shadow-[0_24px_50px_-36px_rgba(17,24,39,0.35)] sm:min-w-[18rem]">
           <div className="flex items-start justify-between gap-3 border-b border-border/20 px-3 py-3">
             <div>
               <p className="text-sm font-semibold text-[#111827]">Filter by tags</p>
@@ -201,7 +201,7 @@ interface IAdminProductsFilterBarProps {
 export function AdminProductsFilterBar(props: IAdminProductsFilterBarProps) {
   return (
     <div className="mt-5 rounded-[20px] border border-[#ece4d8] bg-white/80 p-3.5 shadow-[0_18px_44px_-40px_rgba(17,24,39,0.45)]">
-      <div className="flex justify-end gap-3 text-sm text-[#6b7280]">
+      <div className="flex flex-wrap justify-start gap-3 text-sm text-[#6b7280] sm:justify-end">
         {props.hasActiveView && (
           <Button
             type="button"
