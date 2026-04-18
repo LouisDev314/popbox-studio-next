@@ -31,6 +31,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useMobileNavbarVisibility } from '@/hooks/use-mobile-navbar-visibility';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import { type IProductSuggestion, IProductSuggestionResponse } from '@/interfaces/product';
+import { formatQuantity } from '@/lib/format-quantity';
 import { cn } from '@/lib/utils';
 
 type TMobilePanel = 'menu' | 'search' | null;
@@ -98,7 +99,7 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
         <Heart className="h-5 w-5" />
         {props.hasWishlistHydrated && props.totalWishlistItems > 0 ? (
           <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-            {props.totalWishlistItems}
+            {formatQuantity(props.totalWishlistItems)}
           </span>
         ) : null}
       </button>
@@ -113,7 +114,7 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
         <ShoppingBag className="h-5 w-5" />
         {props.hasCartHydrated && props.totalItems > 0 ? (
           <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-            {props.totalItems}
+            {formatQuantity(props.totalItems)}
           </span>
         ) : null}
       </button>

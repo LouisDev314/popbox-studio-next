@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/select';
 import { IAdminProductEditor, IKujiPrize } from '@/interfaces/product';
 import { uploadAdminProductKujiPrizeImage } from '@/lib/api/admin-client';
+import { formatQuantity } from '@/lib/format-quantity';
 import { KUJI_PRIZE_CODES, isKujiPrizeCode } from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
 
@@ -201,7 +202,7 @@ function SortablePrizeRow({
       <td className="px-3 py-2 text-right text-muted-foreground">{prize.initialQuantity}</td>
       <td className="px-3 py-2 text-right">
         <span className={`inline-flex items-center justify-center rounded-sm px-1.5 py-0.5 font-medium ${prize.remainingQuantity === 0 ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
-          {prize.remainingQuantity}
+          {formatQuantity(prize.remainingQuantity)}
         </span>
       </td>
       <td className="px-3 py-2 text-right text-muted-foreground">

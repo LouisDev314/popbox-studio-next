@@ -3,7 +3,6 @@
 import {
   type ReactNode,
   useEffect,
-  useId,
   useRef,
 } from 'react';
 import { X } from 'lucide-react';
@@ -73,7 +72,9 @@ export function StorefrontDrawer(props: IStorefrontDrawerProps) {
   } = props;
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
-  const titleId = useId();
+  const titleId = title || ariaLabel
+    ? `${triggerButtonId ?? `storefront-drawer-${side}`}-title`
+    : undefined;
 
   useEffect(() => {
     if (!isOpen) {
@@ -173,13 +174,13 @@ export function StorefrontDrawer(props: IStorefrontDrawerProps) {
 
   const sideClassName = side === 'left'
     ? {
-        border: 'left-0 border-r',
-        closed: '-translate-x-full',
-      }
+      border: 'left-0 border-r',
+      closed: '-translate-x-full',
+    }
     : {
-        border: 'right-0 border-l',
-        closed: 'translate-x-full',
-      };
+      border: 'right-0 border-l',
+      closed: 'translate-x-full',
+    };
 
   return (
     <>
