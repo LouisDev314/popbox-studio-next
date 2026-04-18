@@ -144,6 +144,7 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
                           src={suggestion.thumbnailUrl}
                           alt={suggestion.name}
                           label={suggestion.name}
+                          sizes="56px"
                           fallbackClassName="px-2 py-1 text-[10px]"
                         />
                       </div>

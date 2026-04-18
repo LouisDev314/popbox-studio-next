@@ -77,7 +77,7 @@ export function WishlistDrawer(props: IWishlistDrawerProps) {
                       className="block h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-muted/30"
                       onClick={onClose}
                     >
-                      <StorefrontImage src={item.imageUrl} alt={item.name} label={item.name} />
+                      <StorefrontImage src={item.imageUrl} alt={item.name} label={item.name} sizes="80px" />
                     </Link>
                     <div className="min-w-0 flex-1">
                       <Link

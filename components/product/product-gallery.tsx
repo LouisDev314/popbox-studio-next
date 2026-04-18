@@ -21,6 +21,7 @@ export function ProductGallery(props: IProductGalleryProps) {
           src={activeImageData?.url}
           alt={activeImageData?.altText || props.product.name}
           label={props.product.name}
+          sizes="(max-width: 1024px) 100vw, 50vw"
           imageClassName="transition-transform duration-500 ease-out"
         />
         {props.product.productType === 'kuji' && (
@@ -58,6 +59,7 @@ export function ProductGallery(props: IProductGalleryProps) {
                 src={img.url}
                 alt={img.altText || `${props.product.name} thumbnail ${idx + 1}`}
                 label={props.product.name}
+                sizes="(max-width: 640px) 80px, 96px"
               />
             </button>
           ))}

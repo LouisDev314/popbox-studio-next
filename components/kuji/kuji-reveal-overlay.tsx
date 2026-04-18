@@ -180,6 +180,7 @@ function KujiSingleRevealResultView(props: {
               alt={prizeName}
               label={prizeName}
               className="h-full w-full overflow-hidden rounded-[1.5rem]"
+              sizes="(max-width: 640px) calc(100vw - 2.5rem), 22rem"
               imageClassName="h-full w-full"
               priority
             />

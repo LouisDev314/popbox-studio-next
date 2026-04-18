@@ -76,7 +76,7 @@ function CurrentPrizeImagePanel({ prize }: ICurrentPrizeImagePanelProps) {
               src={prize.imageUrl}
               alt={prize.name}
               fill
-              sizes="(min-width: 640px) 24rem, 100vw"
+              sizes="(max-width: 639px) calc(100vw - 4rem), 24rem"
               className="object-cover"
               unoptimized
             />

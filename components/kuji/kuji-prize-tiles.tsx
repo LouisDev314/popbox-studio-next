@@ -51,6 +51,11 @@ function KujiPrizeTileCard(props: IKujiPrizeTileCardProps) {
           alt={props.item.name}
           label={props.item.name}
           className="h-full w-full"
+          sizes={
+            props.compact
+              ? '(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw'
+              : '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'
+          }
           imageClassName={cn(
             'h-full w-full transition-transform duration-500 ease-out',
             props.interactive && 'group-hover:scale-105',
@@ -168,6 +173,7 @@ function KujiPrizeDialog(props: {
                 alt={props.item.name}
                 label={props.item.name}
                 className="aspect-square w-full"
+                sizes="(max-width: 1024px) calc(100vw - 3rem), 42rem"
                 imageClassName="h-full w-full"
               />
             </div>

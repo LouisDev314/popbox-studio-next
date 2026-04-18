@@ -1,19 +1,23 @@
 'use client';
 
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useState, useTransition } from 'react';
 import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function SearchPageClient() {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const [isPending, startTransition] = useTransition();
 
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      router.push(`/search/results?q=${encodeURIComponent(query)}`);
+      startTransition(() => {
+        router.push(`/search/results?q=${encodeURIComponent(query)}`);
+      });
     }
   };
 
@@ -23,7 +27,7 @@ export default function SearchPageClient() {
         <h1 className="mb-8 text-4xl font-semibold tracking-tight text-foreground">
           What are you looking for?
         </h1>
-        <form onSubmit={handleSearch} className="flex gap-2">
+        <form onSubmit={handleSearch} className="flex gap-2" aria-busy={isPending}>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
             <Input
@@ -34,8 +38,9 @@ export default function SearchPageClient() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          <Button type="submit" size="lg" className="h-12 rounded-xl px-8">
-            Search
+          <Button type="submit" size="lg" className="h-12 rounded-xl px-8" disabled={isPending}>
+            {isPending ? <Spinner className="size-4" /> : null}
+            {isPending ? 'Searching...' : 'Search'}
           </Button>
         </form>
       </div>

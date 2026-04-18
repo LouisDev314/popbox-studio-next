@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import QueryConfigs from '@/configs/api/query-config';
@@ -111,6 +111,7 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isRoutePending, startRouteTransition] = useTransition();
   const [draftType, setDraftType] = useState<productType | undefined>(props.initialType);
   const [draftTags, setDraftTags] = useState<string[]>(props.initialTags);
   const serializedSelectedTags = serializeTagSearchParam(props.initialTags);
@@ -167,7 +168,9 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
       ? `${props.basePath ?? '/products'}?${nextQueryString}`
       : (props.basePath ?? '/products');
 
-    router.replace(nextUrl, { scroll: false });
+    startRouteTransition(() => {
+      router.replace(nextUrl, { scroll: false });
+    });
   };
 
   const setFilterParams = (
@@ -197,11 +200,13 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
       return;
     }
 
-    router.replace(getStorefrontSortHref({
-      pathname,
-      searchParams,
-      sort: normalizedSort,
-    }), { scroll: false });
+    startRouteTransition(() => {
+      router.replace(getStorefrontSortHref({
+        pathname,
+        searchParams,
+        sort: normalizedSort,
+      }), { scroll: false });
+    });
   };
 
   const handleTypeChange = (newType: string | null) => {
@@ -346,13 +351,19 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
           />
         </div>
 
-        <section className="min-w-0">
+        <section className="min-w-0" aria-busy={isRoutePending}>
           <div className="mb-4 flex items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
               {isInitialError
                 ? 'Catalog unavailable'
                 : `${products.length} product${products.length === 1 ? '' : 's'}`}
             </p>
+            {isRoutePending ? (
+              <div className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground" role="status">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                Updating…
+              </div>
+            ) : null}
           </div>
 
           <ProductsResults

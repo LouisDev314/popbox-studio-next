@@ -154,6 +154,7 @@ export function CartDrawer(props: ICartDrawerProps) {
                             src={item.product.images[0]?.url}
                             alt={item.product.name}
                             label={item.product.name}
+                            sizes="80px"
                           />
                         </div>
                         <div className="min-w-0 flex-1">

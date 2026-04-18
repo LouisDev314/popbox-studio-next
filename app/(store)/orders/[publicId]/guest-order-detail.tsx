@@ -73,6 +73,7 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
                         src={item.imageUrl}
                         alt={item.productName}
                         label={item.productName}
+                        sizes="64px"
                       />
                     </div>
 

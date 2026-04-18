@@ -50,6 +50,7 @@ export function InvalidCartItems(props: IInvalidCartItemsProps) {
                   src={item.product.imageUrl}
                   alt={item.product.name}
                   label={item.product.name}
+                  sizes="80px"
                 />
               </div>
 

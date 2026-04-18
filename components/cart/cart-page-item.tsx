@@ -35,6 +35,7 @@ export function CartPageItem(props: ICartPageItemProps) {
             src={props.item.product.images[0]?.url}
             alt={props.item.product.name}
             label={props.item.product.name}
+            sizes="(max-width: 640px) 96px, 112px"
             imageClassName="transition-transform duration-300 hover:scale-[1.03]"
           />
         </Link>
