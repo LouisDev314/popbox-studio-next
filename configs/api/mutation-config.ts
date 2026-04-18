@@ -52,7 +52,7 @@ const MutationConfigs = {
   }): Promise<AxiosResponse<IBaseApiResponse<IOrderTicket>>> => {
     return httpClient.post(`/api/v1/orders/${publicId}/tickets/${ticketId}/reveal`);
   },
-  revealAllTickets: (publicId: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
+  revealAllTickets: async (publicId: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
     return httpClient.post(`/api/v1/orders/${publicId}/tickets/reveal-all`);
   },
   patchAdminProductStatus: async ({

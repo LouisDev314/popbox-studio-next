@@ -5,19 +5,23 @@ import { type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StorefrontImage } from '@/components/ui/storefront-image';
+import { KujiPrizeTiles, type IKujiPrizeTileItem } from '@/components/kuji/kuji-prize-tiles';
 import { cn } from '@/lib/utils';
 import type { IOrderTicket } from '@/interfaces/order';
 
 export type TKujiRevealOverlayPhase =
-  | 'playingSingleRevealVideo'
+  | 'playingRevealVideo'
+  | 'waitingForRevealResult'
   | 'showingSingleRevealResult'
   | 'showingAllRevealedSummary';
+
+export type TKujiRevealOverlayMode = 'all' | 'single';
 
 interface IKujiRevealOverlayProps {
   currentTicket: IOrderTicket | null;
   hasNextTicket: boolean;
   isOpen: boolean;
-  isWaitingForSingleReveal: boolean;
+  mode: TKujiRevealOverlayMode | null;
   onAdvanceToNext: () => void;
   onReturnToTickets: () => void;
   onVideoComplete: () => void;
@@ -44,69 +48,103 @@ function OverlayAtmosphere(props: { children: ReactNode; className?: string }) {
   );
 }
 
+function buildSummaryPrizeTiles(tickets: IOrderTicket[]): IKujiPrizeTileItem[] {
+  return tickets.flatMap((ticket) => {
+    if (!ticket.prize) {
+      return [];
+    }
+
+    return [{
+      description: ticket.prize.description,
+      id: ticket.id,
+      imageUrl: ticket.prize.imageUrl,
+      name: ticket.prize.name,
+      prizeCode: ticket.prize.prizeCode,
+      subtitle: `Ticket #${ticket.ticketNumber}`,
+    }];
+  });
+}
+
 function KujiRevealVideoView(props: {
-  isWaitingForSingleReveal: boolean;
+  mode: TKujiRevealOverlayMode | null;
   onVideoComplete: () => void;
 }) {
   return (
-    <OverlayAtmosphere className="bg-[#111827] text-white before:bg-sky-500/18 after:bg-cyan-400/14">
+    <OverlayAtmosphere className="bg-[#08111f] text-white before:bg-sky-500/18 after:bg-cyan-400/14">
       <div className="relative flex min-h-dvh flex-1 items-center justify-center">
-        {props.isWaitingForSingleReveal ? (
-          <div className="flex flex-col items-center gap-4 px-6 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/18 bg-white/10 backdrop-blur-sm">
-              <Loader2 className="h-7 w-7 animate-spin text-white/90" />
-            </div>
-            <div className="space-y-2">
-              <p className="text-2xl font-semibold tracking-tight text-white">Revealing your prize</p>
-              <p className="text-sm text-white/72 sm:text-base">
-                Finalizing the result. This should only take a moment.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <>
-            <video
-              autoPlay
-              controls={false}
-              muted
-              onEnded={props.onVideoComplete}
-              onError={props.onVideoComplete}
-              playsInline
-              preload="auto"
-              src="/kuji-reveal-mobile.mp4"
-              className="absolute inset-0 h-full w-full object-cover"
-              data-testid="kuji-reveal-mobile-video"
-            />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.08)_0%,rgba(0,0,0,0)_28%,rgba(0,0,0,0.24)_100%)]" />
-            <div
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/45 via-black/10 to-transparent"
-              style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-            />
-          </>
-        )}
+        <video
+          autoPlay
+          controls={false}
+          muted
+          onEnded={props.onVideoComplete}
+          onError={props.onVideoComplete}
+          playsInline
+          preload="auto"
+          src="/kuji-reveal-mobile.mp4"
+          className="absolute inset-0 h-full w-full object-cover"
+          data-testid="kuji-reveal-mobile-video"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.18)_0%,rgba(2,6,23,0.02)_32%,rgba(2,6,23,0.48)_100%)]" />
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/50 via-black/16 to-transparent"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        />
       </div>
 
-      {props.isWaitingForSingleReveal ? null : (
-        <div
-          className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-5"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)' }}
+      <div
+        className="absolute inset-x-0 bottom-0 z-20 flex justify-center px-5"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)' }}
+      >
+        <Button
+          type="button"
+          variant="outline"
+          onClick={props.onVideoComplete}
+          className="h-11 min-w-28 rounded-full border-white/24 bg-white/12 px-6 text-sm font-semibold text-white backdrop-blur-md hover:bg-white/18 hover:text-white"
         >
-          <Button
-            type="button"
-            variant="outline"
-            onClick={props.onVideoComplete}
-            className="h-11 min-w-28 rounded-full border-white/24 bg-white/12 px-6 text-sm font-semibold text-white backdrop-blur-md hover:bg-white/18 hover:text-white"
-          >
-            Skip
-          </Button>
+          Skip
+        </Button>
+      </div>
+    </OverlayAtmosphere>
+  );
+}
+
+function KujiRevealWaitingView(props: {
+  mode: TKujiRevealOverlayMode | null;
+}) {
+  return (
+    <OverlayAtmosphere className="before:bg-primary/8 after:bg-sky-200/20">
+      <div className="flex min-h-dvh flex-1 items-center justify-center px-6">
+        <div className="w-full max-w-sm text-center">
+          <div className="mx-auto rounded-[2rem] border border-border/70 bg-background/88 px-6 py-8 shadow-[0_32px_90px_-40px_rgba(15,23,42,0.22)] backdrop-blur-md">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-border/70 bg-background shadow-sm">
+              <Loader2 className="h-7 w-7 animate-spin text-foreground" />
+            </div>
+
+            <div className="mt-5 space-y-2">
+              <p className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                {props.mode === 'all' ? 'Finalizing every prize' : 'Finalizing your prize'}
+              </p>
+
+              <p className="mx-auto max-w-xs text-sm leading-6 text-muted-foreground sm:text-base">
+                The reveal is still syncing with the order. This should only take a moment.
+              </p>
+            </div>
+
+            <div className="mt-5 flex items-center justify-center">
+              <span className="inline-flex rounded-full border border-border/70 bg-muted/50 px-3 py-1 text-xs font-semibold tracking-[0.18em] text-foreground/80 uppercase">
+                Syncing
+              </span>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </OverlayAtmosphere>
   );
 }
 
 function KujiSingleRevealResultView(props: {
   onAdvanceToNext: () => void;
+  onReturnToTickets: () => void;
   progressLabel: string | null;
   ticket: IOrderTicket;
 }) {
@@ -115,14 +153,14 @@ function KujiSingleRevealResultView(props: {
 
   return (
     <OverlayAtmosphere>
-      <div className="flex min-h-dvh flex-1 flex-col items-center justify-between px-5 pb-8 pt-12 sm:px-8 sm:pb-10 sm:pt-14">
+      <div className="flex min-h-dvh flex-col items-center justify-around px-5 pb-12 pt-12 sm:px-8 sm:pb-20 sm:pt-14">
         <div className="w-full max-w-sm space-y-4 text-center sm:max-w-md">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-            Congratulations
-          </p>
           <h2 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            {prizeName}
+            Congratulations
           </h2>
+          <p className="text-lg font-semibold text-muted-foreground">
+            {prizeName}
+          </p>
           <div className="flex items-center justify-center gap-2">
             <span className="inline-flex rounded-full border border-border/70 bg-background/75 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-foreground/78 shadow-sm">
               Prize {prizeCode}
@@ -148,17 +186,23 @@ function KujiSingleRevealResultView(props: {
           </div>
         </div>
 
-        <div className="w-full max-w-sm space-y-4 text-center sm:max-w-md">
+        <div className="mx-auto flex w-full max-w-md gap-3 px-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={props.onReturnToTickets}
+            className="h-12 min-w-0 flex-1 rounded-full px-6 text-sm font-semibold sm:text-base"
+          >
+            <span className="truncate">Back to tickets</span>
+          </Button>
+
           <Button
             type="button"
             onClick={props.onAdvanceToNext}
-            className="h-13 w-full rounded-full px-6 text-base font-semibold shadow-[0_20px_55px_-30px_rgba(15,23,42,0.45)]"
+            className="h-12 min-w-0 flex-1 rounded-full px-6 text-sm font-semibold shadow-[0_20px_55px_-30px_rgba(15,23,42,0.45)] sm:h-13 sm:text-base"
           >
-            Click to reveal the next ticket
+            <span className="truncate">Reveal next</span>
           </Button>
-          <p className="text-sm text-muted-foreground">
-            Your remaining tickets stay in sequence.
-          </p>
         </div>
       </div>
     </OverlayAtmosphere>
@@ -169,71 +213,43 @@ function KujiAllPrizesSummaryView(props: {
   onReturnToTickets: () => void;
   tickets: IOrderTicket[];
 }) {
+  const prizeTiles = buildSummaryPrizeTiles(props.tickets);
+
   return (
     <OverlayAtmosphere>
-      <div className="flex min-h-dvh flex-1 flex-col px-5 pb-8 pt-12 sm:px-8 sm:pb-10 sm:pt-14">
-        <div className="mx-auto w-full max-w-5xl flex-1">
-          <div className="space-y-4 text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-              Congratulations
-            </p>
-            <h2 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-              All prizes revealed
-            </h2>
-            <p className="mx-auto max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-              Your full ticket result is ready. Review the revealed prizes, then return to the tickets page.
-            </p>
-          </div>
+      <div className="flex min-h-dvh flex-1 flex-col px-4 pb-4 pt-8 sm:px-6 sm:pb-6 sm:pt-10">
+        <h2 className="mt-3 text-center pb-5 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+          Congratulations
+        </h2>
 
-          <div className="mt-8 rounded-[2rem] border border-border/70 bg-background/78 p-4 shadow-[0_32px_90px_-40px_rgba(15,23,42,0.28)] backdrop-blur-sm sm:p-6">
-            {props.tickets.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {props.tickets.map((ticket) => {
-                  const prizeName = ticket.prize?.name ?? 'Prize revealed';
-                  const prizeCode = ticket.prize?.prizeCode ?? '—';
-
-                  return (
-                    <article
-                      key={ticket.id}
-                      className="overflow-hidden rounded-[1.5rem] border border-border/65 bg-card/90"
-                    >
-                      <div className="aspect-[1.05/1] overflow-hidden bg-muted/30">
-                        <StorefrontImage
-                          src={ticket.prize?.imageUrl}
-                          alt={prizeName}
-                          label={prizeName}
-                          className="h-full w-full"
-                          imageClassName="h-full w-full"
-                        />
-                      </div>
-                      <div className="space-y-3 p-4">
-                        <span className="inline-flex rounded-full border border-border/70 bg-background px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/75">
-                          Prize {prizeCode}
-                        </span>
-                        <h3 className="text-lg font-semibold leading-tight text-foreground">
-                          {prizeName}
-                        </h3>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex min-h-56 items-center justify-center rounded-[1.5rem] border border-dashed border-border/70 bg-muted/20 px-6 text-center text-sm text-muted-foreground sm:text-base">
-                Your ticket summary is syncing. You can return now, and the updated prize list will remain on the tickets page.
-              </div>
-            )}
+        <div className="min-h-0 flex-1 overflow-y-auto pb-4">
+          <div className="mx-auto w-full max-w-5xl px-1 sm:px-2">
+            <KujiPrizeTiles
+              compact
+              enableDialog={false}
+              items={prizeTiles}
+              emptyState={(
+                <div className="flex min-h-56 items-center justify-center rounded-[1.25rem] border border-dashed border-border/70 bg-muted/20 px-6 text-center text-sm text-muted-foreground sm:text-base">
+                  Your ticket summary is syncing. You can return now, and the updated prize list will remain on the tickets page.
+                </div>
+              )}
+            />
           </div>
         </div>
 
-        <div className="mx-auto mt-8 w-full max-w-sm">
-          <Button
-            type="button"
-            onClick={props.onReturnToTickets}
-            className="h-13 w-full rounded-full px-6 text-base font-semibold shadow-[0_20px_55px_-30px_rgba(15,23,42,0.45)]"
-          >
-            Return to tickets
-          </Button>
+        <div
+          className="shrink-0 pt-2"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' }}
+        >
+          <div className="mx-auto w-full max-w-sm">
+            <Button
+              type="button"
+              onClick={props.onReturnToTickets}
+              className="h-13 w-full rounded-full px-6 text-base font-semibold shadow-[0_20px_55px_-30px_rgba(15,23,42,0.45)]"
+            >
+              Return
+            </Button>
+          </div>
         </div>
       </div>
     </OverlayAtmosphere>
@@ -256,16 +272,21 @@ export function KujiRevealOverlay(props: IKujiRevealOverlayProps) {
             Ticket reveal overlay
           </DialogPrimitive.Title>
 
-          {props.phase === 'playingSingleRevealVideo' ? (
+          {props.phase === 'playingRevealVideo' ? (
             <KujiRevealVideoView
-              isWaitingForSingleReveal={props.isWaitingForSingleReveal}
+              mode={props.mode}
               onVideoComplete={props.onVideoComplete}
             />
+          ) : null}
+
+          {props.phase === 'waitingForRevealResult' ? (
+            <KujiRevealWaitingView mode={props.mode} />
           ) : null}
 
           {props.phase === 'showingSingleRevealResult' && props.currentTicket && props.hasNextTicket ? (
             <KujiSingleRevealResultView
               onAdvanceToNext={props.onAdvanceToNext}
+              onReturnToTickets={props.onReturnToTickets}
               progressLabel={props.progressLabel}
               ticket={props.currentTicket}
             />

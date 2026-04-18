@@ -129,6 +129,71 @@ describe('CheckoutButton', () => {
     });
   });
 
+  it('shows the no-close checkout dialog for 409 conflicts', async () => {
+    server.use(
+      http.post(CHECKOUT_URL, async () => {
+        return HttpResponse.json({
+          code: 409,
+          data: null,
+          message: 'Order can no longer be checked out',
+          status: 'error',
+          success: false,
+        }, { status: 409 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CheckoutButton />);
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toHaveTextContent(
+        'This order can no longer be checked out because one or more items are no longer available.',
+      );
+    });
+
+    expect(screen.queryByLabelText('Close dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Okay' })).toBeInTheDocument();
+  });
+
+  it('shows the generic retry dialog for 500 responses', async () => {
+    server.use(
+      http.post(CHECKOUT_URL, async () => {
+        return HttpResponse.json({
+          code: 500,
+          data: null,
+          message: 'Internal server error',
+          status: 'error',
+          success: false,
+        }, { status: 500 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CheckoutButton />);
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toHaveTextContent('Something went wrong. Please try again.');
+    });
+
+    expect(screen.queryByLabelText('Close dialog')).not.toBeInTheDocument();
+  });
+
   it('prevents duplicate checkout submissions while the first request is in flight', async () => {
     let requestCount = 0;
 

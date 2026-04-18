@@ -147,9 +147,10 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = forwardRef<
   ElementRef<typeof DialogPrimitive.Content>,
   ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
-  title?: string; // optional override
-}
->(({ children, className, title = 'Dialog', ...props }, ref) => {
+    showCloseButton?: boolean;
+    title?: string;
+  }
+>(({ children, className, showCloseButton = true, title = 'Dialog', ...props }, ref) => {
   const { visualState } = useDialogAnimationState();
   const lastChildrenRef = useRef(children);
   const lastClassNameRef = useRef(className);
@@ -193,18 +194,20 @@ const DialogContent = forwardRef<
 
           {renderedChildren}
 
-          <DialogPrimitive.Close
-            className={cn(
-              'absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full',
-              'border border-white/35 bg-background/78 text-foreground/75 shadow-[0_16px_36px_-18px_rgba(15,23,42,0.55)]',
-              'backdrop-blur-xl transition-all duration-200 hover:bg-background/92 hover:text-foreground',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-              'supports-[backdrop-filter]:bg-background/62 sm:right-5 sm:top-5',
-            )}
-            aria-label="Close dialog"
-          >
-            <X className="h-4 w-4" />
-          </DialogPrimitive.Close>
+          {showCloseButton ? (
+            <DialogPrimitive.Close
+              className={cn(
+                'absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full',
+                'border border-white/35 bg-background/78 text-foreground/75 shadow-[0_16px_36px_-18px_rgba(15,23,42,0.55)]',
+                'backdrop-blur-xl transition-all duration-200 hover:bg-background/92 hover:text-foreground',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                'supports-[backdrop-filter]:bg-background/62 sm:right-5 sm:top-5',
+              )}
+              aria-label="Close dialog"
+            >
+              <X className="h-4 w-4" />
+            </DialogPrimitive.Close>
+          ) : null}
         </DialogPrimitive.Content>
       </div>
     </DialogPortal>

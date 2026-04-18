@@ -78,8 +78,8 @@ function handleRevealKeyDown(
 }
 
 export function TicketRevealCard(props: ITicketRevealCardProps) {
-  const prize = props.ticket.prize;
-  const isRevealed = prize !== null;
+  const isRevealed = Boolean(props.ticket.revealedAt);
+  const prize = isRevealed ? props.ticket.prize : null;
   const kujiProductImageAlt = props.ticket.kujiProduct.imageAltText ?? props.ticket.kujiProduct.name;
   const canReveal = !isRevealed && !props.isRevealing;
   const revealTicket = (focusTarget: HTMLElement) => props.onReveal(props.ticket.id, focusTarget);
@@ -117,7 +117,7 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
                 alt="Kuji"
                 width={40}
                 height={40}
-                className="absolute left-2 top-2 z-10 h-8 w-auto"
+                className="absolute left-2 top-2 z-10 h-6 w-auto"
               />
               <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,10,10,0.12)_0%,rgba(10,10,10,0.02)_48%,rgba(10,10,10,0.28)_100%)]" />
               <div className="absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-black/48 via-black/12 to-transparent" />

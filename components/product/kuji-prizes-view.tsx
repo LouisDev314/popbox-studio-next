@@ -1,259 +1,49 @@
 'use client';
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { StorefrontImage } from '@/components/ui/storefront-image';
+import { Tickets } from 'lucide-react';
+import { KujiPrizeTiles, type IKujiPrizeTileItem } from '@/components/kuji/kuji-prize-tiles';
 import { IKujiPrize } from '@/interfaces/product';
 import {
-  cn,
-  getPrizeBadgeClasses,
-  getPrizeBadgeLabel,
   getPrizeStockClasses,
   getPrizeStockLabel,
 } from '@/lib/utils';
-import { Tickets } from 'lucide-react';
 
 interface IKujiPrizesViewProps {
   prizes: IKujiPrize[];
 }
 
-interface IKujiPrizeCardProps {
-  onSelect: (prize: IKujiPrize) => void;
-  prize: IKujiPrize;
-}
-
-interface IKujiPrizeDialogProps {
-  onOpenChange: (open: boolean) => void;
-  open: boolean;
-  prize: IKujiPrize | null;
-}
-
-interface IPrizeImage {
-  alt: string;
-  id: string;
-  src: string;
-}
-
-function buildPrizeImages(prize: IKujiPrize | null): IPrizeImage[] {
-  if (!prize?.imageUrl) {
-    return [];
-  }
-
-  return [
-    {
-      alt: prize.name,
-      id: `${prize.id}-primary`,
-      src: prize.imageUrl,
-    },
-  ];
-}
-
-function KujiPrizeCard(props: IKujiPrizeCardProps) {
-  const badgeLabel = getPrizeBadgeLabel(props.prize.prizeCode);
-  const stockLabel = getPrizeStockLabel(props.prize.remainingQuantity, props.prize.initialQuantity);
-  const isSoldOut = props.prize.remainingQuantity <= 0;
-
-  return (
-    <button
-      type="button"
-      aria-haspopup="dialog"
-      className={cn(
-        'group flex h-full w-full flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-sm transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:shadow-md',
-        isSoldOut
-          ? 'border-border/70 bg-muted/35'
-          : 'border-border/60 hover:border-primary/40',
-      )}
-      onClick={() => props.onSelect(props.prize)}
-    >
-      <div className="relative aspect-4/3 overflow-hidden bg-muted/25">
-        <StorefrontImage
-          src={props.prize.imageUrl}
-          alt={props.prize.name}
-          label={props.prize.name}
-          className="h-full w-full"
-          imageClassName="h-full w-full transition-transform duration-500 ease-out group-hover:scale-105"
-        />
-
-        <div className="absolute left-4 top-4">
-          <span
-            className={cn(
-              'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] bg-primary/10',
-              getPrizeBadgeClasses(props.prize.prizeCode),
-            )}
-          >
-            {badgeLabel}
-          </span>
-        </div>
-
-        {props.prize.prizeCode !== 'LO' && props.prize.remainingQuantity <= 0 && <div className="absolute right-4 top-4">
-          <span
-            className={cn(
-              'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold',
-              getPrizeStockClasses(props.prize.remainingQuantity, props.prize.initialQuantity),
-            )}
-          >
-            {stockLabel}
-          </span>
-        </div>}
-      </div>
-
-      <div className="flex flex-1 flex-col gap-4 p-4 sm:p-5">
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold leading-tight text-foreground">{props.prize.name}</h3>
-        </div>
-
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-border/50 pt-4">
-          <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{props.prize.remainingQuantity}</span>
-            {' '}
-            /
-            {' '}
-            <span className="font-semibold text-foreground">{props.prize.initialQuantity}</span>
-            {' '}
-            left
-          </p>
-          <span className="text-sm font-semibold text-primary transition-transform duration-300 ease-out group-hover:translate-x-0.5">
-            View details
-          </span>
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function KujiPrizeDialog(props: IKujiPrizeDialogProps) {
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const prizeImages = buildPrizeImages(props.prize);
-  const activeImage = prizeImages[activeImageIndex] ?? prizeImages[0] ?? null;
-
-  if (!props.prize) {
-    return (
-      <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-        <DialogContent className="max-w-5xl p-0" />
-      </Dialog>
-    );
-  }
-
-  const prize = props.prize;
-  const badgeLabel = getPrizeBadgeLabel(prize.prizeCode);
-  const stockLabel = getPrizeStockLabel(prize.remainingQuantity, prize.initialQuantity);
-
-  return (
-    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-      <DialogContent
-        key={prize.id}
-        className="max-w-5xl p-0"
-      >
-        <div className="grid max-h-[min(88vh,960px)] overflow-y-auto lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-          <div className="bg-background p-4 sm:p-6 lg:p-8">
-            <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-muted/25">
-              <StorefrontImage
-                src={activeImage?.src ?? prize.imageUrl}
-                alt={activeImage?.alt ?? prize.name}
-                label={prize.name}
-                className="aspect-square w-full"
-                imageClassName="h-full w-full"
-              />
-            </div>
-
-            {prizeImages.length > 0 ? (
-              <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
-                {prizeImages.map((image, index) => (
-                  <button
-                    key={image.id}
-                    type="button"
-                    aria-label={`View prize image ${index + 1}`}
-                    aria-pressed={activeImageIndex === index}
-                    className={cn(
-                      'relative aspect-square w-20 shrink-0 overflow-hidden rounded-2xl border bg-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-24',
-                      activeImageIndex === index
-                        ? 'border-primary/60 shadow-sm'
-                        : 'border-border/60 hover:border-primary/30',
-                    )}
-                    onClick={() => setActiveImageIndex(index)}
-                  >
-                    <StorefrontImage
-                      src={image.src}
-                      alt={image.alt}
-                      label={prize.name}
-                      className="h-full w-full"
-                    />
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex flex-col border-t border-border/50 p-6 sm:p-8 lg:border-l lg:border-t-0">
-            <div className="flex flex-wrap items-center gap-3">
-              <span
-                className={cn(
-                  'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
-                  getPrizeBadgeClasses(prize.prizeCode),
-                )}
-              >
-                {badgeLabel}
-              </span>
-              <span
-                className={cn(
-                  'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold',
-                  getPrizeStockClasses(prize.remainingQuantity, prize.initialQuantity),
-                )}
-              >
-                {stockLabel}
-              </span>
-            </div>
-
-            <DialogTitle className="mt-5 text-3xl sm:text-4xl">{prize.name}</DialogTitle>
-
-            {prize.description ? (
-              <DialogDescription className="mt-3 max-w-2xl text-base leading-7">
-                {prize.description}
-              </DialogDescription>
-            ) : null}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+function toPrizeTile(prize: IKujiPrize): IKujiPrizeTileItem {
+  return {
+    id: prize.id,
+    prizeCode: prize.prizeCode,
+    name: prize.name,
+    description: prize.description,
+    imageUrl: prize.imageUrl,
+    stockClassName: getPrizeStockClasses(prize.remainingQuantity, prize.initialQuantity),
+    stockLabel: prize.prizeCode === 'LO'
+      ? null
+      : getPrizeStockLabel(prize.remainingQuantity, prize.initialQuantity),
+  };
 }
 
 export function KujiPrizesView(props: IKujiPrizesViewProps) {
-  const [selectedPrize, setSelectedPrize] = useState<IKujiPrize | null>(null);
-
   if (!props.prizes || props.prizes.length === 0) {
     return null;
   }
 
   return (
-    <>
-      <div className="mt-8 rounded-2xl border border-border/50 bg-card p-6 shadow-sm sm:p-8">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
-            <Tickets className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Prizes List</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Select any prize card to preview the tier and current stock.</p>
-          </div>
+    <div className="mt-8 rounded-2xl border border-border/50 bg-card p-6 shadow-sm sm:p-8">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Tickets className="h-5 w-5" />
         </div>
-
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {props.prizes.map((prize) => (
-            <KujiPrizeCard key={prize.id} prize={prize} onSelect={setSelectedPrize} />
-          ))}
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Prizes List</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Select any prize card to preview the tier and current stock.</p>
         </div>
       </div>
 
-      <KujiPrizeDialog
-        open={selectedPrize !== null}
-        prize={selectedPrize}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedPrize(null);
-          }
-        }}
-      />
-    </>
+      <KujiPrizeTiles items={props.prizes.map(toPrizeTile)} />
+    </div>
   );
 }

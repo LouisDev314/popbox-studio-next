@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { AxiosError } from 'axios';
+import { AxiosError, HttpStatusCode } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
@@ -44,6 +44,26 @@ function getCheckoutRequestErrorMessage(
   }
 
   return details.message;
+}
+
+function getCheckoutDialogConfig(error: AxiosError) {
+  const status = error.response?.status;
+
+  if (status === HttpStatusCode.Conflict) {
+    return {
+      message: 'This order can no longer be checked out because one or more items are no longer available.',
+      title: 'Checkout unavailable',
+    };
+  }
+
+  if (status === HttpStatusCode.InternalServerError) {
+    return {
+      message: 'Something went wrong. Please try again.',
+      title: 'Unable to start checkout',
+    };
+  }
+
+  return null;
 }
 
 export function useStartCheckout() {
@@ -106,6 +126,13 @@ export function useStartCheckout() {
           }
         },
         onError: (error) => {
+          const checkoutDialog = getCheckoutDialogConfig(error);
+
+          if (checkoutDialog) {
+            useCheckoutUiStore.getState().showCheckoutDialog(checkoutDialog);
+            return;
+          }
+
           useCheckoutUiStore.getState().setCheckoutError(
             getCheckoutRequestErrorMessage(error),
           );

@@ -2,18 +2,28 @@
 
 import { create } from 'zustand';
 
+export interface ICheckoutDialogState {
+  actionLabel?: string;
+  message: string;
+  title: string;
+}
+
 interface ICheckoutUiStore {
-  isCheckingOut: boolean;
   checkoutErrorMessage: string | null;
+  checkoutDialog: ICheckoutDialogState | null;
+  isCheckingOut: boolean;
   beginCheckout: () => boolean;
+  clearCheckoutDialog: () => void;
   endCheckout: () => void;
-  setCheckoutError: (message: string) => void;
   clearCheckoutError: () => void;
+  setCheckoutError: (message: string) => void;
+  showCheckoutDialog: (dialog: ICheckoutDialogState) => void;
 }
 
 export const useCheckoutUiStore = create<ICheckoutUiStore>((set, get) => ({
-  isCheckingOut: false,
   checkoutErrorMessage: null,
+  checkoutDialog: null,
+  isCheckingOut: false,
 
   beginCheckout: () => {
     if (get().isCheckingOut) {
@@ -23,14 +33,28 @@ export const useCheckoutUiStore = create<ICheckoutUiStore>((set, get) => ({
     set({
       isCheckingOut: true,
       checkoutErrorMessage: null,
+      checkoutDialog: null,
     });
     return true;
   },
+
+  clearCheckoutDialog: () => set({ checkoutDialog: null }),
 
   endCheckout: () => set({ isCheckingOut: false }),
 
   setCheckoutError: (message) => set({
     checkoutErrorMessage: message,
+    checkoutDialog: null,
+    isCheckingOut: false,
+  }),
+
+  showCheckoutDialog: (dialog) => set({
+    checkoutDialog: {
+      actionLabel: dialog.actionLabel ?? 'Okay',
+      message: dialog.message,
+      title: dialog.title,
+    },
+    checkoutErrorMessage: null,
     isCheckingOut: false,
   }),
 

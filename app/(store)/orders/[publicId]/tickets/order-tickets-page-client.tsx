@@ -2,12 +2,17 @@
 
 import { type MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, PanelRightOpen, Ticket as TicketIcon } from 'lucide-react';
+import { ArrowLeft, PanelRightOpen, Ticket as TicketIcon } from 'lucide-react';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import MutationConfigs from '@/configs/api/mutation-config';
 import QueryConfigs from '@/configs/api/query-config';
 import { type IGuestTicketView, type IOrderTicket } from '@/interfaces/order';
-import { KujiRevealOverlay } from '@/components/kuji/kuji-reveal-overlay';
+import {
+  KujiRevealOverlay,
+  type TKujiRevealOverlayMode,
+  type TKujiRevealOverlayPhase,
+} from '@/components/kuji/kuji-reveal-overlay';
+import { KujiPrizeTiles, type IKujiPrizeTileItem } from '@/components/kuji/kuji-prize-tiles';
 import { TicketRevealCard } from '@/components/kuji/ticket-reveal-card';
 import { Button } from '@/components/ui/button';
 import { useStorefrontAlert } from '@/hooks/use-storefront-alert';
@@ -17,12 +22,6 @@ interface IOrderTicketsPageClientProps {
   initialViewData: IGuestTicketView;
   publicId: string;
 }
-
-type TRevealPhase =
-  | 'idle'
-  | 'playingSingleRevealVideo'
-  | 'showingSingleRevealResult'
-  | 'showingAllRevealedSummary';
 
 function upsertTicket(tickets: IOrderTicket[], nextTicket: IOrderTicket) {
   const existingIndex = tickets.findIndex((ticket) => ticket.id === nextTicket.id);
@@ -40,6 +39,7 @@ function updateViewDataForSingleReveal(viewData: IGuestTicketView, nextTicket: I
 
   return {
     ...viewData,
+    tickets: upsertTicket(viewData.tickets, nextTicket),
     revealed,
     unrevealed,
     counts: {
@@ -61,6 +61,23 @@ function buildSummaryTickets(...ticketLists: IOrderTicket[][]): IOrderTicket[] {
 
     seenTicketIds.add(ticket.id);
     return true;
+  });
+}
+
+function buildRevealedPrizeTiles(tickets: IOrderTicket[]): IKujiPrizeTileItem[] {
+  return tickets.flatMap((ticket) => {
+    if (!ticket.prize) {
+      return [];
+    }
+
+    return [{
+      description: ticket.prize.description,
+      id: ticket.id,
+      imageUrl: ticket.prize.imageUrl,
+      name: ticket.prize.name,
+      prizeCode: ticket.prize.prizeCode,
+      subtitle: `Ticket #${ticket.ticketNumber}`,
+    }];
   });
 }
 
@@ -98,17 +115,20 @@ function buildProgressLabel(revealSequenceIds: string[], currentTicketId: string
 
 export default function OrderTicketsPageClient(props: IOrderTicketsPageClientProps) {
   const [viewData, setViewData] = useState(props.initialViewData);
-  const [phase, setPhase] = useState<TRevealPhase>('idle');
+  const [phase, setPhase] = useState<TKujiRevealOverlayPhase | 'idle'>('idle');
+  const [revealMode, setRevealMode] = useState<TKujiRevealOverlayMode | null>(null);
   const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [revealSequenceIds, setRevealSequenceIds] = useState<string[]>([]);
   const [currentRevealedTicket, setCurrentRevealedTicket] = useState<IOrderTicket | null>(null);
   const [summaryTickets, setSummaryTickets] = useState<IOrderTicket[]>([]);
   const [isVideoGateComplete, setIsVideoGateComplete] = useState(false);
-  const [isWaitingForSingleReveal, setIsWaitingForSingleReveal] = useState(false);
+  const [isRevealResultPending, setIsRevealResultPending] = useState(false);
   const viewDataRef = useRef(viewData);
   const revealSequenceIdsRef = useRef(revealSequenceIds);
   const currentRevealedTicketRef = useRef<IOrderTicket | null>(currentRevealedTicket);
+  const revealModeRef = useRef<TKujiRevealOverlayMode | null>(revealMode);
   const isVideoGateCompleteRef = useRef(isVideoGateComplete);
+  const isRevealResultPendingRef = useRef(isRevealResultPending);
   const lastFocusTargetRef = useRef<HTMLElement | null>(null);
   const headingRef = useRef<HTMLHeadingElement | null>(null);
   const revealAllButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -129,8 +149,16 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
   }, [currentRevealedTicket]);
 
   useEffect(() => {
+    revealModeRef.current = revealMode;
+  }, [revealMode]);
+
+  useEffect(() => {
     isVideoGateCompleteRef.current = isVideoGateComplete;
   }, [isVideoGateComplete]);
+
+  useEffect(() => {
+    isRevealResultPendingRef.current = isRevealResultPending;
+  }, [isRevealResultPending]);
 
   const refreshTickets = useCallback(async () => {
     try {
@@ -160,30 +188,52 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
   const resetRevealFlow = useCallback((shouldRestoreFocus: boolean = false) => {
     isRevealInFlightRef.current = false;
     setPhase('idle');
+    setRevealMode(null);
     setActiveTicketId(null);
     setRevealSequenceIds([]);
     setCurrentRevealedTicket(null);
     setSummaryTickets([]);
     setIsVideoGateComplete(false);
-    setIsWaitingForSingleReveal(false);
+    setIsRevealResultPending(false);
     currentRevealedTicketRef.current = null;
+    revealModeRef.current = null;
     isVideoGateCompleteRef.current = false;
+    isRevealResultPendingRef.current = false;
 
     if (shouldRestoreFocus) {
       restoreFocus();
     }
   }, [restoreFocus]);
 
-  const advanceSingleRevealPhase = useCallback((options?: {
+  const advanceRevealPhase = useCallback((options?: {
     nextViewData?: IGuestTicketView;
     revealedTicket?: IOrderTicket | null;
+    revealMode?: TKujiRevealOverlayMode | null;
+    revealResultPending?: boolean;
     videoGateComplete?: boolean;
   }) => {
-    const revealedTicket = options?.revealedTicket ?? currentRevealedTicketRef.current;
     const nextViewData = options?.nextViewData ?? viewDataRef.current;
+    const revealedTicket = options?.revealedTicket ?? currentRevealedTicketRef.current;
+    const nextRevealMode = options?.revealMode ?? revealModeRef.current;
+    const revealResultPending = options?.revealResultPending ?? isRevealResultPendingRef.current;
     const videoGateComplete = options?.videoGateComplete ?? isVideoGateCompleteRef.current;
 
-    if (!revealedTicket || !videoGateComplete) {
+    if (!videoGateComplete) {
+      return;
+    }
+
+    if (revealResultPending) {
+      setPhase('waitingForRevealResult');
+      return;
+    }
+
+    if (nextRevealMode === 'all') {
+      setSummaryTickets(buildSummaryTickets(nextViewData.revealed));
+      setPhase('showingAllRevealedSummary');
+      return;
+    }
+
+    if (!revealedTicket) {
       return;
     }
 
@@ -213,7 +263,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
       const revealedTicket = response.data.data;
 
       if (!revealedTicket) {
-        setIsWaitingForSingleReveal(false);
+        setIsRevealResultPending(false);
         showSuccess('Unable to reveal ticket', 'Please try again.', 'warning');
         resetRevealFlow(true);
         return;
@@ -225,16 +275,20 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
       setCurrentRevealedTicket(revealedTicket);
       currentRevealedTicketRef.current = revealedTicket;
       setActiveTicketId(revealedTicket.id);
-      setIsWaitingForSingleReveal(false);
-      advanceSingleRevealPhase({
+      setIsRevealResultPending(false);
+      isRevealResultPendingRef.current = false;
+      advanceRevealPhase({
         nextViewData,
+        revealMode: 'single',
+        revealResultPending: false,
         revealedTicket,
       });
       void refreshTickets();
     },
     onError: () => {
       isRevealInFlightRef.current = false;
-      setIsWaitingForSingleReveal(false);
+      setIsRevealResultPending(false);
+      isRevealResultPendingRef.current = false;
       showSuccess('Unable to reveal ticket', 'Please try again.', 'warning');
       resetRevealFlow(true);
     },
@@ -254,16 +308,22 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
       setCurrentRevealedTicket(null);
       setActiveTicketId(null);
       setRevealSequenceIds([]);
-      setIsVideoGateComplete(false);
-      setIsWaitingForSingleReveal(false);
       setSummaryTickets(buildSummaryTickets(nextViewData.revealed, viewDataRef.current.revealed));
-      setPhase('showingAllRevealedSummary');
+      setIsRevealResultPending(false);
+      isRevealResultPendingRef.current = false;
+      advanceRevealPhase({
+        nextViewData,
+        revealMode: 'all',
+        revealResultPending: false,
+      });
       void refreshTickets();
     },
     onError: () => {
       isRevealInFlightRef.current = false;
+      setIsRevealResultPending(false);
+      isRevealResultPendingRef.current = false;
       showSuccess('Unable to reveal all tickets', 'Please try again.', 'warning');
-      restoreFocus();
+      resetRevealFlow(true);
     },
   });
 
@@ -285,6 +345,8 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
 
     const nextSequenceIds = options?.sequenceIds ?? revealSequenceIdsRef.current;
 
+    setRevealMode('single');
+    revealModeRef.current = 'single';
     setRevealSequenceIds(nextSequenceIds);
     revealSequenceIdsRef.current = nextSequenceIds;
     setActiveTicketId(ticketId);
@@ -293,12 +355,42 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
     setSummaryTickets([]);
     setIsVideoGateComplete(false);
     isVideoGateCompleteRef.current = false;
-    setIsWaitingForSingleReveal(true);
-    setPhase('playingSingleRevealVideo');
+    setIsRevealResultPending(true);
+    isRevealResultPendingRef.current = true;
+    setPhase('playingRevealVideo');
 
     revealSingle({ publicId: props.publicId, ticketId });
   }, [props.publicId, revealSingle]);
 
+  const runRevealAllFlow = useCallback((focusTarget?: HTMLElement | null) => {
+    if (isRevealInFlightRef.current) {
+      return;
+    }
+
+    isRevealInFlightRef.current = true;
+
+    if (focusTarget) {
+      lastFocusTargetRef.current = focusTarget;
+    } else if (!lastFocusTargetRef.current && document.activeElement instanceof HTMLElement) {
+      lastFocusTargetRef.current = document.activeElement;
+    }
+
+    setRevealMode('all');
+    revealModeRef.current = 'all';
+    setActiveTicketId(null);
+    setCurrentRevealedTicket(null);
+    currentRevealedTicketRef.current = null;
+    setRevealSequenceIds([]);
+    revealSequenceIdsRef.current = [];
+    setSummaryTickets([]);
+    setIsVideoGateComplete(false);
+    isVideoGateCompleteRef.current = false;
+    setIsRevealResultPending(true);
+    isRevealResultPendingRef.current = true;
+    setPhase('playingRevealVideo');
+
+    revealAll(props.publicId);
+  }, [props.publicId, revealAll]);
 
   const isInteractionLocked = phase !== 'idle' || isSingleRevealPending || isRevealAllPending;
 
@@ -318,11 +410,8 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
       return;
     }
 
-    isRevealInFlightRef.current = true;
-    lastFocusTargetRef.current = event.currentTarget;
-    setSummaryTickets([]);
-    revealAll(props.publicId);
-  }, [isInteractionLocked, props.publicId, revealAll]);
+    runRevealAllFlow(event.currentTarget);
+  }, [isInteractionLocked, runRevealAllFlow]);
 
   const handleAdvanceToNext = useCallback(() => {
     if (!currentRevealedTicket) {
@@ -347,12 +436,16 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
   }, [currentRevealedTicket, runSingleRevealFlow]);
 
   const handleVideoComplete = useCallback(() => {
+    if (isVideoGateCompleteRef.current) {
+      return;
+    }
+
     isVideoGateCompleteRef.current = true;
     setIsVideoGateComplete(true);
-    advanceSingleRevealPhase({
+    advanceRevealPhase({
       videoGateComplete: true,
     });
-  }, [advanceSingleRevealPhase]);
+  }, [advanceRevealPhase]);
 
   const handleReturnToTickets = useCallback(() => {
     resetRevealFlow(true);
@@ -366,6 +459,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
     : null;
 
   const { unrevealed, revealed, counts } = viewData;
+  const revealedPrizeTiles = buildRevealedPrizeTiles(revealed);
   const renderedSummaryTickets = summaryTickets.length > 0 ? summaryTickets : buildSummaryTickets(revealed);
   const allRevealed = unrevealed.length === 0;
 
@@ -375,7 +469,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
         currentTicket={currentRevealedTicket}
         hasNextTicket={currentNextTicketId !== null}
         isOpen={phase !== 'idle'}
-        isWaitingForSingleReveal={phase === 'playingSingleRevealVideo' && isWaitingForSingleReveal}
+        mode={revealMode}
         onAdvanceToNext={handleAdvanceToNext}
         onReturnToTickets={handleReturnToTickets}
         onVideoComplete={handleVideoComplete}
@@ -426,17 +520,10 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
               disabled={isInteractionLocked}
               className="h-14 rounded-xl px-8 text-lg font-bold transition-all active:scale-95"
             >
-              {isRevealAllPending ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  Revealing...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <PanelRightOpen className="h-5 w-5" />
-                  Reveal All
-                </span>
-              )}
+              <span className="flex items-center gap-2">
+                <PanelRightOpen className="h-5 w-5" />
+                Reveal All
+              </span>
             </Button>
           )}
         </div>
@@ -449,7 +536,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                   <span className="relative inline-flex h-3 w-3 rounded-full bg-primary"></span>
                 </span>
-                <p className="text-xl">Awaiting Reveal ({unrevealed.length})</p>
+                <span className="text-xl">Awaiting Reveal ({unrevealed.length})</span>
               </h2>
               {unrevealed.length ? <p className="mb-8">Click on the tickets below to reveal them.</p> : null}
               <div className="grid grid-cols-1 justify-items-center gap-4 sm:gap-5 xl:grid-cols-2 xl:gap-6">
@@ -458,7 +545,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
                     <TicketRevealCard
                       ticket={ticket}
                       onReveal={handleReveal}
-                      isRevealing={isRevealAllPending || (activeTicketId === ticket.id && phase === 'playingSingleRevealVideo')}
+                      isRevealing={activeTicketId === ticket.id && phase === 'playingRevealVideo'}
                     />
                   </div>
                 ))}
@@ -466,22 +553,17 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
             </section>
           ) : null}
 
-          {revealed.length > 0 ? (
+          {revealedPrizeTiles.length > 0 ? (
             <section>
-              <h2 className="mb-8 text-xl font-semibold tracking-tight text-foreground/80">
-                Revealed Prizes ({revealed.length})
-              </h2>
-              <div className="grid grid-cols-1 justify-items-center gap-4 sm:gap-5 xl:grid-cols-2 xl:gap-6">
-                {revealed.map((ticket: IOrderTicket) => (
-                  <div key={ticket.id} className="w-full max-w-[38rem]">
-                    <TicketRevealCard
-                      ticket={ticket}
-                      onReveal={() => {}}
-                      isRevealing={false}
-                    />
-                  </div>
-                ))}
+              <div className="mb-8 space-y-2">
+                <h2 className="text-xl font-semibold tracking-tight text-foreground/80">
+                  Revealed Prizes ({revealedPrizeTiles.length})
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Select any prize tile to preview the revealed item in the shared Kuji detail dialog.
+                </p>
               </div>
+              <KujiPrizeTiles items={revealedPrizeTiles} />
             </section>
           ) : null}
         </div>

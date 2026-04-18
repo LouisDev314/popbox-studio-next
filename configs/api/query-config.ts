@@ -50,7 +50,7 @@ export function buildProductsQueryParams({
 }
 
 const QueryConfigs = {
-  fetchProducts: async ({
+  fetchProducts: ({
     pageParam = undefined,
     collection,
     tag,

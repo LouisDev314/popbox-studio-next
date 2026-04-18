@@ -60,8 +60,10 @@ function createTicket(overrides: Partial<IOrderTicket> = {}): IOrderTicket {
 function createViewData(overrides: Partial<IGuestTicketView> = {}): IGuestTicketView {
   const unrevealed = overrides.unrevealed ?? [createTicket()];
   const revealed = overrides.revealed ?? [];
+  const tickets = overrides.tickets ?? [...revealed, ...unrevealed];
 
   return {
+    tickets,
     revealed,
     unrevealed,
     counts: overrides.counts ?? {
@@ -130,7 +132,52 @@ describe('OrderTicketsPageClient', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Reveal ticket for Test Product 1' }));
+    await user.click(screen.getAllByRole('button', { name: 'Reveal ticket for Test Product 1' })[0]);
+
+    expect(revealTicket).toHaveBeenCalledWith({
+      publicId: 'pbs-TICKETS',
+      ticketId: 'ticket-1',
+    });
+    expect(screen.getByTestId('kuji-reveal-mobile-video')).toBeInTheDocument();
+  });
+
+  it('keeps leaked prize data under Awaiting Reveal and still starts the reveal flow', async () => {
+    const user = userEvent.setup();
+    const revealTicket = vi.mocked(MutationConfigs.revealTicket);
+    const leakedPrizeTicket = createTicket({
+      prize: {
+        id: 'prize-1',
+        prizeCode: 'F',
+        name: 'Prize One',
+        description: null,
+        imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
+      },
+      revealedAt: null,
+    });
+
+    revealTicket.mockResolvedValue(
+      createApiResponse({
+        ...leakedPrizeTicket,
+        revealedAt: '2026-04-12T00:00:00.000Z',
+      }),
+    );
+    vi.mocked(QueryConfigs.fetchGuestTickets).mockRejectedValue(new Error('refresh failed'));
+
+    renderWithProviders(
+      <OrderTicketsPageClient
+        initialViewData={createViewData({
+          unrevealed: [leakedPrizeTicket],
+          revealed: [],
+        })}
+        publicId="pbs-TICKETS"
+      />,
+    );
+
+    expect(screen.getByText('Awaiting Reveal (1)')).toBeInTheDocument();
+    expect(screen.queryByText('Revealed Prizes (1)')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Prize One' })).not.toBeInTheDocument();
+
+    await user.click(screen.getAllByRole('button', { name: 'Reveal ticket for Test Product 1' })[0]);
 
     expect(revealTicket).toHaveBeenCalledWith({
       publicId: 'pbs-TICKETS',
@@ -161,7 +208,13 @@ describe('OrderTicketsPageClient', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Reveal ticket for Test Product 1' })[0]);
 
-    expect(screen.getByText('Revealing your prize')).toBeInTheDocument();
+    expect(screen.getByTestId('kuji-reveal-mobile-video')).toBeInTheDocument();
+
+    fireEvent.ended(screen.getByTestId('kuji-reveal-mobile-video'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Finalizing your prize')).toBeInTheDocument();
+    });
 
     deferredReveal.resolve(
       createApiResponse(createTicket({
@@ -177,17 +230,46 @@ describe('OrderTicketsPageClient', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId('kuji-reveal-mobile-video')).toBeInTheDocument();
+      expect(screen.getByText('Congratulations')).toBeInTheDocument();
     });
 
-    fireEvent.ended(screen.getByTestId('kuji-reveal-mobile-video'));
+    expect(screen.getByRole('button', { name: 'Reveal next' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to tickets' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Prize One' })).toBeInTheDocument();
+  });
+
+  it('allows skipping the single reveal video and still advances into the result flow', async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(MutationConfigs.revealTicket).mockResolvedValue(
+      createApiResponse(createTicket({
+        prize: {
+          id: 'prize-1',
+          prizeCode: 'F',
+          name: 'Prize One',
+          description: null,
+          imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
+        },
+        revealedAt: '2026-04-12T00:00:00.000Z',
+      })),
+    );
+    vi.mocked(QueryConfigs.fetchGuestTickets).mockRejectedValue(new Error('refresh failed'));
+
+    renderWithProviders(
+      <OrderTicketsPageClient
+        initialViewData={createViewData({
+          unrevealed: [createTicket(), createTicket({ id: 'ticket-2', ticketNumber: '0002' })],
+        })}
+        publicId="pbs-TICKETS"
+      />,
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'Reveal ticket for Test Product 1' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Skip' }));
 
     await waitFor(() => {
       expect(screen.getByText('Congratulations')).toBeInTheDocument();
     });
-
-    expect(screen.getByText('Click to reveal the next ticket')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Prize One' })).toBeInTheDocument();
   });
 
   it('advances in unrevealed order and lands the final single reveal on the summary overlay', async () => {
@@ -250,7 +332,7 @@ describe('OrderTicketsPageClient', () => {
       expect(screen.getByText('Ticket 1 / 2')).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: 'Click to reveal the next ticket' }));
+    await user.click(screen.getByRole('button', { name: 'Reveal next' }));
 
     await waitFor(() => {
       expect(vi.mocked(MutationConfigs.revealTicket)).toHaveBeenNthCalledWith(2, {
@@ -262,15 +344,16 @@ describe('OrderTicketsPageClient', () => {
     fireEvent.ended(screen.getByTestId('kuji-reveal-mobile-video'));
 
     await waitFor(() => {
-      expect(screen.getByText('All prizes revealed')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Return' })).toBeInTheDocument();
     });
 
-    expect(screen.queryByRole('button', { name: 'Click to reveal the next ticket' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reveal next' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Return' })).toBeInTheDocument();
     expect(screen.getAllByText('Prize One').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Prize Two').length).toBeGreaterThan(0);
   });
 
-  it('reveals all immediately, shows the summary overlay, and restores focus on close', async () => {
+  it('reveals all through the video flow, supports skip, and restores focus on return', async () => {
     const user = userEvent.setup();
 
     vi.mocked(MutationConfigs.revealAllTickets).mockResolvedValue(
@@ -308,15 +391,18 @@ describe('OrderTicketsPageClient', () => {
     await user.click(screen.getByRole('button', { name: 'Reveal All' }));
 
     expect(vi.mocked(MutationConfigs.revealAllTickets)).toHaveBeenCalledWith('pbs-TICKETS');
+    expect(screen.getByTestId('kuji-reveal-mobile-video')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Skip' }));
 
     await waitFor(() => {
-      expect(screen.getByText('All prizes revealed')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Return' })).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: 'Return to tickets' }));
+    await user.click(screen.getByRole('button', { name: 'Return' }));
 
     await waitFor(() => {
-      expect(screen.queryByText('All prizes revealed')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Return' })).not.toBeInTheDocument();
     });
 
     await waitFor(() => {
@@ -344,5 +430,38 @@ describe('OrderTicketsPageClient', () => {
 
     expect(screen.queryByTestId('kuji-reveal-mobile-video')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reveal ticket for Test Product 1' })).toBeInTheDocument();
+  });
+
+  it('renders revealed tickets as shared prize tiles with the product-style detail dialog', async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <OrderTicketsPageClient
+        initialViewData={createViewData({
+          revealed: [
+            createTicket({
+              revealedAt: '2026-04-12T00:00:00.000Z',
+              prize: {
+                id: 'prize-1',
+                prizeCode: 'A',
+                name: 'Prize One',
+                description: 'Prize dialog copy',
+                imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
+              },
+            }),
+          ],
+          unrevealed: [],
+        })}
+        publicId="pbs-TICKETS"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Prize One/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toHaveTextContent('Prize dialog copy');
+    });
+
+    expect(screen.getAllByText('Prize A').length).toBeGreaterThan(0);
   });
 });

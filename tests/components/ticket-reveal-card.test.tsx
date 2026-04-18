@@ -116,6 +116,31 @@ describe('TicketRevealCard', () => {
     expect(onReveal).toHaveBeenCalledWith('ticket-1', expect.any(HTMLDivElement));
   });
 
+  it('treats leaked prize data as unrevealed when revealedAt is missing', async () => {
+    const user = userEvent.setup();
+    const onReveal = vi.fn();
+    const { container } = render(
+      <TicketRevealCard
+        ticket={createTicket({
+          revealedAt: null,
+        })}
+        onReveal={onReveal}
+        isRevealing={false}
+      />,
+    );
+
+    const ticketRoot = container.firstElementChild;
+
+    expect(ticketRoot).toHaveAttribute('data-ticket-state', 'unrevealed');
+    expect(screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Grand Figure' })).not.toBeInTheDocument();
+    expect(screen.getByText('Reveal Me')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' }));
+
+    expect(onReveal).toHaveBeenCalledWith('ticket-1', expect.any(HTMLDivElement));
+  });
+
   it('keeps the unrevealed ticket keyboard accessible', async () => {
     const user = userEvent.setup();
     const onReveal = vi.fn();

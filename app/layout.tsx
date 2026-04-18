@@ -5,6 +5,7 @@ import { ReactQueryProvider } from '@/components/react-query-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Analytics } from '@vercel/analytics/next';
 import getPublicEnvConfig from '@/configs/public-env';
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import {
   BRAND_NAME,
   DEFAULT_OG_IMAGE_PATH,
@@ -65,6 +66,7 @@ export default function RootLayout(props: Readonly<IRootLayoutProps>) {
           </ReactQueryProvider>
         </ThemeProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
