@@ -22,6 +22,9 @@ jobs:
 
     env:
       NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+      SENTRY_ORG: popbox-studio
+      SENTRY_PROJECT: popbox-studio-next
+      SENTRY_RELEASE: ${{ github.sha }}
 
     steps:
       - name: Checkout repository
@@ -44,6 +47,8 @@ jobs:
 
       - name: Run build
         run: pnpm build
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - name: Run frontend tests
         run: pnpm test
