@@ -13,7 +13,7 @@ export function AdminPageLoadingOverlay(props: IAdminPageLoadingOverlayProps) {
 
   return (
     <div
-      className="absolute inset-0 z-30 flex items-center justify-center bg-[#f6f3ec]/72 backdrop-blur-[2px]"
+      className="fixed inset-0 z-30 flex items-center justify-center bg-[#f6f3ec]/72 backdrop-blur-[2px]"
       role="status"
       aria-live="polite"
       aria-atomic="true"

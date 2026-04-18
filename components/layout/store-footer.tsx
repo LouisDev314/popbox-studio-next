@@ -1,4 +1,7 @@
 import Link from 'next/link';
+import TikTokIcon from '@/assets/icons/tiktok-icon';
+import InstagramIcon from '@/assets/icons/instagram-icon';
+import FacebookIcon from '@/assets/icons/facebook-icon';
 
 export function StoreFooter() {
   return (
@@ -12,6 +15,32 @@ export function StoreFooter() {
             <p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">
               Premium anime collectibles, Ichiban Kuji drops, and focused product discovery for collectors in Canada.
             </p>
+            <div className="mt-5 flex items-center gap-4">
+              <Link
+                href="https://www.tiktok.com/@popbox_studio"
+                aria-label="Follow PopBox Studio on TikTok"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <TikTokIcon className="size-4" />
+              </Link>
+              <Link
+                href="https://www.instagram.com/popbox_studio/"
+                aria-label="Follow PopBox Studio on Instagram"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <InstagramIcon className="size-4" />
+              </Link>
+              <Link
+                href="https://www.facebook.com/p/PopBox-Studio-61574809973184/"
+                aria-label="Follow PopBox Studio on Facebook"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FacebookIcon className="size-4" />
+              </Link>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ISidebarContextValue {
@@ -105,7 +105,7 @@ function MobileSidebar(props: ISidebarSurfaceProps) {
         className="fixed left-4 top-4 z-50 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#dfd5c5] bg-[#fbfaf7]/95 text-[#1f2937] shadow-[0_14px_34px_-24px_rgba(31,41,55,0.45)] backdrop-blur"
         onClick={() => setOpen((currentOpen) => !currentOpen)}
       >
-        {open ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
+        <Menu className='size-5' />
       </button>
 
       <AnimatePresence>

@@ -8,6 +8,9 @@ import { type IProduct } from '@/interfaces/product';
 import { createProductCard } from '../fixtures';
 import { renderWithProviders, resetStores } from '../test-utils';
 
+const originalNavigatorClipboard = navigator.clipboard;
+const originalNavigatorShare = navigator.share;
+
 function createProduct(overrides: Partial<IProduct> = {}): IProduct {
   const productCard = createProductCard(overrides);
 
@@ -21,6 +24,24 @@ function createProduct(overrides: Partial<IProduct> = {}): IProduct {
   };
 }
 
+function mockNavigatorClipboard(writeText?: (text: string) => Promise<void>) {
+  Object.defineProperty(window.navigator, 'clipboard', {
+    configurable: true,
+    value: writeText
+      ? {
+        writeText,
+      }
+      : undefined,
+  });
+}
+
+function mockNavigatorShare(share?: typeof navigator.share) {
+  Object.defineProperty(window.navigator, 'share', {
+    configurable: true,
+    value: share,
+  });
+}
+
 describe('ProductActions', () => {
   beforeEach(() => {
     resetStores();
@@ -28,6 +49,16 @@ describe('ProductActions', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    mockNavigatorClipboard(originalNavigatorClipboard?.writeText?.bind(originalNavigatorClipboard));
+    mockNavigatorShare(originalNavigatorShare);
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('renders share and wishlist secondary actions', () => {
+    renderWithProviders(<ProductActions product={createProduct()} />);
+
+    expect(screen.getByRole('button', { name: /share product/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add to Wishlist' })).toBeInTheDocument();
   });
 
   it('shows a success alert after adding a product to cart', async () => {
@@ -104,6 +135,36 @@ describe('ProductActions', () => {
     });
 
     expect(screen.queryByText('Added to cart')).not.toBeInTheDocument();
+  });
+
+  it('copies the current product URL when Web Share API is unavailable', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+
+    mockNavigatorShare(undefined);
+    mockNavigatorClipboard(writeText);
+    window.history.replaceState({}, '', '/products/shareable-product');
+
+    renderWithProviders(<ProductActions product={createProduct()} />);
+
+    await expect(userEvent.click(screen.getByRole('button', { name: /share product/i }))).resolves.toBeUndefined();
+
+    expect(writeText).toHaveBeenCalledWith(window.location.href);
+    expect(screen.getByRole('status')).toHaveTextContent('Product link copied');
+  });
+
+  it('shows a warning alert when share fallback fails', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('clipboard unavailable'));
+
+    mockNavigatorShare(undefined);
+    mockNavigatorClipboard(writeText);
+    window.history.replaceState({}, '', '/products/share-error');
+
+    renderWithProviders(<ProductActions product={createProduct()} />);
+
+    await expect(userEvent.click(screen.getByRole('button', { name: /share product/i }))).resolves.toBeUndefined();
+
+    expect(screen.getByRole('status')).toHaveTextContent('Product not shared');
+    expect(screen.getByRole('status')).toHaveTextContent('Please copy the URL from your browser.');
   });
 
   it('disables the action buttons during their guarded interaction window', async () => {

@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Heart, ShoppingBag } from 'lucide-react';
+import { Heart, Share, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { useCartStore } from '@/hooks/use-cart';
 import { useStorefrontAlert } from '@/hooks/use-storefront-alert';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import { type IProduct } from '@/interfaces/product';
+import { shareProduct } from '@/lib/share-product';
 import { cn } from '@/lib/utils';
 import { mapProductToWishlistItem } from '@/utils/wishlist';
 import {
@@ -24,7 +25,7 @@ interface IProductActionsProps {
   product: IProduct;
 }
 
-type TStorefrontAction = 'cart' | 'wishlist';
+type TStorefrontAction = 'cart' | 'share' | 'wishlist';
 
 interface IProductQuantityState {
   availabilityLabel: string;
@@ -116,6 +117,7 @@ function getProductActionState(product: IProduct, currentCartQuantity: number): 
 }
 
 const ACTION_COOLDOWN_MS = 300;
+const SECONDARY_ACTION_BUTTON_CLASS_NAME = 'h-12 w-full rounded-2xl border-border/70 bg-background text-sm font-semibold text-foreground hover:bg-accent/70';
 
 export function ProductActions(props: IProductActionsProps) {
   const addItem = useCartStore((state) => state.addItem);
@@ -128,14 +130,17 @@ export function ProductActions(props: IProductActionsProps) {
   const [busyAction, setBusyAction] = useState<TStorefrontAction | null>(null);
   const [disabledActions, setDisabledActions] = useState<Record<TStorefrontAction, boolean>>({
     cart: false,
+    share: false,
     wishlist: false,
   });
   const cooldownUntilRef = useRef<Record<TStorefrontAction, number>>({
     cart: 0,
+    share: 0,
     wishlist: 0,
   });
   const releaseTimeoutRef = useRef<Record<TStorefrontAction, number | null>>({
     cart: null,
+    share: null,
     wishlist: null,
   });
   const { showSuccess } = useStorefrontAlert();
@@ -145,6 +150,7 @@ export function ProductActions(props: IProductActionsProps) {
   const quantityCap = actionState.quantityCap;
   const clampedQuantity = Math.min(quantity, quantityCap);
   const isCartBusy = disabledActions.cart;
+  const isShareBusy = disabledActions.share;
   const isWishlistBusy = disabledActions.wishlist;
 
   useEffect(() => {
@@ -153,6 +159,10 @@ export function ProductActions(props: IProductActionsProps) {
     return () => {
       if (releaseTimeouts.cart !== null) {
         window.clearTimeout(releaseTimeouts.cart);
+      }
+
+      if (releaseTimeouts.share !== null) {
+        window.clearTimeout(releaseTimeouts.share);
       }
 
       if (releaseTimeouts.wishlist !== null) {
@@ -179,15 +189,15 @@ export function ProductActions(props: IProductActionsProps) {
     }, ACTION_COOLDOWN_MS);
   };
 
-  const runGuardedAction = (action: TStorefrontAction, fn: () => void) => {
+  const activateGuardedAction = (action: TStorefrontAction) => {
     if (busyAction === action || disabledActions[action]) {
-      return;
+      return false;
     }
 
     const now = Date.now();
 
     if (cooldownUntilRef.current[action] > now) {
-      return;
+      return false;
     }
 
     cooldownUntilRef.current[action] = now + ACTION_COOLDOWN_MS;
@@ -197,6 +207,14 @@ export function ProductActions(props: IProductActionsProps) {
       [action]: true,
     }));
 
+    return true;
+  };
+
+  const runGuardedAction = (action: TStorefrontAction, fn: () => void) => {
+    if (!activateGuardedAction(action)) {
+      return;
+    }
+
     try {
       fn();
     } finally {
@@ -204,8 +222,20 @@ export function ProductActions(props: IProductActionsProps) {
     }
   };
 
+  const runGuardedAsyncAction = async (action: TStorefrontAction, fn: () => Promise<void>) => {
+    if (!activateGuardedAction(action)) {
+      return;
+    }
+
+    try {
+      await fn();
+    } finally {
+      scheduleActionRelease(action);
+    }
+  };
+
   const handleAdd = () => {
-    runGuardedAction('cart', () => {
+    void runGuardedAction('cart', () => {
       const result = addItem(props.product, clampedQuantity);
 
       if (!result.success) {
@@ -219,8 +249,27 @@ export function ProductActions(props: IProductActionsProps) {
     });
   };
 
+  const handleShare = () => {
+    void runGuardedAsyncAction('share', async () => {
+      const result = await shareProduct({
+        title: props.product.name,
+        description: props.product.description,
+        url: window.location.href,
+      });
+
+      if (result.status === 'copied') {
+        showSuccess('Product link copied');
+        return;
+      }
+
+      if (result.status === 'failed') {
+        showSuccess('Product not shared', 'Please copy the URL from your browser.', 'warning');
+      }
+    });
+  };
+
   const handleWishlistToggle = () => {
-    runGuardedAction('wishlist', () => {
+    void runGuardedAction('wishlist', () => {
       const shouldShowSuccess = !isWishlisted;
 
       toggleWishlistItem(mapProductToWishlistItem(props.product));
@@ -235,27 +284,40 @@ export function ProductActions(props: IProductActionsProps) {
 
   return (
     <div className="mt-8 space-y-4">
-      <Button
-        type="button"
-        variant="outline"
-        aria-pressed={hasWishlistHydrated && isWishlisted}
-        className={cn(
-          'h-12 w-full rounded-full border-border/70 bg-background text-sm font-semibold',
-          hasWishlistHydrated && isWishlisted
-            ? 'border-primary/30 bg-accent text-foreground hover:bg-accent'
-            : 'hover:bg-accent/70',
-        )}
-        disabled={isWishlistBusy}
-        onClick={handleWishlistToggle}
-      >
-        <Heart
+      <div className="flex gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          aria-pressed={hasWishlistHydrated && isWishlisted}
           className={cn(
-            'mr-2 h-5 w-5',
-            hasWishlistHydrated && isWishlisted ? 'text-primary' : 'text-muted-foreground',
+            SECONDARY_ACTION_BUTTON_CLASS_NAME,
+            hasWishlistHydrated && isWishlisted
+              ? 'border-primary/30 bg-accent hover:bg-accent'
+              : undefined,
           )}
-        />
-        {hasWishlistHydrated && isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
-      </Button>
+          disabled={isWishlistBusy}
+          onClick={handleWishlistToggle}
+        >
+          <Heart
+            className={cn(
+              'mr-2 h-5 w-5',
+              hasWishlistHydrated && isWishlisted ? 'text-primary' : 'text-muted-foreground',
+            )}
+          />
+          {hasWishlistHydrated && isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          aria-label="Share product"
+          className={cn(SECONDARY_ACTION_BUTTON_CLASS_NAME, 'w-fit')}
+          disabled={isShareBusy}
+          onClick={handleShare}
+        >
+          <Share className="size-5" />
+        </Button>
+      </div>
 
       <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
         <div className="flex flex-row items-center justify-between gap-4">
