@@ -204,7 +204,7 @@ export function StorefrontDrawer(props: IStorefrontDrawerProps) {
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={cn(
-          'fixed inset-y-0 z-[71] flex w-full max-w-9/10 flex-col border-border/70 bg-background shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none',
+          'fixed inset-y-0 z-[71] flex w-9/10 sm:w-3/5 lg:w-1/3 flex-col border-border/70 bg-background shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none',
           sideClassName.border,
           isOpen ? 'pointer-events-auto translate-x-0' : `pointer-events-none ${sideClassName.closed}`,
           className,
@@ -236,7 +236,7 @@ export function StorefrontDrawer(props: IStorefrontDrawerProps) {
         ) : null}
 
         <div className={cn('relative flex min-h-0 flex-1 flex-col', contentClassName)}>
-          <div className={cn('flex-1 overflow-y-auto px-5 py-5 sm:px-6', bodyClassName)}>
+          <div className={cn('flex-1 overflow-y-auto px-5 py-5 sm:px-2', bodyClassName)}>
             {children}
           </div>
 
