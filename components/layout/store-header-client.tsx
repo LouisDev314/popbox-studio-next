@@ -125,7 +125,7 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
         aria-expanded={props.isMenuOpen}
         aria-label={props.isMenuOpen ? 'Close menu' : 'Open menu'}
         className={cn(
-          'relative inline-flex h-10 w-10 items-center justify-center rounded-full border p-2 text-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:hidden',
+          'relative inline-flex h-10 w-10 items-center justify-center rounded-full border p-2 text-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 lg:hidden',
           props.isMenuOpen ? 'border-primary/30 bg-accent' : 'border-border/60 bg-background',
         )}
         onClick={props.onMenuToggle}
@@ -293,7 +293,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
               <Link href="/" className="truncate font-bold tracking-tight text-primary text-lg sm:text-xl">
                 PopBox Studio
               </Link>
-              <nav className="hidden md:flex md:items-center md:gap-2" aria-label="Primary">
+              <nav className="hidden lg:flex lg:items-center lg:gap-2" aria-label="Primary">
                 {desktopNavItems.map((item) => (
                   <Link
                     key={item.href}
@@ -392,7 +392,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
         ariaLabel="Store navigation menu"
         isOpen={isMenuOpen}
         onClose={closeMobilePanel}
-        containerClassName="md:hidden"
+        containerClassName="lg:hidden"
         panelClassName="bottom-0"
         restoreFocusId={MOBILE_MENU_BUTTON_ID}
       >

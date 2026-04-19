@@ -3,14 +3,14 @@ import { Button } from '@/components/ui/button';
 
 export function StorefrontBottomCta() {
   return (
-    <section className="container mx-auto w-full pb-12 pt-2 text-center sm:px-6 md:pb-16 lg:px-8 lg:pb-20">
+    <section className="mx-auto w-full pb-12 pt-2 text-center md:pb-16 lg:pb-20">
       <div className="border border-border/70 bg-card px-6 py-18 sm:px-10 sm:py-14 lg:px-16 lg:py-16">
         <div className="mx-auto max-w-2xl">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Looking for something specific?
           </h2>
           <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
-            Our team of collectors can source rare pieces directly from Japan.
+            From everyday anime favorites to rare finds, we help you track down pieces from Japan and beyond.
           </p>
         </div>
 

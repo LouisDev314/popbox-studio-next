@@ -2,7 +2,6 @@ import { StorefrontBottomCta } from '@/components/home/storefront-bottom-cta';
 import { HomeProductSection } from '@/components/home/home-product-section';
 import { StorefrontFeaturedCarouselClient } from '@/components/home/storefront-featured-carousel-client';
 import { StorefrontHero } from '@/components/home/storefront-hero';
-import { StorefrontValueProps } from '@/components/home/storefront-value-props';
 import type { IHomepageData } from '@/interfaces/home';
 
 interface IStorefrontHomeProps {
@@ -14,7 +13,7 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
   const hasFeatured = featured.length > 0;
 
   return (
-    <div className="w-full pb-8 md:py-8">
+    <div className="w-full pb-8">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="-mx-4 sm:-mx-6 lg:-mx-8">
           {hasFeatured ? (
@@ -30,15 +29,13 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
         </div>
       </div>
 
-      <StorefrontValueProps />
-
-      <div className="container mx-auto w-full px-4 pt-0 sm:px-6 lg:px-8">
+      <div className="container mx-auto w-full px-4 pt-0 md:px-6 lg:px-8">
         <HomeProductSection
           title="Featured"
           products={featured}
           limit={6}
-          className="mb-16 md:mb-20"
-          headerClassName="mb-5 md:mb-6"
+          className="mb-16"
+          headerClassName="mb-4 md:mb-6"
           viewAllHref="/collections/featured"
         />
 

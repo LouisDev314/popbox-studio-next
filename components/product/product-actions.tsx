@@ -322,7 +322,7 @@ export function ProductActions(props: IProductActionsProps) {
       <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
         <div className="flex flex-row items-center justify-between gap-4">
           <div>
-            <p className="font-medium text-foreground">Quantity</p>
+            <p className="font-medium text-lg">Quantity</p>
           </div>
           <QuantityStepper
             disabled={actionState.isAddDisabled || isCartBusy}

@@ -74,7 +74,7 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
   };
 
   return (
-    <div className="overflow-hidden rounded-none border-x-0 border-t-0 border border-border/70 bg-background md:bg-background/90 md:backdrop-blur-2xl shadow-[0_32px_70px_-38px_hsl(var(--foreground)/0.55)]">
+    <div className="overflow-hidden rounded-none border-x-0 border-t-0 border border-border/70 bg-background shadow-[0_32px_70px_-38px_hsl(var(--foreground)/0.55)]">
       <div className="container mx-auto max-w-4xl">
         <div className="border-b border-border/60 px-4 py-4 md:py-6 md:px-8">
           <form className="min-w-0 flex-1" onSubmit={onSearchSubmit}>
@@ -95,7 +95,7 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
           </form>
         </div>
 
-        <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto px-4 py-4 md:px-8 md:py-8 mb-4">
+        <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto px-4 py-4 md:px-8 mb-4">
           {!trimmedQuery ? (
             <div className="space-y-4">
               <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground ml-2">

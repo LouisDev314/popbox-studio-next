@@ -237,20 +237,22 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
         <KujiPrizesView prizes={product.kujiPrizes} />
       ) : null}
 
-      <Accordion
-        className="max-w-lg border mt-8"
-      >
-        {accordionItems.map((item) => (
-          <AccordionItem
-            key={item.value}
-            value={item.value}
-            className="border-b last:border-b-0"
-          >
-            <AccordionTrigger>{item.trigger}</AccordionTrigger>
-            <AccordionContent>{item.content}</AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
+      <div className='lg:mx-auto lg:max-w-4/5'>
+        <Accordion
+          className="border mt-8"
+        >
+          {accordionItems.map((item) => (
+            <AccordionItem
+              key={item.value}
+              value={item.value}
+              className="border-b last:border-b-0"
+            >
+              <AccordionTrigger>{item.trigger}</AccordionTrigger>
+              <AccordionContent>{item.content}</AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </div>
 
       <Suspense fallback={<ProductRecommendationsFallback />}>
         <ProductRecommendations product={product} />

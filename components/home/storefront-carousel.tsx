@@ -117,7 +117,7 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
   return (
     <section
       className={cn(
-        'group relative overflow-hidden border-b border-border/60 bg-card md:rounded-[2rem] md:border',
+        'group relative overflow-hidden border-b border-border/60 bg-card',
         className,
       )}
     >
@@ -127,7 +127,7 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
             <div key={product.id} className="relative min-w-0 flex-[0_0_100%]">
               <Link
                 href={`/products/${product.slug}`}
-                className="group/slide relative block aspect-[6/5] w-full md:aspect-[21/9]"
+                className="group/slide relative block aspect-6/5 w-full sm:h-[60vh]"
                 onClick={() => autoplay.current.stop()}
               >
                 <div className="absolute inset-0 bg-muted/20">

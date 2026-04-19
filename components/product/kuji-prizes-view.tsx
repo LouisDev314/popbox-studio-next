@@ -37,10 +37,7 @@ export function KujiPrizesView(props: IKujiPrizesViewProps) {
         <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Tickets className="h-5 w-5" />
         </div>
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Prizes List</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Select any prize card to preview the tier and current stock.</p>
-        </div>
+        <h2 className="text-2xl font-bold tracking-tight">Prizes List</h2>
       </div>
 
       <KujiPrizeTiles items={props.prizes.map(toPrizeTile)} />

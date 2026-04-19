@@ -204,7 +204,7 @@ export function StorefrontDrawer(props: IStorefrontDrawerProps) {
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
         className={cn(
-          'fixed inset-y-0 z-[71] flex w-9/10 sm:w-3/5 lg:w-1/3 flex-col border-border/70 bg-background shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none',
+          'fixed inset-y-0 z-[71] flex w-9/10 sm:w-3/5 lg:w-1/3 xl:w-1/4 flex-col border-border/70 bg-background shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none',
           sideClassName.border,
           isOpen ? 'pointer-events-auto translate-x-0' : `pointer-events-none ${sideClassName.closed}`,
           className,

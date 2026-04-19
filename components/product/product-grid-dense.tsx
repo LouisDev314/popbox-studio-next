@@ -37,7 +37,7 @@ export function ProductGridDense(props: IProductGridDenseProps) {
   return (
     <div
       data-slot="product-grid-dense"
-      className={cn('grid grid-cols-3 gap-2 px-0.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6', className)}
+      className={cn('grid grid-cols-3 gap-2 px-0.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5', className)}
     >
       {products.map((product, index) => (
         <ProductTileDense

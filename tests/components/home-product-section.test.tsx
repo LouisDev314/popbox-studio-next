@@ -47,7 +47,7 @@ describe('HomeProductSection', () => {
 
     const featuredGrid = container.querySelector('[data-slot="product-grid-dense"]');
 
-    expect(featuredGrid).toHaveClass('grid', 'grid-cols-3', 'md:grid-cols-4', 'lg:grid-cols-5', 'xl:grid-cols-6');
+    expect(featuredGrid).toHaveClass('grid', 'grid-cols-3', 'md:grid-cols-4', 'lg:grid-cols-5');
     expect(featuredGrid).not.toHaveClass('overflow-x-auto');
   });
 
@@ -67,6 +67,6 @@ describe('HomeProductSection', () => {
     const denseGrid = container.querySelector('[data-slot="product-grid-dense"]');
 
     expect(denseGrid).toBeInTheDocument();
-    expect(denseGrid).toHaveClass('grid-cols-3', 'md:grid-cols-4', 'lg:grid-cols-5', 'xl:grid-cols-6');
+    expect(denseGrid).toHaveClass('grid-cols-3', 'md:grid-cols-4', 'lg:grid-cols-5');
   });
 });
