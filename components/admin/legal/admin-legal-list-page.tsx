@@ -61,12 +61,7 @@ export function AdminLegalListPage() {
     <div>
       {/* Page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Legal Documents</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage your store policies, terms, and FAQs.
-          </p>
-        </div>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Legal Documents</h1>
       </div>
 
       {/* Content */}

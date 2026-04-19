@@ -538,10 +538,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
 
       <div className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/20 pb-4">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Kuji Prizes</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Manage the prize pool for this Kuji product. Drag rows to reorder and save automatically.</p>
-          </div>
+          <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Kuji Prizes</h2>
           <div className="flex items-center gap-2">
             {isReorderingPrizes ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-primary/5 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-primary">

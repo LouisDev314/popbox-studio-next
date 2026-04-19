@@ -294,10 +294,7 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
   return (
     <div className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
       <div className="mb-6 space-y-4">
-        <div>
-          <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-foreground">Media & Images</h2>
-          <p className="text-sm text-muted-foreground">Upload multiple images. Drag to reorder and changes save automatically.</p>
-        </div>
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-foreground">Media & Images</h2>
         <div className="relative border border-border/50 rounded-lg overflow-hidden transition-colors hover:border-primary/50">
           {isUploading && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/60 ">

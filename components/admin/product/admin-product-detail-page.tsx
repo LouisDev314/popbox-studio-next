@@ -52,10 +52,7 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{product.name}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage product details, inventory, media, and tags.</p>
-        </div>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{product.name}</h1>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
