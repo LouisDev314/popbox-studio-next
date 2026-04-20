@@ -30,7 +30,6 @@ import {
   PRODUCT_SORT_ITEMS,
   parseProductTypeParam,
   parseStorefrontProductSortParam,
-  parseTagSearchParam,
   serializeTagSearchParam,
   storefrontProductSort,
 } from '@/lib/storefront-product-filters';
@@ -52,6 +51,13 @@ interface IProductsPageClientProps {
 interface IProductsResultsProps {
   isInitialError: boolean;
   products: IProductListPage['items'];
+}
+
+interface IDesktopOptimisticFilters {
+  baseServerTagKey: string;
+  baseServerType?: productType;
+  tags: string[];
+  type?: productType;
 }
 
 function resolveProductsPageTitle(props: Pick<IProductsPageClientProps, 'headingTitle' | 'initialCollection' | 'initialSort' | 'initialType'>) {
@@ -100,11 +106,21 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isDesktopFilterDrawer, setIsDesktopFilterDrawer] = useState(false);
   const [isRoutePending, startRouteTransition] = useTransition();
+  const [desktopOptimisticFilters, setDesktopOptimisticFilters] = useState<IDesktopOptimisticFilters | null>(null);
   const [draftType, setDraftType] = useState<productType | undefined>(props.initialType);
   const [draftTags, setDraftTags] = useState<string[]>(props.initialTags);
   const [previousCursors, setPreviousCursors] = useState<string[]>([]);
   const serializedSelectedTags = serializeTagSearchParam(props.initialTags);
   const serializedDraftTags = serializeTagSearchParam(draftTags);
+  const shouldUseDesktopOptimisticFilters = desktopOptimisticFilters !== null
+    && desktopOptimisticFilters.baseServerTagKey === serializedSelectedTags
+    && desktopOptimisticFilters.baseServerType === props.initialType;
+  const optimisticDesktopTags = shouldUseDesktopOptimisticFilters
+    ? desktopOptimisticFilters.tags
+    : props.initialTags;
+  const optimisticDesktopType = shouldUseDesktopOptimisticFilters
+    ? desktopOptimisticFilters.type
+    : props.initialType;
   const appliedFilterCount = props.initialTags.length;
   const hasDraftFilters = draftTags.length > 0;
   const hasDraftChanges = draftType !== props.initialType || serializedDraftTags !== serializedSelectedTags;
@@ -152,6 +168,22 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
     });
   };
 
+  const handleDesktopFilterReplace = (
+    nextType: productType | undefined,
+    nextTags: string[],
+  ) => {
+    setDesktopOptimisticFilters({
+      baseServerTagKey: serializedSelectedTags,
+      baseServerType: props.initialType,
+      tags: nextTags,
+      type: nextType,
+    });
+
+    handleSearchParamReplace((params) => {
+      setFilterParams(params, nextType, nextTags);
+    });
+  };
+
   const setFilterParams = (
     params: URLSearchParams,
     nextType: productType | undefined,
@@ -190,38 +222,23 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
   };
 
   const handleTypeChange = (newType: string | null) => {
-    handleSearchParamReplace((params) => {
-      const normalizedType = parseProductTypeParam(newType ?? undefined);
+    const nextType = parseProductTypeParam(newType ?? undefined);
+    const nextTags = optimisticDesktopTags;
 
-      if (normalizedType) {
-        params.set('type', normalizedType);
-      } else {
-        params.delete('type');
-      }
-    });
+    handleDesktopFilterReplace(nextType, nextTags);
   };
 
   const handleTagToggle = (tagSlug: string) => {
-    handleSearchParamReplace((params) => {
-      const normalizedTagSlug = normalizeTagSlug(tagSlug);
-      const currentTags = parseTagSearchParam(params.getAll('tag'));
-      const nextTags = currentTags.includes(normalizedTagSlug)
-        ? currentTags.filter((value) => value !== normalizedTagSlug)
-        : [...currentTags, normalizedTagSlug];
-      const serializedTags = serializeTagSearchParam(nextTags);
+    const normalizedTagSlug = normalizeTagSlug(tagSlug);
+    const nextTags = optimisticDesktopTags.includes(normalizedTagSlug)
+      ? optimisticDesktopTags.filter((value) => value !== normalizedTagSlug)
+      : [...optimisticDesktopTags, normalizedTagSlug];
 
-      if (serializedTags) {
-        params.set('tag', serializedTags);
-      } else {
-        params.delete('tag');
-      }
-    });
+    handleDesktopFilterReplace(optimisticDesktopType, nextTags);
   };
 
   const handleClearAllFilters = () => {
-    handleSearchParamReplace((params) => {
-      setFilterParams(params, props.initialType, []);
-    });
+    handleDesktopFilterReplace(optimisticDesktopType, []);
   };
 
   const handleDraftTypeChange = (newType: string | null) => {
@@ -373,8 +390,8 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
         <div className="hidden lg:block">
           <ProductFilterSidebar
             availableTags={props.availableTags}
-            selectedTags={props.initialTags}
-            selectedType={props.initialType}
+            selectedTags={optimisticDesktopTags}
+            selectedType={optimisticDesktopType}
             onClearAll={handleClearAllFilters}
             onTagToggle={handleTagToggle}
             onTypeChange={handleTypeChange}
