@@ -2,6 +2,7 @@ import { StorefrontBottomCta } from '@/components/home/storefront-bottom-cta';
 import { HomeProductSection } from '@/components/home/home-product-section';
 import { StorefrontFeaturedCarouselClient } from '@/components/home/storefront-featured-carousel-client';
 import { StorefrontHero } from '@/components/home/storefront-hero';
+import { StorefrontKujiBanner } from '@/components/home/storefront-kuji-banner';
 import type { IHomepageData } from '@/interfaces/home';
 
 interface IStorefrontHomeProps {
@@ -13,7 +14,7 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
   const hasFeatured = featured.length > 0;
 
   return (
-    <div className="w-full pb-8">
+    <div className="w-full">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="-mx-4 sm:-mx-6 lg:-mx-8">
           {hasFeatured ? (
@@ -28,6 +29,8 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
           )}
         </div>
       </div>
+
+      <StorefrontKujiBanner />
 
       <div className="container mx-auto w-full px-4 pt-0 md:px-6 lg:px-8">
         <HomeProductSection

@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import QueryConfigs from '@/configs/api/query-config';
 import { IProductListPage, ITag, productType } from '@/interfaces/product';
 import { getStorefrontSortHref } from '@/components/layout/store-navigation';
 import { ProductGridDense } from '@/components/product/product-grid-dense';
@@ -18,6 +16,13 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   formatCollectionLabel,
@@ -37,6 +42,7 @@ interface IProductsPageClientProps {
   headingDescription?: string;
   headingTitle?: string;
   initialCollection?: string;
+  initialCursor?: string;
   initialPage: IProductListPage | null;
   initialSort: storefrontProductSort;
   initialTags: string[];
@@ -44,10 +50,7 @@ interface IProductsPageClientProps {
 }
 
 interface IProductsResultsProps {
-  hasNextPage: boolean;
   isInitialError: boolean;
-  isLoadingMore: boolean;
-  onLoadMore: () => void;
   products: IProductListPage['items'];
 }
 
@@ -86,23 +89,7 @@ function ProductsResults(props: IProductsResultsProps) {
   }
 
   return (
-    <>
-      <ProductGridDense products={props.products} priorityCount={6} />
-
-      {props.hasNextPage ? (
-        <div className="mt-12 flex justify-center">
-          <Button
-            variant="outline"
-            size="lg"
-            disabled={props.isLoadingMore}
-            onClick={props.onLoadMore}
-          >
-            {props.isLoadingMore ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Load More
-          </Button>
-        </div>
-      ) : null}
-    </>
+    <ProductGridDense products={props.products} priorityCount={6} />
   );
 }
 
@@ -114,45 +101,16 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
   const [isRoutePending, startRouteTransition] = useTransition();
   const [draftType, setDraftType] = useState<productType | undefined>(props.initialType);
   const [draftTags, setDraftTags] = useState<string[]>(props.initialTags);
+  const [previousCursors, setPreviousCursors] = useState<string[]>([]);
   const serializedSelectedTags = serializeTagSearchParam(props.initialTags);
   const serializedDraftTags = serializeTagSearchParam(draftTags);
-  const backendSort = props.initialSort === 'featured' ? undefined : props.initialSort;
   const appliedFilterCount = props.initialTags.length + (props.initialType ? 1 : 0);
   const hasDraftFilters = Boolean(draftType) || draftTags.length > 0;
   const hasDraftChanges = draftType !== props.initialType || serializedDraftTags !== serializedSelectedTags;
-
-  const productsQuery = useInfiniteQuery({
-    queryKey: [
-      'products',
-      props.initialType ?? null,
-      props.initialCollection ?? null,
-      props.initialSort,
-      serializedSelectedTags ?? null,
-    ],
-    initialPageParam: undefined as string | undefined,
-    queryFn: async ({ pageParam }) => {
-      const response = await QueryConfigs.fetchProducts({
-        type: props.initialType,
-        collection: props.initialCollection,
-        sort: backendSort,
-        tag: serializedSelectedTags,
-        pageParam,
-      });
-
-      return response.data.data as IProductListPage;
-    },
-    enabled: props.initialPage !== null,
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-    initialData: props.initialPage
-      ? {
-        pages: [props.initialPage],
-        pageParams: [undefined],
-      }
-      : undefined,
-    staleTime: 30_000,
-  });
-
-  const products = productsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const products = props.initialPage?.items ?? [];
+  const nextCursor = props.initialPage?.nextCursor ?? null;
+  const currentCursor = props.initialCursor ?? '';
+  const hasPreviousPage = previousCursors.length > 0;
 
   const syncDraftFilters = () => {
     setDraftType(props.initialType);
@@ -162,6 +120,8 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
   const handleSearchParamReplace = (mutator: (params: URLSearchParams) => void) => {
     const params = new URLSearchParams(searchParams.toString());
     mutator(params);
+    params.delete('cursor');
+    setPreviousCursors([]);
 
     const nextQueryString = params.toString();
     const nextUrl = nextQueryString
@@ -200,6 +160,7 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
       return;
     }
 
+    setPreviousCursors([]);
     startRouteTransition(() => {
       router.replace(getStorefrontSortHref({
         pathname,
@@ -277,9 +238,60 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
     setDraftTags([]);
   };
 
-  const isInitialError = props.initialPage === null || productsQuery.status === 'error';
-  const isLoadingMore = productsQuery.isFetchingNextPage;
-  const hasNextPage = Boolean(productsQuery.hasNextPage);
+  const handlePaginationNavigate = (nextCursorValue?: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (nextCursorValue) {
+      params.set('cursor', nextCursorValue);
+    } else {
+      params.delete('cursor');
+    }
+
+    const nextQueryString = params.toString();
+    const nextUrl = nextQueryString
+      ? `${props.basePath ?? '/products'}?${nextQueryString}`
+      : (props.basePath ?? '/products');
+
+    startRouteTransition(() => {
+      router.replace(nextUrl, { scroll: false });
+    });
+  };
+
+  const buildPaginationHref = (nextCursorValue?: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (nextCursorValue) {
+      params.set('cursor', nextCursorValue);
+    } else {
+      params.delete('cursor');
+    }
+
+    const nextQueryString = params.toString();
+    return nextQueryString
+      ? `${props.basePath ?? '/products'}?${nextQueryString}`
+      : (props.basePath ?? '/products');
+  };
+
+  const handleNextPage = () => {
+    if (!nextCursor) {
+      return;
+    }
+
+    setPreviousCursors((current) => [...current, currentCursor]);
+    handlePaginationNavigate(nextCursor);
+  };
+
+  const handlePreviousPage = () => {
+    const previousCursor = previousCursors[previousCursors.length - 1];
+    if (previousCursor === undefined) {
+      return;
+    }
+
+    setPreviousCursors((current) => current.slice(0, -1));
+    handlePaginationNavigate(previousCursor || undefined);
+  };
+
+  const isInitialError = props.initialPage === null;
 
   const selectedSortLabel =
     PRODUCT_SORT_ITEMS.find((item) => item.value === props.initialSort)?.label ?? 'Featured';
@@ -367,14 +379,35 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
           </div>
 
           <ProductsResults
-            hasNextPage={hasNextPage}
             isInitialError={isInitialError}
-            isLoadingMore={isLoadingMore}
-            onLoadMore={() => {
-              void productsQuery.fetchNextPage();
-            }}
             products={products}
           />
+
+          {hasPreviousPage || nextCursor ? (
+            <Pagination className="mt-12 justify-center">
+              <PaginationContent>
+                {hasPreviousPage ? (
+                  <PaginationItem>
+                    <PaginationPrevious href={buildPaginationHref(previousCursors[previousCursors.length - 1] || undefined)} onClick={(event) => {
+                      event.preventDefault();
+                      handlePreviousPage();
+                    }}
+                    />
+                  </PaginationItem>
+                ) : null}
+
+                {nextCursor ? (
+                  <PaginationItem>
+                    <PaginationNext href={buildPaginationHref(nextCursor)} onClick={(event) => {
+                      event.preventDefault();
+                      handleNextPage();
+                    }}
+                    />
+                  </PaginationItem>
+                ) : null}
+              </PaginationContent>
+            </Pagination>
+          ) : null}
         </section>
       </div>
 

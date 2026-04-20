@@ -48,7 +48,7 @@ export function StorefrontImage(props: IStorefrontImageProps) {
       role="img"
       aria-label={props.alt}
       className={cn(
-        'flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_hsl(var(--primary)/0.24),_transparent_58%),linear-gradient(145deg,_hsl(var(--background)),_hsl(var(--muted)/0.85))] text-center',
+        'flex h-full w-full items-center justify-center bg-muted/65 text-center',
         props.className,
       )}
     >

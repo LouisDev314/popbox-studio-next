@@ -195,6 +195,7 @@ export function getStorefrontSortHref({
   const nextSearchParams = new URLSearchParams(searchParams.toString());
 
   nextSearchParams.delete('collection');
+  nextSearchParams.delete('cursor');
 
   if (sort === 'featured') {
     nextSearchParams.delete('sort');

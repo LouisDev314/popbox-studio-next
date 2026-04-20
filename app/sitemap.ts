@@ -67,6 +67,11 @@ function getStaticEntries(): MetadataRoute.Sitemap {
       lastModified,
       priority: 0.7,
     }),
+    createSitemapEntry('/ichiban-kuji', {
+      changeFrequency: 'monthly',
+      lastModified,
+      priority: 0.72,
+    }),
     createSitemapEntry('/contact', {
       changeFrequency: 'monthly',
       lastModified,

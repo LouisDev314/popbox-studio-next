@@ -3,7 +3,7 @@
 import { Suspense, type FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Heart, Search, ShoppingBag } from 'lucide-react';
+import { ChevronDown, Heart, Search, ShoppingBag } from 'lucide-react';
 import { CartDrawer } from '@/components/cart/cart-drawer';
 import { MobileMenuPanel } from '@/components/layout/mobile-menu-panel';
 import { MobileNavOverlay } from '@/components/layout/mobile-nav-overlay';
@@ -16,13 +16,11 @@ import {
   isStoreNavItemActive,
 } from '@/components/layout/store-navigation';
 import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from '@/components/ui/navigation-menu';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { WishlistDrawer } from '@/components/wishlist/wishlist-drawer';
 import QueryConfigs from '@/configs/api/query-config';
 import { useCartStore } from '@/hooks/use-cart';
@@ -67,8 +65,8 @@ function getDesktopNavItemClassName(isActive: boolean, isTrigger = false) {
       : 'text-muted-foreground after:scale-x-0 hover:text-foreground hover:after:scale-x-100',
     isTrigger &&
       (isActive
-        ? 'data-popup-open:text-foreground data-popup-open:after:scale-x-100 data-open:text-foreground data-open:after:scale-x-100 data-open:focus:text-foreground'
-        : 'data-popup-open:text-foreground data-popup-open:after:scale-x-100 data-open:text-foreground data-open:after:scale-x-100 data-open:focus:text-foreground'),
+        ? 'data-popup-open:rounded-full data-popup-open:bg-muted/55 data-popup-open:text-foreground data-popup-open:after:scale-x-100 data-open:rounded-full data-open:bg-muted/55 data-open:text-foreground data-open:after:scale-x-100 data-open:focus:text-foreground'
+        : 'data-popup-open:rounded-full data-popup-open:bg-muted/55 data-popup-open:text-foreground data-popup-open:after:scale-x-100 data-open:rounded-full data-open:bg-muted/55 data-open:text-foreground data-open:after:scale-x-100 data-open:focus:text-foreground'),
   );
 }
 
@@ -305,45 +303,40 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
                   </Link>
                 ))}
                 {collectionMenuItems.length > 0 ? (
-                  <NavigationMenu align="start" className="flex-none">
-                    <NavigationMenuList>
-                      <NavigationMenuItem>
-                        <NavigationMenuTrigger
-                          className={cn(
-                            getDesktopNavItemClassName(isCollectionsActive, true),
-                            'gap-1.5 rounded-none bg-transparent hover:bg-transparent focus:bg-transparent data-popup-open:bg-transparent data-open:bg-transparent data-open:focus:bg-transparent',
-                          )}
-                          aria-current={isCollectionsActive ? 'page' : undefined}
-                        >
-                          <span className={cn(isCollectionsActive && 'font-semibold')}>All Collections</span>
-                        </NavigationMenuTrigger>
-                        <NavigationMenuContent className="p-0">
-                          <div className="grid max-h-[min(70vh,24rem)] w-[min(42rem,calc(100vw-2rem))] grid-cols-2 gap-2 overflow-y-auto p-3">
-                            {collectionMenuItems.map((item) => {
-                              const isActive = isStoreNavItemActive(pathname, searchParams, item.href);
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      aria-current={isCollectionsActive ? 'page' : undefined}
+                      className={cn(
+                        getDesktopNavItemClassName(isCollectionsActive, true),
+                        'gap-1 bg-transparent hover:bg-transparent focus-visible:bg-transparent data-popup-open:bg-muted/55 data-open:bg-muted/55 data-open:focus-visible:bg-muted/55',
+                      )}
+                    >
+                      <span className={cn(isCollectionsActive && 'font-semibold')}>All Collections</span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 data-[popup-open]:rotate-180 data-[open]:rotate-180" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="start"
+                      sideOffset={10}
+                      className="max-h-[min(70vh,24rem)] w-64 overflow-y-auto rounded-2xl p-1.5"
+                    >
+                      {collectionMenuItems.map((item) => {
+                        const isActive = isStoreNavItemActive(pathname, searchParams, item.href);
 
-                              return (
-                                <NavigationMenuLink
-                                  key={item.href}
-                                  active={isActive}
-                                  aria-current={isActive ? 'page' : undefined}
-                                  render={<Link href={item.href} />}
-                                  className={cn(
-                                    'min-h-12 items-start rounded-xl bg-muted/40 px-3 py-2 text-sm font-medium hover:!bg-muted focus:!bg-muted data-[active]:!bg-accent data-[active]:!text-foreground',
-                                    isActive && 'border border-primary/20 !bg-accent !text-foreground',
-                                  )}
-                                >
-                                  <span className="text-sm font-medium leading-snug break-words">
-                                    {item.label}
-                                  </span>
-                                </NavigationMenuLink>
-                              );
-                            })}
-                          </div>
-                        </NavigationMenuContent>
-                      </NavigationMenuItem>
-                    </NavigationMenuList>
-                  </NavigationMenu>
+                        return (
+                          <DropdownMenuItem
+                            key={item.href}
+                            className={cn(
+                              'rounded-xl px-3 py-2.5 text-sm font-medium text-foreground',
+                              isActive && 'bg-accent text-foreground',
+                            )}
+                            render={<Link href={item.href} aria-current={isActive ? 'page' : undefined} />}
+                          >
+                            {item.label}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 ) : null}
               </nav>
             </div>

@@ -24,7 +24,7 @@ export function StorefrontFeaturedCarouselClient(props: IStorefrontFeaturedCarou
   }
 
   return (
-    <section className="mb-10 md:mb-14">
+    <section>
       <StorefrontCarousel
         featuredProducts={props.featuredProducts}
         onStateChange={handleCarouselStateChange}

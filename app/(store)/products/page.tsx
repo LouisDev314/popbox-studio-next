@@ -91,6 +91,7 @@ export async function generateMetadata(props: ProductsPageProps): Promise<Metada
 export default async function ProductsPage(props: ProductsPageProps) {
   const searchParams = await props.searchParams;
   const rawCollection = getFirstParamValue(searchParams.collection)?.trim();
+  const cursor = getFirstParamValue(searchParams.cursor)?.trim() || undefined;
   const type = parseProductTypeParam(searchParams.type);
   const sort = parseProductSortParam(searchParams.sort);
   const storefrontSort: storefrontProductSort = sort ?? 'newest';
@@ -104,6 +105,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
   const [productsResult, tagsResult] = await Promise.allSettled([
     getPublicProductsPage({
       collection,
+      cursor,
       sort,
       type,
       tag: serializedTags,
@@ -123,6 +125,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
     <ProductsPageClient
       availableTags={availableTags}
       initialCollection={collection}
+      initialCursor={cursor}
       initialPage={initialPage}
       initialSort={storefrontSort}
       initialTags={selectedTags}

@@ -67,6 +67,8 @@ export async function generateMetadata(props: CollectionSlugPageProps): Promise<
 export default async function CollectionSlugPage(props: CollectionSlugPageProps) {
   const params = await props.params;
   const searchParams = await props.searchParams;
+  const cursorParam = searchParams.cursor;
+  const cursor = Array.isArray(cursorParam) ? cursorParam[0]?.trim() || undefined : cursorParam?.trim() || undefined;
   const type = parseProductTypeParam(searchParams.type);
   const sort = parseProductSortParam(searchParams.sort);
   const selectedTags = parseTagSearchParam(searchParams.tag);
@@ -85,6 +87,7 @@ export default async function CollectionSlugPage(props: CollectionSlugPageProps)
   const [productsResult, tagsResult] = await Promise.allSettled([
     getPublicProductsPage({
       collection: collection.slug,
+      cursor,
       sort,
       type,
       tag: serializedTags,
@@ -113,6 +116,7 @@ export default async function CollectionSlugPage(props: CollectionSlugPageProps)
       }
       headingTitle={collection.name}
       initialCollection={collection.slug}
+      initialCursor={cursor}
       initialPage={initialPage}
       initialSort={storefrontSort}
       initialTags={selectedTags}
