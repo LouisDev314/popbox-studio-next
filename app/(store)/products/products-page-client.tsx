@@ -4,18 +4,12 @@ import { useEffect, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { IProductListPage, ITag, productType } from '@/interfaces/product';
 import { getStorefrontSortHref } from '@/components/layout/store-navigation';
-import { ProductGridDense } from '@/components/product/product-grid-dense';
+import { ProductGridDense, ProductGridDenseSkeleton } from '@/components/product/product-grid-dense';
 import { FilterPanelContent } from '@/components/product/filter-panel-content';
 import { ProductFilterSidebar } from '@/components/product/product-filter-sidebar';
 import { Button } from '@/components/ui/button';
 import { Loader2, SlidersHorizontal } from 'lucide-react';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
+import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import {
   Pagination,
   PaginationContent,
@@ -27,9 +21,9 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import {
   formatCollectionLabel,
   normalizeTagSlug,
-  PRODUCT_SORT_ITEMS,
   parseProductTypeParam,
   parseStorefrontProductSortParam,
+  PRODUCT_SORT_ITEMS,
   serializeTagSearchParam,
   storefrontProductSort,
 } from '@/lib/storefront-product-filters';
@@ -51,6 +45,17 @@ interface IProductsPageClientProps {
 interface IProductsResultsProps {
   isInitialError: boolean;
   products: IProductListPage['items'];
+}
+
+interface IProductsListingSectionProps extends IProductsResultsProps {
+  buildPaginationHref: (nextCursorValue?: string) => string;
+  hasPreviousPage: boolean;
+  isRoutePending: boolean;
+  nextCursor: string | null;
+  onNextPage: () => void;
+  onPreviousPage: () => void;
+  pendingSkeletonCount: number;
+  previousCursors: string[];
 }
 
 interface IDesktopOptimisticFilters {
@@ -99,6 +104,61 @@ function ProductsResults(props: IProductsResultsProps) {
   );
 }
 
+function ProductsListingSection(props: IProductsListingSectionProps) {
+  return (
+    <section className="min-w-0" aria-busy={props.isRoutePending}>
+      <div className="mb-4">
+        <p className="text-sm text-muted-foreground">
+          {props.isInitialError
+            ? 'Catalog unavailable'
+            : `${props.products.length} product${props.products.length === 1 ? '' : 's'}`}
+        </p>
+      </div>
+
+      {props.isRoutePending ? (
+        <div className="space-y-4" role="status" aria-live="polite">
+          <div className='inline-flex items-center gap-1'>
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <p className="text-sm font-medium text-muted-foreground">Updating...</p>
+          </div>
+          <ProductGridDenseSkeleton count={props.pendingSkeletonCount} className="px-0.5" />
+        </div>
+      ) : (
+        <ProductsResults
+          isInitialError={props.isInitialError}
+          products={props.products}
+        />
+      )}
+
+      {props.hasPreviousPage || props.nextCursor ? (
+        <Pagination className="mt-12 justify-center">
+          <PaginationContent>
+            {props.hasPreviousPage ? (
+              <PaginationItem>
+                <PaginationPrevious href={props.buildPaginationHref(props.previousCursors[props.previousCursors.length - 1] || undefined)} onClick={(event) => {
+                  event.preventDefault();
+                  props.onPreviousPage();
+                }}
+                />
+              </PaginationItem>
+            ) : null}
+
+            {props.nextCursor ? (
+              <PaginationItem>
+                <PaginationNext href={props.buildPaginationHref(props.nextCursor)} onClick={(event) => {
+                  event.preventDefault();
+                  props.onNextPage();
+                }}
+                />
+              </PaginationItem>
+            ) : null}
+          </PaginationContent>
+        </Pagination>
+      ) : null}
+    </section>
+  );
+}
+
 export default function ProductsPageClient(props: IProductsPageClientProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -110,7 +170,7 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
   const [draftType, setDraftType] = useState<productType | undefined>(props.initialType);
   const [draftTags, setDraftTags] = useState<string[]>(props.initialTags);
   const [previousCursors, setPreviousCursors] = useState<string[]>([]);
-  const serializedSelectedTags = serializeTagSearchParam(props.initialTags);
+  const serializedSelectedTags = serializeTagSearchParam(props.initialTags) ?? '';
   const serializedDraftTags = serializeTagSearchParam(draftTags);
   const shouldUseDesktopOptimisticFilters = desktopOptimisticFilters !== null
     && desktopOptimisticFilters.baseServerTagKey === serializedSelectedTags
@@ -126,8 +186,8 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
   const hasDraftChanges = draftType !== props.initialType || serializedDraftTags !== serializedSelectedTags;
   const products = props.initialPage?.items ?? [];
   const nextCursor = props.initialPage?.nextCursor ?? null;
-  const currentCursor = props.initialCursor ?? '';
   const hasPreviousPage = previousCursors.length > 0;
+  const pendingSkeletonCount = products.length > 0 ? products.length : 12;
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -223,9 +283,8 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
 
   const handleTypeChange = (newType: string | null) => {
     const nextType = parseProductTypeParam(newType ?? undefined);
-    const nextTags = optimisticDesktopTags;
 
-    handleDesktopFilterReplace(nextType, nextTags);
+    handleDesktopFilterReplace(nextType, optimisticDesktopTags);
   };
 
   const handleTagToggle = (tagSlug: string) => {
@@ -312,7 +371,7 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
       return;
     }
 
-    setPreviousCursors((current) => [...current, currentCursor]);
+    setPreviousCursors((current) => [...current, props.initialCursor ?? '']);
     handlePaginationNavigate(nextCursor);
   };
 
@@ -398,52 +457,18 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
           />
         </div>
 
-        <section className="min-w-0" aria-busy={isRoutePending}>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              {isInitialError
-                ? 'Catalog unavailable'
-                : `${products.length} product${products.length === 1 ? '' : 's'}`}
-            </p>
-            {isRoutePending ? (
-              <div className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground" role="status">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                Updating...
-              </div>
-            ) : null}
-          </div>
-
-          <ProductsResults
-            isInitialError={isInitialError}
-            products={products}
-          />
-
-          {hasPreviousPage || nextCursor ? (
-            <Pagination className="mt-12 justify-center">
-              <PaginationContent>
-                {hasPreviousPage ? (
-                  <PaginationItem>
-                    <PaginationPrevious href={buildPaginationHref(previousCursors[previousCursors.length - 1] || undefined)} onClick={(event) => {
-                      event.preventDefault();
-                      handlePreviousPage();
-                    }}
-                    />
-                  </PaginationItem>
-                ) : null}
-
-                {nextCursor ? (
-                  <PaginationItem>
-                    <PaginationNext href={buildPaginationHref(nextCursor)} onClick={(event) => {
-                      event.preventDefault();
-                      handleNextPage();
-                    }}
-                    />
-                  </PaginationItem>
-                ) : null}
-              </PaginationContent>
-            </Pagination>
-          ) : null}
-        </section>
+        <ProductsListingSection
+          buildPaginationHref={buildPaginationHref}
+          hasPreviousPage={hasPreviousPage}
+          isInitialError={isInitialError}
+          isRoutePending={isRoutePending}
+          nextCursor={nextCursor}
+          onNextPage={handleNextPage}
+          onPreviousPage={handlePreviousPage}
+          pendingSkeletonCount={pendingSkeletonCount}
+          previousCursors={previousCursors}
+          products={products}
+        />
       </div>
 
       <Drawer
