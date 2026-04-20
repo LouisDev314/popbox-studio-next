@@ -48,13 +48,18 @@ export function StoreFooter() {
               <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">Shop</h3>
               <ul className="mt-4 space-y-3">
                 <li>
-                  <Link href="/products" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                    All Products
+                  <Link href="/collections/featured" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                    Featured
                   </Link>
                 </li>
                 <li>
                   <Link href="/products?type=kuji" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                     Ichiban Kuji
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/products" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                    All Products
                   </Link>
                 </li>
                 <li>
@@ -87,11 +92,6 @@ export function StoreFooter() {
                 <li>
                   <Link href="/about" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                     About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/collections/featured" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-                    Featured
                   </Link>
                 </li>
               </ul>

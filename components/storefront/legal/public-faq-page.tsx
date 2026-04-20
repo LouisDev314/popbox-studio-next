@@ -104,12 +104,9 @@ export function PublicFaqPage({ items }: { items: IPublicFaqItem[] }) {
           <div className="space-y-10 sm:space-y-12">
             {sections.map((section, index) => (
               <section key={section.category} className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-                    {section.category}
-                  </h2>
-                  <div className="h-px flex-1 bg-border" />
-                </div>
+                <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+                  {section.category}
+                </h2>
 
                 <Accordion
                   className="w-full rounded-2xl border border-border/60 bg-card px-5 shadow-sm sm:px-6"
