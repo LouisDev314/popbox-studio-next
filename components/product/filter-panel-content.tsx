@@ -1,6 +1,6 @@
 'use client';
 
-import { Filter, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { ITag, productType } from '@/interfaces/product';
 import {
   formatTagLabel,
@@ -9,7 +9,6 @@ import {
   PRODUCT_TYPE_ITEMS,
 } from '@/lib/storefront-product-filters';
 import { cn } from '@/lib/utils';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
@@ -35,43 +34,19 @@ type IFilterOptionButtonProps = {
 };
 
 function FilterOptionButton(props: IFilterOptionButtonProps) {
-  if (props.variant === 'drawer') {
-    return (
-      <button
-        type="button"
-        aria-pressed={props.isSelected}
-        onClick={props.onClick}
-        className={cn(
-          'flex min-h-12 w-full items-center justify-center rounded-[18px] border px-4 py-3 text-center text-sm font-medium leading-tight transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
-          props.isSelected
-            ? 'border-primary bg-primary text-primary-foreground'
-            : 'border-border/70 bg-background text-foreground hover:border-border hover:bg-muted/35',
-        )}
-      >
-        <span>{props.label}</span>
-      </button>
-    );
-  }
-
   return (
     <button
       type="button"
+      aria-pressed={props.isSelected}
       onClick={props.onClick}
       className={cn(
-        'flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+        'cursor-pointer inline-flex min-h-11 max-w-full shrink-0 items-center justify-center rounded-full border px-4 py-2.5 text-sm font-medium leading-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
         props.isSelected
-          ? 'border-primary/25 bg-accent/50 text-foreground shadow-[0_12px_24px_-18px_rgba(15,23,42,0.35)]'
-          : 'border-border/60 bg-background text-muted-foreground hover:border-border hover:bg-muted/55 hover:text-foreground',
+          ? 'border-primary/35 bg-primary/10 text-primary shadow-[0_18px_30px_-24px_hsl(var(--primary)/0.32)]'
+          : 'border-border/70 bg-background text-foreground hover:border-primary/20 hover:bg-primary/5',
       )}
     >
-      <span className="font-medium">{props.label}</span>
-      <span
-        className={cn(
-          'size-2.5 rounded-full transition-colors',
-          props.isSelected ? 'bg-primary' : 'bg-border/80',
-        )}
-        aria-hidden="true"
-      />
+      <span className="whitespace-nowrap">{props.label}</span>
     </button>
   );
 }
@@ -92,17 +67,10 @@ function TagCheckboxRow(props: ITagCheckboxRowProps) {
   return (
     <label
       className={cn(
-        'flex cursor-pointer gap-3 text-sm transition-all',
+        'group flex cursor-pointer items-start gap-3 rounded-xl py-2 text-sm transition-colors',
         props.variant === 'drawer'
-          ? cn(
-            'min-h-12 items-center gap-3.5 rounded-2xl py-1.5 pr-2 text-[15px] leading-6 text-foreground',
-          )
-          : cn(
-            'items-start rounded-2xl border px-4 py-3',
-            props.checked
-              ? 'border-primary/20 bg-accent/45 text-foreground'
-              : 'border-border/60 bg-background text-muted-foreground hover:border-border hover:bg-muted/45 hover:text-foreground',
-          ),
+          ? 'min-h-11 text-[15px] leading-6 text-foreground'
+          : 'text-foreground',
       )}
     >
       <Checkbox
@@ -110,11 +78,11 @@ function TagCheckboxRow(props: ITagCheckboxRowProps) {
         onCheckedChange={props.onChange}
         className={cn(
           props.variant === 'drawer'
-            ? 'mt-0 size-5 rounded-[6px] border-border/80 data-[checked]:border-foreground data-[checked]:bg-foreground [&_[data-slot=checkbox-indicator]>svg]:size-3.5'
-            : 'mt-0.5',
+            ? 'mt-0.5 size-5 rounded-[6px] border-border/80 data-[checked]:border-primary data-[checked]:bg-primary data-[checked]:text-primary-foreground [&_[data-slot=checkbox-indicator]>svg]:size-3.5'
+            : 'mt-0.5 border-border/80 data-[checked]:border-primary data-[checked]:bg-primary data-[checked]:text-primary-foreground',
         )}
       />
-      <span className="min-w-0 leading-snug">{props.label}</span>
+      <span className="min-w-0 flex-1 leading-snug">{props.label}</span>
     </label>
   );
 }
@@ -131,8 +99,8 @@ function SelectedFilterChips(props: ISelectedFilterChipsProps) {
   }
 
   return (
-    <div className={cn(props.isDrawer ? 'pb-2' : 'px-5 py-4 sm:px-6')}>
-      <div className={cn('flex flex-wrap gap-2', props.isDrawer ? 'mt-3 px-1' : '')}>
+    <div className={cn(props.isDrawer ? 'pb-1' : 'pb-1')}>
+      <div className={cn('flex flex-wrap gap-2', props.isDrawer ? '' : '')}>
         {props.items.map((tag) => (
           <button
             key={tag.slug}
@@ -163,7 +131,6 @@ export function FilterPanelContent(props: IFilterPanelContentProps) {
     slug: tagSlug,
     label: tagLookup.get(normalizeTagSlug(tagSlug))?.name ?? formatTagLabel(tagSlug),
   }));
-  const hasActiveFilters = Boolean(props.selectedType) || props.selectedTags.length > 0;
   const isDrawer = variant === 'drawer';
 
   return (
@@ -171,200 +138,97 @@ export function FilterPanelContent(props: IFilterPanelContentProps) {
       className={cn(
         isDrawer
           ? 'min-h-0'
-          : 'overflow-hidden rounded-[30px] border border-border/70 bg-background shadow-[0_22px_60px_-42px_rgba(15,23,42,0.35)]',
+          : 'pt-5',
         props.className,
       )}
     >
-      {!isDrawer ? (
-        <div className="flex items-start justify-between gap-4 px-5 py-5 sm:px-6">
-          <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Shop By
-            </p>
-            <div className="flex items-center gap-2 text-foreground">
-              <Filter className="size-4 text-primary" />
-              <h2 className="text-lg font-semibold">Refine products</h2>
-            </div>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Narrow the catalog with product type and tag filters.
-            </p>
-          </div>
+      <div className={cn('space-y-6', isDrawer ? 'px-1 py-1' : 'space-y-5')}>
+        <section className="space-y-3">
+          <h3 className="text-base font-semibold text-foreground">Product Type</h3>
 
-          {hasActiveFilters ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-auto rounded-full px-3 py-1.5 text-xs"
-              onClick={props.onClearAll}
-            >
-              Clear all
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-
-      {!isDrawer ? <Separator className="bg-border/70" /> : null}
-
-      <SelectedFilterChips
-        isDrawer={isDrawer}
-        items={selectedTagItems}
-        onTagToggle={props.onTagToggle}
-      />
-
-      {isDrawer ? (
-        <div className="space-y-7 px-1 pt-3 pb-4">
-          <section className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-base font-semibold text-foreground">Product Type</h3>
-            </div>
-
-            <div
-              role="group"
-              aria-label="Product type filters"
-              className="grid grid-cols-2 gap-2.5 sm:grid-cols-3"
-            >
-              {PRODUCT_TYPE_ITEMS.map((item) => (
+          <div
+            role="group"
+            aria-label="Product type filters"
+            className="flex flex-wrap gap-2"
+          >
+            {PRODUCT_TYPE_ITEMS.map((item) => (
+              <div key={item.value} className="shrink-0">
                 <FilterOptionButton
-                  key={item.value}
                   label={item.label}
                   isSelected={item.value === (props.selectedType ?? '')}
                   onClick={() => props.onTypeChange(item.value)}
                   variant={variant}
                 />
-              ))}
-            </div>
-          </section>
+              </div>
+            ))}
+          </div>
+        </section>
 
-          <Separator className='h-px w-full' />
-
-          {tagGroups.map((group, index) => {
-            const selectedCount = group.tags.filter((tag) => selectedTagSet.has(normalizeTagSlug(tag.slug))).length;
-
-            const isLast = index === tagGroups.length - 1;
-
-            return (
-              <section key={group.key} className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-base font-semibold text-foreground">{group.label}</h3>
-                  {selectedCount > 0 ? (
-                    <span className="text-xs font-medium text-muted-foreground">{selectedCount} selected</span>
-                  ) : null}
-                </div>
-
-                <div
-                  className={cn(
-                    'space-y-1.5',
-                    group.tags.length > 8 && 'max-h-72 overflow-y-auto pr-1',
-                  )}
+        {selectedTagItems.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Selected</h3>
+              {selectedTagItems.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 rounded-full px-3 text-xs font-medium transition-colors hover:bg-primary/10"
+                  onClick={props.onClearAll}
                 >
-                  {group.tags.map((tag) => (
-                    <TagCheckboxRow
-                      key={tag.id}
-                      checked={selectedTagSet.has(normalizeTagSlug(tag.slug))}
-                      label={tag.name}
-                      onChange={() => props.onTagToggle(tag.slug)}
-                      variant={variant}
-                    />
-                  ))}
-                </div>
-                {!isLast ? <Separator className="h-px w-full" /> : null}
-              </section>
-            );
-          })}
-        </div>
-      ) : (
-        <Accordion
-          defaultValue={['product-type', ...tagGroups.map((group) => group.key)]}
-          className="px-5 py-2 sm:px-6"
-          multiple
-        >
-          <AccordionItem value="product-type" className="border-border/70">
-            <AccordionTrigger className="py-3.5 text-sm font-semibold hover:no-underline">
-              <div className="flex min-w-0 items-center gap-3">
-                <span>Product Type</span>
-                {props.selectedType ? (
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-foreground">
-                    1
-                  </span>
+                  Clear all
+                </Button>
+              )}
+            </div>
+            <SelectedFilterChips
+              isDrawer={isDrawer}
+              items={selectedTagItems}
+              onTagToggle={props.onTagToggle}
+            />
+          </section>
+        )}
+
+        {tagGroups.map((group) => {
+          const selectedCount = group.tags.filter((tag) => selectedTagSet.has(normalizeTagSlug(tag.slug))).length;
+
+          return (
+            <section key={group.key} className="space-y-3 border-t border-border/70 pt-5">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-base font-semibold text-foreground">{group.label}</h3>
+                {selectedCount > 0 ? (
+                  <span className="text-xs font-medium text-muted-foreground">{selectedCount} selected</span>
                 ) : null}
               </div>
-            </AccordionTrigger>
-            <AccordionContent className="pb-4">
+
               <div
-                role="group"
-                aria-label="Product type filters"
-                className="grid grid-cols-2 gap-2.5"
+                className={cn(
+                  'space-y-1',
+                  group.tags.length > 8 && 'max-h-72 overflow-y-auto pr-1',
+                )}
               >
-                {PRODUCT_TYPE_ITEMS.map((item) => (
-                  <div
-                    key={item.value}
-                    className={cn(item.value === '' && 'col-span-2')}
-                  >
-                    <FilterOptionButton
-                      label={item.label}
-                      isSelected={item.value === (props.selectedType ?? '')}
-                      onClick={() => props.onTypeChange(item.value)}
-                      variant={variant}
-                    />
-                  </div>
+                {group.tags.map((tag) => (
+                  <TagCheckboxRow
+                    key={tag.id}
+                    checked={selectedTagSet.has(normalizeTagSlug(tag.slug))}
+                    label={tag.name}
+                    onChange={() => props.onTagToggle(tag.slug)}
+                    variant={variant}
+                  />
                 ))}
               </div>
-            </AccordionContent>
-          </AccordionItem>
+            </section>
+          );
+        })}
 
-          {tagGroups.map((group) => {
-            const selectedCount = group.tags.filter((tag) => selectedTagSet.has(normalizeTagSlug(tag.slug))).length;
-
-            return (
-              <AccordionItem
-                key={group.key}
-                value={group.key}
-                className="border-border/70"
-              >
-                <AccordionTrigger className="py-3.5 text-sm font-semibold hover:no-underline">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span>{group.label}</span>
-                    {selectedCount > 0 ? (
-                      <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-foreground">
-                        {selectedCount}
-                      </span>
-                    ) : null}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pb-4">
-                  <div
-                    className={cn(
-                      'space-y-2',
-                      group.tags.length > 8 && 'max-h-72 overflow-y-auto pr-1',
-                    )}
-                  >
-                    {group.tags.map((tag) => (
-                      <TagCheckboxRow
-                        key={tag.id}
-                        checked={selectedTagSet.has(normalizeTagSlug(tag.slug))}
-                        label={tag.name}
-                        onChange={() => props.onTagToggle(tag.slug)}
-                        variant={variant}
-                      />
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
-      )}
-
-      {tagGroups.length === 0 ? (
-        <div className={cn(
-          isDrawer
-            ? 'px-1 pt-4 text-sm text-muted-foreground'
-            : 'px-5 py-4 text-sm text-muted-foreground sm:px-6',
-        )}>
-          Tags are not available for this catalog yet.
-        </div>
-      ) : null}
+        {tagGroups.length === 0 ? (
+          <>
+            <Separator className="bg-border/70" />
+            <div className="text-sm text-muted-foreground">
+              Tags are not available for this catalog yet.
+            </div>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 }

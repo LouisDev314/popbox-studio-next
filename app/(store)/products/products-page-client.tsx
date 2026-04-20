@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { IProductListPage, ITag, productType } from '@/interfaces/product';
 import { getStorefrontSortHref } from '@/components/layout/store-navigation';
@@ -98,19 +98,38 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isDesktopFilterDrawer, setIsDesktopFilterDrawer] = useState(false);
   const [isRoutePending, startRouteTransition] = useTransition();
   const [draftType, setDraftType] = useState<productType | undefined>(props.initialType);
   const [draftTags, setDraftTags] = useState<string[]>(props.initialTags);
   const [previousCursors, setPreviousCursors] = useState<string[]>([]);
   const serializedSelectedTags = serializeTagSearchParam(props.initialTags);
   const serializedDraftTags = serializeTagSearchParam(draftTags);
-  const appliedFilterCount = props.initialTags.length + (props.initialType ? 1 : 0);
-  const hasDraftFilters = Boolean(draftType) || draftTags.length > 0;
+  const appliedFilterCount = props.initialTags.length;
+  const hasDraftFilters = draftTags.length > 0;
   const hasDraftChanges = draftType !== props.initialType || serializedDraftTags !== serializedSelectedTags;
   const products = props.initialPage?.items ?? [];
   const nextCursor = props.initialPage?.nextCursor ?? null;
   const currentCursor = props.initialCursor ?? '';
   const hasPreviousPage = previousCursors.length > 0;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia('(min-width: 640px)');
+    const syncDrawerMode = () => {
+      setIsDesktopFilterDrawer(mediaQuery.matches);
+    };
+
+    syncDrawerMode();
+    mediaQuery.addEventListener('change', syncDrawerMode);
+
+    return () => {
+      mediaQuery.removeEventListener('change', syncDrawerMode);
+    };
+  }, []);
 
   const syncDraftFilters = () => {
     setDraftType(props.initialType);
@@ -201,7 +220,7 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
 
   const handleClearAllFilters = () => {
     handleSearchParamReplace((params) => {
-      setFilterParams(params, undefined, []);
+      setFilterParams(params, props.initialType, []);
     });
   };
 
@@ -234,7 +253,6 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
   };
 
   const handleMobileClear = () => {
-    setDraftType(undefined);
     setDraftTags([]);
   };
 
@@ -301,7 +319,7 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
 
   return (
     <div className="container mx-auto w-full px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-col justify-between gap-5 sm:mb-8 lg:flex-row lg:items-end">
+      <div className="mb-6 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
         <div className="max-w-3xl">
           <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-[2.75rem]">
             {pageTitle}
@@ -373,7 +391,7 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
             {isRoutePending ? (
               <div className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground" role="status">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                Updating…
+                Updating...
               </div>
             ) : null}
           </div>
@@ -413,7 +431,7 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
 
       <Drawer
         open={isFiltersOpen}
-        // direction="bottom"
+        direction={isDesktopFilterDrawer ? 'left' : 'bottom'}
         onOpenChange={(open) => {
           if (open) {
             syncDraftFilters();
@@ -422,13 +440,18 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
           setIsFiltersOpen(open);
         }}
       >
-        <DrawerContent className="mx-auto flex max-h-[86svh] w-full max-w-xl flex-col overflow-hidden rounded-t-[32px] border-x border-t border-border/60 bg-background p-0 shadow-[0_-18px_50px_-34px_rgba(15,23,42,0.28)]">
-          <DrawerHeader className="px-4 pb-2 pt-3 text-left sm:px-5">
-            <div className="mx-auto pt-2">
-              <DrawerTitle className="text-xl font-semibold tracking-tight">Filters</DrawerTitle>
-            </div>
+        <DrawerContent
+          className={cn(
+            'flex flex-col overflow-hidden overscroll-none bg-background p-0',
+            isDesktopFilterDrawer
+              ? 'h-[100svh] w-[88vw] max-w-sm rounded-none border-r border-border/70 shadow-[20px_0_48px_-30px_rgba(15,23,42,0.35)]'
+              : 'h-[100svh] w-full rounded-t-[32px] border-t border-border/70 shadow-[0_-18px_50px_-34px_rgba(15,23,42,0.28)]',
+          )}
+        >
+          <DrawerHeader className="border-b border-border/70 px-4 py-4 text-left sm:px-5">
+            <DrawerTitle className="text-xl font-semibold tracking-tight">Filters</DrawerTitle>
           </DrawerHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-5">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5">
             <FilterPanelContent
               availableTags={props.availableTags}
               selectedTags={draftTags}
@@ -439,7 +462,14 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
               variant="drawer"
             />
           </div>
-          <DrawerFooter className="bg-background px-4 py-4 sm:px-5">
+          <DrawerFooter
+            className="border-t border-border/70 bg-background/98 px-4 py-4 supports-backdrop-filter:backdrop-blur sm:px-5"
+            style={{
+              paddingBottom: isDesktopFilterDrawer
+                ? '1rem'
+                : 'max(env(safe-area-inset-bottom, 0px), 1rem)',
+            }}
+          >
             <div className="grid grid-cols-2 gap-3">
               <Button
                 type="button"
