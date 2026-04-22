@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { IGuestOrderDetail } from '@/interfaces/order';
 import { formatPrice } from '@/lib/utils';
+import { GuestOrderMeta } from './guest-order-meta';
 import { getGuestTicketsPath } from './guest-order-routing';
 
 interface IGuestOrderDetailProps {
@@ -24,33 +25,42 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
         </Link>
       </div>
 
-      <div className="mb-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground md:text-5xl">Thank you for your purchase!</h1>
-          <p className="mt-3 text-base leading-7 text-muted-foreground">
-            Your order will be processed within 24 hours during business days. We will notify you
-            by email once your order has been shipped.
-          </p>
-          <p className="mt-4 text-2xl font-semibold tracking-tight text-primary">
-            Order Number: {order.publicId}
-          </p>
-          <p className="mt-2 text-muted-foreground">
-            Placed on {order.placedAt ? new Date(order.placedAt).toLocaleDateString() : 'N/A'}
-          </p>
-        </div>
+      <div className="mb-10 border-b border-border/60 pb-8 sm:mb-12 sm:pb-10">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
+          <div className="min-w-0 flex-1">
+            <div className="space-y-4 text-center">
+              <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                Order confirmed
+              </p>
 
-        {hasKujiTickets && (
-          <Button
-            asChild
-            size="lg"
-            className="rounded-xl px-8 py-6 text-base font-semibold"
-          >
-            <Link href={ticketsHref}>
-              <Ticket className="mr-2 h-5 w-5" />
-              Go to My Tickets
-            </Link>
-          </Button>
-        )}
+              <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+                Thank you for your order!
+              </h1>
+
+              <p className="mx-auto max-w-xl text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7">
+                Your order will be processed within 2 business days. We’ll email you as
+                soon as it ships.
+              </p>
+            </div>
+
+            <GuestOrderMeta publicId={order.publicId} placedAt={order.placedAt} />
+          </div>
+
+          {hasKujiTickets && (
+            <div className="flex justify-center">
+              <Button
+                asChild
+                size="lg"
+                className="h-12 rounded-xl px-6 text-sm font-semibold sm:h-13 sm:px-8 sm:text-base"
+              >
+                <Link href={ticketsHref}>
+                  <Ticket className="mr-2 h-5 w-5 shrink-0" />
+                  Go to My Tickets
+                </Link>
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="mb-12 grid grid-cols-1 gap-8 md:grid-cols-3">
