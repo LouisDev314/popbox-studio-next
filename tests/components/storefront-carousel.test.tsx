@@ -75,18 +75,24 @@ describe('StorefrontCarousel', () => {
     const slide = container.querySelector('.flex.touch-pan-y > div');
     const link = container.querySelector('a[href="/products/featured-release"]');
     const mediaFrame = link?.querySelector('div.relative.aspect-\\[1\\.85\\/1\\]');
-    const desktopLayout = slide?.querySelector('div.relative.lg\\:mx-auto');
+    const desktopLayout = slide?.querySelector('div.relative.lg\\:flex');
+    const sharedControls = container.querySelector('.group-hover\\:opacity-100.md\\:flex');
 
     expect(slide).toHaveClass('flex-[0_0_100%]');
     expect(slide?.className).not.toContain('lg:flex-[0_0_84%]');
     expect(link?.className).not.toContain('lg:opacity-68');
-    expect(link).toHaveClass('group/slide relative block w-full lg:max-w-6xl');
+    expect(link).toHaveClass('group/slide relative block w-full');
+    expect(link?.className).not.toContain('lg:max-w-6xl');
     expect(link?.className).not.toContain('lg:w-auto');
-    expect(desktopLayout).toHaveClass('relative lg:mx-auto lg:flex lg:max-w-304 lg:justify-center lg:px-6 xl:px-8');
-    expect(mediaFrame).toHaveClass('w-full', 'lg:h-[28rem]');
+    expect(desktopLayout).toHaveClass('relative lg:flex lg:w-full lg:justify-center');
+    expect(desktopLayout?.className).not.toContain('lg:max-w-304');
+    expect(mediaFrame).toHaveClass('aspect-[1.85/1]', 'w-full', 'sm:aspect-[2/1]');
+    expect(mediaFrame?.className).not.toContain('lg:h-[28rem]');
+    expect(mediaFrame?.className).not.toContain('xl:h-[30rem]');
     expect(mediaFrame?.className).not.toContain('lg:w-[min(100%,72rem)]');
     expect(container.querySelector('.group-hover\\/slide\\:opacity-100.lg\\:block')).not.toBeInTheDocument();
-    expect(container.querySelector('.group-hover\\:opacity-100.md\\:flex')).toBeInTheDocument();
+    expect(sharedControls).toHaveClass('lg:left-0', 'lg:right-0', 'lg:w-full', 'lg:px-10');
+    expect(sharedControls?.className).not.toContain('lg:max-w-6xl');
   });
 
   it('keeps arrows and dots wired through the featured carousel client', async () => {

@@ -169,13 +169,13 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
                 key={product.id}
                 className="relative min-w-0 flex-[0_0_100%]"
               >
-                <div className="relative lg:mx-auto lg:flex lg:max-w-304 lg:justify-center lg:px-6 xl:px-8">
+                <div className="relative lg:flex lg:w-full lg:justify-center">
                   <Link
                     href={`/products/${product.slug}`}
-                    className="group/slide relative block w-full lg:max-w-6xl"
+                    className="group/slide relative block w-full"
                     onClick={() => autoplay.current.stop()}
                   >
-                    <div className="relative aspect-[1.85/1] w-full overflow-hidden sm:aspect-[2/1] lg:aspect-auto lg:h-[28rem] xl:h-[30rem]">
+                    <div className="relative aspect-[1.85/1] w-full overflow-hidden sm:aspect-[2/1]">
                       <div className="absolute inset-0">
                         <StorefrontImage
                           src={product.images?.[0]?.url}
@@ -212,7 +212,7 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-y-0 left-4 right-4 z-20 hidden items-center justify-between opacity-0 transition-opacity duration-300 group-hover:opacity-100 md:flex lg:left-1/2 lg:right-auto lg:w-full lg:max-w-6xl lg:-translate-x-1/2 lg:px-10">
+      <div className="pointer-events-none absolute inset-y-0 left-4 right-4 z-20 hidden items-center justify-between opacity-0 transition-opacity duration-300 group-hover:opacity-100 md:flex lg:left-0 lg:right-0 lg:w-full lg:px-10">
         <Button
           variant="outline"
           size="icon"
