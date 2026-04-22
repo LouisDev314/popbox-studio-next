@@ -12,11 +12,32 @@ interface IStorefrontFeaturedCarouselClientProps {
   featuredProducts: IProductCard[];
 }
 
+function areNumberArraysEqual(first: number[], second: number[]) {
+  if (first.length !== second.length) {
+    return false;
+  }
+
+  return first.every((value, index) => value === second[index]);
+}
+
 export function StorefrontFeaturedCarouselClient(props: IStorefrontFeaturedCarouselClientProps) {
   const [carouselState, setCarouselState] = useState<IStorefrontCarouselState | null>(null);
 
   const handleCarouselStateChange = useCallback((state: IStorefrontCarouselState) => {
-    setCarouselState(state);
+    setCarouselState((currentState) => {
+      if (
+        currentState &&
+        currentState.selectedIndex === state.selectedIndex &&
+        currentState.scrollTo === state.scrollTo &&
+        currentState.scrollPrev === state.scrollPrev &&
+        currentState.scrollNext === state.scrollNext &&
+        areNumberArraysEqual(currentState.scrollSnaps, state.scrollSnaps)
+      ) {
+        return currentState;
+      }
+
+      return state;
+    });
   }, []);
 
   if (props.featuredProducts.length === 0) {

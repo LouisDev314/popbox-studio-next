@@ -29,7 +29,7 @@ export function CartSummary(props: ICartSummaryProps) {
       : formatPrice(props.summary.shippingCents, props.summary.currency);
 
   return (
-    <div className={cn('rounded-[2rem] border border-border/60 bg-card p-6 shadow-sm', props.className)}>
+    <div className={cn('rounded-4xl border border-border/60 bg-card p-6 shadow-sm', props.className)}>
       {hasHeaderContent ? (
         <div className="space-y-1.5">
           {resolvedHeading !== null ? (

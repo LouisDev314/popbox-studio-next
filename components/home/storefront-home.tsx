@@ -15,20 +15,16 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
 
   return (
     <div className="w-full">
-      <div className="px-4 sm:px-6 lg:px-8">
-        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
-          {hasFeatured ? (
-            <StorefrontFeaturedCarouselClient featuredProducts={featured} />
-          ) : (
-            <StorefrontHero
-              title="Discover Premium Collectibles"
-              subtitle="Your exclusive source for Ichiban Kuji and authentic anime figures."
-              ctaText="Shop Now"
-              ctaLink="/products"
-            />
-          )}
-        </div>
-      </div>
+      {hasFeatured ? (
+        <StorefrontFeaturedCarouselClient featuredProducts={featured} />
+      ) : (
+        <StorefrontHero
+          title="Discover Premium Collectibles"
+          subtitle="Your exclusive source for Ichiban Kuji and authentic anime figures."
+          ctaText="Shop Now"
+          ctaLink="/products"
+        />
+      )}
 
       <StorefrontKujiBanner />
 
