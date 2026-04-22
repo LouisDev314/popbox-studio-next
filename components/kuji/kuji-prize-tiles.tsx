@@ -232,7 +232,7 @@ export function KujiPrizeTiles(props: IKujiPrizeTilesProps) {
         className={cn(
           'grid gap-4',
           props.compact
-            ? 'grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 lg:grid-cols-5'
+            ? 'grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4 xl:grid-cols-5'
             : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
           props.gridClassName,
         )}

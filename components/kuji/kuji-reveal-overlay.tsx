@@ -34,14 +34,14 @@ function OverlayAtmosphere(props: { children: ReactNode; className?: string }) {
   return (
     <div
       className={cn(
-        'relative flex min-h-dvh w-full flex-col overflow-hidden bg-[linear-gradient(180deg,#faf8f3_0%,#f6f3ec_48%,#f3efe6_100%)] text-foreground',
+        'relative flex h-dvh w-full flex-col overflow-x-hidden bg-[linear-gradient(180deg,#faf8f3_0%,#f6f3ec_48%,#f3efe6_100%)] text-foreground',
         'before:absolute before:-left-24 before:top-12 before:h-64 before:w-64 before:rounded-full before:bg-primary/10 before:blur-3xl before:content-[\'\']',
         'after:absolute after:-right-20 after:bottom-12 after:h-72 after:w-72 after:rounded-full after:bg-sky-200/30 after:blur-3xl after:content-[\'\']',
         props.className,
       )}
     >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.8),_transparent_56%)]" />
-      <div className="relative z-10 flex min-h-dvh flex-1 flex-col">
+      <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col">
         {props.children}
       </div>
     </div>
@@ -71,7 +71,7 @@ function KujiRevealVideoView(props: {
 }) {
   return (
     <OverlayAtmosphere className="bg-[#08111f] text-white before:bg-sky-500/18 after:bg-cyan-400/14">
-      <div className="relative flex min-h-dvh flex-1 items-center justify-center">
+      <div className="relative flex h-full min-h-0 flex-1 items-center justify-center">
         <video
           autoPlay
           controls={false}
@@ -113,7 +113,7 @@ function KujiRevealWaitingView(props: {
 }) {
   return (
     <OverlayAtmosphere className="before:bg-primary/8 after:bg-sky-200/20">
-      <div className="flex min-h-dvh flex-1 items-center justify-center px-6">
+      <div className="flex h-full min-h-0 flex-1 items-center justify-center px-6">
         <div className="w-full max-w-sm text-center">
           <div className="mx-auto rounded-[2rem] border border-border/70 bg-background/88 px-6 py-8 shadow-[0_32px_90px_-40px_rgba(15,23,42,0.22)] backdrop-blur-md">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-border/70 bg-background shadow-sm">
@@ -153,7 +153,7 @@ function KujiSingleRevealResultView(props: {
 
   return (
     <OverlayAtmosphere>
-      <div className="flex min-h-dvh flex-col items-center justify-around px-5 pb-12 pt-12 sm:px-8 sm:pb-20 sm:pt-14">
+      <div className="flex h-full min-h-0 flex-col items-center justify-between overflow-y-auto px-5 pb-12 pt-12 sm:px-8 sm:pb-20 sm:pt-14">
         <div className="w-full max-w-sm space-y-4 text-center sm:max-w-md">
           <h2 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
             Congratulations
@@ -173,7 +173,7 @@ function KujiSingleRevealResultView(props: {
           </div>
         </div>
 
-        <div className="w-full max-w-sm sm:max-w-md">
+        <div className="w-full max-w-sm py-8 sm:max-w-md">
           <div className="mx-auto aspect-square w-full max-w-[22rem] overflow-hidden rounded-[2rem] border border-border/70 bg-background/70 p-4 shadow-[0_32px_90px_-40px_rgba(15,23,42,0.35)] backdrop-blur-sm">
             <StorefrontImage
               src={props.ticket.prize?.imageUrl}
@@ -218,7 +218,7 @@ function KujiAllPrizesSummaryView(props: {
 
   return (
     <OverlayAtmosphere>
-      <div className="flex min-h-dvh flex-1 flex-col px-4 pb-4 pt-8 sm:px-6 sm:pb-6 sm:pt-10">
+      <div className="flex h-full min-h-0 flex-1 flex-col px-4 pb-4 pt-8 sm:px-6 sm:pb-6 sm:pt-10">
         <h2 className="mt-3 text-center pb-5 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
           Congratulations
         </h2>
