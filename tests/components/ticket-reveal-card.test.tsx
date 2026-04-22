@@ -7,7 +7,6 @@ import type { IOrderTicket } from '@/interfaces/order';
 function createTicket(overrides: Partial<IOrderTicket> = {}): IOrderTicket {
   return {
     id: 'ticket-1',
-    ticketNumber: '0001',
     revealedAt: '2026-04-12T00:00:00.000Z',
     voidedAt: null,
     voidReason: null,
@@ -27,7 +26,7 @@ function createTicket(overrides: Partial<IOrderTicket> = {}): IOrderTicket {
     },
     createdAt: '2026-04-12T00:00:00.000Z',
     ...overrides,
-  };
+  } as IOrderTicket;
 }
 
 describe('TicketRevealCard', () => {
@@ -44,13 +43,13 @@ describe('TicketRevealCard', () => {
 
     expect(ticketRoot).toHaveAttribute('data-ticket-shape', 'kuji-ticket');
     expect(ticketRoot).toHaveAttribute('data-ticket-state', 'revealed');
-    expect(ticketRoot).toHaveClass('aspect-[2.38/1]');
-    expect(screen.getByAltText('Grand Figure')).toHaveAttribute('src', 'https://cdn.example.com/prizes/grand-figure.jpg');
+    expect(ticketRoot).toHaveClass('aspect-[1200/615]');
     expect(screen.getByText((content, node) => {
       return content === 'Prize B' && node?.tagName === 'P';
     })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Grand Figure' })).toBeInTheDocument();
-    expect(screen.getAllByText('Test Product 2')).toHaveLength(2);
+    expect(screen.queryByText('Test Product 2')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reveal ticket for Test Product 2' })).not.toBeInTheDocument();
   });
 
   it('omits the description block when the prize description is not provided', () => {
@@ -74,7 +73,7 @@ describe('TicketRevealCard', () => {
     expect(screen.getByRole('heading', { name: 'Grand Figure' })).toBeInTheDocument();
   });
 
-  it('renders the unrevealed kuji set name and image', () => {
+  it('renders the unrevealed ticket face without repeated product or ticket text', () => {
     render(
       <TicketRevealCard
         ticket={createTicket({
@@ -87,11 +86,11 @@ describe('TicketRevealCard', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Test Product 2' })).toBeInTheDocument();
-    const unrevealedImage = screen.getByAltText('Test Product 2');
-    expect(unrevealedImage).toHaveAttribute('src', 'https://cdn.example.com/products/test-product-2.jpg');
-    expect(unrevealedImage).toBeVisible();
-    expect(screen.getByText('Reveal Me')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Test Product 2' })).not.toBeInTheDocument();
+    expect(screen.queryByAltText('Test Product 2')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test Product 2')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ticket\s*\d+/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
   });
 
   it('keeps the unrevealed interaction behavior unchanged and calls onReveal', async () => {
@@ -109,11 +108,11 @@ describe('TicketRevealCard', () => {
       />,
     );
 
-    expect(screen.getByText('Reveal Me')).toBeInTheDocument();
+    expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' }));
 
-    expect(onReveal).toHaveBeenCalledWith('ticket-1', expect.any(HTMLDivElement));
+    expect(onReveal).toHaveBeenCalledWith('ticket-1', expect.any(HTMLButtonElement));
   });
 
   it('treats leaked prize data as unrevealed when revealedAt is missing', async () => {
@@ -134,11 +133,12 @@ describe('TicketRevealCard', () => {
     expect(ticketRoot).toHaveAttribute('data-ticket-state', 'unrevealed');
     expect(screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Grand Figure' })).not.toBeInTheDocument();
-    expect(screen.getByText('Reveal Me')).toBeInTheDocument();
+    expect(screen.queryByText('Test Product 2')).not.toBeInTheDocument();
+    expect(screen.getByText('Tap to reveal')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' }));
 
-    expect(onReveal).toHaveBeenCalledWith('ticket-1', expect.any(HTMLDivElement));
+    expect(onReveal).toHaveBeenCalledWith('ticket-1', expect.any(HTMLButtonElement));
   });
 
   it('keeps the unrevealed ticket keyboard accessible', async () => {
@@ -163,7 +163,7 @@ describe('TicketRevealCard', () => {
     await user.keyboard(' ');
 
     expect(onReveal).toHaveBeenCalledTimes(2);
-    expect(onReveal).toHaveBeenNthCalledWith(1, 'ticket-1', expect.any(HTMLDivElement));
-    expect(onReveal).toHaveBeenNthCalledWith(2, 'ticket-1', expect.any(HTMLDivElement));
+    expect(onReveal).toHaveBeenNthCalledWith(1, 'ticket-1', expect.any(HTMLButtonElement));
+    expect(onReveal).toHaveBeenNthCalledWith(2, 'ticket-1', expect.any(HTMLButtonElement));
   });
 });

@@ -2,7 +2,7 @@
 
 import { type MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, PanelRightOpen, Ticket as TicketIcon } from 'lucide-react';
+import { ArrowLeft, PackageOpen, Ticket as TicketIcon } from 'lucide-react';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import MutationConfigs from '@/configs/api/mutation-config';
 import QueryConfigs from '@/configs/api/query-config';
@@ -21,6 +21,13 @@ import { getGuestOrderPath } from '../guest-order-routing';
 interface IOrderTicketsPageClientProps {
   initialViewData: IGuestTicketView;
   publicId: string;
+}
+
+interface IGroupedTicketsSection {
+  productId: string;
+  productName: string;
+  revealed: IOrderTicket[];
+  unrevealed: IOrderTicket[];
 }
 
 function upsertTicket(tickets: IOrderTicket[], nextTicket: IOrderTicket) {
@@ -74,11 +81,59 @@ function buildRevealedPrizeTiles(tickets: IOrderTicket[]): IKujiPrizeTileItem[] 
       description: ticket.prize.description,
       id: ticket.id,
       imageUrl: ticket.prize.imageUrl,
-      kujiProductName: ticket.kujiProduct.name,
       name: ticket.prize.name,
       prizeCode: ticket.prize.prizeCode,
     }];
   });
+}
+
+function buildGroupedTicketSections(viewData: IGuestTicketView): IGroupedTicketsSection[] {
+  const sections = new Map<string, IGroupedTicketsSection>();
+  const ensureSection = (ticket: IOrderTicket) => {
+    const existingSection = sections.get(ticket.kujiProduct.id);
+
+    if (existingSection) {
+      return existingSection;
+    }
+
+    const nextSection = {
+      productId: ticket.kujiProduct.id,
+      productName: ticket.kujiProduct.name,
+      revealed: [],
+      unrevealed: [],
+    };
+
+    sections.set(ticket.kujiProduct.id, nextSection);
+    return nextSection;
+  };
+
+  for (const ticket of viewData.tickets) {
+    ensureSection(ticket);
+  }
+
+  for (const ticket of viewData.unrevealed) {
+    ensureSection(ticket).unrevealed.push(ticket);
+  }
+
+  for (const ticket of viewData.revealed) {
+    ensureSection(ticket).revealed.push(ticket);
+  }
+
+  return [...sections.values()].filter((section) => section.unrevealed.length > 0 || section.revealed.length > 0);
+}
+
+function buildSectionSupportLabel(section: IGroupedTicketsSection): string {
+  const parts = [];
+
+  if (section.unrevealed.length > 0) {
+    parts.push(`${section.unrevealed.length} awaiting reveal`);
+  }
+
+  if (section.revealed.length > 0) {
+    parts.push(`${section.revealed.length} revealed`);
+  }
+
+  return parts.join(' • ');
 }
 
 function getNextRevealTicketId(
@@ -459,7 +514,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
     : null;
 
   const { unrevealed, revealed, counts } = viewData;
-  const revealedPrizeTiles = buildRevealedPrizeTiles(revealed);
+  const groupedSections = buildGroupedTicketSections(viewData);
   const renderedSummaryTickets = summaryTickets.length > 0 ? summaryTickets : buildSummaryTickets(revealed);
   const allRevealed = unrevealed.length === 0;
 
@@ -521,46 +576,60 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
               className="h-14 rounded-xl px-8 text-lg font-bold transition-all active:scale-95"
             >
               <span className="flex items-center gap-2">
-                <PanelRightOpen className="h-5 w-5" />
-                Reveal All
+                <PackageOpen className="h-5 w-5" />
+                <p className='text-lg'>Reveal All</p>
               </span>
             </Button>
           )}
         </div>
 
-        <div className="space-y-16">
-          {unrevealed.length > 0 ? (
-            <section>
-              <h2 className="mb-1 flex items-center gap-3 text-2xl font-semibold tracking-tight">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex h-3 w-3 rounded-full bg-primary"></span>
-                </span>
-                <span className="text-xl">Awaiting Reveal ({unrevealed.length})</span>
-              </h2>
-              {unrevealed.length ? <p className="mb-8">Click on the tickets below to reveal them.</p> : null}
-              <div className="grid grid-cols-1 justify-items-center gap-4 sm:gap-5 xl:grid-cols-2 xl:gap-6">
-                {unrevealed.map((ticket: IOrderTicket) => (
-                  <div key={ticket.id} className="w-full max-w-152">
-                    <TicketRevealCard
-                      ticket={ticket}
-                      onReveal={handleReveal}
-                      isRevealing={activeTicketId === ticket.id && phase === 'playingRevealVideo'}
-                    />
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : null}
+        <div className="space-y-14">
+          {groupedSections.map((section) => {
+            const revealedPrizeTiles = buildRevealedPrizeTiles(section.revealed);
+            const hasMixedContent = section.unrevealed.length > 0 && revealedPrizeTiles.length > 0;
 
-          {revealedPrizeTiles.length > 0 ? (
-            <section>
-              <h2 className="mb-8 text-xl font-semibold tracking-tight text-foreground/80">
-                Revealed Prizes ({revealedPrizeTiles.length})
-              </h2>
-              <KujiPrizeTiles compact items={revealedPrizeTiles} />
-            </section>
-          ) : null}
+            return (
+              <section
+                key={section.productId}
+                aria-labelledby={`ticket-group-heading-${section.productId}`}
+                data-testid={`ticket-group-${section.productId}`}
+                className="space-y-6"
+              >
+                <div className="space-y-2">
+                  <h2
+                    id={`ticket-group-heading-${section.productId}`}
+                    className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.75rem]"
+                  >
+                    {section.productName}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {buildSectionSupportLabel(section)}
+                  </p>
+                </div>
+
+                {section.unrevealed.length > 0 ? (
+                  <div className="grid grid-cols-1 justify-items-center gap-4 sm:gap-5 lg:grid-cols-2 lg:gap-6 xl:grid-cols-3">
+                    {section.unrevealed.map((ticket) => (
+                      <div key={ticket.id} className="w-full max-w-152">
+                        <TicketRevealCard
+                          ticket={ticket}
+                          onReveal={handleReveal}
+                          isRevealing={activeTicketId === ticket.id && phase === 'playingRevealVideo'}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+
+                {revealedPrizeTiles.length > 0 ? (
+                  <div className={hasMixedContent ? 'space-y-6' : 'space-y-0'}>
+                    {hasMixedContent ? <div className="border-t border-border/60" aria-hidden="true" /> : null}
+                    <KujiPrizeTiles compact items={revealedPrizeTiles} />
+                  </div>
+                ) : null}
+              </section>
+            );
+          })}
         </div>
       </div>
     </>

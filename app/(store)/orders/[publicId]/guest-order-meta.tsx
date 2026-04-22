@@ -24,7 +24,7 @@ export function GuestOrderMeta(props: IGuestOrderMetaProps) {
 
   return (
     <div className="mt-6 flex flex-col items-center gap-3 text-center sm:mt-8 lg:text-left">
-      <div className="flex w-full justify-center items-center gap-3">
+      <div className="flex w-full justify-center items-center gap-4">
         <span className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
           Order Number
         </span>

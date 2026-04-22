@@ -40,7 +40,6 @@ vi.mock('@/configs/api/query-config', () => ({
 function createTicket(overrides: Partial<IOrderTicket> = {}): IOrderTicket {
   return {
     id: 'ticket-1',
-    ticketNumber: '0001',
     revealedAt: null,
     voidedAt: null,
     voidReason: null,
@@ -54,7 +53,7 @@ function createTicket(overrides: Partial<IOrderTicket> = {}): IOrderTicket {
     },
     createdAt: '2026-04-12T00:00:00.000Z',
     ...overrides,
-  };
+  } as IOrderTicket;
 }
 
 function createViewData(overrides: Partial<IGuestTicketView> = {}): IGuestTicketView {
@@ -141,7 +140,7 @@ describe('OrderTicketsPageClient', () => {
     expect(screen.getByTestId('kuji-reveal-video')).toBeInTheDocument();
   });
 
-  it('keeps leaked prize data under Awaiting Reveal and still starts the reveal flow', async () => {
+  it('keeps leaked prize data inside its grouped product section and still starts the reveal flow', async () => {
     const user = userEvent.setup();
     const revealTicket = vi.mocked(MutationConfigs.revealTicket);
     const leakedPrizeTicket = createTicket({
@@ -173,8 +172,8 @@ describe('OrderTicketsPageClient', () => {
       />,
     );
 
-    expect(screen.getByText('Awaiting Reveal (1)')).toBeInTheDocument();
-    expect(screen.queryByText('Revealed Prizes (1)')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Test Product 1' })).toBeInTheDocument();
+    expect(screen.getByText('1 awaiting reveal')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Prize One' })).not.toBeInTheDocument();
 
     await user.click(screen.getAllByRole('button', { name: 'Reveal ticket for Test Product 1' })[0]);
@@ -191,7 +190,6 @@ describe('OrderTicketsPageClient', () => {
     const deferredReveal = createDeferred<AxiosResponse<IBaseApiResponse<IOrderTicket>>>();
     const secondTicket = createTicket({
       id: 'ticket-2',
-      ticketNumber: '0002',
     });
 
     vi.mocked(MutationConfigs.revealTicket).mockReturnValue(deferredReveal.promise);
@@ -258,7 +256,7 @@ describe('OrderTicketsPageClient', () => {
     renderWithProviders(
       <OrderTicketsPageClient
         initialViewData={createViewData({
-          unrevealed: [createTicket(), createTicket({ id: 'ticket-2', ticketNumber: '0002' })],
+          unrevealed: [createTicket(), createTicket({ id: 'ticket-2' })],
         })}
         publicId="pbs-TICKETS"
       />,
@@ -274,10 +272,9 @@ describe('OrderTicketsPageClient', () => {
 
   it('advances in unrevealed order and lands the final single reveal on the summary overlay', async () => {
     const user = userEvent.setup();
-    const ticketOne = createTicket({ id: 'ticket-1', ticketNumber: '0001' });
+    const ticketOne = createTicket({ id: 'ticket-1' });
     const ticketTwo = createTicket({
       id: 'ticket-2',
-      ticketNumber: '0002',
       kujiProduct: {
         id: 'product-1',
         name: 'Test Product 1',
@@ -447,41 +444,79 @@ describe('OrderTicketsPageClient', () => {
     expect(screen.getByRole('button', { name: 'Reveal ticket for Test Product 1' })).toBeInTheDocument();
   });
 
-  it('renders revealed tickets as compact shared prize tiles with the product-style detail dialog', async () => {
+  it('renders grouped sections in stable product order without redundant product text on child tiles', async () => {
     const user = userEvent.setup();
+    const moonlightUnrevealed = createTicket({
+      id: 'ticket-1',
+      kujiProduct: {
+        id: 'product-1',
+        name: 'Ichiban Kuji Moonlight Parade',
+        slug: 'moonlight-parade',
+        imageUrl: 'https://cdn.example.com/products/test-product-1.jpg',
+        imageAltText: 'Ichiban Kuji Moonlight Parade',
+      },
+    });
+    const moonlightRevealed = createTicket({
+      id: 'ticket-2',
+      revealedAt: '2026-04-12T00:00:00.000Z',
+      kujiProduct: {
+        id: 'product-1',
+        name: 'Ichiban Kuji Moonlight Parade',
+        slug: 'moonlight-parade',
+        imageUrl: 'https://cdn.example.com/products/test-product-1.jpg',
+        imageAltText: 'Ichiban Kuji Moonlight Parade',
+      },
+      prize: {
+        id: 'prize-1',
+        prizeCode: 'A',
+        name: 'Prize One',
+        description: 'Prize dialog copy',
+        imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
+      },
+    });
+    const starlightUnrevealed = createTicket({
+      id: 'ticket-3',
+      kujiProduct: {
+        id: 'product-2',
+        name: 'Ichiban Kuji Starlight Waltz',
+        slug: 'starlight-waltz',
+        imageUrl: 'https://cdn.example.com/products/test-product-2.jpg',
+        imageAltText: 'Ichiban Kuji Starlight Waltz',
+      },
+    });
 
     renderWithProviders(
       <OrderTicketsPageClient
         initialViewData={createViewData({
-          revealed: [
-            createTicket({
-              revealedAt: '2026-04-12T00:00:00.000Z',
-              kujiProduct: {
-                id: 'product-1',
-                name: 'Ichiban Kuji Moonlight Parade',
-                slug: 'moonlight-parade',
-                imageUrl: 'https://cdn.example.com/products/test-product-1.jpg',
-                imageAltText: 'Ichiban Kuji Moonlight Parade',
-              },
-              prize: {
-                id: 'prize-1',
-                prizeCode: 'A',
-                name: 'Prize One',
-                description: 'Prize dialog copy',
-                imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
-              },
-            }),
-          ],
-          unrevealed: [],
+          tickets: [moonlightUnrevealed, moonlightRevealed, starlightUnrevealed],
+          revealed: [moonlightRevealed],
+          unrevealed: [moonlightUnrevealed, starlightUnrevealed],
         })}
         publicId="pbs-TICKETS"
       />,
     );
 
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent);
+
+    expect(headings).toEqual(['Ichiban Kuji Moonlight Parade', 'Ichiban Kuji Starlight Waltz']);
+    expect(screen.getByText('1 awaiting reveal • 1 revealed')).toBeInTheDocument();
+    expect(screen.getByText('1 awaiting reveal')).toBeInTheDocument();
+
+    const moonlightSection = screen.getByTestId('ticket-group-product-1');
+    const starlightSection = screen.getByTestId('ticket-group-product-2');
+
+    expect(moonlightSection.className).not.toContain('bg-card');
+    expect(moonlightSection.className).not.toContain('border');
+    expect(moonlightSection.className).not.toContain('rounded');
+    expect(starlightSection.className).not.toContain('bg-card');
+    expect(within(moonlightSection).getByText('Tap to reveal')).toBeInTheDocument();
+    expect(within(moonlightSection).getByRole('button', { name: /Prize One/i })).toBeInTheDocument();
+    expect(within(moonlightSection).queryAllByText('Ichiban Kuji Moonlight Parade')).toHaveLength(1);
+    expect(screen.queryByText(/Ticket\s*\d+/i)).not.toBeInTheDocument();
+
     const revealedPrizeTile = screen.getByRole('button', { name: /Prize One/i });
 
     expect(revealedPrizeTile).toHaveClass('rounded-[1.15rem]');
-    expect(screen.getByText('Ichiban Kuji Moonlight Parade')).toBeInTheDocument();
 
     await user.click(revealedPrizeTile);
 
