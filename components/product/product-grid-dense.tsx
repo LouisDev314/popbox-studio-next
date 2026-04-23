@@ -57,7 +57,7 @@ export function ProductGridDenseSkeleton(props: IProductGridDenseSkeletonProps) 
   return (
     <div
       data-slot="product-grid-dense-skeleton"
-      className={cn('grid grid-cols-3 gap-2 px-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6', className)}
+      className={cn('grid grid-cols-3 gap-2 px-0.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5', className)}
     >
       {Array.from({ length: count }).map((_, index) => (
         <div key={index} className="space-y-1">

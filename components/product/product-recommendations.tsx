@@ -11,7 +11,7 @@ interface IProductRecommendationsProps {
 
 export function ProductRecommendationsFallback() {
   return (
-    <section className="mt-32 border-t border-border/60 pt-12">
+    <section className="mt-28 border-t border-border/60 pt-12">
       <div className="flex items-end justify-between gap-4">
         <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           You might also like

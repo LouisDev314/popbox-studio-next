@@ -7,6 +7,7 @@ import { InvalidCartItems } from '@/components/cart/invalid-cart-items';
 import { CartPageItem } from '@/components/cart/cart-page-item';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { CheckoutButton } from '@/components/cart/checkout-button';
+import { CartPageSkeleton } from '@/components/store/storefront-page-skeletons';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
@@ -30,18 +31,7 @@ export default function CartPageClient() {
   };
 
   if (!isHydrated) {
-    return (
-      <div className="container mx-auto flex w-full flex-1 px-4 py-20 sm:px-6 lg:px-8">
-        <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
-          <div className="space-y-4">
-            <div className="h-8 w-40 rounded-full bg-muted/40" />
-            <div className="h-40 rounded-4xl bg-muted/35" />
-            <div className="h-40 rounded-4xl bg-muted/25" />
-          </div>
-          <div className="h-72 rounded-4xl bg-muted/35" />
-        </div>
-      </div>
-    );
+    return <CartPageSkeleton />;
   }
 
   if (items.length === 0 && invalidItems.length === 0) {
