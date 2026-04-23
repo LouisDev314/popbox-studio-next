@@ -77,7 +77,7 @@ function getStaticEntries(): MetadataRoute.Sitemap {
       lastModified,
       priority: 0.7,
     }),
-    createSitemapEntry('/legal/faq', {
+    createSitemapEntry('/faq', {
       changeFrequency: 'weekly',
       lastModified,
       priority: 0.65,

@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { FileText } from 'lucide-react';
-import { PublicFaqPage } from '@/components/storefront/legal/public-faq-page';
 import { PublicLegalPage } from '@/components/storefront/legal/public-legal-page';
-import { getPublicFaqItems, getPublicLegalDocument, isPublicApiNotFoundError } from '@/lib/api/public-storefront';
+import { getPublicLegalDocument, isPublicApiNotFoundError } from '@/lib/api/public-storefront';
 import type { LegalDocumentType } from '@/interfaces/legal';
 import {
   buildExcerpt,
@@ -30,23 +29,11 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params;
 
   if (params.slug === 'faq') {
-    try {
-      const faqItems = await getPublicFaqItems();
-
-      return createPageMetadata({
-        title: 'FAQ',
-        description: 'Find answers to common questions about PopBox Studio orders, shipping, returns, and Ichiban Kuji support.',
-        path: '/legal/faq',
-        noIndex: faqItems.length === 0,
-      });
-    } catch {
-      return createPageMetadata({
-        title: 'FAQ',
-        description: 'Find answers to common questions about PopBox Studio orders, shipping, returns, and Ichiban Kuji support.',
-        path: '/legal/faq',
-        noIndex: true,
-      });
-    }
+    return createPageMetadata({
+      title: 'FAQ',
+      description: 'Find answers to common questions about PopBox Studio orders, shipping, returns, and Ichiban Kuji support.',
+      path: '/faq',
+    });
   }
 
   const type = SLUG_TO_TYPE[params.slug];
@@ -101,31 +88,7 @@ export default async function LegalRoute(props: Props) {
   const params = await props.params;
 
   if (params.slug === 'faq') {
-    let faqItems = null;
-
-    try {
-      faqItems = await getPublicFaqItems();
-    } catch (error) {
-      if (isPublicApiNotFoundError(error)) {
-        notFound();
-      }
-
-      faqItems = null;
-    }
-
-    if (!faqItems) {
-      return (
-        <LegalUnavailableState label="FAQ" />
-      );
-    }
-
-    if (faqItems.length === 0) {
-      return (
-        <LegalUnavailableState label="FAQ" />
-      );
-    }
-
-    return <PublicFaqPage items={faqItems} />;
+    redirect('/faq');
   }
 
   const type = SLUG_TO_TYPE[params.slug];

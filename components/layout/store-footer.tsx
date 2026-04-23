@@ -79,7 +79,7 @@ export function StoreFooter() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/legal/faq" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                  <Link href="/faq" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                     FAQ
                   </Link>
                 </li>
@@ -108,6 +108,11 @@ export function StoreFooter() {
                 <li>
                   <Link href="/legal/privacy" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                     Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/legal/shipping-returns" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                    Shipping & Returns
                   </Link>
                 </li>
               </ul>

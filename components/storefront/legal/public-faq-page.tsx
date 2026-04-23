@@ -8,6 +8,12 @@ import type { IPublicFaqItem } from '@/interfaces/legal';
 
 const FALLBACK_CATEGORY = 'General';
 
+const UPDATED_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+
 type FaqSection = {
   category: string;
   items: IPublicFaqItem[];
@@ -18,21 +24,25 @@ function formatUpdatedDate(items: IPublicFaqItem[]): string | null {
     return null;
   }
 
-  const latestUpdatedAt = items.reduce((latest, item) => {
-    return new Date(item.updatedAt) > new Date(latest.updatedAt) ? item : latest;
-  }).updatedAt;
+  let latestDate: Date | null = null;
 
-  const date = new Date(latestUpdatedAt);
+  for (const item of items) {
+    const date = new Date(item.updatedAt);
 
-  if (Number.isNaN(date.getTime())) {
+    if (Number.isNaN(date.getTime())) {
+      continue;
+    }
+
+    if (!latestDate || date > latestDate) {
+      latestDate = date;
+    }
+  }
+
+  if (!latestDate) {
     return null;
   }
 
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return UPDATED_DATE_FORMATTER.format(latestDate);
 }
 
 function groupFaqItems(items: IPublicFaqItem[]): FaqSection[] {
@@ -84,40 +94,41 @@ export function PublicFaqPage({ items }: { items: IPublicFaqItem[] }) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
       ) : null}
-      <div className="container mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mb-12 border-b border-border pb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+      <div className="container mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+        <header className="mb-10 border-b border-border/60 pb-6 sm:mb-12 sm:pb-8">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-[2rem]">
             FAQ
           </h1>
           {lastUpdated ? (
-            <p className="mt-4 text-sm text-muted-foreground">
+            <p className="mt-3 text-sm text-muted-foreground">
               Last updated: {lastUpdated}
             </p>
           ) : null}
-        </div>
+        </header>
 
         {safeItems.length === 0 ? (
           <div className="text-center text-base text-muted-foreground">
             No frequently asked questions are available right now.
           </div>
         ) : (
-          <div className="space-y-10 sm:space-y-12">
+          <div className="space-y-9 sm:space-y-11">
             {sections.map((section, index) => (
-              <section key={section.category} className="space-y-4">
-                <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+              <section key={section.category} className="border-b border-border/60 pb-8 last:border-b-0 last:pb-0">
+                <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground sm:text-xl">
                   {section.category}
                 </h2>
 
                 <Accordion
-                  className="w-full rounded-2xl border border-border/60 bg-card px-5 shadow-sm sm:px-6"
+                  multiple
+                  className="w-full overflow-visible rounded-none border-0 bg-transparent"
                   defaultValue={index === 0 && defaultOpenItemId ? [defaultOpenItemId] : undefined}
                 >
                   {section.items.map((item) => (
                     <AccordionItem key={item.id} value={item.id} className="border-border/60">
-                      <AccordionTrigger className="gap-4 py-5 text-base font-semibold leading-7 text-foreground">
+                      <AccordionTrigger className="gap-4 px-0 py-4 text-base font-semibold leading-7 text-foreground sm:py-5">
                         {item.question}
                       </AccordionTrigger>
-                      <AccordionContent className="pb-5 pr-8 text-[0.95rem] leading-7 text-muted-foreground sm:pr-10">
+                      <AccordionContent className="space-y-4 px-0 pb-5 pr-8 text-[0.95rem] leading-7 text-muted-foreground sm:pr-10">
                         {item.answer.split(/\n\n+/).map((paragraph, paragraphIndex) => (
                           <p key={`${item.id}-${paragraphIndex}`} className="whitespace-pre-wrap">
                             {paragraph}

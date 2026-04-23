@@ -5,47 +5,47 @@ import { createPageMetadata } from '@/lib/seo';
 
 const PAGE_TITLE = 'About the Store';
 const PAGE_DESCRIPTION =
-  'Learn about PopBox Studio, a premium anime store focused on curated anime collectibles, anime figures, gifts, and Ichiban Kuji for collectors shopping in Canada.';
+  'PopBox Studio is an anime store in Canada for fans shopping anime merch, anime figures, Ichiban Kuji, and fun anime gifts.';
 
 const whatWeSell = [
   {
-    title: 'Figures and display pieces',
+    title: 'Anime figures',
     description:
-      'From everyday shelf upgrades to standout collector picks, we focus on anime figures and collectibles worth making space for.',
+      'From prize figures to standout favorites, we keep anime figures front and center.',
   },
   {
-    title: 'Plushies, cards, and giftable finds',
+    title: 'Plushies and gifts',
     description:
-      'We also carry soft goods, card-related items, and anime gifts that feel thoughtful instead of filler.',
+      'Cute plushies, small extras, and anime gifts that are easy to grab for yourself or someone else.',
   },
   {
-    title: 'Ichiban Kuji-style products',
+    title: 'Ichiban Kuji',
     description:
-      'Ichiban Kuji is part of the store’s identity, with releases and prize-driven collectibles that bring more discovery into the shopping experience.',
+      'Ichiban Kuji is a big part of the shop, with prize items and drops that bring a little hype to every browse.',
   },
 ];
 
 const reasonsToShop = [
-  'A curated mix of anime merchandise, collectibles, and figures instead of an overwhelming catalog.',
-  'Clean browsing across products, types, collections, and search so first-time shoppers can find what matters quickly.',
-  'A collector-minded storefront that treats presentation, product focus, and product discovery as part of the value.',
+  'The shop stays focused, so you are not digging through a giant wall of random stuff.',
+  'Products, types, collections, and search are easy to use whether you know what you want or are just browsing.',
+  'It feels like an anime store made by people who actually like anime merch.',
 ];
 
 const trustPoints = [
   {
-    title: 'Thoughtful curation',
+    title: 'Easy to browse',
     description:
-      'PopBox Studio is built around selection, not volume. The goal is to offer products that feel worth browsing, saving, gifting, and displaying.',
+      'The goal is simple: make it easy to spot the good stuff fast, without the page feeling packed or messy.',
   },
   {
-    title: 'Clear support paths',
+    title: 'Help is clear',
     description:
-      'Questions should not feel like guesswork. The storefront keeps support and policy routes easy to reach when you need order help, shipping details, or general answers.',
+      'If you need shipping info, order help, or a quick answer, the support and policy pages are easy to find.',
   },
   {
-    title: 'Collector-first positioning',
+    title: 'Built for fans',
     description:
-      'We speak to fans and collectors directly, with product categories and buying flows that reflect how anime collectibles are actually shopped.',
+      'This anime store is for fans, gift shoppers, and anyone chasing a fun find from their favorite series.',
   },
 ];
 
@@ -66,48 +66,47 @@ export default function AboutPage() {
                 About PopBox Studio
               </p>
               <h1 className="mt-5 text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-                A curated anime collectibles store for fans who care about the details.
+                An anime store built for fun finds, good picks, and Ichiban Kuji hype.
               </h1>
-              <p className="mt-6 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
-                PopBox Studio is a modern anime merchandise store built around thoughtful
-                curation, premium presentation, and a collector-friendly shopping experience.
-                From anime figures and plushies to cards, display-worthy finds, and Ichiban
-                Kuji releases, the store is designed to make discovery feel focused instead of
-                noisy.
+              <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
+                PopBox Studio is an anime store for people who want cool anime merch without
+                digging through endless clutter.
+              </p>
+              <p className="mt-3 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
+                You will find anime figures, plushies, anime gifts, and Ichiban Kuji picks in
+                one clean place.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="rounded-full px-8">
-                  <Link href="/products">Shop the collection</Link>
+                  <Link href="/products">Shop anime merch</Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="rounded-full px-8">
-                  <Link href="/products?type=kuji">Browse Ichiban Kuji</Link>
+                  <Link href="/products?type=kuji">Shop Ichiban Kuji</Link>
                 </Button>
               </div>
             </div>
 
             <aside className="rounded-[2rem] border border-border/70 bg-background p-6 shadow-sm sm:p-7">
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                What guides the store
+                Why people shop here
               </p>
               <ul className="mt-5 space-y-4">
                 <li className="border-b border-border/60 pb-4">
-                  <p className="text-base font-semibold text-foreground">Curated over crowded</p>
+                  <p className="text-base font-semibold text-foreground">Good stuff, less noise</p>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Product selection should feel intentional, not endless.
+                    The shop stays focused so browsing feels quick and easy.
                   </p>
                 </li>
                 <li className="border-b border-border/60 pb-4">
-                  <p className="text-base font-semibold text-foreground">Collector-minded focus</p>
+                  <p className="text-base font-semibold text-foreground">Anime first</p>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Figures, collectibles, and Ichiban Kuji deserve a storefront that understands
-                    how fans browse.
+                    Anime figures, merch, and Ichiban Kuji are the heart of the store.
                   </p>
                 </li>
                 <li>
-                  <p className="text-base font-semibold text-foreground">Clean, trusted browsing</p>
+                  <p className="text-base font-semibold text-foreground">Simple help</p>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    Clear navigation, simple support paths, and polished presentation are part of
-                    the product experience.
+                    When you need answers, the support pages are easy to reach.
                   </p>
                 </li>
               </ul>
@@ -123,23 +122,21 @@ export default function AboutPage() {
               Who we are
             </p>
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Built for anime fans who want a collectible shop with taste and clarity.
+              A small anime store with a clear vibe.
             </h2>
           </div>
-          <div className="space-y-5 text-base leading-8 text-muted-foreground">
+          <div className="max-w-2xl space-y-4 text-base leading-7 text-muted-foreground">
             <p>
-              PopBox Studio is positioned as a premium anime collectibles online store with a
-              simple goal: make it easier to shop anime merchandise that feels worth your time,
-              your shelf space, and your attention.
+              PopBox Studio is for anime fans, casual buyers, and anyone looking for a fun gift
+              that does not feel random.
             </p>
             <p>
-              The brand is not about chasing every possible product. It is about curating a store
-              where anime figures, collectibles, plushies, cards, gifts, and Ichiban Kuji-style
-              releases can live together in a way that feels cohesive and easy to browse.
+              We keep the mix simple: anime merch, anime figures, plushies, and Ichiban Kuji in
+              one place that feels easy to shop.
             </p>
             <p>
-              That focus keeps the storefront practical for first-time customers and satisfying for
-              returning collectors who want a cleaner way to discover their next favorite piece.
+              It is the kind of anime store where you can scroll for five minutes and actually
+              find something you want.
             </p>
           </div>
         </div>
@@ -152,12 +149,10 @@ export default function AboutPage() {
               What we sell
             </p>
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              A focused mix of anime merchandise, gifts, and collector-driven product types.
+              The stuff people actually come for.
             </h2>
-            <p className="mt-4 text-base leading-8 text-muted-foreground">
-              The catalog is shaped around products fans actually want to browse online: display
-              pieces, giftable finds, and collectible formats that feel distinct from ordinary
-              retail inventory.
+            <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
+              The lineup stays tight so the page feels fun to browse, not like homework.
             </p>
           </div>
 
@@ -184,7 +179,7 @@ export default function AboutPage() {
               Why shop with us
             </p>
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              A storefront designed to feel easier to trust on the first visit.
+              Easy to shop from the first click.
             </h2>
           </div>
           <div className="space-y-5">
@@ -205,24 +200,20 @@ export default function AboutPage() {
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-center">
             <div className="max-w-2xl">
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                Our Ichiban Kuji focus
+                Ichiban Kuji
               </p>
               <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Ichiban Kuji is not an afterthought here. It is part of what makes PopBox Studio
-                distinct.
+                Ichiban Kuji is not tucked away here.
               </h2>
             </div>
-            <div className="space-y-5 text-base leading-8 text-muted-foreground">
+            <div className="max-w-2xl space-y-4 text-base leading-7 text-muted-foreground">
               <p>
-                Ichiban Kuji brings a different kind of excitement to anime collectibles. The
-                appeal is not just the product itself. It is the format, the anticipation, and the
-                collectible character of the release.
+                Ichiban Kuji has its own kind of energy. Part of the fun is the prize format, the
+                surprise, and the rush of seeing what is in a set.
               </p>
               <p>
-                PopBox Studio treats that category as a core part of the brand rather than a small
-                side shelf. That means giving shoppers a clear route to browse Kuji-related
-                products while keeping them connected to the rest of the store’s figures and anime
-                collectibles.
+                That is why it has a real place in the shop, right alongside anime figures and the
+                rest of our anime merch.
               </p>
             </div>
           </div>
@@ -244,14 +235,14 @@ export default function AboutPage() {
 
         <div className="mt-12 rounded-[2rem] border border-border/70 bg-muted/20 p-7 sm:p-8">
           <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Need help before you order?
+            Questions before you order?
           </h2>
-          <p className="mt-4 max-w-2xl text-base leading-8 text-muted-foreground">
-            If you want more detail before buying, the fastest next steps are to review the{' '}
-            <Link href="/legal/faq" className="font-medium text-foreground underline-offset-4 hover:underline">
+          <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
+            If you want a quick answer before buying, check the{' '}
+            <Link href="/faq" className="font-medium text-foreground underline-offset-4 hover:underline">
               FAQ
             </Link>{' '}
-            or reach out through the{' '}
+            or send us a message through the{' '}
             <Link href="/contact" className="font-medium text-foreground underline-offset-4 hover:underline">
               contact page
             </Link>
@@ -268,18 +259,18 @@ export default function AboutPage() {
                 Keep exploring
               </p>
               <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Browse PopBox Studio and find your next anime collectible.
+                Find your next favorite anime pick.
               </h2>
-              <p className="mt-4 text-base leading-8 text-muted-foreground">
-                Whether you are shopping for anime gifts, shelf-ready figures, or Ichiban Kuji
-                releases, the storefront is built to help you browse with confidence.
+              <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
+                Browse anime merch, anime figures, anime gifts, and Ichiban Kuji without the usual
+                mess.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild size="lg" className="rounded-full px-8">
-                  <Link href="/products">Browse all products</Link>
+                  <Link href="/products">Browse the anime store</Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="rounded-full px-8">
-                  <Link href="/collections/featured">View featured picks</Link>
+                  <Link href="/collections/featured">See featured picks</Link>
                 </Button>
               </div>
             </div>
