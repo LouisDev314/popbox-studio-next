@@ -152,4 +152,38 @@ describe('CartDrawer', () => {
     expect(useCartStore.getState().items).toHaveLength(0);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
+
+  it('shows a shipping and returns reminder for standard carts in the drawer', async () => {
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartDrawerHarness />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
+
+    expect(screen.getByRole('link', { name: 'Shipping & Returns' })).toHaveAttribute('href', '/legal/shipping-returns');
+    expect(screen.queryByText(/Kuji items are random draw and final sale/i)).not.toBeInTheDocument();
+  });
+
+  it('shows a kuji-specific reminder in the drawer when kuji items are present', async () => {
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem({ product: { productType: 'kuji' } })],
+      });
+    });
+
+    renderWithProviders(<CartDrawerHarness />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
+
+    expect(screen.getByText(/Kuji items are random draw and final sale/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Shipping & Returns' })).toHaveAttribute('href', '/legal/shipping-returns');
+  });
 });

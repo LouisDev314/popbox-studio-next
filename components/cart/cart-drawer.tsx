@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShoppingBag, Trash2 } from 'lucide-react';
 import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-lock-overlay';
@@ -37,6 +38,7 @@ export function CartDrawer(props: ICartDrawerProps) {
   const hasHydrated = useCartStore((state) => state.hasHydrated);
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
   const totalItems = cartSummary.totalItems + invalidItems.reduce((count, item) => count + item.quantity, 0);
+  const hasKujiItems = items.some((item) => item.product.productType === 'kuji');
 
   const handleRemoveItem = (cartItemId: string) => {
     removeItem(cartItemId);
@@ -75,8 +77,14 @@ export function CartDrawer(props: ICartDrawerProps) {
               {formatPrice(cartSummary.subtotalCents, cartSummary.currency)}
             </span>
           </div>
-          <p className="mb-4 text-xs leading-5 text-muted-foreground">
+          <p className="mb-2 text-xs leading-5 text-muted-foreground">
             Shipping and tax stay estimated on the cart page. Final totals still come from checkout.
+          </p>
+          <p className="mb-6 text-xs leading-5 text-muted-foreground">
+            {hasKujiItems ? 'Kuji items are random draw and final sale. ' : ''}
+            <Link href="/legal/shipping-returns" className="underline underline-offset-4 transition-colors hover:text-foreground">
+              Shipping &amp; Returns
+            </Link>
           </p>
           <div className="grid grid-cols-2 gap-3">
             <Button

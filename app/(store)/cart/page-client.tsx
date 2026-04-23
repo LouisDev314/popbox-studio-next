@@ -23,6 +23,7 @@ export default function CartPageClient() {
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
   const isHydrated = useCartStore((state) => state.hasHydrated);
   const summary = getCartSummary();
+  const hasKujiItems = items.some((item) => item.product.productType === 'kuji');
 
   const handleRemoveItem = (cartItemId: string) => {
     removeItem(cartItemId);
@@ -113,7 +114,14 @@ export default function CartPageClient() {
             <div className="lg:sticky lg:top-24">
               <CartSummary
                 summary={summary}
-                note=""
+                note={(
+                  <span>
+                    {hasKujiItems ? 'Kuji items are random draw and final sale. ' : ''}
+                    <Link href="/legal/shipping-returns" className="underline underline-offset-4 transition-colors hover:text-foreground">
+                      Shipping &amp; Returns
+                    </Link>
+                  </span>
+                )}
               />
               <CheckoutButton
                 size="lg"

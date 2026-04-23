@@ -1,5 +1,6 @@
 'use client';
 
+import { type ReactNode } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { type ICartSummary } from '@/interfaces/cart';
@@ -12,7 +13,7 @@ interface ICartSummaryProps {
   actionLabel?: string;
   className?: string;
   heading?: string | null;
-  note?: string;
+  note?: ReactNode;
   summary: ICartSummary;
 }
 

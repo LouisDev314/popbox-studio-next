@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Heart, Share, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -152,6 +153,7 @@ export function ProductActions(props: IProductActionsProps) {
   const isCartBusy = disabledActions.cart;
   const isShareBusy = disabledActions.share;
   const isWishlistBusy = disabledActions.wishlist;
+  const isKuji = isKujiProduct(props.product);
 
   useEffect(() => {
     const releaseTimeouts = releaseTimeoutRef.current;
@@ -365,6 +367,21 @@ export function ProductActions(props: IProductActionsProps) {
           {actionState.addButtonLabel}
         </Button>
       </div>
+
+      <p className="text-sm leading-6 text-muted-foreground">
+        {isKuji ? 'Random draw item. All sales final. ' : null}
+        <Link href="/legal/shipping-returns" className="underline underline-offset-4 transition-colors hover:text-foreground">
+          Shipping &amp; Returns
+        </Link>
+        {isKuji ? (
+          <>
+            {' and '}
+            <Link href="/faq" className="underline underline-offset-4 transition-colors hover:text-foreground">
+              FAQ
+            </Link>
+          </>
+        ) : null}
+      </p>
     </div>
   );
 }

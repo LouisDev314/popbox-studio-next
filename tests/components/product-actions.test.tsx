@@ -59,6 +59,16 @@ describe('ProductActions', () => {
 
     expect(screen.getByRole('button', { name: /share product/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add to Wishlist' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Shipping & Returns' })).toHaveAttribute('href', '/legal/shipping-returns');
+    expect(screen.queryByText('Random draw item. All sales final.')).not.toBeInTheDocument();
+  });
+
+  it('renders compact kuji helper copy with legal links', () => {
+    renderWithProviders(<ProductActions product={createProduct({ productType: 'kuji' })} />);
+
+    expect(screen.getByText(/Random draw item\. All sales final\./i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Shipping & Returns' })).toHaveAttribute('href', '/legal/shipping-returns');
+    expect(screen.getByRole('link', { name: 'FAQ' })).toHaveAttribute('href', '/faq');
   });
 
   it('shows a success alert after adding a product to cart', async () => {

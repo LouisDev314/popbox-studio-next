@@ -15,6 +15,40 @@ vi.mock('@/components/cart/checkout-button', () => ({
 }));
 
 describe('CartPageClient', () => {
+  it('shows a shipping and returns reminder for standard carts', () => {
+    resetStores();
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartPageClient />);
+
+    expect(screen.getByRole('link', { name: 'Shipping & Returns' })).toHaveAttribute('href', '/legal/shipping-returns');
+    expect(screen.queryByText(/Kuji items are random draw and final sale/i)).not.toBeInTheDocument();
+  });
+
+  it('shows a kuji-specific reminder when the cart contains kuji items', () => {
+    resetStores();
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem({ product: { productType: 'kuji' } })],
+      });
+    });
+
+    renderWithProviders(<CartPageClient />);
+
+    expect(screen.getByText(/Kuji items are random draw and final sale/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Shipping & Returns' })).toHaveAttribute('href', '/legal/shipping-returns');
+  });
+
   it('removes a cart item without showing a success alert', async () => {
     resetStores();
 

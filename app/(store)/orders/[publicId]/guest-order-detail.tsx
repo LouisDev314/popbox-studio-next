@@ -134,6 +134,18 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
               </div>
             </div>
           </div>
+
+          <div className="text-sm leading-6 text-muted-foreground">
+            Need help after ordering?{' '}
+            <Link href="/faq" className="underline underline-offset-4 transition-colors hover:text-foreground">
+              View FAQ
+            </Link>
+            {' or '}
+            <Link href="/legal/shipping-returns" className="underline underline-offset-4 transition-colors hover:text-foreground">
+              Shipping &amp; Returns
+            </Link>
+            .
+          </div>
         </div>
 
         <div className="sticky top-24 h-fit rounded-2xl border border-border/50 bg-card p-6 shadow-sm md:col-span-1">
