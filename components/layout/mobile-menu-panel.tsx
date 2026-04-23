@@ -100,15 +100,6 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
           ) : null}
         </div>
       </nav>
-
-      {/*<div className="border-t border-border/60 px-5 py-4">*/}
-      {/*  <div className="rounded-[24px] bg-muted/35 px-4 py-4">*/}
-      {/*    <p className="text-sm font-semibold text-foreground">Collector-first storefront</p>*/}
-      {/*    <p className="mt-2 text-sm text-muted-foreground">*/}
-      {/*      Premium product discovery, secure checkout, and focused navigation without adding backend complexity.*/}
-      {/*    </p>*/}
-      {/*  </div>*/}
-      {/*</div>*/}
     </div>
   );
 }

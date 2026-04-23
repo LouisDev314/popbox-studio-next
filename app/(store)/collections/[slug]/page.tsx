@@ -111,9 +111,6 @@ export default async function CollectionSlugPage(props: CollectionSlugPageProps)
     <ProductsPageClient
       availableTags={availableTags}
       basePath={`/collections/${collection.slug}`}
-      headingDescription={
-        collection.description || `Browse products in the ${collection.name} collection.`
-      }
       headingTitle={collection.name}
       initialCollection={collection.slug}
       initialCursor={cursor}

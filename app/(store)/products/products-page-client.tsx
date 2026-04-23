@@ -32,7 +32,6 @@ import { cn } from '@/lib/utils';
 interface IProductsPageClientProps {
   availableTags: ITag[];
   basePath?: string;
-  headingDescription?: string;
   headingTitle?: string;
   initialCollection?: string;
   initialCursor?: string;

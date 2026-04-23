@@ -90,7 +90,16 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
                 className="h-12 border-0 bg-transparent px-3 text-base shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 onChange={(event) => onSearchQueryChange(event.target.value)}
               />
-              {searchQuery && <CircleX className='h-4 w-4 shrink-0 text-muted-foreground' onClick={() => props.setSearchQuery('')} />}
+              {searchQuery ? (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  onClick={() => props.setSearchQuery('')}
+                >
+                  <CircleX className="h-4 w-4" />
+                </button>
+              ) : null}
             </div>
           </form>
         </div>
@@ -170,20 +179,6 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
                   </p>
                 </div>
               ) : null}
-
-              {/*<button*/}
-              {/*  type="button"*/}
-              {/*  className="flex w-full items-center justify-between rounded-3xl border border-primary/30 bg-primary/10 px-4 py-4 text-left transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"*/}
-              {/*  onClick={() => onNavigate(`/search/results?q=${encodeURIComponent(trimmedQuery)}`)}*/}
-              {/*>*/}
-              {/*  <div>*/}
-              {/*    <p className="text-sm font-semibold text-foreground">Search all results</p>*/}
-              {/*    <p className="mt-1 text-sm text-muted-foreground">*/}
-              {/*    View the complete results page for &quot;{trimmedQuery}&quot;.*/}
-              {/*    </p>*/}
-              {/*  </div>*/}
-              {/*  <ArrowUpRight className="h-4 w-4 shrink-0 text-foreground" />*/}
-              {/*</button>*/}
             </div>
           )}
         </div>
