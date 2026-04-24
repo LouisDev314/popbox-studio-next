@@ -207,14 +207,14 @@ pnpm build && pnpm start
 
 ## Environment variables
 
-| Variable                                       | Scope       | Purpose                                                                                    |
-|------------------------------------------------|-------------|--------------------------------------------------------------------------------------------|
-| `NEXT_PUBLIC_API_BASE_URL`                     | Public      | Backend origin for `/api/v1` (required in production; dev default `http://localhost:3000`) |
-| `NEXT_PUBLIC_SITE_URL`                         | Public      | Canonical site URL for metadata and absolute URLs                                          |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`           | Public      | Stripe.js                                                                                  |
-| `NEXT_PUBLIC_SUPABASE_URL`                     | Public      | Supabase project URL                                                                       |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Public      | Supabase anon/public key                                                                   |
-| `NEXT_PUBLIC_IS_SITE_OPEN`                     | Public      | Set to `false` for maintenance-style behavior (default: open)                              |
+| Variable                                       | Scope      | Purpose                                                                                    |
+|------------------------------------------------|------------|--------------------------------------------------------------------------------------------|
+| `NEXT_PUBLIC_API_BASE_URL`                     | Public     | Backend origin for `/api/v1` (required in production; dev default `http://localhost:3000`) |
+| `NEXT_PUBLIC_SITE_URL`                         | Public     | Canonical site URL for metadata and absolute URLs                                          |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`           | Public     | Stripe.js                                                                                  |
+| `NEXT_PUBLIC_SUPABASE_URL`                     | Public     | Supabase project URL                                                                       |
+| `NEXT_PUBLIC_SUPABASE_PUBLIC_KEY` | Public     | Supabase anon/public key                                                                   |
+| `NEXT_PUBLIC_IS_SITE_OPEN`                     | Public     | Set to `false` for maintenance-style behavior (default: open)                              |
 | `STRIPE_SECRET_KEY`                            | Server only | Stripe server SDK                                                                          |
 
 On Vercel, `VERCEL_URL` / `VERCEL_PROJECT_PRODUCTION_URL` can back `NEXT_PUBLIC_SITE_URL` when unset—see
