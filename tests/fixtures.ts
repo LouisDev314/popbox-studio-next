@@ -20,11 +20,13 @@ export function createCartProduct(
     status: 'active',
     priceCents: 4999,
     currency: 'CAD',
-    collection: {
-      id: 'collection-1',
-      name: 'Featured',
-      slug: 'featured',
-    },
+    collections: [
+      {
+        id: 'collection-1',
+        name: 'Featured',
+        slug: 'featured',
+      },
+    ],
     images: [
       {
         id: 'image-1',
@@ -56,11 +58,13 @@ export function createProductCard(
     status: overrides.status ?? 'active',
     priceCents: overrides.priceCents ?? 4999,
     currency: overrides.currency ?? 'CAD',
-    collection: overrides.collection ?? {
-      id: 'collection-1',
-      name: 'Featured',
-      slug: 'featured',
-    },
+    collections: overrides.collections ?? [
+      {
+        id: 'collection-1',
+        name: 'Featured',
+        slug: 'featured',
+      },
+    ],
     images: overrides.images ?? [
       {
         id: 'image-1',

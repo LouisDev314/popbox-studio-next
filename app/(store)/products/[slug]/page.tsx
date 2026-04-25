@@ -36,7 +36,9 @@ function getProductMetadataDescription(product: IProduct) {
     return truncateMetaDescription(product.description, 165);
   }
 
-  const collectionText = product.collection ? `${product.collection.name} ` : '';
+  const collectionText = product.collections.length > 0
+    ? `${product.collections.map((collection) => collection.name).join(', ')} `
+    : '';
 
   if (product.productType === 'kuji') {
     return truncateMetaDescription(
@@ -192,26 +194,16 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
         </div>
 
         <div className="relative z-10 flex flex-col">
-
-          {/* Collection badge */}
           <div className="flex flex-wrap items-center gap-2">
-            {product.collection && (
+            {product.collections.map((collection) => (
               <Link
-                href={`/collections/${encodeURIComponent(product.collection.slug)}`}
-                className="
-                  inline-flex items-center
-                  rounded-full border border-primary/30
-                  bg-primary/10 px-3 py-1
-                  text-xs font-semibold uppercase tracking-[0.2em] text-primary
-                  transition-all duration-150
-                  hover:bg-primary/15 hover:border-primary/50
-                  active:scale-[0.97]
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
-                "
+                key={collection.id}
+                href={`/collections/${encodeURIComponent(collection.slug)}`}
+                className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary transition-all duration-150 hover:border-primary/50 hover:bg-primary/15 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
-                {product.collection.name}
+                {collection.name}
               </Link>
-            )}
+            ))}
           </div>
 
           <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-foreground md:text-4xl">

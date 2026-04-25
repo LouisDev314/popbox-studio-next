@@ -5,6 +5,7 @@ import {
   IAdminProductImage,
   IAdminProductImagePatch,
   IAdminProductImageUploadResponse,
+  IProductCollection,
   ITag,
 } from '@/interfaces/product';
 import getPublicEnvConfig from '@/configs/public-env';
@@ -95,6 +96,9 @@ export const normalizeTagId = (value: string | number) => String(value);
 
 export const extractTagIds = (tags?: Pick<ITag, 'id'>[] | null) =>
   tags?.map((tag) => normalizeTagId(tag.id)) ?? [];
+
+export const extractCollectionIds = (collections?: Pick<IProductCollection, 'id'>[] | null) =>
+  collections?.map((collection) => String(collection.id)) ?? [];
 
 export const normalizeAdminImages = (
   images?: IAdminProductImage[] | IAdminProductImageUploadResponse | null,
@@ -220,7 +224,7 @@ export const mergeAdminProductIntoEditor = (
     priceCents: getDefinedPatchValue(patch, 'priceCents', currentProduct.priceCents),
     currency: getDefinedPatchValue(patch, 'currency', currentProduct.currency),
     sku: getNullablePatchValue(patch, 'sku', currentProduct.sku),
-    collectionId: getNullablePatchValue(patch, 'collectionId', currentProduct.collectionId),
+    collections: getDefinedPatchValue(patch, 'collections', currentProduct.collections),
     inventory: getNullablePatchValue(patch, 'inventory', currentProduct.inventory),
     createdAt: getDefinedPatchValue(patch, 'createdAt', currentProduct.createdAt),
     updatedAt: getDefinedPatchValue(patch, 'updatedAt', currentProduct.updatedAt),
@@ -230,8 +234,8 @@ export const mergeAdminProductIntoEditor = (
 export const mapAdminProductDetailToEditor = (product: IAdminProductDetail): IAdminProductEditor => ({
   ...product,
   description: product.description ?? null,
-  collectionId: product.collection?.id ?? null,
-  collection: product.collection ?? null,
+  collections: product.collections,
+  collectionIds: extractCollectionIds(product.collections),
   tags: product.tags ?? [],
   tagIds: extractTagIds(product.tags),
   images: normalizeAdminImages(product.images),

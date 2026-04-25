@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ErrorAlert } from '@/components/ui/error-alert';
 import { NumericInput } from '@/components/ui/numeric-input';
+import { ProductCollectionsField } from '@/components/admin/product/product-collections-field';
 import { ICollection, ITag, productStatus, productType, IAdminProduct } from '@/interfaces/product';
 import { normalizeTagId, parsePriceToCents, parseWholeNumber, toNullableText } from '@/utils/admin';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
@@ -28,7 +29,7 @@ export default function NewProductPage() {
     status: 'draft' as productStatus,
     priceStr: '',
     sku: '',
-    collectionId: '',
+    collectionIds: [] as string[],
     tagIds: [] as string[],
     onHand: '',
     lowStockThreshold: '',
@@ -76,7 +77,7 @@ export default function NewProductPage() {
     const lowStockThreshold = formData.productType === 'standard' ? parseWholeNumber(formData.lowStockThreshold) : 0;
 
     createProduct({
-      collectionId: formData.collectionId || null,
+      collectionIds: formData.collectionIds,
       name: formData.name,
       description: toNullableText(formData.description),
       productType: formData.productType,
@@ -270,19 +271,11 @@ export default function NewProductPage() {
                 </select>
               </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Collection (Optional)</label>
-                <select
-                  className={inputClasses}
-                  value={formData.collectionId}
-                  onChange={(e) => setFormData({ ...formData, collectionId: e.target.value })}
-                >
-                  <option value="">None</option>
-                  {collections.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+              <ProductCollectionsField
+                collections={collections}
+                selectedCollectionIds={formData.collectionIds}
+                onSelectedCollectionIdsChange={(collectionIds) => setFormData({ ...formData, collectionIds })}
+              />
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">Tags (Optional)</label>

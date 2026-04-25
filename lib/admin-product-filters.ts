@@ -155,9 +155,9 @@ function getAdminProductSearchFields(
   product: IAdminProductListItem,
 ): string[] {
   const productRecord = product as unknown as Record<string, unknown>;
-  const collectionName = hasOwn(productRecord, 'collection') && product.collection
-    ? product.collection.name
-    : '';
+  const collectionNames = hasOwn(productRecord, 'collections') && Array.isArray(product.collections)
+    ? product.collections.map((collection) => collection.name)
+    : [];
   const tagNames = Array.isArray(productRecord.tags)
     ? product.tags.map((tag) => tag.name)
     : [];
@@ -166,7 +166,7 @@ function getAdminProductSearchFields(
     product.name,
     product.slug,
     product.sku ?? '',
-    collectionName ?? '',
+    ...collectionNames,
     ...tagNames,
   ].filter(Boolean);
 }

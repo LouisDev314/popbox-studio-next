@@ -80,8 +80,21 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
                 <dd className="font-medium text-foreground capitalize">{product.status}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground/70 mb-1">Collection</dt>
-                <dd className="font-medium text-foreground">{product.collection?.name ?? 'None'}</dd>
+                <dt className="text-muted-foreground/70 mb-1">Collections</dt>
+                <dd className="flex flex-wrap gap-1.5">
+                  {product.collections.length > 0 ? (
+                    product.collections.map((collection) => (
+                      <span
+                        key={collection.id}
+                        className="inline-flex max-w-full items-center rounded-full border border-border/60 bg-muted px-2 py-0.5 text-xs font-medium text-foreground"
+                      >
+                        <span className="truncate">{collection.name}</span>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="font-medium text-muted-foreground">No collections</span>
+                  )}
+                </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground/70 mb-1">Images</dt>

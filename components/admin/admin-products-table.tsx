@@ -1,16 +1,23 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Archive, MoreHorizontal, Package as PackageIcon, Pencil, Plus, RotateCcw, X } from 'lucide-react';
 import { AdminProductStatusBadge } from '@/components/admin/admin-product-status-badge';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn, formatPrice } from '@/lib/utils';
 import { resolveAdminImageSrc } from '@/utils/admin';
 import type {
   IAdminProductListItem,
   IAdminProductListPrimaryImage,
+  IProductCollection,
   ITag,
   productStatus,
 } from '@/interfaces/product';
@@ -66,22 +73,26 @@ function ContractNotice({ message }: { message: string }) {
 
 function getCollectionState(
   product: IAdminProductListItem,
-): ContractState<NonNullable<IAdminProductListItem['collection']>> {
+): ContractState<IProductCollection[]> {
   const productRecord = product as unknown as Record<string, unknown>;
 
-  if (!hasOwn(productRecord, 'collection')) {
-    return { kind: 'violation', message: 'Missing collection field' };
+  if (!hasOwn(productRecord, 'collections')) {
+    return { kind: 'violation', message: 'Missing collections field' };
   }
 
-  if (product.collection === null) {
+  if (!Array.isArray(productRecord.collections)) {
+    return { kind: 'violation', message: 'Invalid collections field' };
+  }
+
+  if (product.collections.length === 0) {
     return { kind: 'empty' };
   }
 
-  if (!isRecord(product.collection)) {
-    return { kind: 'violation', message: 'Invalid collection field' };
+  if (product.collections.some((collection) => !isRecord(collection))) {
+    return { kind: 'violation', message: 'Invalid collections field' };
   }
 
-  return { kind: 'ready', value: product.collection };
+  return { kind: 'ready', value: product.collections };
 }
 
 function getTagsState(product: IAdminProductListItem): ContractState<ITag[]> {
@@ -174,63 +185,54 @@ interface IRowActionsProps {
 }
 
 function RowActions({ isUpdating, onStatusChange, product }: IRowActionsProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   const toggleAction =
     product.status === 'archived'
       ? { label: 'Activate', icon: RotateCcw, newStatus: 'active' as productStatus }
       : { label: 'Archive', icon: Archive, newStatus: 'archived' as productStatus };
 
   return (
-    <div className="relative">
-      <Button
-        type="button"
-        aria-label="Product actions"
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 rounded-md p-0 text-muted-foreground/60 hover:bg-muted/60 hover:text-foreground"
-        onClick={(event) => {
-          event.stopPropagation();
-          setIsOpen((open) => !open);
-        }}
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={(
+          <Button
+            type="button"
+            aria-label="Product actions"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-md p-0 text-muted-foreground/60 hover:bg-muted/60 hover:text-foreground"
+          />
+        )}
+        onClick={(event) => event.stopPropagation()}
       >
         <MoreHorizontal className="h-4 w-4" />
-      </Button>
+      </DropdownMenuTrigger>
 
-      {isOpen ? (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            aria-hidden="true"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute right-0 top-7 z-50 w-44 rounded-lg border border-border/40 bg-card py-1 shadow-sm">
-            <Link
-              href={`/admin/products/${product.id}`}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
-              onClick={() => setIsOpen(false)}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </Link>
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={isUpdating}
-              className="flex h-auto w-full justify-start gap-2 rounded-none px-3 py-2 text-sm font-normal text-muted-foreground hover:bg-muted hover:text-muted-foreground"
-              onClick={(event) => {
-                event.stopPropagation();
-                onStatusChange(product.id, toggleAction.newStatus);
-                setIsOpen(false);
-              }}
-            >
-              <toggleAction.icon className="h-3.5 w-3.5" />
-              {toggleAction.label}
-            </Button>
-          </div>
-        </>
-      ) : null}
-    </div>
+      <DropdownMenuContent
+        align="end"
+        sideOffset={6}
+        className="w-44 rounded-lg border border-border/40 bg-card py-1 shadow-sm"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <DropdownMenuItem
+          className="gap-2 px-3 py-2 text-sm text-muted-foreground hover:bg-muted focus:bg-muted"
+          render={<Link href={`/admin/products/${product.id}`} />}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          Edit
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={isUpdating}
+          className="gap-2 px-3 py-2 text-sm text-muted-foreground hover:bg-muted focus:bg-muted"
+          onClick={(event) => {
+            event.stopPropagation();
+            onStatusChange(product.id, toggleAction.newStatus);
+          }}
+        >
+          <toggleAction.icon className="h-3.5 w-3.5" />
+          {toggleAction.label}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -297,13 +299,40 @@ function ProductTagsCell({ tags }: { tags: ITag[] }) {
   );
 }
 
+function ProductCollectionsCell({ collections }: { collections: IProductCollection[] }) {
+  if (collections.length === 0) {
+    return <span className="text-muted-foreground/60">No collections</span>;
+  }
+
+  const visibleCollections = collections.slice(0, 2);
+  const remainingCount = collections.length - visibleCollections.length;
+
+  return (
+    <div className="flex max-w-[220px] flex-wrap items-center gap-1.5">
+      {visibleCollections.map((collection) => (
+        <span
+          key={collection.id}
+          className="inline-flex max-w-full items-center rounded-full border border-[#ece4d8] bg-[#f8f4eb] px-2 py-0.5 text-[11px] font-medium text-[#6b7280]"
+        >
+          <span className="truncate">{collection.name}</span>
+        </span>
+      ))}
+      {remainingCount > 0 && (
+        <span className="inline-flex items-center rounded-full border border-dashed border-[#d9cdbb] px-2 py-0.5 text-[11px] font-medium text-[#8f8577]">
+          +{remainingCount} more
+        </span>
+      )}
+    </div>
+  );
+}
+
 function ProductInfoBlock({
   collectionState,
   inventoryState,
   product,
   tagsState,
 }: {
-  collectionState: ContractState<NonNullable<IAdminProductListItem['collection']>>;
+  collectionState: ContractState<IProductCollection[]>;
   inventoryState: ContractState<string>;
   product: IAdminProductListItem;
   tagsState: ContractState<ITag[]>;
@@ -319,14 +348,12 @@ function ProductInfoBlock({
         <dd className="mt-1 text-[#111827]">{formatPrice(product.priceCents, product.currency)}</dd>
       </div>
       <div>
-        <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">Collection</dt>
+        <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f8577]">Collections</dt>
         <dd className="mt-1">
           {collectionState.kind === 'violation' ? (
             <ContractNotice message={collectionState.message} />
           ) : (
-            <span className="text-[#111827]">
-              {collectionState.kind === 'ready' ? collectionState.value.name : '—'}
-            </span>
+            <ProductCollectionsCell collections={collectionState.kind === 'ready' ? collectionState.value : []} />
           )}
         </dd>
       </div>
@@ -500,7 +527,7 @@ export function AdminProductsTable(props: IAdminProductsTableProps) {
               <th className="px-3.5 py-3">Type</th>
               <th className="px-3.5 py-3">Status</th>
               <th className="px-3.5 py-3">Price</th>
-              <th className="px-3.5 py-3">Collection</th>
+              <th className="px-3.5 py-3">Collections</th>
               <th className="px-3.5 py-3">Tags</th>
               <th className="px-3.5 py-3">Inventory</th>
               <th className="px-3.5 py-3">Updated</th>
@@ -550,9 +577,7 @@ export function AdminProductsTable(props: IAdminProductsTableProps) {
                     {collectionState.kind === 'violation' ? (
                       <ContractNotice message={collectionState.message} />
                     ) : (
-                      <span className="line-clamp-1">
-                        {collectionState.kind === 'ready' ? collectionState.value.name : '—'}
-                      </span>
+                      <ProductCollectionsCell collections={collectionState.kind === 'ready' ? collectionState.value : []} />
                     )}
                   </td>
 

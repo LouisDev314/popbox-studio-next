@@ -43,7 +43,7 @@ const cartProductSchema = z.object({
   status: z.enum(['draft', 'active', 'archived']),
   priceCents: z.number().int().nonnegative(),
   currency: z.string().trim().min(1),
-  collection: cartCollectionSchema.nullable(),
+  collections: z.array(cartCollectionSchema).catch([]),
   images: z.array(cartImageSchema),
   inventory: cartInventorySchema.nullable(),
 }).passthrough() satisfies z.ZodType<ICartProduct>;
@@ -127,7 +127,8 @@ function buildInvalidCartItem(value: unknown, fallbackId: string, issueCode: Car
   const product = isObject(item.product) ? item.product : {};
   const images = Array.isArray(product.images) ? product.images : [];
   const firstImage = isObject(images[0]) ? images[0] : {};
-  const collection = isObject(product.collection) ? product.collection : {};
+  const collections = Array.isArray(product.collections) ? product.collections : [];
+  const firstCollection = isObject(collections[0]) ? collections[0] : {};
 
   return {
     id: getStringOrNull(item.id) ?? fallbackId,
@@ -135,7 +136,7 @@ function buildInvalidCartItem(value: unknown, fallbackId: string, issueCode: Car
     issueMessage: getCartIssueMessage(issueCode),
     quantity: getPositiveQuantity(item.quantity),
     product: {
-      collectionName: getStringOrNull(collection.name),
+      collectionName: getStringOrNull(firstCollection.name),
       imageUrl: getStringOrNull(firstImage.url),
       name: getStringOrNull(product.name) ?? 'Unavailable product',
       priceCents:

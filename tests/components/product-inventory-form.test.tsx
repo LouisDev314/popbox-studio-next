@@ -18,8 +18,8 @@ function createAdminProductEditor(): IAdminProductEditor {
     priceCents: 4999,
     currency: 'CAD',
     sku: 'PB-001',
-    collection: null,
-    collectionId: null,
+    collections: [],
+    collectionIds: [],
     inventory: {
       onHand: 10,
       reserved: 2,

@@ -33,11 +33,13 @@ function createProduct(overrides: Partial<IAdminProductListItem> = {}): IAdminPr
     priceCents: 2499,
     currency: 'CAD',
     sku: 'HF-001',
-    collection: {
-      id: 'collection-1',
-      name: 'Featured',
-      slug: 'featured',
-    },
+    collections: [
+      {
+        id: 'collection-1',
+        name: 'Featured',
+        slug: 'featured',
+      },
+    ],
     inventory: {
       onHand: 8,
       reserved: 2,
@@ -59,7 +61,7 @@ function createProduct(overrides: Partial<IAdminProductListItem> = {}): IAdminPr
 }
 
 describe('AdminProductsTable', () => {
-  it('renders tag chips and the primary image from the strict list contract', () => {
+  it('renders collection and tag chips from the strict list contract', () => {
     render(
       <AdminProductsTable
         hasActiveView={false}
@@ -71,9 +73,40 @@ describe('AdminProductsTable', () => {
       />,
     );
 
+    expect(screen.getAllByText('Featured').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Anime').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Limited').length).toBeGreaterThan(0);
     expect(screen.getAllByAltText('Hero thumbnail').at(0)).toHaveAttribute('src', 'https://cdn.example.com/hero.jpg');
+  });
+
+  it('renders multiple collection chips and the no collections fallback', () => {
+    render(
+      <AdminProductsTable
+        hasActiveView={false}
+        isPatching={false}
+        onClearView={() => {}}
+        onRowClick={() => {}}
+        onStatusChange={() => {}}
+        products={[
+          createProduct({
+            collections: [
+              { id: 'collection-1', name: 'Featured', slug: 'featured' },
+              { id: 'collection-2', name: 'Ichiban Kuji', slug: 'ichiban-kuji' },
+              { id: 'collection-3', name: 'New Arrivals', slug: 'new-arrivals' },
+            ],
+          }),
+          createProduct({
+            id: 'prod-2',
+            collections: [],
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByText('Featured').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Ichiban Kuji').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('+1 more').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('No collections').length).toBeGreaterThan(0);
   });
 
   it('treats tags: [] and primaryImage: null as valid empty states', () => {
@@ -124,11 +157,13 @@ describe('AdminProductsTable', () => {
       priceCents: 1800,
       currency: 'CAD',
       sku: 'BROKEN-001',
-      collection: {
-        id: 'collection-1',
-        name: 'Featured',
-        slug: 'featured',
-      },
+      collections: [
+        {
+          id: 'collection-1',
+          name: 'Featured',
+          slug: 'featured',
+        },
+      ],
       inventory: {
         onHand: 4,
         reserved: 0,

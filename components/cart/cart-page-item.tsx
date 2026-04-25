@@ -20,6 +20,8 @@ interface ICartPageItemProps {
 
 export function CartPageItem(props: ICartPageItemProps) {
   const lineTotalCents = props.item.product.priceCents * props.item.quantity;
+  const firstCollection = props.item.product.collections[0];
+  const remainingCollectionCount = props.item.product.collections.length - 1;
 
   return (
     <article
@@ -61,8 +63,11 @@ export function CartPageItem(props: ICartPageItemProps) {
                 </Button>
               </div>
 
-              {props.item.product.collection ? (
-                <p className="mt-1 text-sm text-muted-foreground">{props.item.product.collection.name}</p>
+              {firstCollection ? (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {firstCollection.name}
+                  {remainingCollectionCount > 0 ? ` +${remainingCollectionCount}` : null}
+                </p>
               ) : null}
             </div>
           </div>

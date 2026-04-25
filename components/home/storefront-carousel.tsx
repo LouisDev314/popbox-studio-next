@@ -30,7 +30,7 @@ function getCarouselEyebrowLabel(product: IProductCard) {
     return 'Ichiban Kuji';
   }
 
-  return product.collection?.name ?? 'PopBox Studio Pick';
+  return product.collections[0]?.name ?? 'PopBox Studio Pick';
 }
 
 function areNumberArraysEqual(first: number[], second: number[]) {

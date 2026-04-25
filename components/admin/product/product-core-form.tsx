@@ -13,6 +13,7 @@ import { ErrorAlert } from '@/components/ui/error-alert';
 import { IAdminProductEditor, ICollection, ITag, productStatus } from '@/interfaces/product';
 import { mergeAdminProductIntoEditor, normalizeTagId, parsePriceToCents, toNullableText } from '@/utils/admin';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
+import { ProductCollectionsField } from './product-collections-field';
 
 type ProductCoreFormData = {
   name: string;
@@ -20,7 +21,7 @@ type ProductCoreFormData = {
   status: productStatus;
   priceStr: string;
   sku: string;
-  collectionId: string;
+  collectionIds: string[];
   tagIds: string[];
 };
 
@@ -31,7 +32,7 @@ function createInitialFormData(product: IAdminProductEditor): ProductCoreFormDat
     status: product.status,
     priceStr: (product.priceCents / 100).toFixed(2),
     sku: product.sku ?? '',
-    collectionId: product.collection?.id ?? product.collectionId ?? '',
+    collectionIds: product.collectionIds.map((collectionId) => String(collectionId)),
     tagIds: product.tagIds.map((tagId) => String(tagId)),
   };
 }
@@ -64,10 +65,16 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
     onSuccess: (response) => {
       setRequestErrorMessage(null);
 
-      const normalizedCollectionId = formData.collectionId === '' ? null : formData.collectionId;
+      const nextCollectionIds = formData.collectionIds.map((collectionId) => String(collectionId));
       const nextTagIds = formData.tagIds.map((tagId) => String(tagId));
       const nextPriceCents = parsePriceToCents(formData.priceStr);
-      const selectedCollection = collections.find((collection) => collection.id === normalizedCollectionId) ?? null;
+      const selectedCollections = collections
+        .filter((collection) => nextCollectionIds.includes(String(collection.id)))
+        .map((collection) => ({
+          id: collection.id,
+          name: collection.name,
+          slug: collection.slug,
+        }));
       const selectedTags = tags.filter((tag) => nextTagIds.includes(normalizeTagId(tag.id)));
       const updatedProduct = response.data.data;
 
@@ -83,14 +90,8 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
           status: formData.status,
           priceCents: nextPriceCents,
           sku: toNullableText(formData.sku),
-          collectionId: normalizedCollectionId,
-          collection: selectedCollection
-            ? {
-              id: selectedCollection.id,
-              name: selectedCollection.name,
-              slug: selectedCollection.slug,
-            }
-            : null,
+          collections: selectedCollections,
+          collectionIds: nextCollectionIds,
           tags: selectedTags,
           tagIds: nextTagIds,
         };
@@ -119,7 +120,7 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         priceCents,
         currency: product.currency,
         sku: toNullableText(formData.sku),
-        collectionId: formData.collectionId === '' ? null : formData.collectionId,
+        collectionIds: formData.collectionIds,
         tagIds: formData.tagIds,
       },
     });
@@ -220,18 +221,12 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
           />
         </div>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-foreground">Collection</label>
-          <select
-            className={inputClasses}
-            value={formData.collectionId}
-            onChange={(e) => setFormData({ ...formData, collectionId: e.target.value })}
-          >
-            <option value="">None</option>
-            {collections.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+        <div className="sm:col-span-2">
+          <ProductCollectionsField
+            collections={collections}
+            selectedCollectionIds={formData.collectionIds}
+            onSelectedCollectionIdsChange={(collectionIds) => setFormData({ ...formData, collectionIds })}
+          />
         </div>
 
         <div className="sm:col-span-2">

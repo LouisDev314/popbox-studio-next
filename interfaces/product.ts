@@ -10,6 +10,8 @@ export interface ICollection {
   isActive: boolean;
 }
 
+export type IProductCollection = Pick<ICollection, 'id' | 'name' | 'slug'>;
+
 export interface ITag {
   id: string;
   name: string;
@@ -81,7 +83,7 @@ export interface IProductCard {
   status: 'draft' | 'active' | 'archived';
   priceCents: number;
   currency: string;
-  collection: Pick<ICollection, 'id' | 'name' | 'slug'> | null;
+  collections: IProductCollection[];
   images: IProductImage[];
   inventory: IProductInventory | null;
   ticketSummary?: IKujiTicketSummary;
@@ -138,7 +140,7 @@ export interface IAdminProductListItem {
   priceCents: number;
   currency: string;
   sku: string | null;
-  collection: Pick<ICollection, 'id' | 'name' | 'slug'> | null;
+  collections: IProductCollection[];
   inventory: IProductInventory | null;
   tags: ITag[];
   primaryImage: IAdminProductListPrimaryImage | null;
@@ -155,9 +157,7 @@ export interface IAdminProduct {
   priceCents: number;
   currency: string;
   sku: string | null;
-  collectionId: string | null;
-  // Admin list/create/update responses are not a reliable full detail shape yet.
-  collection?: Pick<ICollection, 'id' | 'name'> | null;
+  collections: IProductCollection[];
   tags?: ITag[];
   images?: IAdminProductImage[];
   inventory?: IProductInventory | null;
@@ -175,7 +175,7 @@ export interface IAdminProductDetail {
   priceCents: number;
   currency: string;
   sku: string | null;
-  collection: Pick<ICollection, 'id' | 'name' | 'slug'> | null;
+  collections: IProductCollection[];
   inventory: IProductInventory | null;
   tags: ITag[];
   images: IAdminProductImage[];
@@ -185,7 +185,7 @@ export interface IAdminProductDetail {
 }
 
 export interface IAdminProductEditor extends Omit<IAdminProductDetail, 'images'> {
-  collectionId: string | null;
+  collectionIds: string[];
   tagIds: string[];
   images: IAdminProductImage[];
 }
@@ -200,7 +200,7 @@ export interface IAdminProductStatusUpdate {
 }
 
 export interface IAdminProductCreate {
-  collectionId: string | null;
+  collectionIds: string[];
   name: string;
   description: string | null;
   productType: productType;
@@ -221,7 +221,7 @@ export interface IAdminProductUpdate {
   priceCents?: number;
   currency?: string;
   sku?: string | null;
-  collectionId?: string | null;
+  collectionIds?: string[];
   tagIds?: string[];
   lowStockThreshold?: number;
 }
