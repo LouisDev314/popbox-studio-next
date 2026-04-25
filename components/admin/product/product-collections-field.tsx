@@ -32,7 +32,7 @@ export function ProductCollectionsField({
         <div className="min-w-0">
           <label className="block text-sm font-medium text-foreground">Collections</label>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Choose one or more storefront collections this product should appear in.
+            Choose one or more storefront collections this product should appear in. You can also manage products directly from each collection page.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">

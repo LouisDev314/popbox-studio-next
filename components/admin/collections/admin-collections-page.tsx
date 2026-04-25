@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil } from 'lucide-react';
+import { Plus, Pencil, ArrowRight } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
@@ -113,16 +114,30 @@ export default function AdminCollectionsPageClient() {
                 <article key={collection.id} className="rounded-2xl border border-border/30 bg-background p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{collection.name}</p>
+                      <Link
+                        href={`/admin/collections/${collection.id}`}
+                        className="text-sm font-semibold text-foreground transition-colors hover:text-primary"
+                      >
+                        {collection.name}
+                      </Link>
                       <code className="mt-1 inline-flex rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{collection.slug}</code>
                     </div>
-                    <button
-                      onClick={() => openEditDialog(collection)}
-                      className="inline-flex items-center gap-1.5 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      <span className="sr-only">Edit</span>
-                    </button>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Link
+                        href={`/admin/collections/${collection.id}`}
+                        className="inline-flex items-center gap-1.5 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        <ArrowRight className="h-4 w-4" />
+                        <span className="sr-only">Manage products</span>
+                      </Link>
+                      <button
+                        onClick={() => openEditDialog(collection)}
+                        className="inline-flex items-center gap-1.5 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        <span className="sr-only">Edit</span>
+                      </button>
+                    </div>
                   </div>
                   <dl className="mt-4 grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
                     <div>
@@ -157,7 +172,14 @@ export default function AdminCollectionsPageClient() {
                   {sortedCollections.map((c) => (
                     <tr key={c.id} className="transition-colors hover:bg-muted/40">
                       <td className="px-4 py-3 text-muted-foreground tabular-nums">{c.sortOrder}</td>
-                      <td className="px-4 py-3 font-medium text-foreground">{c.name}</td>
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        <Link
+                          href={`/admin/collections/${c.id}`}
+                          className="transition-colors hover:text-primary"
+                        >
+                          {c.name}
+                        </Link>
+                      </td>
                       <td className="px-4 py-3 text-muted-foreground"><code className="rounded bg-muted px-1.5 py-0.5 text-xs">{c.slug}</code></td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${c.isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
@@ -165,6 +187,13 @@ export default function AdminCollectionsPageClient() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
+                        <Link
+                          href={`/admin/collections/${c.id}`}
+                          className="mr-1 inline-flex items-center gap-1.5 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                          <span className="sr-only">Manage products</span>
+                        </Link>
                         <button
                           onClick={() => openEditDialog(c)}
                           className="inline-flex items-center gap-1.5 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"

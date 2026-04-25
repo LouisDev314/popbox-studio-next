@@ -12,6 +12,17 @@ const sentryProject = process.env.SENTRY_PROJECT?.trim();
 const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
 const hasRequiredSentryBuildEnv = Boolean(sentryOrg && sentryProject && sentryAuthToken);
 const shouldApplySentryConfig = shouldEnableSentryBuild && hasRequiredSentryBuildEnv;
+const configuredSupabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+  : undefined;
+
+const supabaseImageHostnames = Array.from(
+  new Set(
+    ['bpclnekuanwtojarniyc.supabase.co', configuredSupabaseHostname].filter(
+      (hostname): hostname is string => Boolean(hostname),
+    ),
+  ),
+);
 
 if (shouldEnableSentryBuild && !hasRequiredSentryBuildEnv) {
   console.warn(
@@ -68,13 +79,11 @@ const nextConfig: NextConfig = {
     };
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'bpclnekuanwtojarniyc.supabase.co',
-        pathname: '/storage/v1/object/public/**',
-      },
-    ],
+    remotePatterns: supabaseImageHostnames.map((hostname) => ({
+      protocol: 'https',
+      hostname,
+      pathname: '/storage/v1/object/public/**',
+    })),
   },
 };
 

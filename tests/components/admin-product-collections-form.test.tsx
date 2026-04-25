@@ -136,7 +136,7 @@ describe('admin product collection forms', () => {
       expect(createProduct).toHaveBeenCalled();
     });
 
-    const payload = createProduct.mock.calls[0][0] as Record<string, unknown>;
+    const payload = createProduct.mock.calls[0][0] as unknown as Record<string, unknown>;
 
     expect(payload.collectionIds).toEqual([]);
     expect(payload).not.toHaveProperty('collectionId');
@@ -161,6 +161,7 @@ describe('admin product collection forms', () => {
     );
 
     await screen.findByText('Featured');
+    expect(screen.getByText('Choose one or more storefront collections this product should appear in. You can also manage products directly from each collection page.')).toBeInTheDocument();
     await userEvent.click(screen.getByText('Ichiban Kuji'));
     await userEvent.click(screen.getByRole('button', { name: /Save Info/i }));
 
