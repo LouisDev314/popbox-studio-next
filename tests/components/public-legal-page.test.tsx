@@ -31,6 +31,22 @@ describe('PublicLegalPage', () => {
     expect(screen.getByText(/Kuji items are random draw and final sale/i)).toBeInTheDocument();
   });
 
+  it('renders backend shipping settings when provided', () => {
+    render(
+      <PublicLegalPage
+        doc={createLegalDocument()}
+        shippingSettings={{
+          flatShippingCents: 1299,
+          freeShippingThresholdCents: 9900,
+          currency: 'CAD',
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('cell', { name: '$12.99 CAD' })).toBeInTheDocument();
+    expect(screen.getAllByText(/99.00 CAD/i).length).toBeGreaterThan(0);
+  });
+
   it('does not render the shipping rate table on other legal pages', () => {
     render(<PublicLegalPage doc={createLegalDocument({ type: 'terms', title: 'Terms of Service' })} />);
 

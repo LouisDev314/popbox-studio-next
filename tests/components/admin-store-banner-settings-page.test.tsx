@@ -1,11 +1,11 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AxiosError } from 'axios';
 import MutationConfigs from '@/configs/api/mutation-config';
 import QueryConfigs from '@/configs/api/query-config';
 import { AdminStoreBannerSettingsPage } from '@/components/admin/settings/admin-store-banner-settings-page';
-import type { IStoreBannerSettings } from '@/interfaces/settings';
+import type { IStoreBannerItem, IStoreBannerSettings } from '@/interfaces/settings';
 import { renderWithProviders } from '../test-utils';
 
 const toastSuccess = vi.fn();
@@ -17,12 +17,24 @@ vi.mock('sonner', () => ({
   },
 }));
 
-function createStoreBannerSettings(overrides: Partial<IStoreBannerSettings> = {}): IStoreBannerSettings {
+function createStoreBannerItem(overrides: Partial<IStoreBannerItem> = {}): IStoreBannerItem {
   return {
-    enabled: true,
+    id: 'banner-item-1',
     message: 'Free shipping across Canada this weekend.',
     linkLabel: 'Shop now',
     linkHref: '/products',
+    sortOrder: 0,
+    isActive: true,
+    ...overrides,
+  };
+}
+
+function createStoreBannerSettings(overrides: Partial<IStoreBannerSettings> = {}): IStoreBannerSettings {
+  return {
+    enabled: true,
+    items: [
+      createStoreBannerItem(),
+    ],
     ...overrides,
   };
 }
@@ -70,24 +82,113 @@ describe('AdminStoreBannerSettingsPage', () => {
     );
   });
 
-  it('populates the form from fetched settings', async () => {
-    renderWithProviders(<AdminStoreBannerSettingsPage />);
-
-    expect(await screen.findByLabelText('Message')).toHaveValue('Free shipping across Canada this weekend.');
-    expect(screen.getByLabelText('Link label')).toHaveValue('Shop now');
-    expect(screen.getByLabelText('Link href')).toHaveValue('/products');
-    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
-  });
-
-  it('shows the disabled state from fetched settings', async () => {
+  it('populates the form from fetched multiple-item settings', async () => {
     vi.mocked(QueryConfigs.fetchAdminStoreBannerSettings).mockResolvedValueOnce(
-      createApiResponse(createStoreBannerSettings({ enabled: false })),
+      createApiResponse(createStoreBannerSettings({
+        items: [
+          createStoreBannerItem({
+            id: 'banner-item-2',
+            message: 'Second in backend, first visually.',
+            linkLabel: 'Second link',
+            linkHref: '/second',
+            sortOrder: 1,
+          }),
+          createStoreBannerItem({
+            id: 'banner-item-1',
+            message: 'First visually.',
+            linkLabel: 'First link',
+            linkHref: '/first',
+            sortOrder: 0,
+          }),
+        ],
+      })),
     );
 
     renderWithProviders(<AdminStoreBannerSettingsPage />);
 
-    expect(await screen.findByRole('switch')).toHaveAttribute('aria-checked', 'false');
-    expect(screen.getByText(/Enable the banner and add a message/i)).toBeInTheDocument();
+    const messages = await screen.findAllByLabelText('Message');
+    expect(messages).toHaveLength(2);
+    expect(messages[0]).toHaveValue('First visually.');
+    expect(messages[1]).toHaveValue('Second in backend, first visually.');
+    expect(screen.getAllByLabelText('Link label')[0]).toHaveValue('First link');
+    expect(screen.getAllByLabelText('Link href')[0]).toHaveValue('/first');
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('adds a new banner item', async () => {
+    renderWithProviders(<AdminStoreBannerSettingsPage />);
+
+    await screen.findByLabelText('Message');
+    await userEvent.click(screen.getByRole('button', { name: /Add banner item/i }));
+
+    expect(screen.getAllByLabelText('Message')).toHaveLength(2);
+    expect(screen.getAllByRole('checkbox')[1]).toBeChecked();
+  });
+
+  it('removes a banner item', async () => {
+    renderWithProviders(<AdminStoreBannerSettingsPage />);
+
+    expect(await screen.findByDisplayValue('Free shipping across Canada this weekend.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Remove item 1/i }));
+
+    expect(screen.queryByDisplayValue('Free shipping across Canada this weekend.')).not.toBeInTheDocument();
+    expect(screen.getByText(/No banner items yet/i)).toBeInTheDocument();
+  });
+
+  it('moves items up and down and submits normalized sortOrder', async () => {
+    vi.mocked(QueryConfigs.fetchAdminStoreBannerSettings).mockResolvedValueOnce(
+      createApiResponse(createStoreBannerSettings({
+        items: [
+          createStoreBannerItem({
+            id: 'first-item',
+            message: 'First item',
+            linkLabel: null,
+            linkHref: null,
+            sortOrder: 0,
+          }),
+          createStoreBannerItem({
+            id: 'second-item',
+            message: 'Second item',
+            linkLabel: null,
+            linkHref: null,
+            sortOrder: 1,
+          }),
+        ],
+      })),
+    );
+
+    renderWithProviders(<AdminStoreBannerSettingsPage />);
+
+    expect((await screen.findAllByLabelText('Message'))[0]).toHaveValue('First item');
+    await userEvent.click(screen.getByRole('button', { name: /Move item 2 up/i }));
+
+    expect(screen.getAllByLabelText('Message')[0]).toHaveValue('Second item');
+
+    await userEvent.click(screen.getByRole('button', { name: /Save store banner/i }));
+
+    await waitFor(() => {
+      expect(MutationConfigs.updateAdminStoreBannerSettings).toHaveBeenCalledWith({
+        enabled: true,
+        items: [
+          {
+            id: 'second-item',
+            message: 'Second item',
+            linkLabel: null,
+            linkHref: null,
+            sortOrder: 0,
+            isActive: true,
+          },
+          {
+            id: 'first-item',
+            message: 'First item',
+            linkLabel: null,
+            linkHref: null,
+            sortOrder: 1,
+            isActive: true,
+          },
+        ],
+      }, expect.anything());
+    });
   });
 
   it('submits a normalized payload for a valid save', async () => {
@@ -108,44 +209,77 @@ describe('AdminStoreBannerSettingsPage', () => {
     await waitFor(() => {
       expect(MutationConfigs.updateAdminStoreBannerSettings).toHaveBeenCalledWith({
         enabled: true,
-        message: 'New arrivals are live.',
-        linkLabel: 'View drops',
-        linkHref: '/products?sort=newest',
+        items: [
+          {
+            id: 'banner-item-1',
+            message: 'New arrivals are live.',
+            linkLabel: 'View drops',
+            linkHref: '/products?sort=newest',
+            sortOrder: 0,
+            isActive: true,
+          },
+        ],
       }, expect.anything());
     });
     expect(toastSuccess).toHaveBeenCalledWith('Store banner settings saved.');
   });
 
-  it('submits null for empty optional link fields', async () => {
+  it('enforces the max 5 item limit', async () => {
+    vi.mocked(QueryConfigs.fetchAdminStoreBannerSettings).mockResolvedValueOnce(
+      createApiResponse(createStoreBannerSettings({
+        items: Array.from({ length: 5 }, (_, index) => createStoreBannerItem({
+          id: `banner-item-${index}`,
+          message: `Banner item ${index + 1}`,
+          sortOrder: index,
+        })),
+      })),
+    );
+
     renderWithProviders(<AdminStoreBannerSettingsPage />);
 
-    await userEvent.clear(await screen.findByLabelText('Link label'));
-    await userEvent.clear(screen.getByLabelText('Link href'));
-    await userEvent.click(screen.getByRole('button', { name: /Save store banner/i }));
-
-    await waitFor(() => {
-      expect(MutationConfigs.updateAdminStoreBannerSettings).toHaveBeenCalledWith({
-        enabled: true,
-        message: 'Free shipping across Canada this weekend.',
-        linkLabel: null,
-        linkHref: null,
-      }, expect.anything());
-    });
+    expect(await screen.findAllByLabelText('Message')).toHaveLength(5);
+    expect(screen.getByRole('button', { name: /Add banner item/i })).toBeDisabled();
+    expect(screen.getByText(/Maximum of 5 banner items reached/i)).toBeInTheDocument();
   });
 
-  it('blocks a link label without href', async () => {
+  it('preserves inactive items but keeps them out of the storefront preview', async () => {
+    vi.mocked(QueryConfigs.fetchAdminStoreBannerSettings).mockResolvedValueOnce(
+      createApiResponse(createStoreBannerSettings({
+        items: [
+          createStoreBannerItem({
+            id: 'inactive-item',
+            message: 'Hidden announcement.',
+            sortOrder: 0,
+            isActive: false,
+          }),
+          createStoreBannerItem({
+            id: 'active-item',
+            message: 'Visible announcement.',
+            sortOrder: 1,
+            isActive: true,
+          }),
+        ],
+      })),
+    );
+
     renderWithProviders(<AdminStoreBannerSettingsPage />);
 
-    const linkHrefInput = await screen.findByLabelText('Link href');
+    const preview = await screen.findByLabelText('Store announcement');
+    expect(within(preview).queryByText('Hidden announcement.')).not.toBeInTheDocument();
+    expect(within(preview).getByText('Visible announcement.')).toBeInTheDocument();
 
-    await userEvent.clear(linkHrefInput);
-    await waitFor(() => {
-      expect(linkHrefInput).toHaveValue('');
-    });
     await userEvent.click(screen.getByRole('button', { name: /Save store banner/i }));
 
-    expect(await screen.findAllByText('Link href is required when a link label is provided.')).not.toHaveLength(0);
-    expect(MutationConfigs.updateAdminStoreBannerSettings).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(MutationConfigs.updateAdminStoreBannerSettings).toHaveBeenCalledWith(expect.objectContaining({
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            id: 'inactive-item',
+            isActive: false,
+          }),
+        ]),
+      }), expect.anything());
+    });
   });
 
   it('blocks invalid link hrefs', async () => {
@@ -169,15 +303,5 @@ describe('AdminStoreBannerSettingsPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong');
     expect(screen.getByRole('alert')).toHaveTextContent('Unable to save changes. Please try again.');
-  });
-
-  it('updates the preview from current form values', async () => {
-    renderWithProviders(<AdminStoreBannerSettingsPage />);
-
-    const messageInput = await screen.findByLabelText('Message');
-    await userEvent.clear(messageInput);
-    await userEvent.type(messageInput, 'Preview this message.');
-
-    expect(screen.getByLabelText('Store announcement')).toHaveTextContent('Preview this message.');
   });
 });

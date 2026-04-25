@@ -92,6 +92,9 @@ const QueryConfigs = {
   fetchPublicStoreBanner: (): Promise<AxiosResponse<IBaseApiResponse<IStoreBannerSettings>>> => {
     return httpClient.get('/api/v1/settings/store-banner');
   },
+  fetchPublicShippingSettings: (): Promise<AxiosResponse<IBaseApiResponse<IShippingSettings>>> => {
+    return httpClient.get('/api/v1/settings/shipping');
+  },
   fetchGuestTickets: (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
     return httpClient.get(`/api/v1/orders/${id}/tickets`);
   },

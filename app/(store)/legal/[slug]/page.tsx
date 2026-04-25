@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { FileText } from 'lucide-react';
 import { PublicLegalPage } from '@/components/storefront/legal/public-legal-page';
-import { getPublicLegalDocument, isPublicApiNotFoundError } from '@/lib/api/public-storefront';
+import { getPublicLegalDocument, getPublicShippingSettings, isPublicApiNotFoundError } from '@/lib/api/public-storefront';
 import type { LegalDocumentType } from '@/interfaces/legal';
+import type { IShippingSettings } from '@/interfaces/shipping';
 import {
   buildExcerpt,
   createPageMetadata,
@@ -97,10 +98,16 @@ export default async function LegalRoute(props: Props) {
     notFound();
   }
 
+  const shippingSettingsPromise: Promise<IShippingSettings | null> = type === 'shipping_returns'
+    ? getPublicShippingSettings().catch(() => null)
+    : Promise.resolve(null);
+
   let document = null;
+  let shippingSettings: IShippingSettings | null = null;
 
   try {
     document = await getPublicLegalDocument(type);
+    shippingSettings = await shippingSettingsPromise;
   } catch (error) {
     if (isPublicApiNotFoundError(error)) {
       notFound();
@@ -115,5 +122,5 @@ export default async function LegalRoute(props: Props) {
     );
   }
 
-  return <PublicLegalPage doc={document} />;
+  return <PublicLegalPage doc={document} shippingSettings={shippingSettings} />;
 }
