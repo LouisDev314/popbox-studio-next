@@ -44,8 +44,11 @@ describe('CheckoutButton', () => {
     renderWithProviders(<CheckoutButton />);
 
     const button = screen.getByRole('button', { name: 'Check Out' });
+    const alert = screen.getByRole('alert');
+
     expect(button).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent('no longer valid');
+    expect(alert).toHaveTextContent('Something went wrong');
+    expect(alert).toHaveTextContent('no longer valid');
 
     act(() => {
       useCartStore.getState().removeInvalidItem('invalid-cart-item-1');
@@ -123,7 +126,10 @@ describe('CheckoutButton', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(
+      const alert = screen.getByRole('alert');
+
+      expect(alert).toHaveTextContent('Something went wrong');
+      expect(alert).toHaveTextContent(
         'One or more items in your cart are no longer valid.',
       );
     });
@@ -244,7 +250,10 @@ describe('CheckoutButton', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent(
+      const alert = screen.getByRole('alert');
+
+      expect(alert).toHaveTextContent('Something went wrong');
+      expect(alert).toHaveTextContent(
         'We couldn’t start checkout before the request timed out. Please try again.',
       );
     });

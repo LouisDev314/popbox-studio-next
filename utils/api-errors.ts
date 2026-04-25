@@ -101,7 +101,7 @@ function getResponseStringField(data: unknown, field: string): string | null {
 
 export function getFriendlyErrorMessage(
   error: unknown,
-  fallbackMessage = 'Unable to save changes. Please try again.',
+  fallbackMessage = 'Something went wrong. Please try again.',
 ): string {
   if (error instanceof AxiosError) {
     const responseData = error.response?.data;
@@ -119,6 +119,10 @@ export function getFriendlyErrorMessage(
 
     if (error.response) {
       return fallbackMessage;
+    }
+
+    if (error.message === 'Network Error') {
+      return 'Network error. Please check your connection.';
     }
 
     const fallbackApiMessage = getFallbackApiErrorMessage(error);

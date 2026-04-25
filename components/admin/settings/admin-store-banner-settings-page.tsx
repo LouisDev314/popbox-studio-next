@@ -7,8 +7,8 @@ import { toast } from 'sonner';
 import MutationConfigs from '@/configs/api/mutation-config';
 import QueryConfigs from '@/configs/api/query-config';
 import { getActiveStoreBannerItems, StoreBannerRow } from '@/components/layout/store-banner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ErrorAlert } from '@/components/ui/error-alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -290,7 +290,7 @@ export function AdminStoreBannerSettingsPage() {
       {isPending ? (
         <StoreBannerSettingsSkeleton />
       ) : isError ? (
-        <SettingsErrorAlert message={getFriendlyErrorMessage(queryError, 'Unable to load store banner settings. Please refresh and try again.')} />
+        <ErrorAlert message={getFriendlyErrorMessage(queryError, 'Unable to load store banner settings. Please refresh and try again.')} />
       ) : (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
           <form
@@ -298,7 +298,7 @@ export function AdminStoreBannerSettingsPage() {
             onSubmit={handleSubmit}
           >
             {requestErrorMessage || firstVisibleError ? (
-              <SettingsErrorAlert
+              <ErrorAlert
                 className="mb-5"
                 message={requestErrorMessage ?? firstVisibleError ?? 'Unable to save changes. Please try again.'}
               />
@@ -542,16 +542,6 @@ function FieldHelp(props: { error?: string; text: string }) {
   }
 
   return <p className="mt-2 text-xs text-[#6b7280]">{props.text}</p>;
-}
-
-function SettingsErrorAlert(props: { className?: string; message: string }) {
-  return (
-    <Alert variant="destructive" className={props.className}>
-      <AlertCircle className="h-4 w-4" />
-      <AlertTitle>Something went wrong</AlertTitle>
-      <AlertDescription>{props.message}</AlertDescription>
-    </Alert>
-  );
 }
 
 function StoreBannerPreview(props: { settings: IStoreBannerSettings }) {

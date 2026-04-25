@@ -168,6 +168,6 @@ describe('AdminShippingSettingsPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Save shipping settings/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong');
-    expect(screen.getByRole('alert')).toHaveTextContent('Unable to save changes. Please try again.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.');
   });
 });

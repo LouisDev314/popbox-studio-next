@@ -9,8 +9,10 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ErrorAlert } from '@/components/ui/error-alert';
 import { IAdminProductEditor, ICollection, ITag, productStatus } from '@/interfaces/product';
 import { mergeAdminProductIntoEditor, normalizeTagId, parsePriceToCents, toNullableText } from '@/utils/admin';
+import { getFriendlyErrorMessage } from '@/utils/api-errors';
 
 type ProductCoreFormData = {
   name: string;
@@ -42,6 +44,7 @@ interface IProductCoreFormProps {
 export function ProductCoreForm({ product, onProductChange }: IProductCoreFormProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState(() => createInitialFormData(product));
+  const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null);
 
   const { data: collectionsRes } = useCustomizeQuery<ICollection[]>({
     queryKey: ['admin', 'collections'],
@@ -59,6 +62,8 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
   const { mutation: updateProduct, isPending } = useCustomizeMutation({
     mutationFn: MutationConfigs.updateAdminProduct,
     onSuccess: (response) => {
+      setRequestErrorMessage(null);
+
       const normalizedCollectionId = formData.collectionId === '' ? null : formData.collectionId;
       const nextTagIds = formData.tagIds.map((tagId) => String(tagId));
       const nextPriceCents = parsePriceToCents(formData.priceStr);
@@ -94,10 +99,15 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
     },
+    onError: (error) => {
+      setRequestErrorMessage(getFriendlyErrorMessage(error, 'Unable to save product details. Please try again.'));
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setRequestErrorMessage(null);
+
     const priceCents = parsePriceToCents(formData.priceStr);
 
     updateProduct({
@@ -141,6 +151,8 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
           {isPending ? 'Saving...' : 'Save Info'}
         </Button>
       </div>
+
+      <ErrorAlert className="mb-6" message={requestErrorMessage} />
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="sm:col-span-2">

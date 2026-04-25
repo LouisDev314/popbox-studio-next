@@ -320,6 +320,6 @@ describe('AdminStoreBannerSettingsPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: /Save store banner/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong');
-    expect(screen.getByRole('alert')).toHaveTextContent('Unable to save changes. Please try again.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.');
   });
 });

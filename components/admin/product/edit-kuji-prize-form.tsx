@@ -9,6 +9,7 @@ import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IKujiPrize } from '@/interfaces/product';
 import { Button } from '@/components/ui/button';
+import { ErrorAlert } from '@/components/ui/error-alert';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -22,6 +23,7 @@ import {
 import { uploadAdminProductKujiPrizeImage } from '@/lib/api/admin-client';
 import { KUJI_PRIZE_CODES, isKujiPrizeCode } from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
+import { getFriendlyErrorMessage } from '@/utils/api-errors';
 import {
   EditableKujiPrizeField,
   EditableKujiPrizeTextField,
@@ -162,7 +164,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
       onSuccess();
     },
     onError: (error: AxiosError<IBaseApiResponse>) => {
-      const message = error.response?.data?.message ?? 'Failed to update prize.';
+      const message = getFriendlyErrorMessage(error, 'Failed to update prize.');
       const status = error.response?.status;
 
       if (status === HttpStatusCode.BadRequest) {
@@ -175,16 +177,25 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
       }
 
       if (status === HttpStatusCode.Conflict) {
-        onNotify({ type: 'error', message: 'Inventory conflict. Check quantities.' });
+        setErrors((currentErrors) => ({
+          ...currentErrors,
+          form: 'Inventory conflict. Check quantities.',
+        }));
         return;
       }
 
       if (status === HttpStatusCode.NotFound) {
-        onNotify({ type: 'error', message: 'Failed to update prize.' });
+        setErrors((currentErrors) => ({
+          ...currentErrors,
+          form: 'Failed to update prize.',
+        }));
         return;
       }
 
-      onNotify({ type: 'error', message });
+      setErrors((currentErrors) => ({
+        ...currentErrors,
+        form: message,
+      }));
     },
   });
 
@@ -257,6 +268,8 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
       return;
     }
 
+    setErrors({});
+
     if (!isDirty) {
       return;
     }
@@ -270,15 +283,12 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
         const uploadResponse = await uploadAdminProductKujiPrizeImage(productId, selectedImageFile);
         imageUrl = uploadResponse.data.data.imageUrl;
       } catch (error) {
-        const message = error instanceof AxiosError
-          ? error.response?.data?.message ?? 'Failed to upload image.'
-          : 'Failed to upload image.';
+        const message = getFriendlyErrorMessage(error, 'Failed to upload image.');
 
         setErrors((currentErrors) => ({
           ...currentErrors,
           form: message,
         }));
-        onNotify({ type: 'error', message });
         return;
       } finally {
         setIsUploadingImage(false);
@@ -439,11 +449,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
         </div>
       </div>
 
-      {errors.form ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {errors.form}
-        </div>
-      ) : null}
+      <ErrorAlert message={errors.form} />
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">

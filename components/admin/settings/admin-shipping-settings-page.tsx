@@ -8,8 +8,8 @@ import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { ErrorAlert } from '@/components/ui/error-alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn, formatPrice } from '@/lib/utils';
@@ -127,7 +127,6 @@ export function AdminShippingSettingsPage() {
       const friendlyMessage = getFriendlyErrorMessage(error);
 
       setRequestErrorMessage(friendlyMessage);
-      toast.error(friendlyMessage);
     },
   });
 
@@ -164,7 +163,7 @@ export function AdminShippingSettingsPage() {
       {isPending ? (
         <ShippingSettingsSkeleton />
       ) : isError ? (
-        <SettingsErrorAlert message={getFriendlyErrorMessage(queryError, 'Unable to load shipping settings. Please refresh and try again.')} />
+        <ErrorAlert message={getFriendlyErrorMessage(queryError, 'Unable to load shipping settings. Please refresh and try again.')} />
       ) : (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <form
@@ -172,7 +171,7 @@ export function AdminShippingSettingsPage() {
             onSubmit={handleSubmit}
           >
             {requestErrorMessage ? (
-              <SettingsErrorAlert className="mb-5" message={requestErrorMessage} />
+              <ErrorAlert className="mb-5" message={requestErrorMessage} />
             ) : null}
 
             <div className="grid gap-5 sm:grid-cols-2">
@@ -271,16 +270,6 @@ function MoneyField({
         </p>
       ) : null}
     </div>
-  );
-}
-
-function SettingsErrorAlert(props: { className?: string; message: string }) {
-  return (
-    <Alert variant="destructive" className={props.className}>
-      <AlertCircle className="h-4 w-4" />
-      <AlertTitle>Something went wrong</AlertTitle>
-      <AlertDescription>{props.message}</AlertDescription>
-    </Alert>
   );
 }
 
