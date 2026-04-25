@@ -9,12 +9,21 @@ import type { IStoreBannerItem, IStoreBannerSettings } from '@/interfaces/settin
 import { renderWithProviders } from '../test-utils';
 
 const toastSuccess = vi.fn();
+const emblaRef = vi.fn();
+const emblaApi = {
+  scrollNext: vi.fn(),
+  scrollPrev: vi.fn(),
+};
 
 vi.mock('sonner', () => ({
   toast: {
     success: (...args: unknown[]) => toastSuccess(...args),
     error: vi.fn(),
   },
+}));
+
+vi.mock('embla-carousel-react', () => ({
+  default: vi.fn(() => [emblaRef, emblaApi]),
 }));
 
 function createStoreBannerItem(overrides: Partial<IStoreBannerItem> = {}): IStoreBannerItem {
@@ -110,7 +119,7 @@ describe('AdminStoreBannerSettingsPage', () => {
     expect(messages).toHaveLength(2);
     expect(messages[0]).toHaveValue('First visually.');
     expect(messages[1]).toHaveValue('Second in backend, first visually.');
-    expect(screen.getAllByLabelText('Link label')[0]).toHaveValue('First link');
+    expect(screen.queryByLabelText('Link label')).not.toBeInTheDocument();
     expect(screen.getAllByLabelText('Link href')[0]).toHaveValue('/first');
     expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
   });
@@ -195,13 +204,10 @@ describe('AdminStoreBannerSettingsPage', () => {
     renderWithProviders(<AdminStoreBannerSettingsPage />);
 
     const messageInput = await screen.findByLabelText('Message');
-    const linkLabelInput = screen.getByLabelText('Link label');
     const linkHrefInput = screen.getByLabelText('Link href');
 
     await userEvent.clear(messageInput);
     await userEvent.type(messageInput, '  New arrivals are live.  ');
-    await userEvent.clear(linkLabelInput);
-    await userEvent.type(linkLabelInput, '  View drops  ');
     await userEvent.clear(linkHrefInput);
     await userEvent.type(linkHrefInput, '  /products?sort=newest  ');
     await userEvent.click(screen.getByRole('button', { name: /Save store banner/i }));
@@ -213,7 +219,7 @@ describe('AdminStoreBannerSettingsPage', () => {
           {
             id: 'banner-item-1',
             message: 'New arrivals are live.',
-            linkLabel: 'View drops',
+            linkLabel: null,
             linkHref: '/products?sort=newest',
             sortOrder: 0,
             isActive: true,
@@ -222,6 +228,18 @@ describe('AdminStoreBannerSettingsPage', () => {
       }, expect.anything());
     });
     expect(toastSuccess).toHaveBeenCalledWith('Store banner settings saved.');
+  });
+
+  it('renders the preview message as the clickable text when a link href exists', async () => {
+    renderWithProviders(<AdminStoreBannerSettingsPage />);
+
+    const previewLink = await screen.findByRole('link', {
+      name: 'Free shipping across Canada this weekend.',
+    });
+
+    expect(previewLink).toHaveAttribute('href', '/products');
+    expect(previewLink).toHaveClass('underline');
+    expect(screen.queryByText('Shop now')).not.toBeInTheDocument();
   });
 
   it('enforces the max 5 item limit', async () => {

@@ -1,6 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import useEmblaCarousel from 'embla-carousel-react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FocusEventHandler,
+  type MouseEventHandler,
+  type ReactNode,
+} from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
@@ -9,6 +18,7 @@ import type { IStoreBannerItem, IStoreBannerSettings } from '@/interfaces/settin
 import { cn } from '@/lib/utils';
 
 const PUBLIC_STORE_BANNER_QUERY_KEY = ['settings', 'store-banner'] as const;
+const AUTO_PLAY_MS = 5000;
 
 interface IStoreBannerRowProps {
   banner: IStoreBannerSettings;
@@ -37,19 +47,23 @@ export function getActiveStoreBannerItems(
     .sort((left, right) => left.sortOrder - right.sortOrder);
 }
 
-function StoreBannerLink(props: { item: IStoreBannerItem }) {
-  const linkLabel = props.item.linkLabel?.trim() || null;
+function StoreBannerMessage(props: { item: IStoreBannerItem }) {
+  const message = props.item.message.trim();
   const linkHref = props.item.linkHref?.trim() || null;
-  const linkClassName = 'shrink-0 font-medium underline underline-offset-4 transition-opacity hover:opacity-85';
+  const textClassName = 'min-w-0 whitespace-normal break-words text-center';
+  const linkClassName = cn(
+    textClassName,
+    'underline underline-offset-4 transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/80',
+  );
 
-  if (!linkLabel || !linkHref) {
-    return null;
+  if (!linkHref) {
+    return <span className={textClassName}>{message}</span>;
   }
 
   if (linkHref.startsWith('/')) {
     return (
       <Link href={linkHref} className={linkClassName}>
-        {linkLabel}
+        {message}
       </Link>
     );
   }
@@ -57,68 +71,119 @@ function StoreBannerLink(props: { item: IStoreBannerItem }) {
   if (linkHref.startsWith('https://')) {
     return (
       <a href={linkHref} target="_blank" rel="noreferrer" className={linkClassName}>
-        {linkLabel}
+        {message}
       </a>
     );
   }
 
-  return null;
+  return <span className={textClassName}>{message}</span>;
 }
 
 export function StoreBannerRow(props: IStoreBannerRowProps) {
-  const {
-    autoRotate = true,
-    showControls = true,
-  } = props;
   const activeItems = useMemo(() => getActiveStoreBannerItems(props.banner), [props.banner]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const hasMultipleItems = activeItems.length > 1;
-  const shouldShowControls = showControls && hasMultipleItems;
-  const safeCurrentIndex = activeItems.length > 0 ? currentIndex % activeItems.length : 0;
-  const currentItem = activeItems[safeCurrentIndex] ?? null;
 
-  const showPrevious = useCallback(() => {
-    setCurrentIndex((previousIndex) => (
-      activeItems.length > 0
-        ? (previousIndex - 1 + activeItems.length) % activeItems.length
-        : 0
-    ));
-  }, [activeItems.length]);
-
-  const showNext = useCallback(() => {
-    setCurrentIndex((previousIndex) => (
-      activeItems.length > 0
-        ? (previousIndex + 1) % activeItems.length
-        : 0
-    ));
-  }, [activeItems.length]);
-
-  useEffect(() => {
-    if (!autoRotate || isPaused || !hasMultipleItems) {
-      return undefined;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      showNext();
-    }, 3000);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [autoRotate, hasMultipleItems, isPaused, showNext, currentIndex]);
-
-  if (!currentItem) {
+  if (activeItems.length === 0) {
     return null;
   }
 
+  if (activeItems.length === 1) {
+    return (
+      <StoreBannerShell className={props.className}>
+        <div className="mx-auto flex max-w-7xl items-center justify-center px-4 text-center text-xs font-medium leading-5 tracking-normal sm:text-sm">
+          <StoreBannerMessage item={activeItems[0]} />
+        </div>
+      </StoreBannerShell>
+    );
+  }
+
+  return (
+    <StoreBannerCarousel
+      autoRotate={props.autoRotate}
+      className={props.className}
+      items={activeItems}
+      showControls={props.showControls}
+    />
+  );
+}
+
+function StoreBannerShell(props: {
+  children: ReactNode;
+  className?: string;
+  onBlur?: FocusEventHandler<HTMLDivElement>;
+  onFocus?: FocusEventHandler<HTMLDivElement>;
+  onMouseEnter?: MouseEventHandler<HTMLDivElement>;
+  onMouseLeave?: MouseEventHandler<HTMLDivElement>;
+}) {
   return (
     <div
       aria-label="Store announcement"
       className={cn(
-        'border-b border-primary/20 bg-primary text-primary-foreground',
+        'border-b border-primary/20 bg-primary py-2 text-primary-foreground sm:py-2.5',
         props.className,
       )}
+      onBlur={props.onBlur}
+      onFocus={props.onFocus}
+      onMouseEnter={props.onMouseEnter}
+      onMouseLeave={props.onMouseLeave}
+    >
+      {props.children}
+    </div>
+  );
+}
+
+function StoreBannerCarousel(props: {
+  autoRotate?: boolean;
+  className?: string;
+  items: IStoreBannerItem[];
+  showControls?: boolean;
+}) {
+  const {
+    autoRotate = true,
+    showControls = true,
+  } = props;
+  const emblaOptions = useMemo(
+    () => ({
+      loop: true,
+      align: 'start' as const,
+      slidesToScroll: 1,
+    }),
+    [],
+  );
+  const [emblaRef, emblaApi] = useEmblaCarousel(emblaOptions);
+  const [isPaused, setIsPaused] = useState(false);
+  const [timerResetKey, setTimerResetKey] = useState(0);
+
+  const resetAutoPlayTimer = useCallback(() => {
+    setTimerResetKey((current) => current + 1);
+  }, []);
+
+  const showPrevious = useCallback(() => {
+    emblaApi?.scrollPrev();
+    resetAutoPlayTimer();
+  }, [emblaApi, resetAutoPlayTimer]);
+
+  const showNext = useCallback(() => {
+    emblaApi?.scrollNext();
+    resetAutoPlayTimer();
+  }, [emblaApi, resetAutoPlayTimer]);
+
+  useEffect(() => {
+    if (!autoRotate || isPaused || !emblaApi) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      emblaApi.scrollNext();
+    }, AUTO_PLAY_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [autoRotate, emblaApi, isPaused, timerResetKey]);
+
+  return (
+    <StoreBannerShell
+      className={props.className}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
           setIsPaused(false);
@@ -128,42 +193,52 @@ export function StoreBannerRow(props: IStoreBannerRowProps) {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="py-1.5 sm:py-2">
-        <div
-          className={cn(
-            'mx-auto grid max-w-7xl items-center gap-2 text-center text-xs font-medium leading-5 tracking-normal sm:text-sm',
-            shouldShowControls ? 'grid-cols-[2rem_minmax(0,1fr)_2rem]' : 'grid-cols-1',
-          )}
-        >
-          {shouldShowControls ? (
+      <div
+        className={cn(
+          'mx-auto grid max-w-7xl items-center gap-2 px-2 text-center text-xs font-medium leading-5 tracking-normal sm:text-sm',
+          showControls ? 'grid-cols-[2rem_minmax(0,1fr)_2rem]' : 'grid-cols-1',
+        )}
+      >
+        {showControls ? (
+          <div className="flex justify-start">
             <button
               type="button"
               aria-label="Previous announcement"
-              className="inline-flex size-4 ml-2 items-center justify-center rounded-full text-primary-foreground/85 transition-colors hover:bg-primary-foreground/15 hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/80"
+              className="inline-flex size-4 items-center justify-center rounded-full text-primary-foreground/85 transition-colors"
               onClick={showPrevious}
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </button>
-          ) : null}
-
-          <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-3 gap-y-1 whitespace-normal break-words">
-            <span className="min-w-0 break-words">{currentItem.message.trim()}</span>
-            <StoreBannerLink item={currentItem} />
           </div>
+        ) : null}
 
-          {shouldShowControls ? (
+        <div className="min-w-0 overflow-hidden" ref={emblaRef}>
+          <div className="flex touch-pan-y">
+            {props.items.map((item) => (
+              <div
+                key={item.id}
+                className="flex min-w-0 flex-[0_0_100%] items-center justify-center px-2 whitespace-normal break-words text-center"
+              >
+                <StoreBannerMessage item={item} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {showControls ? (
+          <div className="flex justify-end">
             <button
               type="button"
               aria-label="Next announcement"
-              className="inline-flex size-4 mr-2 items-center justify-center rounded-full text-primary-foreground/85 transition-colors hover:bg-primary-foreground/15 hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/80"
+              className="inline-flex size-4 items-center justify-center rounded-full text-primary-foreground/85 transition-colors"
               onClick={showNext}
             >
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
-    </div>
+    </StoreBannerShell>
   );
 }
 

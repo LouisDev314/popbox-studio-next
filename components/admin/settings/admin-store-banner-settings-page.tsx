@@ -21,7 +21,6 @@ import { getFriendlyErrorMessage } from '@/utils/api-errors';
 
 const STORE_BANNER_SETTINGS_QUERY_KEY = ['admin', 'settings', 'store-banner'] as const;
 const MESSAGE_MAX_LENGTH = 160;
-const LINK_LABEL_MAX_LENGTH = 40;
 const LINK_HREF_MAX_LENGTH = 300;
 const MAX_BANNER_ITEMS = 5;
 
@@ -31,7 +30,6 @@ type StoreBannerFormItem = {
   clientKey: string;
   id?: string;
   message: string;
-  linkLabel: string;
   linkHref: string;
   isActive: boolean;
 };
@@ -41,7 +39,7 @@ type StoreBannerFormState = {
   items: StoreBannerFormItem[];
 };
 
-type StoreBannerItemFormErrors = Partial<Record<'message' | 'linkLabel' | 'linkHref', string>>;
+type StoreBannerItemFormErrors = Partial<Record<'message' | 'linkHref', string>>;
 
 type StoreBannerFormErrors = {
   form?: string;
@@ -57,7 +55,6 @@ function createEmptyItem(): StoreBannerFormItem {
   return {
     clientKey: createClientKey('new-banner-item'),
     message: '',
-    linkLabel: '',
     linkHref: '',
     isActive: true,
   };
@@ -78,7 +75,6 @@ function settingsToForm(settings: IStoreBannerSettings): StoreBannerFormState {
         clientKey: item.id ? `saved-banner-item-${item.id}` : createClientKey('saved-banner-item'),
         id: item.id || undefined,
         message: item.message,
-        linkLabel: item.linkLabel ?? '',
         linkHref: item.linkHref ?? '',
         isActive: item.isActive,
       })),
@@ -91,7 +87,6 @@ function validateForm(form: StoreBannerFormState): StoreBannerFormErrors {
   form.items.forEach((item) => {
     const itemErrors: StoreBannerItemFormErrors = {};
     const message = item.message.trim();
-    const linkLabel = item.linkLabel.trim();
     const linkHref = item.linkHref.trim();
 
     if (!message) {
@@ -100,18 +95,10 @@ function validateForm(form: StoreBannerFormState): StoreBannerFormErrors {
       itemErrors.message = `Message must be ${MESSAGE_MAX_LENGTH} characters or fewer.`;
     }
 
-    if (linkLabel.length > LINK_LABEL_MAX_LENGTH) {
-      itemErrors.linkLabel = `Link label must be ${LINK_LABEL_MAX_LENGTH} characters or fewer.`;
-    }
-
     if (linkHref.length > LINK_HREF_MAX_LENGTH) {
       itemErrors.linkHref = `Link href must be ${LINK_HREF_MAX_LENGTH} characters or fewer.`;
     } else if (linkHref && !linkHref.startsWith('/') && !linkHref.startsWith('https://')) {
       itemErrors.linkHref = 'Link href must start with / or https://.';
-    }
-
-    if (linkLabel && !linkHref) {
-      itemErrors.linkHref = 'Link href is required when a link label is provided.';
     }
 
     if (Object.values(itemErrors).some(Boolean)) {
@@ -132,13 +119,12 @@ function buildPayload(form: StoreBannerFormState): IUpdateStoreBannerSettingsPay
   return {
     enabled: form.enabled,
     items: form.items.map((item, index) => {
-      const linkLabel = item.linkLabel.trim();
       const linkHref = item.linkHref.trim();
 
       return {
         ...(item.id ? { id: item.id } : {}),
         message: item.message.trim(),
-        linkLabel: linkLabel || null,
+        linkLabel: null,
         linkHref: linkHref || null,
         sortOrder: index,
         isActive: item.isActive,
@@ -443,7 +429,6 @@ function BannerItemEditor(props: {
   onUpdate: (updates: Partial<StoreBannerFormItem>) => void;
 }) {
   const messageId = `store-banner-message-${props.item.clientKey}`;
-  const linkLabelId = `store-banner-link-label-${props.item.clientKey}`;
   const linkHrefId = `store-banner-link-href-${props.item.clientKey}`;
   const activeId = `store-banner-active-${props.item.clientKey}`;
 
@@ -507,42 +492,22 @@ function BannerItemEditor(props: {
           <FieldHelp error={props.errors.message} text={`${props.item.message.trim().length}/${MESSAGE_MAX_LENGTH} characters`} />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor={linkLabelId} className="text-sm font-medium text-[#111827]">
-              Link label
-            </Label>
-            <Input
-              id={linkLabelId}
-              value={props.item.linkLabel}
-              onChange={(event) => props.onUpdate({ linkLabel: event.target.value })}
-              aria-invalid={!!props.errors.linkLabel}
-              className={cn(
-                'mt-2 h-11 rounded-xl border-[#dfd5c5] bg-white text-[#111827]',
-                props.errors.linkLabel && 'border-red-300 focus-visible:ring-red-200',
-              )}
-              placeholder="Shop now"
-            />
-            <FieldHelp error={props.errors.linkLabel} text="Optional" />
-          </div>
-
-          <div>
-            <Label htmlFor={linkHrefId} className="text-sm font-medium text-[#111827]">
-              Link href
-            </Label>
-            <Input
-              id={linkHrefId}
-              value={props.item.linkHref}
-              onChange={(event) => props.onUpdate({ linkHref: event.target.value })}
-              aria-invalid={!!props.errors.linkHref}
-              className={cn(
-                'mt-2 h-11 rounded-xl border-[#dfd5c5] bg-white text-[#111827]',
-                props.errors.linkHref && 'border-red-300 focus-visible:ring-red-200',
-              )}
-              placeholder="/products"
-            />
-            <FieldHelp error={props.errors.linkHref} text="Use an internal path or https:// URL" />
-          </div>
+        <div>
+          <Label htmlFor={linkHrefId} className="text-sm font-medium text-[#111827]">
+            Link href
+          </Label>
+          <Input
+            id={linkHrefId}
+            value={props.item.linkHref}
+            onChange={(event) => props.onUpdate({ linkHref: event.target.value })}
+            aria-invalid={!!props.errors.linkHref}
+            className={cn(
+              'mt-2 h-11 rounded-xl border-[#dfd5c5] bg-white text-[#111827]',
+              props.errors.linkHref && 'border-red-300 focus-visible:ring-red-200',
+            )}
+            placeholder="/products"
+          />
+          <FieldHelp error={props.errors.linkHref} text="Use an internal path or https:// URL" />
         </div>
 
         <label

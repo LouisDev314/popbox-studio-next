@@ -54,7 +54,7 @@ function ShippingRatesSection({ settings }: { settings: IShippingSettings | null
           </thead>
           <tbody className="divide-y divide-border/60">
             <tr>
-              <td className="py-4 pr-4 font-medium text-foreground">Standard Shipping</td>
+              <td className="py-4 pr-4 font-medium text-foreground text-nowrap">Standard Shipping</td>
               <td className="px-4 py-4 text-muted-foreground">Orders below {freeShippingThreshold} before shipping and tax</td>
               <td className="px-4 py-4 text-right font-semibold text-foreground text-nowrap">
                 {formatPrice(shippingSettings.flatShippingCents, shippingSettings.currency)} {shippingSettings.currency}
@@ -62,7 +62,7 @@ function ShippingRatesSection({ settings }: { settings: IShippingSettings | null
               <td className="py-4 pl-4 text-muted-foreground">Canada</td>
             </tr>
             <tr>
-              <td className="py-4 pr-4 font-medium text-foreground">Free Shipping</td>
+              <td className="py-4 pr-4 font-medium text-foreground text-nowrap">Free Shipping</td>
               <td className="px-4 py-4 text-muted-foreground">Orders {freeShippingThreshold} or above before shipping and tax</td>
               <td className="px-4 py-4 text-right font-semibold text-foreground">FREE</td>
               <td className="py-4 pl-4 text-muted-foreground">Canada</td>
@@ -71,7 +71,7 @@ function ShippingRatesSection({ settings }: { settings: IShippingSettings | null
         </table>
       </div>
       <p className="mt-4 text-sm leading-6 text-muted-foreground">
-        Free shipping applies to a single order subtotal and cannot be combined across multiple orders.
+        **Free shipping applies to a single order subtotal and cannot be combined across multiple orders.
       </p>
     </section>
   );
