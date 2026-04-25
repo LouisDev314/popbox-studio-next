@@ -1,0 +1,3 @@
+export const FREE_SHIPPING_THRESHOLD_CENTS = 14900;
+export const FLAT_SHIPPING_CENTS = 1599;
+export const SHIPPING_CURRENCY = 'CAD';

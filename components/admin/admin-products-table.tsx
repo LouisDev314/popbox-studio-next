@@ -387,7 +387,7 @@ function AdminProductsEmptyState(props: IAdminProductsEmptyStateProps) {
         </Button>
       )}
       {!props.statusFilter && !props.hasActiveView && (
-        <Button asChild className="mt-4 gap-2 rounded-lg bg-gradient-to-br from-[#8A486F] to-[#F9A8D4] text-sm text-white hover:opacity-90">
+        <Button asChild className="mt-4 gap-2 rounded-lg bg-primary text-sm text-white hover:opacity-90">
           <Link href="/admin/products/new">
             <Plus className="h-4 w-4" />
             Create your first product

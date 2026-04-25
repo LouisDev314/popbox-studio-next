@@ -10,6 +10,7 @@ import { IOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/inter
 import { ICheckoutSuccess } from '@/interfaces/checkout';
 import { IAdminCustomerListResponse } from '@/interfaces/customer';
 import { IFaqListResponse, IAdminFaqItem, IAdminFaqListResponse, IAdminLegalListResponse } from '@/interfaces/legal';
+import { IShippingSettings } from '@/interfaces/shipping';
 
 function normalizeAdminFaqItems(
   payload: IAdminFaqItem[] | IFaqListResponse<IAdminFaqItem> | null | undefined,
@@ -145,6 +146,9 @@ const QueryConfigs = {
         },
       },
     };
+  },
+  fetchAdminShippingSettings: async (): Promise<AxiosResponse<IBaseApiResponse<IShippingSettings>>> => {
+    return httpClient.get('/api/v1/admin/settings/shipping', await withAdminAuth());
   },
 };
 

@@ -2,6 +2,7 @@ import {
   FileText,
   LayoutGrid,
   Package,
+  Truck,
   ShoppingCart,
   Tags,
   Users,
@@ -9,7 +10,7 @@ import {
 } from 'lucide-react';
 
 export interface IAdminNavItem {
-  group: 'Catalog' | 'Sales' | 'Content';
+  group: 'Catalog' | 'Sales' | 'Content' | 'Settings';
   href: string;
   icon: LucideIcon;
   label: string;
@@ -63,9 +64,16 @@ export const ADMIN_NAV_ITEMS: IAdminNavItem[] = [
     icon: FileText,
     matches: (pathname) => matchesAdminPath(pathname, '/admin/legal'),
   },
+  {
+    label: 'Shipping',
+    href: '/admin/settings/shipping',
+    group: 'Settings',
+    icon: Truck,
+    matches: (pathname) => matchesAdminPath(pathname, '/admin/settings'),
+  },
 ] as const;
 
-export const ADMIN_NAV_GROUP_ORDER = ['Catalog', 'Sales', 'Content'] as const;
+export const ADMIN_NAV_GROUP_ORDER = ['Catalog', 'Sales', 'Content', 'Settings'] as const;
 
 export const ADMIN_SIDEBAR_WIDTH = 280;
 

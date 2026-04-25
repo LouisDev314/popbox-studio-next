@@ -7,7 +7,7 @@ let browserClient: SupabaseClient | undefined;
 export function createClient() {
   browserClient ??= createBrowserClient(
     getPublicEnvConfig().supabaseUrl,
-    getPublicEnvConfig().supabasePublishableDefaultKey,
+    getPublicEnvConfig().supabasePublicKey,
   );
 
   return browserClient;

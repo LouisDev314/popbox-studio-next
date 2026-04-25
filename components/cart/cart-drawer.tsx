@@ -39,6 +39,16 @@ export function CartDrawer(props: ICartDrawerProps) {
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
   const totalItems = cartSummary.totalItems + invalidItems.reduce((count, item) => count + item.quantity, 0);
   const hasKujiItems = items.some((item) => item.product.productType === 'kuji');
+  const shippingLabel =
+    cartSummary.shippingCents === 0 && cartSummary.subtotalCents > 0
+      ? 'FREE'
+      : formatPrice(cartSummary.shippingCents, cartSummary.currency);
+  const freeShippingMessage =
+    cartSummary.subtotalCents === 0
+      ? null
+      : cartSummary.amountUntilFreeShippingCents > 0
+        ? `You are ${formatPrice(cartSummary.amountUntilFreeShippingCents, cartSummary.currency)} away from free shipping.`
+        : 'You qualify for free shipping.';
 
   const handleRemoveItem = (cartItemId: string) => {
     removeItem(cartItemId);
@@ -71,11 +81,22 @@ export function CartDrawer(props: ICartDrawerProps) {
           >
             Continue Shopping
           </Button>
-          <div className="mb-4 flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Subtotal</span>
-            <span className="text-lg font-bold text-foreground">
-              {formatPrice(cartSummary.subtotalCents, cartSummary.currency)}
-            </span>
+          <div className="mb-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-muted-foreground">Subtotal</span>
+              <span className="text-lg font-bold text-foreground">
+                {formatPrice(cartSummary.subtotalCents, cartSummary.currency)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium text-muted-foreground">Shipping</span>
+              <span className="font-semibold text-foreground">{shippingLabel}</span>
+            </div>
+            {freeShippingMessage ? (
+              <p className="rounded-2xl bg-accent/45 px-3 py-2 text-xs font-medium leading-5 text-foreground">
+                {freeShippingMessage}
+              </p>
+            ) : null}
           </div>
           <p className="mb-2 text-xs leading-5 text-muted-foreground">
             Shipping and tax stay estimated on the cart page. Final totals still come from checkout.

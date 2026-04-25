@@ -285,6 +285,9 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
           'shadow-sm',
         )}
       >
+        <div className="border-b border-border/50 bg-muted/35 px-4 py-2 text-center text-[11px] font-medium leading-5 tracking-wide text-muted-foreground sm:text-xs">
+          Free shipping across Canada on orders $149+ CAD · Otherwise flat rate $15.99
+        </div>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-8">
@@ -357,7 +360,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
         </div>
       </header>
 
-      <div className="h-16" aria-hidden="true" />
+      <div className="h-[6.75rem]" aria-hidden="true" />
 
       <MobileNavOverlay
         ariaLabel="Search PopBox Studio products"

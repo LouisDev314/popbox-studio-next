@@ -25,9 +25,15 @@ export function CartSummary(props: ICartSummaryProps) {
       : props.note;
   const hasHeaderContent = resolvedHeading !== null || Boolean(resolvedNote);
   const shippingLabel =
-    props.summary.shippingCents === 0 && props.summary.hasPhysicalItems
-      ? 'Free'
+    props.summary.shippingCents === 0 && props.summary.subtotalCents > 0
+      ? 'FREE'
       : formatPrice(props.summary.shippingCents, props.summary.currency);
+  const freeShippingMessage =
+    props.summary.subtotalCents === 0
+      ? null
+      : props.summary.amountUntilFreeShippingCents > 0
+        ? `You are ${formatPrice(props.summary.amountUntilFreeShippingCents, props.summary.currency)} away from free shipping.`
+        : 'You qualify for free shipping.';
 
   return (
     <div className={cn('rounded-4xl border border-border/60 bg-card p-6 shadow-sm', props.className)}>
@@ -59,6 +65,12 @@ export function CartSummary(props: ICartSummaryProps) {
           <span className="text-muted-foreground">Shipping</span>
           <span className="font-medium text-foreground">{shippingLabel}</span>
         </div>
+
+        {freeShippingMessage ? (
+          <p className="rounded-2xl bg-accent/45 px-4 py-3 text-sm font-medium text-foreground">
+            {freeShippingMessage}
+          </p>
+        ) : null}
 
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Estimated tax</span>

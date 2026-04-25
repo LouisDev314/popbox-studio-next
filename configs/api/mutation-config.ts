@@ -31,6 +31,7 @@ import {
 } from '@/interfaces/legal';
 import { withAdminAuth } from '@/lib/api/admin-client';
 import { IContactRequestBody } from '@/interfaces/contact';
+import { IShippingSettings, IUpdateShippingSettingsPayload } from '@/interfaces/shipping';
 
 const MutationConfigs = {
   createCheckoutSession: (
@@ -126,6 +127,11 @@ const MutationConfigs = {
   },
   updateAdminFaqItem: async ({ id, data }: { id: string; data: IAdminFaqUpdate }): Promise<AxiosResponse<IBaseApiResponse<IAdminFaqItem>>> => {
     return httpClient.patch(`/api/v1/admin/legal/faq/${id}`, data, await withAdminAuth());
+  },
+  updateAdminShippingSettings: async (
+    data: IUpdateShippingSettingsPayload,
+  ): Promise<AxiosResponse<IBaseApiResponse<IShippingSettings>>> => {
+    return httpClient.put('/api/v1/admin/settings/shipping', data, await withAdminAuth());
   },
   sendContactEmail: async (
     data: IContactRequestBody,

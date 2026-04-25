@@ -55,7 +55,7 @@ const publicEnvConfig = {
   siteUrl: resolveSiteUrl(),
   stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  supabasePublishableDefaultKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY || '',
+  supabasePublicKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLIC_KEY || '',
   isSiteOpen: process.env.NEXT_PUBLIC_IS_SITE_OPEN !== 'false',
 };
 
