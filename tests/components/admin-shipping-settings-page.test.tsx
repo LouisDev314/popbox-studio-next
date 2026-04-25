@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AxiosError } from 'axios';
@@ -59,6 +59,29 @@ function createApiError(message = 'Request failed with status code 500') {
   });
 }
 
+function getCurrentPolicyCard() {
+  return screen.getByText('Current policy').closest('aside') as HTMLElement;
+}
+
+function expectPolicySummary({
+  flatShipping,
+  freeShippingThreshold,
+}: {
+  flatShipping: string;
+  freeShippingThreshold: string;
+}) {
+  const currentPolicy = within(getCurrentPolicyCard());
+
+  expect(currentPolicy.getByText((_, element) => (
+    element?.tagName.toLowerCase() === 'p'
+    && element.textContent?.replace(/\s+/g, ' ').trim() === `Free shipping ${freeShippingThreshold} CAD or more.`
+  ))).toBeInTheDocument();
+  expect(currentPolicy.getByText((_, element) => (
+    element?.tagName.toLowerCase() === 'p'
+    && element.textContent?.replace(/\s+/g, ' ').trim() === `Flat shipping ${flatShipping} CAD across Canada.`
+  ))).toBeInTheDocument();
+}
+
 describe('AdminShippingSettingsPage', () => {
   beforeEach(() => {
     toastSuccess.mockReset();
@@ -77,8 +100,10 @@ describe('AdminShippingSettingsPage', () => {
     expect(await screen.findByLabelText('Flat shipping rate')).toHaveValue('15.99');
     expect(screen.getByLabelText('Free shipping threshold')).toHaveValue('149.00');
     expect(screen.getByLabelText('Currency')).toHaveValue('CAD');
-    expect(screen.getByText(/Free shipping on orders/i)).toHaveTextContent('$149.00 CAD');
-    expect(screen.getByText(/Otherwise flat shipping/i)).toHaveTextContent('$15.99 CAD');
+    expectPolicySummary({
+      flatShipping: '$15.99',
+      freeShippingThreshold: '$149.00',
+    });
   });
 
   it('submits dollar inputs as cents and shows a success toast', async () => {
@@ -155,8 +180,10 @@ describe('AdminShippingSettingsPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /Save shipping settings/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Free shipping on orders/i)).toHaveTextContent('$100.00 CAD');
-      expect(screen.getByText(/Otherwise flat shipping/i)).toHaveTextContent('$12.00 CAD');
+      expectPolicySummary({
+        flatShipping: '$12.00',
+        freeShippingThreshold: '$100.00',
+      });
     });
   });
 
