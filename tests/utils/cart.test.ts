@@ -10,6 +10,8 @@ describe('buildCartSummary', () => {
 
     expect(summary.shippingCents).toBe(1599);
     expect(summary.amountUntilFreeShippingCents).toBe(1);
+    expect(summary.estimatedTaxCents).toBe(0);
+    expect(summary.totalCents).toBe(summary.subtotalCents + summary.shippingCents);
   });
 
   it('uses free shipping at the threshold', () => {
@@ -38,4 +40,3 @@ describe('buildCartSummary', () => {
     expect(summary.subtotalCents).toBe(0);
   });
 });
-

@@ -166,12 +166,13 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
               </span>
             </div>
 
-            <div className="flex justify-between text-sm">
+            {/* TEMP: Tax disabled (not collecting tax yet) */}
+            {/* <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Taxes</span>
               <span className="font-medium text-foreground">
                 {formatPrice(order.taxCents, order.currency)}
               </span>
-            </div>
+            </div> */}
 
             <div className="mt-2 flex justify-between border-t border-border/30 pt-4">
               <span className="text-base font-bold text-foreground">Total</span>

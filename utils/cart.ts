@@ -5,7 +5,8 @@ import {
   SHIPPING_CURRENCY,
 } from '@/utils/shipping';
 
-const ESTIMATED_GST_RATE = 0.05;
+// TEMP: Tax disabled (not collecting tax yet)
+// const ESTIMATED_GST_RATE = 0.05;
 
 export function buildCartTotals(items: ICartItem[]): ICartTotals {
   return items.reduce<ICartTotals>(
@@ -30,7 +31,9 @@ export function buildCartSummary(items: ICartItem[]): ICartSummary {
     totals.totalCents === 0 || qualifiesForFreeShipping
       ? 0
       : FLAT_SHIPPING_CENTS;
-  const estimatedTaxCents = Math.round((totals.totalCents + shippingCents) * ESTIMATED_GST_RATE);
+  // TEMP: Tax disabled (not collecting tax yet)
+  // const estimatedTaxCents = Math.round((totals.totalCents + shippingCents) * ESTIMATED_GST_RATE);
+  const estimatedTaxCents = 0;
   const currency = items[0]?.product.currency ?? SHIPPING_CURRENCY;
 
   return {
@@ -41,7 +44,9 @@ export function buildCartSummary(items: ICartItem[]): ICartSummary {
     isEstimated: true,
     shippingCents,
     subtotalCents: totals.totalCents,
-    totalCents: totals.totalCents + shippingCents + estimatedTaxCents,
+    // TEMP: Tax disabled (not collecting tax yet)
+    // totalCents: totals.totalCents + shippingCents + estimatedTaxCents,
+    totalCents: totals.totalCents + shippingCents,
     totalItems: totals.totalItems,
   };
 }

@@ -26,7 +26,8 @@ describe('PublicLegalPage', () => {
     expect(screen.getByRole('cell', { name: 'Standard Shipping' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: '$15.99 CAD' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: 'FREE' })).toBeInTheDocument();
-    expect(screen.getAllByText(/before shipping and tax/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/before shipping$/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/before shipping and tax/i)).not.toBeInTheDocument();
     expect(screen.getByText(/single order subtotal/i)).toBeInTheDocument();
     expect(screen.getByText(/Kuji items are random draw and final sale/i)).toBeInTheDocument();
   });

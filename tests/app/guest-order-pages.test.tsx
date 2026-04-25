@@ -95,6 +95,7 @@ describe('guest order pages', () => {
 
     expect(screen.getByRole('link', { name: 'View FAQ' })).toHaveAttribute('href', '/faq');
     expect(screen.getByRole('link', { name: 'Shipping & Returns' })).toHaveAttribute('href', '/legal/shipping-returns');
+    expect(screen.queryByText('Taxes')).not.toBeInTheDocument();
   });
 
   it('keeps 403/404 ticket failures in the not found state', async () => {

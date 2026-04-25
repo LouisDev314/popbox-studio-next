@@ -98,9 +98,10 @@ export function CartDrawer(props: ICartDrawerProps) {
               </p>
             ) : null}
           </div>
-          <p className="mb-2 text-xs leading-5 text-muted-foreground">
+          {/* TEMP: Tax disabled (not collecting tax yet) */}
+          {/* <p className="mb-2 text-xs leading-5 text-muted-foreground">
             Shipping and tax stay estimated on the cart page. Final totals still come from checkout.
-          </p>
+          </p> */}
           <p className="mb-6 text-xs leading-5 text-muted-foreground">
             {hasKujiItems ? 'Kuji items are random draw and final sale. ' : ''}
             <Link href="/legal/shipping-returns" className="underline underline-offset-4 transition-colors hover:text-foreground">

@@ -55,7 +55,11 @@ function ShippingRatesSection({ settings }: { settings: IShippingSettings | null
           <tbody className="divide-y divide-border/60">
             <tr>
               <td className="py-4 pr-4 font-medium text-foreground text-nowrap">Standard Shipping</td>
-              <td className="px-4 py-4 text-muted-foreground">Orders below {freeShippingThreshold} before shipping and tax</td>
+              <td className="px-4 py-4 text-muted-foreground">
+                {/* TEMP: Tax disabled (not collecting tax yet) */}
+                {/* Orders below {freeShippingThreshold} before shipping and tax */}
+                Orders below {freeShippingThreshold} before shipping
+              </td>
               <td className="px-4 py-4 text-right font-semibold text-foreground text-nowrap">
                 {formatPrice(shippingSettings.flatShippingCents, shippingSettings.currency)} {shippingSettings.currency}
               </td>
@@ -63,7 +67,11 @@ function ShippingRatesSection({ settings }: { settings: IShippingSettings | null
             </tr>
             <tr>
               <td className="py-4 pr-4 font-medium text-foreground text-nowrap">Free Shipping</td>
-              <td className="px-4 py-4 text-muted-foreground">Orders {freeShippingThreshold} or above before shipping and tax</td>
+              <td className="px-4 py-4 text-muted-foreground">
+                {/* TEMP: Tax disabled (not collecting tax yet) */}
+                {/* Orders {freeShippingThreshold} or above before shipping and tax */}
+                Orders {freeShippingThreshold} or above before shipping
+              </td>
               <td className="px-4 py-4 text-right font-semibold text-foreground">FREE</td>
               <td className="py-4 pl-4 text-muted-foreground">Canada</td>
             </tr>
