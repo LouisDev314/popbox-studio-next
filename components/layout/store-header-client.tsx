@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, type FormEvent, useEffect, useState } from 'react';
+import { Suspense, type FormEvent, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, Heart, Search, ShoppingBag } from 'lucide-react';
@@ -8,6 +8,7 @@ import { CartDrawer } from '@/components/cart/cart-drawer';
 import { MobileMenuPanel } from '@/components/layout/mobile-menu-panel';
 import { MobileNavOverlay } from '@/components/layout/mobile-nav-overlay';
 import { MobileSearchPanel } from '@/components/layout/mobile-search-panel';
+import { StorefrontBanner } from '@/components/layout/store-banner';
 import {
   DESKTOP_PRIMARY_NAV_ITEMS,
   FEATURED_NAV_HREF,
@@ -160,6 +161,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
 
   const [activeMobilePanel, setActiveMobilePanel] = useState<TMobilePanel>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [hasStoreBanner, setHasStoreBanner] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -276,6 +278,10 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
     setIsWishlistOpen(true);
   };
 
+  const handleBannerVisibilityChange = useCallback((isVisible: boolean) => {
+    setHasStoreBanner(isVisible);
+  }, []);
+
   return (
     <>
       <header
@@ -285,6 +291,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
           'shadow-sm',
         )}
       >
+        <StorefrontBanner onVisibilityChange={handleBannerVisibilityChange} />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-8">
@@ -357,7 +364,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
         </div>
       </header>
 
-      <div className="h-16" aria-hidden="true" />
+      <div className={cn(hasStoreBanner ? 'h-[6.5rem]' : 'h-16')} aria-hidden="true" />
 
       <MobileNavOverlay
         ariaLabel="Search PopBox Studio products"

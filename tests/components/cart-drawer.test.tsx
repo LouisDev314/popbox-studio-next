@@ -170,6 +170,41 @@ describe('CartDrawer', () => {
     expect(screen.queryByText(/Kuji items are random draw and final sale/i)).not.toBeInTheDocument();
   });
 
+  it('shows compact flat shipping progress in the drawer footer', async () => {
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem({ product: { priceCents: 14899 } })],
+      });
+    });
+
+    renderWithProviders(<CartDrawerHarness />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
+
+    expect(screen.getByText('$15.99')).toBeInTheDocument();
+    expect(screen.getByText('You are $0.01 away from free shipping.')).toBeInTheDocument();
+    expect(screen.queryByText(/tax/i)).not.toBeInTheDocument();
+  });
+
+  it('shows compact free shipping confirmation in the drawer footer', async () => {
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem({ product: { priceCents: 14900 } })],
+      });
+    });
+
+    renderWithProviders(<CartDrawerHarness />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
+
+    expect(screen.getByText('FREE')).toBeInTheDocument();
+    expect(screen.getByText('You qualify for free shipping.')).toBeInTheDocument();
+  });
+
   it('shows a kuji-specific reminder in the drawer when kuji items are present', async () => {
     act(() => {
       useCartStore.setState({

@@ -24,6 +24,7 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { Button } from '@/components/ui/button';
+import { ErrorAlert } from '@/components/ui/error-alert';
 import { Input } from '@/components/ui/input';
 import { NumericInput } from '@/components/ui/numeric-input';
 import {
@@ -39,6 +40,7 @@ import { uploadAdminProductKujiPrizeImage } from '@/lib/api/admin-client';
 import { formatQuantity } from '@/lib/format-quantity';
 import { KUJI_PRIZE_CODES, isKujiPrizeCode } from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
+import { getFriendlyErrorMessage } from '@/utils/api-errors';
 
 import { EditKujiPrizeModal } from './edit-kuji-prize-modal';
 import {
@@ -300,7 +302,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
       showToast('success', 'Prize created successfully.');
     },
     onError: (error: AxiosError<IBaseApiResponse>) => {
-      const message = error.response?.data?.message ?? 'Failed to create prize.';
+      const message = getFriendlyErrorMessage(error, 'Failed to create prize.');
       const status = error.response?.status;
 
       if (status === HttpStatusCode.BadRequest) {
@@ -313,11 +315,17 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
       }
 
       if (status === HttpStatusCode.Conflict) {
-        showToast('error', 'Inventory conflict. Check quantities.');
+        setCreateErrors((currentErrors) => ({
+          ...currentErrors,
+          form: 'Inventory conflict. Check quantities.',
+        }));
         return;
       }
 
-      showToast('error', message);
+      setCreateErrors((currentErrors) => ({
+        ...currentErrors,
+        form: message,
+      }));
     },
   });
 
@@ -459,6 +467,8 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
       return;
     }
 
+    setCreateErrors({});
+
     let imageUrl = normalizedNewPrize.imageUrl;
 
     if (createImageFile) {
@@ -468,15 +478,12 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
         const uploadResponse = await uploadAdminProductKujiPrizeImage(product.id, createImageFile);
         imageUrl = uploadResponse.data.data.imageUrl;
       } catch (error) {
-        const message = error instanceof AxiosError
-          ? error.response?.data?.message ?? 'Failed to upload image.'
-          : 'Failed to upload image.';
+        const message = getFriendlyErrorMessage(error, 'Failed to upload image.');
 
         setCreateErrors((currentErrors) => ({
           ...currentErrors,
           form: message,
         }));
-        showToast('error', message);
         return;
       } finally {
         setIsUploadingCreateImage(false);
@@ -723,11 +730,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
             </div>
 
             <div className="lg:col-span-2">
-              {createErrors.form && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {createErrors.form}
-                </div>
-              )}
+              <ErrorAlert message={createErrors.form} />
             </div>
           </form>
         </div>

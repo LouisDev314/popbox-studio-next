@@ -144,6 +144,7 @@ A task is done when:
 - it keeps server/client boundaries correct
 - it is production-appropriate and explainable in an interview
 - pnpm check passes everything with no warning or errors or issues
+- in the end append the suggested commit message for the changes
 
 ---
 

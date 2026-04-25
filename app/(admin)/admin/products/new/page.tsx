@@ -10,9 +10,11 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ErrorAlert } from '@/components/ui/error-alert';
 import { NumericInput } from '@/components/ui/numeric-input';
 import { ICollection, ITag, productStatus, productType, IAdminProduct } from '@/interfaces/product';
 import { normalizeTagId, parsePriceToCents, parseWholeNumber, toNullableText } from '@/utils/admin';
+import { getFriendlyErrorMessage } from '@/utils/api-errors';
 
 const DEFAULT_CURRENCY = 'CAD';
 
@@ -31,6 +33,7 @@ export default function NewProductPage() {
     onHand: '',
     lowStockThreshold: '',
   });
+  const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null);
 
   const { data: collectionsRes } = useCustomizeQuery<ICollection[]>({
     queryKey: ['admin', 'collections'],
@@ -51,16 +54,22 @@ export default function NewProductPage() {
   >({
     mutationFn: MutationConfigs.createAdminProduct,
     onSuccess: (res) => {
+      setRequestErrorMessage(null);
+
       if (res?.data?.data?.id) {
         router.push(`/admin/products/${res.data.data.id}`);
       } else {
         router.push('/admin/products');
       }
     },
+    onError: (error) => {
+      setRequestErrorMessage(getFriendlyErrorMessage(error, 'Unable to create product. Please try again.'));
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setRequestErrorMessage(null);
 
     const priceCents = parsePriceToCents(formData.priceStr);
     const onHand = formData.productType === 'standard' ? parseWholeNumber(formData.onHand) : 0;
@@ -122,6 +131,8 @@ export default function NewProductPage() {
           </Button>
         </div>
       </div>
+
+      <ErrorAlert message={requestErrorMessage} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">

@@ -17,6 +17,7 @@ import type {
   productSort,
   productType,
 } from '@/interfaces/product';
+import type { IShippingSettings } from '@/interfaces/shipping';
 
 export type PublicProductListFilters = {
   collection?: string;
@@ -118,6 +119,10 @@ export const getPublicLegalDocument = cache(
     return readPublicData<IPublicLegalDocument>(`/api/v1/legal/${type}`);
   },
 );
+
+export const getPublicShippingSettings = cache(async (): Promise<IShippingSettings> => {
+  return readPublicData<IShippingSettings>('/api/v1/settings/shipping');
+});
 
 export const getPublicFaqItems = cache(async (): Promise<IPublicFaqItem[]> => {
   const payload = await readPublicData<IPublicFaqItem[] | IFaqListResponse<IPublicFaqItem>>('/api/v1/legal/faq');

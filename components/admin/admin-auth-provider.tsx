@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { ADMIN_SIDEBAR_WIDTH } from '@/lib/admin-navigation';
+import { Toaster } from '@/components/ui/sonner';
 
 function LoadingScreen() {
   return (
@@ -79,6 +80,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-[#f6f3ec] text-[#111827]">
       <AdminSidebar />
+      <Toaster />
 
       <div
         className="flex min-h-screen min-w-0 flex-1 flex-col md:pl-[var(--admin-sidebar-width)]"

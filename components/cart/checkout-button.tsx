@@ -5,6 +5,7 @@ import { useCartStore } from '@/hooks/use-cart';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useStartCheckout } from '@/hooks/use-start-checkout';
 import { Button } from '@/components/ui/button';
+import { ErrorAlert } from '@/components/ui/error-alert';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
@@ -47,11 +48,7 @@ export function CheckoutButton(props: ICheckoutButtonProps) {
         {isCheckingOut ? pendingLabel : label}
       </Button>
 
-      {blockingMessage && (
-        <p className="text-sm font-medium text-destructive" role="alert">
-          {blockingMessage}
-        </p>
-      )}
+      <ErrorAlert message={blockingMessage} />
 
       <Dialog
         open={checkoutDialog !== null}

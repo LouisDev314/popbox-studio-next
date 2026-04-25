@@ -32,6 +32,41 @@ describe('CartPageClient', () => {
     expect(screen.queryByText(/Kuji items are random draw and final sale/i)).not.toBeInTheDocument();
   });
 
+  it('shows flat shipping and the amount away from free shipping below the threshold', () => {
+    resetStores();
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem({ product: { priceCents: 14899 } })],
+      });
+    });
+
+    renderWithProviders(<CartPageClient />);
+
+    expect(screen.getByText('$15.99')).toBeInTheDocument();
+    expect(screen.getByText('You are $0.01 away from free shipping.')).toBeInTheDocument();
+    expect(screen.queryByText(/tax/i)).not.toBeInTheDocument();
+  });
+
+  it('shows free shipping at the threshold', () => {
+    resetStores();
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem({ product: { priceCents: 14900 } })],
+      });
+    });
+
+    renderWithProviders(<CartPageClient />);
+
+    expect(screen.getByText('FREE')).toBeInTheDocument();
+    expect(screen.getByText('You qualify for free shipping.')).toBeInTheDocument();
+  });
+
   it('shows a kuji-specific reminder when the cart contains kuji items', () => {
     resetStores();
 

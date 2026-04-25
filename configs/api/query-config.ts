@@ -10,6 +10,8 @@ import { IOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/inter
 import { ICheckoutSuccess } from '@/interfaces/checkout';
 import { IAdminCustomerListResponse } from '@/interfaces/customer';
 import { IFaqListResponse, IAdminFaqItem, IAdminFaqListResponse, IAdminLegalListResponse } from '@/interfaces/legal';
+import { IShippingSettings } from '@/interfaces/shipping';
+import { IStoreBannerSettings } from '@/interfaces/settings';
 
 function normalizeAdminFaqItems(
   payload: IAdminFaqItem[] | IFaqListResponse<IAdminFaqItem> | null | undefined,
@@ -87,6 +89,12 @@ const QueryConfigs = {
       },
     });
   },
+  fetchPublicStoreBanner: (): Promise<AxiosResponse<IBaseApiResponse<IStoreBannerSettings>>> => {
+    return httpClient.get('/api/v1/settings/store-banner');
+  },
+  fetchPublicShippingSettings: (): Promise<AxiosResponse<IBaseApiResponse<IShippingSettings>>> => {
+    return httpClient.get('/api/v1/settings/shipping');
+  },
   fetchGuestTickets: (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
     return httpClient.get(`/api/v1/orders/${id}/tickets`);
   },
@@ -145,6 +153,12 @@ const QueryConfigs = {
         },
       },
     };
+  },
+  fetchAdminShippingSettings: async (): Promise<AxiosResponse<IBaseApiResponse<IShippingSettings>>> => {
+    return httpClient.get('/api/v1/admin/settings/shipping', await withAdminAuth());
+  },
+  fetchAdminStoreBannerSettings: async (): Promise<AxiosResponse<IBaseApiResponse<IStoreBannerSettings>>> => {
+    return httpClient.get('/api/v1/admin/settings/store-banner', await withAdminAuth());
   },
 };
 

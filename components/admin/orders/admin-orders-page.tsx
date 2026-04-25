@@ -239,10 +239,7 @@ export default function AdminOrdersPageClient() {
 
   return (
     <div className="space-y-5">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-[#111827]">Orders</h1>
-        <p className="text-sm text-[#6b7280]">Manage and track customer orders.</p>
-      </div>
+      <h1 className="text-3xl font-semibold tracking-tight text-[#111827]">Orders</h1>
 
       <section className="rounded-3xl border border-[#e4dccf] bg-[#fbfaf7] p-4 shadow-[0_20px_50px_-44px_rgba(17,24,39,0.4)] lg:p-5">
         <div className="-mx-1 overflow-x-auto pb-1">

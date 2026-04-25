@@ -2,15 +2,15 @@
 
 import { Dispatch, SetStateAction, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import { Save } from 'lucide-react';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
-import { IBaseApiResponse } from '@/interfaces/api-response';
 import { IAdminProductEditor } from '@/interfaces/product';
 import { Button } from '@/components/ui/button';
+import { ErrorAlert } from '@/components/ui/error-alert';
 import { NumericInput } from '@/components/ui/numeric-input';
 import { mergeAdminProductIntoEditor, parseWholeNumber } from '@/utils/admin';
+import { getFriendlyErrorMessage } from '@/utils/api-errors';
 
 type ProductInventoryFormData = {
   onHand: string;
@@ -27,10 +27,6 @@ function createInitialFormData(product: IAdminProductEditor): ProductInventoryFo
     onHand: String(product.inventory?.onHand ?? 0),
     lowStockThreshold: String(product.inventory?.lowStockThreshold ?? 0),
   };
-}
-
-function getInventoryErrorMessage(error: AxiosError<IBaseApiResponse>): string {
-  return error.response?.data?.message?.trim() || 'Failed to update inventory.';
 }
 
 interface IProductInventoryFormProps {
@@ -77,7 +73,7 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
     },
     onError: (error) => {
       setFeedback({
-        message: getInventoryErrorMessage(error),
+        message: getFriendlyErrorMessage(error, 'Unable to update inventory. Please try again.'),
         type: 'error',
       });
     },
@@ -110,14 +106,12 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
         </Button>
       </div>
 
-      {feedback ? (
+      {feedback?.type === 'error' ? (
+        <ErrorAlert className="mb-4" message={feedback.message} />
+      ) : feedback ? (
         <div
-          className={`mb-4 rounded-lg border px-3 py-2 text-sm ${
-            feedback.type === 'success'
-              ? 'border-primary/20 bg-primary/10 text-foreground'
-              : 'border-primary/20 bg-accent text-foreground'
-          }`}
-          role={feedback.type === 'error' ? 'alert' : 'status'}
+          className="mb-4 rounded-lg border border-primary/20 bg-primary/10 px-3 py-2 text-sm text-foreground"
+          role="status"
         >
           {feedback.message}
         </div>
