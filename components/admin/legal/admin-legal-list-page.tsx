@@ -15,10 +15,10 @@ import type {
 } from '@/interfaces/legal';
 import { useRouter } from 'next/navigation';
 
-const CANONICAL_TYPES: { type: LegalDocumentType; label: string; description: string }[] = [
-  { type: 'shipping_returns', label: 'Shipping & Returns', description: 'Policies on shipping and returns.' },
-  { type: 'terms', label: 'Terms of Service', description: 'Legal terms for using the platform.' },
-  { type: 'privacy', label: 'Privacy Policy', description: 'How user data is handled and protected.' },
+const CANONICAL_TYPES: { type: LegalDocumentType; label: string; }[] = [
+  { type: 'shipping_returns', label: 'Shipping & Returns' },
+  { type: 'terms', label: 'Terms of Service' },
+  { type: 'privacy', label: 'Privacy Policy' },
 ];
 
 function formatRelativeDate(dateString?: string): string {
@@ -76,7 +76,7 @@ export function AdminLegalListPage() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {CANONICAL_TYPES.map(({ type, label, description }) => {
+            {CANONICAL_TYPES.map(({ type, label }) => {
               // Find the active version for this type
               const docsForType = legalItems.filter((i) => i.type === type);
               const activeDoc = docsForType.find((i) => i.isActive) ?? docsForType[0]; // fallback to latest if none active
@@ -85,8 +85,7 @@ export function AdminLegalListPage() {
                 <DocumentCard 
                   key={type} 
                   type={type} 
-                  label={label} 
-                  description={description} 
+                  label={label}
                   activeDoc={activeDoc} 
                 />
               );
@@ -102,12 +101,10 @@ export function AdminLegalListPage() {
 function DocumentCard({
   type,
   label,
-  description,
   activeDoc,
 }: {
   type: AdminLegalType;
   label: string;
-  description: string;
   activeDoc?: IAdminLegalDocument;
 }) {
   const router = useRouter();
@@ -132,7 +129,6 @@ function DocumentCard({
           </span>
         </div>
         <h3 className="mt-4 font-semibold text-foreground">{label}</h3>
-        <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{description}</p>
 
         <div className="mt-4 flex flex-col gap-1 text-xs text-muted-foreground">
           <div className="flex justify-between">

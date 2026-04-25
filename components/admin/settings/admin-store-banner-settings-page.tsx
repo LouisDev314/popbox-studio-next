@@ -282,9 +282,6 @@ export function AdminStoreBannerSettingsPage() {
       <div className="mb-8 flex flex-col gap-2">
         <p className="text-sm font-medium uppercase tracking-[0.18em] text-[#8f7f63]">Settings</p>
         <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">Store Banner</h1>
-        <p className="max-w-2xl text-sm text-[#6b7280]">
-          Manage up to five announcement rows shown above storefront navigation.
-        </p>
       </div>
 
       {isPending ? (
@@ -564,9 +561,6 @@ function StoreBannerPreview(props: { settings: IStoreBannerSettings }) {
           </div>
         )}
       </div>
-      <p className="mt-4 text-xs leading-5 text-[#6b7280]">
-        Preview reflects the first active item in the current order before saving.
-      </p>
     </aside>
   );
 }

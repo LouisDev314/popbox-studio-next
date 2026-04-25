@@ -155,9 +155,6 @@ export function AdminShippingSettingsPage() {
       <div className="mb-8 flex flex-col gap-2">
         <p className="text-sm font-medium uppercase tracking-[0.18em] text-[#8f7f63]">Settings</p>
         <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">Shipping Settings</h1>
-        <p className="max-w-2xl text-sm text-[#6b7280]">
-          Manage the checkout shipping policy used by backend order and payment flows.
-        </p>
       </div>
 
       {isPending ? (
@@ -287,14 +284,14 @@ function CurrentPolicyCard({
       {settings ? (
         <div className="mt-4 space-y-3 text-sm leading-6 text-[#4b5563]">
           <p>
-            Free shipping on orders{' '}
+            Free shipping{' '}
             <span className="font-semibold text-[#111827]">
               {formatPrice(settings.freeShippingThresholdCents, settings.currency)} CAD
             </span>{' '}
             or more.
           </p>
           <p>
-            Otherwise flat shipping is{' '}
+            Flat shipping{' '}
             <span className="font-semibold text-[#111827]">
               {formatPrice(settings.flatShippingCents, settings.currency)} CAD
             </span>{' '}

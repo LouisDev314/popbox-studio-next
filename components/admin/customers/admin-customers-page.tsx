@@ -138,10 +138,7 @@ export default function AdminCustomersPageClient() {
 
   return (
     <div className="space-y-5">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight text-[#111827]">Customers</h1>
-        <p className="text-sm text-[#6b7280]">View customer details and order history at a glance.</p>
-      </div>
+      <h1 className="text-3xl font-semibold tracking-tight text-[#111827]">Customers</h1>
 
       <section className="rounded-[24px] border border-[#e4dccf] bg-[#fbfaf7] p-4 shadow-[0_20px_50px_-44px_rgba(17,24,39,0.4)] lg:p-5">
         <div className="rounded-[24px] border border-[#e4dccf] bg-white p-4 shadow-[0_18px_44px_-40px_rgba(17,24,39,0.45)] sm:p-5">
