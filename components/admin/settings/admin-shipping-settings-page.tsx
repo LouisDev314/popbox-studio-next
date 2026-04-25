@@ -8,11 +8,12 @@ import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn, formatPrice } from '@/lib/utils';
-import { getApiErrorDetails } from '@/utils/api-errors';
+import { getFriendlyErrorMessage } from '@/utils/api-errors';
 import type { IShippingSettings, IUpdateShippingSettingsPayload } from '@/interfaces/shipping';
 
 const SHIPPING_SETTINGS_QUERY_KEY = ['admin', 'settings', 'shipping'] as const;
@@ -85,11 +86,13 @@ export function AdminShippingSettingsPage() {
   });
   const [errors, setErrors] = useState<ShippingFormErrors>({});
   const [currentPolicy, setCurrentPolicy] = useState<IShippingSettings | null>(null);
+  const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null);
 
   const syncSettings = useCallback((nextSettings: IShippingSettings) => {
     setForm(settingsToForm(nextSettings));
     setCurrentPolicy(nextSettings);
     setErrors({});
+    setRequestErrorMessage(null);
   }, []);
 
   const handleQuerySuccess = useCallback((response: { data: { data: IShippingSettings } }) => {
@@ -97,6 +100,7 @@ export function AdminShippingSettingsPage() {
   }, [syncSettings]);
 
   const {
+    error: queryError,
     isError,
     isPending,
   } = useCustomizeQuery<IShippingSettings>({
@@ -120,12 +124,16 @@ export function AdminShippingSettingsPage() {
       void queryClient.invalidateQueries({ queryKey: SHIPPING_SETTINGS_QUERY_KEY });
     },
     onError: (error) => {
-      toast.error(getApiErrorDetails(error).message || 'Failed to save shipping settings.');
+      const friendlyMessage = getFriendlyErrorMessage(error);
+
+      setRequestErrorMessage(friendlyMessage);
+      toast.error(friendlyMessage);
     },
   });
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setRequestErrorMessage(null);
 
     const nextErrors = validateForm(form);
     setErrors(nextErrors);
@@ -156,15 +164,17 @@ export function AdminShippingSettingsPage() {
       {isPending ? (
         <ShippingSettingsSkeleton />
       ) : isError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
-          Failed to load shipping settings. Please refresh and try again.
-        </div>
+        <SettingsErrorAlert message={getFriendlyErrorMessage(queryError, 'Unable to load shipping settings. Please refresh and try again.')} />
       ) : (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <form
             className="rounded-2xl border border-[#dfd5c5] bg-[#fbfaf7] p-5 shadow-sm sm:p-6"
             onSubmit={handleSubmit}
           >
+            {requestErrorMessage ? (
+              <SettingsErrorAlert className="mb-5" message={requestErrorMessage} />
+            ) : null}
+
             <div className="grid gap-5 sm:grid-cols-2">
               <MoneyField
                 error={errors.flatShipping}
@@ -261,6 +271,16 @@ function MoneyField({
         </p>
       ) : null}
     </div>
+  );
+}
+
+function SettingsErrorAlert(props: { className?: string; message: string }) {
+  return (
+    <Alert variant="destructive" className={props.className}>
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>Something went wrong</AlertTitle>
+      <AlertDescription>{props.message}</AlertDescription>
+    </Alert>
   );
 }
 

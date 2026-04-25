@@ -36,6 +36,7 @@ describe('AdminSidebar', () => {
     expect(screen.getByText('Content')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Shipping/i })).toHaveAttribute('href', '/admin/settings/shipping');
+    expect(screen.getByRole('link', { name: /Store Banner/i })).toHaveAttribute('href', '/admin/settings/store-banner');
     expect(screen.getByRole('link', { name: /Back to store/i })).toHaveAttribute('href', '/');
   });
 
@@ -54,6 +55,16 @@ describe('AdminSidebar', () => {
     render(<AdminSidebar />);
 
     expect(screen.getByRole('link', { name: /Shipping/i })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: /Store Banner/i })).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: /Products/i })).not.toHaveAttribute('aria-current');
+  });
+
+  it('marks only the store banner settings route as active', () => {
+    usePathname.mockReturnValue('/admin/settings/store-banner');
+
+    render(<AdminSidebar />);
+
+    expect(screen.getByRole('link', { name: /Store Banner/i })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: /Shipping/i })).not.toHaveAttribute('aria-current');
   });
 });

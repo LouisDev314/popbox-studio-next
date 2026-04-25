@@ -32,6 +32,7 @@ import {
 import { withAdminAuth } from '@/lib/api/admin-client';
 import { IContactRequestBody } from '@/interfaces/contact';
 import { IShippingSettings, IUpdateShippingSettingsPayload } from '@/interfaces/shipping';
+import { IStoreBannerSettings, IUpdateStoreBannerSettingsPayload } from '@/interfaces/settings';
 
 const MutationConfigs = {
   createCheckoutSession: (
@@ -132,6 +133,11 @@ const MutationConfigs = {
     data: IUpdateShippingSettingsPayload,
   ): Promise<AxiosResponse<IBaseApiResponse<IShippingSettings>>> => {
     return httpClient.put('/api/v1/admin/settings/shipping', data, await withAdminAuth());
+  },
+  updateAdminStoreBannerSettings: async (
+    data: IUpdateStoreBannerSettingsPayload,
+  ): Promise<AxiosResponse<IBaseApiResponse<IStoreBannerSettings>>> => {
+    return httpClient.put('/api/v1/admin/settings/store-banner', data, await withAdminAuth());
   },
   sendContactEmail: async (
     data: IContactRequestBody,

@@ -1,6 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AxiosError } from 'axios';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import { AdminShippingSettingsPage } from '@/components/admin/settings/admin-shipping-settings-page';
@@ -40,6 +41,22 @@ function createApiResponse(data: IShippingSettings) {
     headers: {},
     config: {},
   };
+}
+
+function createApiError(message = 'Request failed with status code 500') {
+  return new AxiosError(message, undefined, undefined, undefined, {
+    data: {
+      status: 'error',
+      code: 500,
+      success: false,
+      message,
+      data: null,
+    },
+    status: 500,
+    statusText: 'Server Error',
+    headers: {},
+    config: {},
+  });
 }
 
 describe('AdminShippingSettingsPage', () => {
@@ -141,5 +158,16 @@ describe('AdminShippingSettingsPage', () => {
       expect(screen.getByText(/Free shipping on orders/i)).toHaveTextContent('$100.00 CAD');
       expect(screen.getByText(/Otherwise flat shipping/i)).toHaveTextContent('$12.00 CAD');
     });
+  });
+
+  it('renders a destructive alert on save request error', async () => {
+    vi.mocked(MutationConfigs.updateAdminShippingSettings).mockRejectedValueOnce(createApiError());
+
+    renderWithProviders(<AdminShippingSettingsPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Save shipping settings/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Something went wrong');
+    expect(screen.getByRole('alert')).toHaveTextContent('Unable to save changes. Please try again.');
   });
 });

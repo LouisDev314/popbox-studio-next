@@ -1,6 +1,7 @@
 import {
   FileText,
   LayoutGrid,
+  Megaphone,
   Package,
   Truck,
   ShoppingCart,
@@ -69,7 +70,14 @@ export const ADMIN_NAV_ITEMS: IAdminNavItem[] = [
     href: '/admin/settings/shipping',
     group: 'Settings',
     icon: Truck,
-    matches: (pathname) => matchesAdminPath(pathname, '/admin/settings'),
+    matches: (pathname) => matchesAdminPath(pathname, '/admin/settings/shipping'),
+  },
+  {
+    label: 'Store Banner',
+    href: '/admin/settings/store-banner',
+    group: 'Settings',
+    icon: Megaphone,
+    matches: (pathname) => matchesAdminPath(pathname, '/admin/settings/store-banner'),
   },
 ] as const;
 

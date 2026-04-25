@@ -77,6 +77,60 @@ export function getApiErrorDetails(
   };
 }
 
+function isRawAxiosStatusMessage(message: string): boolean {
+  return /^request failed with status code \d+$/i.test(message.trim());
+}
+
+function getResponseStringField(data: unknown, field: string): string | null {
+  if (!isObject(data)) {
+    return null;
+  }
+
+  const value = data[field];
+
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+
+  return trimmedValue && !isRawAxiosStatusMessage(trimmedValue)
+    ? trimmedValue
+    : null;
+}
+
+export function getFriendlyErrorMessage(
+  error: unknown,
+  fallbackMessage = 'Unable to save changes. Please try again.',
+): string {
+  if (error instanceof AxiosError) {
+    const responseData = error.response?.data;
+    const validationMessages = isBaseApiResponse(responseData)
+      ? collectValidationMessages(responseData.errors)
+      : [];
+    const responseMessage =
+      getResponseStringField(responseData, 'message')
+      || getResponseStringField(responseData, 'error')
+      || validationMessages[0];
+
+    if (responseMessage && !isRawAxiosStatusMessage(responseMessage)) {
+      return responseMessage;
+    }
+
+    if (error.response) {
+      return fallbackMessage;
+    }
+
+    const fallbackApiMessage = getFallbackApiErrorMessage(error);
+
+    return isRawAxiosStatusMessage(fallbackApiMessage)
+      ? fallbackMessage
+      : fallbackApiMessage;
+  }
+
+  return fallbackMessage;
+}
+
 export function isBaseApiResponse(value: unknown): value is IBaseApiResponse<unknown> {
   return (
     isObject(value)
