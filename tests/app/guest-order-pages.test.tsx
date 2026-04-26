@@ -64,9 +64,14 @@ describe('guest order pages', () => {
         {
           id: 'item-1',
           imageUrl: 'https://example.com/item.jpg',
+          imageAltText: 'Ichiban Figure image',
           lineTotalCents: 4999,
           productName: 'Ichiban Figure',
+          productId: 'product-1',
+          productType: 'standard',
           quantity: 1,
+          unitPriceCents: 4999,
+          metadata: null,
         },
       ],
       placedAt: '2026-01-01T00:00:00.000Z',
@@ -95,7 +100,58 @@ describe('guest order pages', () => {
 
     expect(screen.getByRole('link', { name: 'View FAQ' })).toHaveAttribute('href', '/faq');
     expect(screen.getByRole('link', { name: 'Shipping & Returns' })).toHaveAttribute('href', '/legal/shipping-returns');
+    expect(screen.getByRole('img', {
+      name: 'Ichiban Figure image',
+    })).toHaveAttribute('src', expect.stringContaining('item.jpg'));
     expect(screen.queryByText('Taxes')).not.toBeInTheDocument();
+  });
+
+  it('renders the initials fallback when a guest order item imageUrl is null', async () => {
+    vi.mocked(getPublicGuestOrder).mockResolvedValue({
+      currency: 'CAD',
+      items: [
+        {
+          id: 'item-1',
+          imageUrl: null,
+          imageAltText: null,
+          lineTotalCents: 14994,
+          productName: 'Digimon Adventure 25th Anniversary Ver. Blind Box',
+          productId: 'product-1',
+          productType: 'standard',
+          quantity: 6,
+          unitPriceCents: 2499,
+          metadata: null,
+        },
+      ],
+      placedAt: '2026-01-01T00:00:00.000Z',
+      publicId: 'pbs-ORDER',
+      shipment: null,
+      shippingAddress: {
+        city: 'Toronto',
+        fullName: 'Pop Box',
+        line1: '123 Queen St',
+        line2: null,
+        postalCode: 'M5H 2N2',
+        province: 'ON',
+      },
+      shippingCents: 0,
+      status: 'paid',
+      subtotalCents: 14994,
+      taxCents: 0,
+      tickets: [],
+      totalCents: 14994,
+    });
+
+    render(await GuestOrderPage({
+      params: Promise.resolve({ publicId: 'pbs-ORDER' }),
+      searchParams: Promise.resolve({}),
+    }));
+
+    expect(screen.getByRole('img', {
+      name: 'Digimon Adventure 25th Anniversary Ver. Blind Box',
+    })).toHaveTextContent('DA');
+    expect(screen.getByText('$24.99 each')).toBeInTheDocument();
+    expect(screen.getByText('Line total')).toBeInTheDocument();
   });
 
   it('keeps 403/404 ticket failures in the not found state', async () => {
