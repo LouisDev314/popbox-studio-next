@@ -131,7 +131,6 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
             }
             placeholder="0"
           />
-          <p className="mt-1 text-xs text-muted-foreground">Total physical items available.</p>
         </div>
 
         <div>
@@ -147,7 +146,6 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
             }
             placeholder="0"
           />
-          <p className="mt-1 text-xs text-muted-foreground">Threshold for low stock warnings.</p>
         </div>
 
         <div>
@@ -157,7 +155,6 @@ export function ProductInventoryForm({ product, onProductChange }: IProductInven
           <div className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
             {product.inventory?.reserved ?? 0}
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">Items currently in active carts.</p>
         </div>
       </div>
 

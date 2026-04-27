@@ -71,7 +71,7 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
                 <Package className="h-5 w-5 text-muted-foreground" />
                 Order Items
               </h2>
-              <span className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
+              <span className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-primary">
                 {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
               </span>
             </div>
@@ -100,7 +100,7 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                         <span>Qty {item.quantity}</span>
                         <span aria-hidden="true" className="text-border">
-                          /
+                          |
                         </span>
                         <span>{formatPrice(item.unitPriceCents, order.currency)} each</span>
                       </div>
@@ -193,7 +193,7 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
 
             <div className="mt-2 flex justify-between border-t border-border/30 pt-4">
               <span className="text-base font-bold text-foreground">Total</span>
-              <span className="text-base font-bold text-foreground">
+              <span className="text-base font-bold text-primary">
                 {formatPrice(order.totalCents, order.currency)}
               </span>
             </div>

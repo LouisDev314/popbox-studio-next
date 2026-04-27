@@ -9,6 +9,11 @@ import {
 } from '@/interfaces/checkout';
 import { IOrderDetail, IOrderStatus } from '@/interfaces/order';
 
+export interface IPurchasedLine {
+  productId: string;
+  quantity: number;
+}
+
 const FINALIZED_CHECKOUT_ORDER_STATUSES = new Set<IOrderStatus>([
   'paid',
   'packed',
@@ -28,12 +33,74 @@ const checkoutRequestSchema = z.object({
 const STRIPE_CHECKOUT_HOSTNAME = 'checkout.stripe.com';
 const STRIPE_CHECKOUT_PATH_PREFIXES = ['/c/pay/', '/pay/'] as const;
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getStringProperty(value: Record<string, unknown>, key: string): string | null {
+  const property = value[key];
+
+  return typeof property === 'string' && property.trim() ? property.trim() : null;
+}
+
+function getOrderItemProductId(item: unknown): string | null {
+  if (!isObject(item)) {
+    return null;
+  }
+
+  const directProductId = getStringProperty(item, 'productId') ?? getStringProperty(item, 'product_id');
+
+  if (directProductId) {
+    return directProductId;
+  }
+
+  const product = item.product;
+
+  if (!isObject(product)) {
+    return null;
+  }
+
+  return (
+    getStringProperty(product, 'id')
+    ?? getStringProperty(product, 'productId')
+    ?? getStringProperty(product, 'product_id')
+  );
+}
+
+function getOrderItemQuantity(item: unknown): number {
+  if (!isObject(item) || typeof item.quantity !== 'number' || !Number.isFinite(item.quantity)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor(item.quantity));
+}
+
 export function isFinalizedCheckoutOrder(order: IOrderDetail): boolean {
   return FINALIZED_CHECKOUT_ORDER_STATUSES.has(order.status);
 }
 
+export function getPurchasedLinesFromOrder(order: IOrderDetail): IPurchasedLine[] {
+  const purchasedQuantityByProductId = order.items.reduce((lines, item) => {
+    const productId = getOrderItemProductId(item);
+    const quantity = getOrderItemQuantity(item);
+
+    if (!productId || quantity <= 0) {
+      return lines;
+    }
+
+    lines.set(productId, (lines.get(productId) ?? 0) + quantity);
+
+    return lines;
+  }, new Map<string, number>());
+
+  return Array.from(purchasedQuantityByProductId, ([productId, quantity]) => ({
+    productId,
+    quantity,
+  }));
+}
+
 export function getPurchasedProductIdsFromOrder(order: IOrderDetail): string[] {
-  return [...new Set(order.items.map((item) => item.productId))];
+  return getPurchasedLinesFromOrder(order).map((line) => line.productId);
 }
 
 export function getInvalidCartItemsCheckoutMessage(invalidItems: ICartInvalidItem[]): string {

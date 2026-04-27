@@ -70,7 +70,7 @@ export function WishlistDrawer(props: IWishlistDrawerProps) {
           ) : (
             <div className="space-y-4">
               {items.map((item) => (
-                <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card p-4">
+                <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card p-4 pb-2">
                   <div className="flex gap-4">
                     <Link
                       href={`/products/${item.slug}`}
@@ -90,7 +90,7 @@ export function WishlistDrawer(props: IWishlistDrawerProps) {
                       <p className="mt-1 text-sm text-muted-foreground">
                         {formatPrice(item.priceCents, item.currency)}
                       </p>
-                      <div className="mt-3 flex items-center justify-end gap-3">
+                      <div className="flex items-center justify-end gap-3">
                         <Button
                           type="button"
                           variant="ghost"

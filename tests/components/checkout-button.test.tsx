@@ -260,4 +260,35 @@ describe('CheckoutButton', () => {
 
     expect(useCheckoutUiStore.getState().isCheckingOut).toBe(false);
   });
+
+  it('keeps cart items when checkout session creation fails', async () => {
+    server.use(
+      http.post(CHECKOUT_URL, async () => {
+        return HttpResponse.json({
+          code: 500,
+          data: null,
+          message: 'Internal server error',
+          status: 'error',
+          success: false,
+        }, { status: 500 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CheckoutButton />);
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toHaveTextContent('Something went wrong. Please try again.');
+    });
+
+    expect(useCartStore.getState().items).toHaveLength(1);
+  });
 });

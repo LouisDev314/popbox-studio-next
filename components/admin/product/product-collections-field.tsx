@@ -29,12 +29,7 @@ export function ProductCollectionsField({
   return (
     <div>
       <div className="mb-2 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <label className="block text-sm font-medium text-foreground">Collections</label>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Choose one or more storefront collections this product should appear in. You can also manage products directly from each collection page.
-          </p>
-        </div>
+        <label className="block text-sm font-medium text-foreground">Collections</label>
         <div className="flex shrink-0 items-center gap-2">
           <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
             {selectedCollectionIds.length} selected

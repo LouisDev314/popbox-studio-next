@@ -40,7 +40,7 @@ interface IProductsSearchPanelProps {
 
 function ProductsSearchPanel(props: IProductsSearchPanelProps) {
   return (
-    <section className="rounded-[24px] border border-[#e4dccf] bg-[#fbfaf7] p-4 shadow-[0_20px_50px_-44px_rgba(17,24,39,0.4)] lg:p-5">
+    <section className="rounded-3xl border border-[#e4dccf] bg-[#fbfaf7] p-4 shadow-[0_20px_50px_-44px_rgba(17,24,39,0.4)] lg:p-5">
       <h2 className="text-[1.4rem] font-semibold tracking-[-0.03em] text-[#111827] sm:text-[1.6rem]">
           Search products
       </h2>

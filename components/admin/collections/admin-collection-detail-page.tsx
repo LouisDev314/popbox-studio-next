@@ -169,6 +169,9 @@ function AddProductsDialog({
       <DialogContent title="Add products" className="max-h-[calc(100dvh-1.5rem)] max-w-4xl grid-rows-[auto_minmax(0,1fr)_auto] p-0">
         <DialogHeader className="border-b border-border/40 px-5 py-4 sm:px-6">
           <div className="text-xl font-semibold text-foreground">Add products</div>
+          <DialogDescription className="sr-only">
+            Search and select products to add to this collection.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 overflow-hidden px-5 py-4 sm:px-6">

@@ -345,12 +345,7 @@ export function AdminStoreBannerSettingsPage() {
               </div>
 
               <div className="flex flex-col gap-3 border-t border-[#e4dccf] pt-5 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-[#111827]">Banner items</p>
-                  <p className="mt-1 text-xs leading-5 text-[#6b7280]">
-                    Current order controls storefront rotation order.
-                  </p>
-                </div>
+                <p className="text-sm font-semibold text-[#111827]">Banner items</p>
                 <Button
                   type="button"
                   variant="outline"
@@ -432,12 +427,7 @@ function BannerItemEditor(props: {
   return (
     <section className="rounded-xl border border-[#dfd5c5] bg-white p-4 shadow-sm">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-[#111827]">Item {props.index + 1}</p>
-          <p className="mt-1 text-xs text-[#6b7280]">
-            Sort order {props.index}
-          </p>
-        </div>
+        <p className="text-sm font-semibold text-[#111827]">Item {props.index + 1}</p>
         <div className="flex items-center gap-2">
           <button
             type="button"
