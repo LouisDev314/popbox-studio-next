@@ -32,6 +32,41 @@ describe('CartPageClient', () => {
     expect(screen.queryByText(/Kuji items are random draw and final sale/i)).not.toBeInTheDocument();
   });
 
+  it('shows each product collection as a separate badge', () => {
+    resetStores();
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [
+          createCartItem({
+            product: {
+              collections: [
+                {
+                  id: 'collection-featured',
+                  name: 'Featured',
+                  slug: 'featured',
+                },
+                {
+                  id: 'collection-limited',
+                  name: 'Limited Run',
+                  slug: 'limited-run',
+                },
+              ],
+            },
+          }),
+        ],
+      });
+    });
+
+    renderWithProviders(<CartPageClient />);
+
+    expect(screen.getByText('Featured')).toBeInTheDocument();
+    expect(screen.getByText('Limited Run')).toBeInTheDocument();
+    expect(screen.queryByText('Featured +1')).not.toBeInTheDocument();
+  });
+
   it('shows flat shipping and the amount away from free shipping below the threshold', () => {
     resetStores();
 

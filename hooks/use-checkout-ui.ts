@@ -10,11 +10,13 @@ export interface ICheckoutDialogState {
 
 interface ICheckoutUiStore {
   checkoutErrorMessage: string | null;
+  checkoutSuccessCleanupSessionId: string | null;
   checkoutDialog: ICheckoutDialogState | null;
   isCheckingOut: boolean;
   beginCheckout: () => boolean;
   clearCheckoutDialog: () => void;
   endCheckout: () => void;
+  markCheckoutSuccessCleanupComplete: (sessionId: string) => void;
   clearCheckoutError: () => void;
   setCheckoutError: (message: string) => void;
   showCheckoutDialog: (dialog: ICheckoutDialogState) => void;
@@ -22,6 +24,7 @@ interface ICheckoutUiStore {
 
 export const useCheckoutUiStore = create<ICheckoutUiStore>((set, get) => ({
   checkoutErrorMessage: null,
+  checkoutSuccessCleanupSessionId: null,
   checkoutDialog: null,
   isCheckingOut: false,
 
@@ -41,6 +44,10 @@ export const useCheckoutUiStore = create<ICheckoutUiStore>((set, get) => ({
   clearCheckoutDialog: () => set({ checkoutDialog: null }),
 
   endCheckout: () => set({ isCheckingOut: false }),
+
+  markCheckoutSuccessCleanupComplete: (sessionId) => set({
+    checkoutSuccessCleanupSessionId: sessionId,
+  }),
 
   setCheckoutError: (message) => set({
     checkoutErrorMessage: message,

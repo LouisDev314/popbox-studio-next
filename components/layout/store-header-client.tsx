@@ -25,6 +25,7 @@ import {
 import { WishlistDrawer } from '@/components/wishlist/wishlist-drawer';
 import QueryConfigs from '@/configs/api/query-config';
 import { useCartStore } from '@/hooks/use-cart';
+import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useMobileNavbarVisibility } from '@/hooks/use-mobile-navbar-visibility';
@@ -158,6 +159,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
   const hasCartHydrated = useCartStore((state) => state.hasHydrated);
   const wishlistItems = useWishlistStore((state) => state.items);
   const hasWishlistHydrated = useWishlistStore((state) => state.hasHydrated);
+  const checkoutSuccessCleanupSessionId = useCheckoutUiStore((state) => state.checkoutSuccessCleanupSessionId);
 
   const [activeMobilePanel, setActiveMobilePanel] = useState<TMobilePanel>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -188,6 +190,10 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
     ? autocompleteResponse?.data?.data?.items ?? []
     : [];
   const activeTopLevelNavKey = getActiveTopLevelNavKey(pathname, searchParams);
+  const checkoutSuccessSessionId = pathname === '/checkout/success' ? searchParams.get('session_id') : null;
+  const shouldHideForCheckoutSuccessCleanup = Boolean(
+    checkoutSuccessSessionId && checkoutSuccessCleanupSessionId !== checkoutSuccessSessionId,
+  );
   const desktopNavItems = DESKTOP_PRIMARY_NAV_ITEMS.map((item) => ({
     key: item.key,
     href: item.href,
@@ -281,6 +287,10 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
   const handleBannerVisibilityChange = useCallback((isVisible: boolean) => {
     setHasStoreBanner(isVisible);
   }, []);
+
+  if (shouldHideForCheckoutSuccessCleanup) {
+    return null;
+  }
 
   return (
     <>

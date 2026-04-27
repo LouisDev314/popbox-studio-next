@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCheckoutRequest,
-  getPurchasedLinesFromOrder,
   getPurchasedProductIdsFromOrder,
   getValidatedCheckoutUrl,
 } from '@/utils/checkout';
@@ -12,7 +11,7 @@ import {
   VALID_PRODUCT_ID,
 } from '../fixtures';
 
-function createCheckoutOrderWithItems(items: unknown[]): IOrderDetail {
+function createCheckoutOrderWithProductIds(productIds: string[]): IOrderDetail {
   return {
     billingAddress: null,
     cancelledAt: null,
@@ -25,7 +24,18 @@ function createCheckoutOrderWithItems(items: unknown[]): IOrderDetail {
       phone: null,
     },
     id: 'order-1',
-    items: items as IOrderDetail['items'],
+    items: productIds.map((productId, index) => ({
+      id: `order-item-${index}`,
+      imageAltText: null,
+      imageUrl: null,
+      lineTotalCents: 4999,
+      metadata: null,
+      productId,
+      productName: 'Ichiban Figure',
+      productType: 'standard',
+      quantity: 1,
+      unitPriceCents: 4999,
+    })),
     paidAt: '2026-01-01T00:00:00.000Z',
     placedAt: '2026-01-01T00:00:00.000Z',
     publicId: 'PBX-ORDER',
@@ -96,37 +106,14 @@ describe('buildCheckoutRequest', () => {
     );
   });
 
-  it('extracts purchased lines from camel, snake, and nested product order item shapes', () => {
-    const order = createCheckoutOrderWithItems([
-      {
-        productId: VALID_PRODUCT_ID,
-        quantity: 1,
-      },
-      {
-        product_id: VALID_PRODUCT_ID,
-        quantity: 2,
-      },
-      {
-        product: {
-          id: '22222222-2222-4222-8222-222222222222',
-        },
-        quantity: 1,
-      },
+  it('extracts unique purchased product ids from the order item contract', () => {
+    const otherProductId = '22222222-2222-4222-8222-222222222222';
+    const order = createCheckoutOrderWithProductIds([
+      VALID_PRODUCT_ID,
+      VALID_PRODUCT_ID,
+      otherProductId,
     ]);
 
-    expect(getPurchasedLinesFromOrder(order)).toEqual([
-      {
-        productId: VALID_PRODUCT_ID,
-        quantity: 3,
-      },
-      {
-        productId: '22222222-2222-4222-8222-222222222222',
-        quantity: 1,
-      },
-    ]);
-    expect(getPurchasedProductIdsFromOrder(order)).toEqual([
-      VALID_PRODUCT_ID,
-      '22222222-2222-4222-8222-222222222222',
-    ]);
+    expect(getPurchasedProductIdsFromOrder(order)).toEqual([VALID_PRODUCT_ID, otherProductId]);
   });
 });

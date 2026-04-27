@@ -10,6 +10,8 @@ import {
   VALID_PRODUCT_ID,
 } from '../fixtures';
 
+const OTHER_PRODUCT_ID = '22222222-2222-4222-8222-222222222222';
+
 async function importFreshCartStore() {
   vi.resetModules();
   const cartStoreModule = await import('@/hooks/use-cart');
@@ -96,6 +98,37 @@ describe('useCartStore', () => {
               id: VALID_PRODUCT_ID,
             },
             quantity: 2,
+          },
+        ],
+      },
+    });
+  });
+
+  it('removes purchased product ids from cart state and persisted storage', async () => {
+    const useCartStore = await importFreshCartStore();
+
+    useCartStore.getState().addItem(createCartProduct(), 3);
+    useCartStore.getState().addItem(createCartProduct({
+      id: OTHER_PRODUCT_ID,
+      name: 'Unrelated Figure',
+      slug: 'unrelated-figure',
+    }));
+    useCartStore.getState().removePurchasedProductIds([VALID_PRODUCT_ID]);
+
+    expect(useCartStore.getState().items).toEqual([
+      expect.objectContaining({
+        product: expect.objectContaining({ id: OTHER_PRODUCT_ID }),
+        quantity: 1,
+      }),
+    ]);
+    expect(JSON.parse(window.localStorage.getItem(CART_STORAGE_KEY)!)).toMatchObject({
+      state: {
+        items: [
+          {
+            product: {
+              id: OTHER_PRODUCT_ID,
+            },
+            quantity: 1,
           },
         ],
       },

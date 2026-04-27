@@ -44,6 +44,7 @@ export function resetStores() {
   });
   useCheckoutUiStore.setState({
     checkoutErrorMessage: null,
+    checkoutSuccessCleanupSessionId: null,
     checkoutDialog: null,
     isCheckingOut: false,
   });

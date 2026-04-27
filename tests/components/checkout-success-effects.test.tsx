@@ -39,15 +39,6 @@ function createOrderItem(
   };
 }
 
-function createSnakeCaseOrderItem(productId: string, quantity: number): IOrderDetail['items'][number] {
-  return {
-    id: `order-item-${productId}`,
-    product_id: productId,
-    productName: 'Ichiban Figure',
-    quantity,
-  } as unknown as IOrderDetail['items'][number];
-}
-
 function createOrder(
   status: IOrderStatus,
   items: IOrderDetail['items'] = [createOrderItem(VALID_PRODUCT_ID, 1)],
@@ -144,6 +135,35 @@ describe('CheckoutSuccessEffects', () => {
     mockCheckoutSuccessAccess();
   });
 
+  it('keeps confirmation content hidden until local cart and wishlist cleanup completes', async () => {
+    act(() => {
+      useCartStore.getState().addItem(createCartItem().product);
+      useWishlistStore.getState().addWishlistItem(createWishlistItem());
+      useCartStore.getState().setHasHydrated(false);
+      useWishlistStore.getState().setHasHydrated(false);
+    });
+
+    renderWithProviders(
+      <CheckoutSuccessEffects sessionId="cs_test_123" order={createOrder('paid')}>
+        <h1>Order Confirmed!</h1>
+      </CheckoutSuccessEffects>,
+    );
+
+    expect(screen.getByRole('status', { name: 'Preparing order confirmation' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Order Confirmed!' })).not.toBeInTheDocument();
+
+    act(() => {
+      useCartStore.getState().setHasHydrated(true);
+      useWishlistStore.getState().setHasHydrated(true);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Order Confirmed!' })).toBeInTheDocument();
+    });
+    expect(useCartStore.getState().items).toHaveLength(0);
+    expect(useWishlistStore.getState().items).toHaveLength(0);
+  });
+
   it('removes only purchased cart and wishlist items for paid orders', async () => {
     act(() => {
       useCartStore.getState().addItem(createCartItem().product);
@@ -169,7 +189,7 @@ describe('CheckoutSuccessEffects', () => {
     renderWithProviders(
       <CheckoutSuccessEffects
         sessionId="cs_test_123"
-        order={createOrder('paid', [createSnakeCaseOrderItem(VALID_PRODUCT_ID, 1)])}
+        order={createOrder('paid', [createOrderItem(VALID_PRODUCT_ID, 1)])}
       />,
     );
 
@@ -191,7 +211,7 @@ describe('CheckoutSuccessEffects', () => {
     ]);
   });
 
-  it('decrements purchased cart quantities when the cart has more than the order', async () => {
+  it('removes purchased cart products even when local quantity is higher than the order', async () => {
     act(() => {
       useCartStore.getState().addItem(createCartItem().product, 3);
     });
@@ -201,19 +221,30 @@ describe('CheckoutSuccessEffects', () => {
     );
 
     await waitFor(() => {
-      expect(useCartStore.getState().items).toEqual([
-        expect.objectContaining({
-          product: expect.objectContaining({ id: VALID_PRODUCT_ID }),
-          quantity: 2,
-        }),
-      ]);
+      expect(useCartStore.getState().items).toHaveLength(0);
     });
-    expect(getPersistedCartItems()).toEqual([
-      expect.objectContaining({
-        product: expect.objectContaining({ id: VALID_PRODUCT_ID }),
-        quantity: 2,
-      }),
-    ]);
+    expect(getPersistedCartItems()).toHaveLength(0);
+  });
+
+  it('cleans local cart and wishlist even when checkout access bootstrap fails', async () => {
+    vi.mocked(QueryConfigs.fetchCheckoutSuccess).mockRejectedValueOnce(new Error('bootstrap failed'));
+
+    act(() => {
+      useCartStore.getState().addItem(createCartItem().product);
+      useWishlistStore.getState().addWishlistItem(createWishlistItem());
+    });
+
+    renderWithProviders(
+      <CheckoutSuccessEffects sessionId="cs_test_123" order={createOrder('paid')} />,
+    );
+
+    await waitFor(() => {
+      expect(useCartStore.getState().items).toHaveLength(0);
+    });
+    expect(QueryConfigs.fetchCheckoutSuccess).toHaveBeenCalledWith('cs_test_123');
+    expect(useWishlistStore.getState().items).toHaveLength(0);
+    expect(getPersistedCartItems()).toHaveLength(0);
+    expect(getPersistedWishlistItems()).toHaveLength(0);
   });
 
   it.each<IOrderStatus>(['paid_needs_attention', 'packed', 'shipped'])(
@@ -272,11 +303,11 @@ describe('CheckoutSuccessEffects', () => {
   });
 
   it('runs targeted cleanup only once for the same successful order effect', async () => {
-    const originalRemovePurchasedLines = useCartStore.getState().removePurchasedLines;
-    const removePurchasedLines = vi.fn(originalRemovePurchasedLines);
+    const originalRemovePurchasedProductIds = useCartStore.getState().removePurchasedProductIds;
+    const removePurchasedProductIds = vi.fn(originalRemovePurchasedProductIds);
 
     act(() => {
-      useCartStore.setState({ removePurchasedLines });
+      useCartStore.setState({ removePurchasedProductIds });
       useCartStore.getState().addItem(createCartItem().product);
     });
 
@@ -284,17 +315,17 @@ describe('CheckoutSuccessEffects', () => {
       renderWithProviders(<CheckoutSuccessEffectsHarness initialOrder={createOrder('paid')} />);
 
       await waitFor(() => {
-        expect(removePurchasedLines).toHaveBeenCalledTimes(1);
+        expect(removePurchasedProductIds).toHaveBeenCalledTimes(1);
       });
 
       await userEvent.click(screen.getByRole('button', { name: 'Refresh order' }));
 
       await waitFor(() => {
-        expect(removePurchasedLines).toHaveBeenCalledTimes(1);
+        expect(removePurchasedProductIds).toHaveBeenCalledTimes(1);
       });
     } finally {
       act(() => {
-        useCartStore.setState({ removePurchasedLines: originalRemovePurchasedLines });
+        useCartStore.setState({ removePurchasedProductIds: originalRemovePurchasedProductIds });
       });
     }
   });

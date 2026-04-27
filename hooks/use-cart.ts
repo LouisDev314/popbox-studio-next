@@ -29,11 +29,6 @@ export interface ICartActionResult {
   success: boolean;
 }
 
-export interface ICartPurchasedLine {
-  productId: string;
-  quantity: number;
-}
-
 const CHECKOUT_LOCKED_ACTION_RESULT: ICartActionResult = {
   message: null,
   success: false,
@@ -55,7 +50,7 @@ interface ICartStore {
   addItem: (product: ICartProduct, quantity?: number) => ICartActionResult;
   removeItem: (cartItemId: string) => void;
   removeInvalidItem: (cartItemId: string) => void;
-  removePurchasedLines: (lines: ICartPurchasedLine[]) => void;
+  removePurchasedProductIds: (productIds: string[]) => void;
   updateQuantity: (cartItemId: string, quantity: number) => ICartActionResult;
   clearCart: () => void;
   getCartSummary: () => ICartSummary;
@@ -107,41 +102,6 @@ function inferProductIssueCode(product: unknown): CartIssueCode {
   return parsedProduct.error.issues.some((issue) => issue.path.join('.') === 'id')
     ? 'invalid_product_id'
     : 'missing_product_data';
-}
-
-function getPurchasedQuantityByProductId(lines: ICartPurchasedLine[]): Map<string, number> {
-  return lines.reduce((quantityByProductId, line) => {
-    if (!line.productId || !Number.isFinite(line.quantity) || line.quantity <= 0) {
-      return quantityByProductId;
-    }
-
-    quantityByProductId.set(
-      line.productId,
-      (quantityByProductId.get(line.productId) ?? 0) + Math.floor(line.quantity),
-    );
-
-    return quantityByProductId;
-  }, new Map<string, number>());
-}
-
-function getRemainingCartItemAfterPurchase(
-  item: ICartItem,
-  purchasedQuantityByProductId: Map<string, number>,
-): ICartItem | null {
-  const purchasedQuantity = purchasedQuantityByProductId.get(item.product.id) ?? 0;
-
-  if (purchasedQuantity <= 0) {
-    return item;
-  }
-
-  if (item.quantity <= purchasedQuantity) {
-    return null;
-  }
-
-  return {
-    ...item,
-    quantity: item.quantity - purchasedQuantity,
-  };
 }
 
 type ICartPersistedState = Pick<ICartStore, 'invalidItems' | 'items'>;
@@ -234,25 +194,17 @@ export const useCartStore = create<ICartStore>()(
         }));
       },
 
-      removePurchasedLines: (lines) => {
-        if (isCartInteractionLocked() || lines.length === 0) {
+      removePurchasedProductIds: (productIds) => {
+        if (isCartInteractionLocked() || productIds.length === 0) {
           return;
         }
 
-        const purchasedQuantityByProductId = getPurchasedQuantityByProductId(lines);
-
-        if (purchasedQuantityByProductId.size === 0) {
-          return;
-        }
+        const purchasedProductIdSet = new Set(productIds);
 
         clearCheckoutError();
 
         set((state) => ({
-          items: state.items.flatMap((item) => {
-            const remainingItem = getRemainingCartItemAfterPurchase(item, purchasedQuantityByProductId);
-
-            return remainingItem ? [remainingItem] : [];
-          }),
+          items: state.items.filter((item) => !purchasedProductIdSet.has(item.product.id)),
         }));
       },
 

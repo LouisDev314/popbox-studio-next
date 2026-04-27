@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { StorefrontImage } from '@/components/ui/storefront-image';
@@ -20,8 +21,6 @@ interface ICartPageItemProps {
 
 export function CartPageItem(props: ICartPageItemProps) {
   const lineTotalCents = props.item.product.priceCents * props.item.quantity;
-  const firstCollection = props.item.product.collections[0];
-  const remainingCollectionCount = props.item.product.collections.length - 1;
 
   return (
     <article
@@ -45,7 +44,7 @@ export function CartPageItem(props: ICartPageItemProps) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-3">
             <div className="min-w-0">
-              <div className='flex justify-between items-center'>
+              <div className="flex items-center justify-between gap-3">
                 <Link
                   href={`/products/${props.item.product.slug}`}
                   className="line-clamp-2 text-base font-semibold text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -63,11 +62,14 @@ export function CartPageItem(props: ICartPageItemProps) {
                 </Button>
               </div>
 
-              {firstCollection ? (
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {firstCollection.name}
-                  {remainingCollectionCount > 0 ? ` +${remainingCollectionCount}` : null}
-                </p>
+              {props.item.product.collections.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {props.item.product.collections.map((collection) => (
+                    <Badge key={collection.id} variant="secondary">
+                      {collection.name}
+                    </Badge>
+                  ))}
+                </div>
               ) : null}
             </div>
           </div>

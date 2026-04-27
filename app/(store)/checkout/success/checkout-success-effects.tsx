@@ -1,60 +1,62 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import QueryConfigs from '@/configs/api/query-config';
+import { CheckoutSuccessSkeleton } from '@/components/store/storefront-page-skeletons';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import type { IOrderDetail } from '@/interfaces/order';
-import {
-  getPurchasedLinesFromOrder,
-  getPurchasedProductIdsFromOrder,
-  isFinalizedCheckoutOrder,
-  type IPurchasedLine,
-} from '@/utils/checkout';
+import { getPurchasedProductIdsFromOrder, isFinalizedCheckoutOrder } from '@/utils/checkout';
 
 interface ICheckoutSuccessEffectsProps {
+  children?: ReactNode;
   sessionId: string;
   order: IOrderDetail;
 }
 
-function logCheckoutCleanupDebug(
-  label: string,
-  payload: {
-    cartItems: unknown[];
-    hasEstablishedAccess: boolean;
-    hasCartHydrated: boolean;
-    hasWishlistHydrated: boolean;
-    isFinalizedOrder: boolean;
-    order: IOrderDetail;
-    purchasedLines: IPurchasedLine[];
-    wishlistItems: unknown[];
-  },
-): void {
-  if (process.env.NODE_ENV !== 'development') {
-    return;
-  }
+export function CheckoutSuccessChromeReady(props: { sessionId: string }) {
+  const markCheckoutSuccessCleanupComplete = useCheckoutUiStore((state) => (
+    state.markCheckoutSuccessCleanupComplete
+  ));
+  const hasMarkedReady = useRef(false);
 
-  console.debug(`[checkout-success-cleanup] ${label}`, {
-    cartItems: payload.cartItems,
-    hasEstablishedAccess: payload.hasEstablishedAccess,
-    hasCartHydrated: payload.hasCartHydrated,
-    hasWishlistHydrated: payload.hasWishlistHydrated,
-    isFinalizedOrder: payload.isFinalizedOrder,
-    orderItems: payload.order.items,
-    orderStatus: payload.order.status,
-    purchasedLines: payload.purchasedLines,
-    wishlistItems: payload.wishlistItems,
-  });
+  useEffect(() => {
+    if (hasMarkedReady.current) {
+      return;
+    }
+
+    hasMarkedReady.current = true;
+    markCheckoutSuccessCleanupComplete(props.sessionId);
+  }, [markCheckoutSuccessCleanupComplete, props.sessionId]);
+
+  return null;
 }
 
 export function CheckoutSuccessEffects(props: ICheckoutSuccessEffectsProps) {
-  const hasCartHydrated = useCartStore((state) => state.hasHydrated);
-  const removePurchasedLines = useCartStore((state) => state.removePurchasedLines);
-  const hasWishlistHydrated = useWishlistStore((state) => state.hasHydrated);
-  const removeWishlistItems = useWishlistStore((state) => state.removeWishlistItems);
+  const purchasedProductIds = useMemo(() => getPurchasedProductIdsFromOrder(props.order), [props.order]);
+  const purchasedProductIdSet = useMemo(() => new Set(purchasedProductIds), [purchasedProductIds]);
+  const isFinalizedOrder = isFinalizedCheckoutOrder(props.order);
 
-  const [hasEstablishedAccess, setHasEstablishedAccess] = useState(false);
+  const hasCartHydrated = useCartStore((state) => state.hasHydrated);
+  const hasPurchasedCartItems = useCartStore((state) => (
+    state.items.some((item) => purchasedProductIdSet.has(item.product.id))
+  ));
+  const removePurchasedProductIds = useCartStore((state) => state.removePurchasedProductIds);
+  const hasWishlistHydrated = useWishlistStore((state) => state.hasHydrated);
+  const hasPurchasedWishlistItems = useWishlistStore((state) => (
+    state.items.some((item) => purchasedProductIdSet.has(item.id))
+  ));
+  const removeWishlistItems = useWishlistStore((state) => state.removeWishlistItems);
+  const markCheckoutSuccessCleanupComplete = useCheckoutUiStore((state) => (
+    state.markCheckoutSuccessCleanupComplete
+  ));
+
   const hasRequestedAccess = useRef(false);
   const hasCleanedUp = useRef(false);
 
@@ -64,88 +66,62 @@ export function CheckoutSuccessEffects(props: ICheckoutSuccessEffectsProps) {
     }
 
     hasRequestedAccess.current = true;
-
-    let isCancelled = false;
-
-    void QueryConfigs.fetchCheckoutSuccess(props.sessionId)
-      .catch(() => undefined)
-      .finally(() => {
-        if (!isCancelled) {
-          setHasEstablishedAccess(true);
-        }
-      });
-
-    return () => {
-      isCancelled = true;
-    };
+    void QueryConfigs.fetchCheckoutSuccess(props.sessionId).catch(() => undefined);
   }, [props.sessionId]);
 
   useEffect(() => {
-    const purchasedLines = getPurchasedLinesFromOrder(props.order);
-
-    logCheckoutCleanupDebug('gate check', {
-      cartItems: useCartStore.getState().items,
-      hasEstablishedAccess,
-      hasCartHydrated,
-      hasWishlistHydrated,
-      isFinalizedOrder: isFinalizedCheckoutOrder(props.order),
-      order: props.order,
-      purchasedLines,
-      wishlistItems: useWishlistStore.getState().items,
-    });
-
     if (
-      !hasEstablishedAccess ||
       hasCleanedUp.current ||
       !hasCartHydrated ||
       !hasWishlistHydrated ||
-      !isFinalizedCheckoutOrder(props.order)
+      !isFinalizedOrder
     ) {
       return;
     }
 
-    const purchasedProductIds = getPurchasedProductIdsFromOrder(props.order);
-    const beforeCartItems = useCartStore.getState().items;
-    const beforeWishlistItems = useWishlistStore.getState().items;
-
-    logCheckoutCleanupDebug('before cleanup', {
-      cartItems: beforeCartItems,
-      hasEstablishedAccess,
-      hasCartHydrated,
-      hasWishlistHydrated,
-      isFinalizedOrder: true,
-      order: props.order,
-      purchasedLines,
-      wishlistItems: beforeWishlistItems,
-    });
-
-    if (purchasedLines.length === 0) {
+    if (purchasedProductIds.length === 0) {
+      hasCleanedUp.current = true;
+      markCheckoutSuccessCleanupComplete(props.sessionId);
       return;
     }
 
     useCheckoutUiStore.getState().endCheckout();
-    removePurchasedLines(purchasedLines);
+    removePurchasedProductIds(purchasedProductIds);
     removeWishlistItems(purchasedProductIds);
     hasCleanedUp.current = true;
-
-    logCheckoutCleanupDebug('after cleanup', {
-      cartItems: useCartStore.getState().items,
-      hasEstablishedAccess,
-      hasCartHydrated,
-      hasWishlistHydrated,
-      isFinalizedOrder: true,
-      order: props.order,
-      purchasedLines,
-      wishlistItems: useWishlistStore.getState().items,
-    });
+    markCheckoutSuccessCleanupComplete(props.sessionId);
   }, [
     hasCartHydrated,
-    hasEstablishedAccess,
     hasWishlistHydrated,
-    props.order,
-    removePurchasedLines,
+    isFinalizedOrder,
+    markCheckoutSuccessCleanupComplete,
+    purchasedProductIds,
+    props.sessionId,
+    removePurchasedProductIds,
     removeWishlistItems,
   ]);
 
-  return null;
+  if (!props.children) {
+    return null;
+  }
+
+  const canShowContent = (
+    hasCartHydrated &&
+    hasWishlistHydrated &&
+    (
+      !isFinalizedOrder ||
+      purchasedProductIds.length === 0 ||
+      (!hasPurchasedCartItems && !hasPurchasedWishlistItems)
+    )
+  );
+
+  if (!canShowContent) {
+    return (
+      <div aria-label="Preparing order confirmation" role="status">
+        <CheckoutSuccessSkeleton />
+      </div>
+    );
+  }
+
+  return props.children;
 }
