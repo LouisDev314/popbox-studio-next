@@ -29,7 +29,7 @@ function AdminSidebarContent() {
           className="flex items-center gap-2.5 rounded-[1.25rem] px-1 py-1 text-[#111827]"
           onClick={handleNavigate}
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a] text-lg font-semibold text-[#f59e0b] shadow-[0_18px_40px_-28px_rgba(15,23,42,0.85)]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a] text-lg font-semibold text-primary shadow-[0_18px_40px_-28px_rgba(15,23,42,0.85)]">
             {ADMIN_BRAND.mark}
           </div>
           <div className="min-w-0">
@@ -65,7 +65,7 @@ function AdminSidebarContent() {
                         className={cn(
                           'group flex items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-sm font-medium transition-all duration-150 ease-out',
                           isActive
-                            ? 'bg-[#fff0d9] text-[#b06707] shadow-[0_16px_36px_-30px_rgba(180,103,7,0.75)]'
+                            ? 'bg-primary/20 text-primary-foreground shadow-[0_16px_36px_-30px_hsl(var(--primary)/0.75)]'
                             : 'text-[#4b5563] hover:bg-[#fbfaf7] hover:text-[#111827]',
                         )}
                         onClick={handleNavigate}
@@ -74,7 +74,7 @@ function AdminSidebarContent() {
                           className={cn(
                             'flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-xl transition-colors',
                             isActive
-                              ? 'bg-[#fff7ea] text-[#b06707]'
+                              ? 'bg-primary/25 text-primary-foreground'
                               : 'bg-[#f8f4eb] text-[#6b7280] group-hover:bg-white group-hover:text-[#111827]',
                           )}
                         >
@@ -98,11 +98,11 @@ function AdminSidebarContent() {
           href={ADMIN_STORE_LINK}
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center justify-between rounded-xl border border-[#dfd5c5] bg-[#fbfaf7] px-3.5 py-2.5 text-[13px] font-medium text-[#111827] transition-colors hover:border-[#f4c57d] hover:bg-[#fff9ef]"
+          className="group flex items-center justify-between rounded-xl border border-[#dfd5c5] bg-[#fbfaf7] px-3.5 py-2.5 text-[13px] font-medium text-[#111827] transition-colors hover:border-primary/45 hover:bg-accent/70"
           onClick={handleNavigate}
         >
           <span>Back to store</span>
-          <ArrowUpRight className="h-4 w-4 shrink-0 text-[#b06707] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          <ArrowUpRight className="h-4 w-4 shrink-0 text-primary-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
         </Link>
       </div>
     </>

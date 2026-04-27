@@ -28,7 +28,7 @@ export function AdminLiveSearchInput(props: IAdminLiveSearchInputProps) {
         spellCheck={false}
         className={cn(
           'h-12 w-full rounded-[18px] border border-[#dfd5c5] bg-white pl-11 pr-12 text-sm text-[#111827] outline-none transition',
-          'placeholder:text-[#9ca3af] focus:border-[#f4c57d] focus:ring-2 focus:ring-[#f6dfb4]',
+          'placeholder:text-[#9ca3af] focus:border-primary/60 focus:ring-2 focus:ring-primary/20',
         )}
       />
       {showClear ? (

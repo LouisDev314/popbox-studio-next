@@ -314,7 +314,7 @@ export function AdminStoreBannerSettingsPage() {
                   className={cn(
                     'mt-2 flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors',
                     form.enabled
-                      ? 'border-[#f4c57d] bg-[#fff7ea] text-[#111827]'
+                      ? 'border-primary/45 bg-accent text-[#111827]'
                       : 'border-[#dfd5c5] bg-white text-[#6b7280]',
                   )}
                   onClick={() => setForm((current) => ({ ...current, enabled: !current.enabled }))}
@@ -350,7 +350,7 @@ export function AdminStoreBannerSettingsPage() {
                   type="button"
                   variant="outline"
                   disabled={hasReachedItemLimit}
-                  className="h-10 w-full rounded-xl border-[#d7c9b8] bg-white px-4 text-sm font-semibold text-[#111827] hover:bg-[#fff7ea] sm:w-auto"
+                  className="h-10 w-full rounded-xl border-[#d7c9b8] bg-white px-4 text-sm font-semibold text-[#111827] hover:bg-accent/70 sm:w-auto"
                   onClick={() => setForm((current) => ({
                     ...current,
                     items: [...current.items, createEmptyItem()],
@@ -433,7 +433,7 @@ function BannerItemEditor(props: {
             type="button"
             aria-label={`Move item ${props.index + 1} up`}
             disabled={props.isFirst}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#d7c9b8] text-[#111827] transition-colors hover:bg-[#fff7ea] disabled:pointer-events-none disabled:opacity-40"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#d7c9b8] text-[#111827] transition-colors hover:bg-accent/70 disabled:pointer-events-none disabled:opacity-40"
             onClick={props.onMoveUp}
           >
             <ArrowUp className="h-4 w-4" />
@@ -442,7 +442,7 @@ function BannerItemEditor(props: {
             type="button"
             aria-label={`Move item ${props.index + 1} down`}
             disabled={props.isLast}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#d7c9b8] text-[#111827] transition-colors hover:bg-[#fff7ea] disabled:pointer-events-none disabled:opacity-40"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#d7c9b8] text-[#111827] transition-colors hover:bg-accent/70 disabled:pointer-events-none disabled:opacity-40"
             onClick={props.onMoveDown}
           >
             <ArrowDown className="h-4 w-4" />

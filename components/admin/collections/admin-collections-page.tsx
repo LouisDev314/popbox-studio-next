@@ -93,7 +93,7 @@ export default function AdminCollectionsPageClient() {
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Collections</h1>
         <button
           onClick={openCreateDialog}
-          className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-white transition-colors hover:bg-primary/90 active:bg-primary/90 sm:w-auto"
+          className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 active:bg-primary/90 sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           New Collection

@@ -55,7 +55,7 @@ export function ProductTileDense(props: IProductTileDenseProps) {
           {product.name}
         </p>
 
-        <span className="text-sm font-semibold text-amber-500">
+        <span className="text-sm font-semibold text-primary">
           {formatPrice(product.priceCents, product.currency)}
         </span>
       </div>

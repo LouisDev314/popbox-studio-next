@@ -28,7 +28,7 @@ function EmptyCustomersState({
 
   return (
     <div className="rounded-[24px] border border-dashed border-[#e4dccf] bg-[#fffdfa] px-6 py-16 text-center">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#fff0d9] text-[#b06707]">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary-foreground">
         <Users className="h-6 w-6" />
       </div>
       <h2 className="text-lg font-semibold text-[#111827]">{title}</h2>

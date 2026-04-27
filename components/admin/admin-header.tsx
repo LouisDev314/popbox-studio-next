@@ -102,7 +102,7 @@ export function AdminHeader() {
                 placeholder={searchConfig.placeholder}
                 className={cn(
                   'h-12 w-full rounded-2xl border border-[#dfd5c5] bg-[#fbfaf7] pl-11 pr-4 text-sm text-[#111827] outline-none transition',
-                  'placeholder:text-[#9ca3af] focus:border-[#f4c57d] focus:ring-2 focus:ring-[#f6dfb4]',
+                  'placeholder:text-[#9ca3af] focus:border-primary/60 focus:ring-2 focus:ring-primary/20',
                 )}
               />
             </div>
@@ -110,7 +110,7 @@ export function AdminHeader() {
             <div className="flex items-center justify-end gap-2">
               <Button
                 type="submit"
-                className="h-11 rounded-2xl bg-[#f59e0b] px-4 text-sm font-semibold text-[#111827] shadow-[0_18px_38px_-28px_rgba(245,158,11,0.85)] hover:bg-[#f3aa2f]"
+                className="h-11 rounded-2xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_18px_38px_-28px_hsl(var(--primary)/0.72)] hover:bg-primary/90"
               >
                 Search
                 <ArrowRight className="ml-2 h-4 w-4" />

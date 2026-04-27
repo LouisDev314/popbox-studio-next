@@ -261,7 +261,7 @@ function ProductThumbnail({
   }
 
   return (
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-[#fff0d9] text-xs font-semibold text-[#b06707]">
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-primary/15 text-xs font-semibold text-primary-foreground">
       {getProductInitials(productName)}
     </div>
   );
@@ -414,7 +414,7 @@ function AdminProductsEmptyState(props: IAdminProductsEmptyStateProps) {
         </Button>
       )}
       {!props.statusFilter && !props.hasActiveView && (
-        <Button asChild className="mt-4 gap-2 rounded-lg bg-primary text-sm text-white hover:opacity-90">
+        <Button asChild className="mt-4 gap-2 rounded-lg bg-primary text-sm text-primary-foreground hover:opacity-90">
           <Link href="/admin/products/new">
             <Plus className="h-4 w-4" />
             Create your first product

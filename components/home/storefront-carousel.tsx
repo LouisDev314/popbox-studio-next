@@ -183,7 +183,7 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
                           label={product.name}
                           priority={index === 0}
                           sizes="(min-width: 1280px) 1152px, (min-width: 1024px) calc(100vw - 128px), 100vw"
-                          className="h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(244,162,28,0.18),transparent_34%),linear-gradient(160deg,#17110d_0%,#2b1d13_54%,#110d0a_100%)] lg:bg-none"
+                          className="h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(239,158,191,0.2),transparent_34%),linear-gradient(160deg,#1c1016_0%,#32202a_54%,#130d10_100%)] lg:bg-none"
                           imageClassName="object-cover object-center transition-transform duration-700 ease-out group-hover/slide:scale-[1.02]"
                           fallbackClassName="border-white/15 bg-white/10 text-white/82 shadow-none backdrop-blur-sm"
                         />

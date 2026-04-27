@@ -148,7 +148,7 @@ function DocumentCard({
           onClick={() => router.push(`/admin/legal/${type}`)}
           className={cn(
             'w-full rounded-lg shadow-none',
-            !exists && 'bg-primary text-white hover:opacity-90',
+            !exists && 'bg-primary text-primary-foreground hover:opacity-90',
             exists && 'border border-border bg-card text-foreground hover:bg-muted',
           )}
           variant={exists ? 'outline' : 'default'}
@@ -230,7 +230,7 @@ function FaqCard({ faqItems }: { faqItems: IAdminFaqItem[] }) {
           onClick={() => router.push('/admin/legal/faq')}
           className={cn(
             'w-full rounded-lg shadow-none',
-            !exists && 'bg-primary text-white hover:opacity-90',
+            !exists && 'bg-primary text-primary-foreground hover:opacity-90',
             exists && 'border border-border bg-card text-foreground hover:bg-muted',
           )}
           variant={exists ? 'outline' : 'default'}

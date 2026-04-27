@@ -12,7 +12,7 @@ import { getTagTypeLabel } from '@/lib/tag-types';
 import { cn } from '@/lib/utils';
 import type { ICollection, ITag } from '@/interfaces/product';
 
-const FILTER_FIELD_CLASSES = 'h-11 w-full rounded-[16px] border border-[#ded5c7] bg-white px-3.5 text-sm text-[#111827] outline-none transition focus:border-[#f4c57d] focus:ring-2 focus:ring-[#f6dfb4]';
+const FILTER_FIELD_CLASSES = 'h-11 w-full rounded-[16px] border border-[#ded5c7] bg-white px-3.5 text-sm text-[#111827] outline-none transition focus:border-primary/60 focus:ring-2 focus:ring-primary/20';
 
 interface ITagFilterDropdownProps {
   availableTags: ITag[];
@@ -89,7 +89,7 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
         className={cn(
           FILTER_FIELD_CLASSES,
           'flex items-center justify-between gap-2.5 text-left shadow-[0_8px_18px_-18px_rgba(17,24,39,0.32)]',
-          isOpen && 'border-[#f4c57d] ring-2 ring-[#f6dfb4]',
+          isOpen && 'border-primary/60 ring-2 ring-primary/20',
         )}
         aria-expanded={isOpen}
         onClick={() => setIsOpen((open) => !open)}
@@ -97,7 +97,7 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
         <span className="flex min-w-0 items-center gap-2">
           <span className={cn('truncate', selectedTagCount === 0 && 'text-[#6b7280]')}>{triggerLabel}</span>
           {selectedTagCount > 0 && (
-            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#f8f1e7] px-2 text-[11px] font-semibold text-[#8c5f1f]">
+            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/15 px-2 text-[11px] font-semibold text-primary-foreground">
               {selectedTagCount}
             </span>
           )}
@@ -119,7 +119,7 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 rounded-full border border-[#ece4d8] bg-[#f8f4eb] px-3 text-xs text-[#111827] hover:bg-[#fff7ea]"
+                className="h-7 rounded-full border border-[#ece4d8] bg-[#f8f4eb] px-3 text-xs text-[#111827] hover:bg-accent/70"
                 onClick={() => {
                   props.onClearTags();
                   setIsOpen(false);
@@ -151,7 +151,7 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
                           className={cn(
                             'flex cursor-pointer items-center gap-2 rounded-[16px] border px-3 py-2 text-sm transition-colors',
                             isSelected
-                              ? 'border-[#f4d39f] bg-[#fff3df] text-[#8c5f1f]'
+                              ? 'border-primary/35 bg-primary/12 text-primary-foreground'
                               : 'border-transparent text-[#4b5563] hover:border-[#ece4d8] hover:bg-[#f8f4eb]',
                           )}
                         >
@@ -167,7 +167,7 @@ function TagFilterDropdown(props: ITagFilterDropdownProps) {
                           <span className="rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8f8577]">
                             {getTagTypeLabel(tag.tagType)}
                           </span>
-                          {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-[#8c5f1f]" />}
+                          {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-primary-foreground" />}
                         </label>
                       );
                     })}
@@ -207,7 +207,7 @@ export function AdminProductsFilterBar(props: IAdminProductsFilterBarProps) {
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7 rounded-full border border-[#ece4d8] bg-[#f8f4eb] px-3 text-xs text-[#111827] hover:bg-[#fff7ea]"
+            className="h-7 rounded-full border border-[#ece4d8] bg-[#f8f4eb] px-3 text-xs text-[#111827] hover:bg-accent/70"
             onClick={props.onClearView}
           >
             Reset

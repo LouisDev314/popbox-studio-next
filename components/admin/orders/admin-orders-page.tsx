@@ -85,7 +85,7 @@ function EmptyOrdersState({
 
   return (
     <div className="rounded-[24px] border border-dashed border-[#e4dccf] bg-[#fffdfa] px-6 py-16 text-center">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#fff0d9] text-[#b06707]">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary-foreground">
         <Package className="h-6 w-6" />
       </div>
       <h2 className="text-lg font-semibold text-[#111827]">{title}</h2>
@@ -254,8 +254,8 @@ export default function AdminOrdersPageClient() {
                   className={[
                     'inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold transition-all',
                     isActive
-                      ? 'border-[#f59e0b] bg-[#f59e0b] text-white shadow-[0_18px_38px_-28px_rgba(245,158,11,0.85)]'
-                      : 'border-[#dfd5c5] bg-white text-[#475467] hover:border-[#f4c57d] hover:bg-[#fff9ef] hover:text-[#111827]',
+                      ? 'border-primary bg-primary text-primary-foreground shadow-[0_18px_38px_-28px_hsl(var(--primary)/0.72)]'
+                      : 'border-[#dfd5c5] bg-white text-[#475467] hover:border-primary/45 hover:bg-accent/70 hover:text-[#111827]',
                   ].join(' ')}
                   onClick={() => handleStatusChange(option.value)}
                 >

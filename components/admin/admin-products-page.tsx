@@ -55,7 +55,7 @@ function ProductsSearchPanel(props: IProductsSearchPanelProps) {
             placeholder="Search products"
             autoComplete="off"
             spellCheck={false}
-            className="h-12 w-full rounded-[18px] border border-[#dfd5c5] bg-white pl-10 pr-12 text-sm text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-[#f4c57d] focus:ring-2 focus:ring-[#f6dfb4]"
+            className="h-12 w-full rounded-[18px] border border-[#dfd5c5] bg-white pl-10 pr-12 text-sm text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
           />
           {props.searchQuery && (
             <button
@@ -213,7 +213,7 @@ export default function AdminProductsPage() {
           <h1 className="text-3xl font-semibold tracking-tight text-[#111827]">Products</h1>
           <Button
             asChild
-            className="h-10 rounded-xl bg-[#f59e0b] px-4 text-sm font-semibold text-[#111827] shadow-[0_16px_34px_-26px_rgba(245,158,11,0.9)] hover:bg-[#f3aa2f]"
+            className="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_16px_34px_-26px_hsl(var(--primary)/0.8)] hover:bg-primary/90"
           >
             <Link href="/admin/products/new">
               <Plus className="h-4 w-4" />
@@ -239,7 +239,7 @@ export default function AdminProductsPage() {
                 className={cn(
                   'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors',
                   activeTab === tab.value
-                    ? 'bg-[#fff0d9] text-[#b06707]'
+                    ? 'bg-primary/20 text-primary-foreground'
                     : 'bg-white text-[#6b7280] hover:bg-[#f8f4eb] hover:text-[#111827]',
                 )}
                 onClick={() => setStatus(tab.value)}

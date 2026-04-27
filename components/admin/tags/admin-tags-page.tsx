@@ -93,7 +93,7 @@ export default function AdminTagsPageClient() {
         <Button
           type="button"
           onClick={openCreateDialog}
-          className="h-9 w-full justify-center gap-1.5 rounded-lg px-4 text-sm font-medium text-white hover:bg-primary/90 active:bg-primary/90 sm:w-auto"
+          className="h-9 w-full justify-center gap-1.5 rounded-lg px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 active:bg-primary/90 sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           New Tag

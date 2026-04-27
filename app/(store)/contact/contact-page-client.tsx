@@ -421,7 +421,7 @@ export default function ContactPageClient() {
                   className="w-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 border-primary ring-0!"
                   disabled={isSending}
                 >
-                  {isSending ? <Loader2 className="size-6 animate-spin text-white" /> : 'Send'}
+                  {isSending ? <Loader2 className="size-6 animate-spin text-primary-foreground" /> : 'Send'}
                 </Button>
                 <p className="text-center text-xs leading-5 text-muted-foreground">
                   We review support issues and product requests in the order they

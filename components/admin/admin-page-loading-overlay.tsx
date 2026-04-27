@@ -19,7 +19,7 @@ export function AdminPageLoadingOverlay(props: IAdminPageLoadingOverlayProps) {
       aria-atomic="true"
     >
       <div className="mx-4 flex max-w-sm items-start gap-3 rounded-[24px] border border-[#e4dccf] bg-[#fbfaf7]/96 px-5 py-4 shadow-[0_22px_50px_-36px_rgba(17,24,39,0.42)]">
-        <Spinner className="mt-0.5 h-4 w-4 shrink-0 text-[#b06707]" aria-hidden="true" />
+        <Spinner className="mt-0.5 h-4 w-4 shrink-0 text-primary-foreground" aria-hidden="true" />
         <div className="space-y-1">
           <p className="text-sm font-semibold text-[#111827]">{title}</p>
           <p className="text-sm text-[#6b7280]">{message}</p>
