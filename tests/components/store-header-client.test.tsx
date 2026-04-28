@@ -62,6 +62,7 @@ describe('StoreHeaderClient', () => {
     });
 
     expect(screen.getByRole('banner')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'PopBox Studio' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'PopBox Studio' })).toHaveAttribute('href', '/');
+    expect(screen.getByAltText('PopBox Studio')).toHaveAttribute('src', expect.stringContaining('store-logo.png'));
   });
 });

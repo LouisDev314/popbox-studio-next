@@ -2,6 +2,7 @@ import Link from 'next/link';
 import TikTokIcon from '@/assets/icons/tiktok-icon';
 import InstagramIcon from '@/assets/icons/instagram-icon';
 import FacebookIcon from '@/assets/icons/facebook-icon';
+import { BrandLogo } from '@/components/layout/brand-logo';
 
 export function StoreFooter() {
   return (
@@ -9,8 +10,11 @@ export function StoreFooter() {
       <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)] lg:gap-12">
           <div>
-            <div className="text-xl font-bold tracking-tight text-foreground">
-              PopBox <span className="text-primary">Studio</span>
+            <div className="flex items-center gap-1">
+              <BrandLogo variant="footer" />
+              <div className="text-xl font-bold tracking-tight text-primary">
+                PopBox <span className="text-foreground">Studio</span>
+              </div>
             </div>
             <p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">
               Premium anime collectibles, Ichiban Kuji drops, and focused product discovery for collectors in Canada.

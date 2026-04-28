@@ -125,10 +125,3 @@ export function isAdminNavItemActive(item: IAdminNavItem, pathname: string) {
 }
 
 export const ADMIN_STORE_LINK = '/';
-
-export const ADMIN_BRAND = {
-  mark: 'P',
-  name: 'PopBox Studio',
-  product: 'Admin',
-  shortName: 'PopBox',
-} as const;

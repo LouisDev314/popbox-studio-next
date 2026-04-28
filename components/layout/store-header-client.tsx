@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, Heart, Search, ShoppingBag } from 'lucide-react';
 import { CartDrawer } from '@/components/cart/cart-drawer';
+import { BrandLogo } from '@/components/layout/brand-logo';
 import { MobileMenuPanel } from '@/components/layout/mobile-menu-panel';
 import { MobileNavOverlay } from '@/components/layout/mobile-nav-overlay';
 import { MobileSearchPanel } from '@/components/layout/mobile-search-panel';
@@ -305,8 +306,16 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-8">
-              <Link href="/" className="truncate font-bold tracking-tight text-primary text-lg sm:text-xl">
-                PopBox Studio
+              <Link
+                href="/"
+                aria-label="PopBox Studio"
+                className="inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <BrandLogo variant="nav" />
+                <span aria-hidden="true" className="text-base font-bold tracking-tight text-primary sm:text-lg">
+                  PopBox <span className='text-foreground'>Studio</span>
+                </span>
+                <span className="sr-only">PopBox Studio</span>
               </Link>
               <nav className="hidden lg:flex lg:items-center lg:gap-2" aria-label="Primary">
                 {desktopNavItems.map((item) => (

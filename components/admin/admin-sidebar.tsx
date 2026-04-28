@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
+import { BrandLogo } from '@/components/layout/brand-logo';
 import { Sidebar, SidebarBody, useSidebar } from '@/components/ui/sidebar';
 import {
-  ADMIN_BRAND,
   ADMIN_STORE_LINK,
   getAdminNavGroups,
   isAdminNavItemActive,
@@ -26,22 +26,15 @@ function AdminSidebarContent() {
       <div className="border-b border-[#e4dccf] px-4 pb-4 pt-5">
         <Link
           href="/admin/products"
-          className="flex items-center gap-2.5 rounded-[1.25rem] px-1 py-1 text-[#111827]"
+          aria-label="PopBox Studio"
+          className="inline-flex h-10 items-center justify-center gap-2.5 rounded-[1.25rem] px-1 py-1 text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[#f3efe6]"
           onClick={handleNavigate}
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a] text-lg font-semibold text-primary shadow-[0_18px_40px_-28px_rgba(15,23,42,0.85)]">
-            {ADMIN_BRAND.mark}
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-end gap-1.5">
-              <span className="truncate text-base font-semibold tracking-tight text-[#111827]">
-                {ADMIN_BRAND.shortName}
-              </span>
-              <span className="pb-0.5 text-sm font-medium text-[#6b7280]">
-                {ADMIN_BRAND.product}
-              </span>
-            </div>
-          </div>
+          <BrandLogo variant="admin" />
+          <span aria-hidden="true" className="text-base font-semibold tracking-tight text-primary">
+            PopBox <span className='text-foreground'>Studio</span>
+          </span>
+          <span className="sr-only">PopBox Studio</span>
         </Link>
       </div>
 
