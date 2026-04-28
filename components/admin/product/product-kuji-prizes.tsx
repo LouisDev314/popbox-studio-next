@@ -38,7 +38,11 @@ import {
 import { IAdminProductEditor, IKujiPrize } from '@/interfaces/product';
 import { uploadAdminProductKujiPrizeImage } from '@/lib/api/admin-client';
 import { formatQuantity } from '@/lib/format-quantity';
-import { KUJI_PRIZE_CODES, isKujiPrizeCode } from '@/lib/kuji-prize-codes';
+import {
+  KUJI_PRIZE_TIERS,
+  getAdminPrizeTierLabel,
+  isKujiPrizeCode,
+} from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
 
@@ -55,6 +59,8 @@ import {
   KujiPrizeFormData,
   buildKujiPrizeCreatePayload,
   createKujiPrizeFormData,
+  getDuplicatePrizeCodeMessage,
+  hasDuplicatePrizeCode,
   mapKujiPrizeServerValidationErrors,
   normalizeKujiPrizeFormData,
   validateKujiPrizeFormData,
@@ -198,8 +204,14 @@ function SortablePrizeRow({
           className="mx-auto"
         />
       </td>
-      <td className="px-3 py-2 font-semibold text-primary">{prize.prizeCode}</td>
-      <td className="px-3 py-2 font-medium text-foreground">{prize.name}</td>
+      <td className="px-3 py-2">
+        <div className="min-w-48">
+          <p className="font-semibold text-primary">
+            {prize.prizeCode} <span className="text-muted-foreground">·</span> {getAdminPrizeTierLabel(prize.prizeTier)}
+          </p>
+          <p className="mt-0.5 truncate font-medium text-foreground">{prize.name}</p>
+        </div>
+      </td>
       <td className="px-3 py-2 text-right text-muted-foreground">{prize.sortOrder}</td>
       <td className="px-3 py-2 text-right text-muted-foreground">{prize.initialQuantity}</td>
       <td className="px-3 py-2 text-right">
@@ -317,7 +329,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
       if (status === HttpStatusCode.Conflict) {
         setCreateErrors((currentErrors) => ({
           ...currentErrors,
-          form: 'Inventory conflict. Check quantities.',
+          prizeCode: getDuplicatePrizeCodeMessage(),
         }));
         return;
       }
@@ -411,18 +423,27 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
     });
   };
 
-  const handleCreatePrizeCodeChange = (value: string | null) => {
+  const handleCreatePrizeCodeChange = (value: string) => {
+    setNewPrize((currentPrize) => ({
+      ...currentPrize,
+      prizeCode: value,
+    }));
+
+    clearCreateFieldError('prizeCode');
+  };
+
+  const handleCreatePrizeTierChange = (value: string | null) => {
     if (!value || !isKujiPrizeCode(value)) {
       return;
     }
 
     setNewPrize((currentPrize) => ({
       ...currentPrize,
-      prizeCode: value,
-      invalidPrizeCode: null,
+      prizeTier: value,
+      invalidPrizeTier: null,
     }));
 
-    clearCreateFieldError('prizeCode');
+    clearCreateFieldError('prizeTier');
   };
 
   const handleCreateFieldChange = (field: EditableKujiPrizeTextField, value: string) => {
@@ -464,6 +485,13 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
 
     if (Object.keys(nextErrors).length > 0) {
       setCreateErrors(nextErrors);
+      return;
+    }
+
+    if (hasDuplicatePrizeCode(serverPrizes, normalizedNewPrize.prizeCode)) {
+      setCreateErrors({
+        prizeCode: getDuplicatePrizeCodeMessage(),
+      });
       return;
     }
 
@@ -588,8 +616,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
                       <th className="w-11 px-2 py-2">
                         <span className="sr-only">Reorder</span>
                       </th>
-                      <th className="px-3 py-2 font-medium">Rank</th>
-                      <th className="px-3 py-2 font-medium">Name</th>
+                      <th className="px-3 py-2 font-medium">Prize</th>
                       <th className="px-3 py-2 font-medium text-right">Sort</th>
                       <th className="px-3 py-2 font-medium text-right">Initial Qty</th>
                       <th className="px-3 py-2 font-medium text-right">Remaining</th>
@@ -635,31 +662,46 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
           </div>
           <form id="create-kuji-prize-form" onSubmit={handleCreate} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-start">
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Rank (e.g. A)</label>
-              <Select
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Prize Code</label>
+              <Input
+                required
                 value={newPrize.prizeCode}
-                onValueChange={handleCreatePrizeCodeChange}
+                onChange={(event) => handleCreatePrizeCodeChange(event.target.value)}
+                onBlur={(event) => handleCreatePrizeCodeChange(event.target.value.trim().toUpperCase())}
+                className={cn('h-8 text-sm uppercase', getFieldClasses(Boolean(createErrors.prizeCode)))}
+                placeholder="A1"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">Unique per product, e.g. A1, A2, B1, LO.</p>
+              {createErrors.prizeCode ? <p className="mt-1 text-xs text-red-600">{createErrors.prizeCode}</p> : null}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Prize Tier</label>
+              <Select
+                value={newPrize.prizeTier}
+                onValueChange={handleCreatePrizeTierChange}
                 modal={false}
               >
                 <SelectTrigger
-                  className={cn('h-8 w-full text-sm', getFieldClasses(Boolean(createErrors.prizeCode)))}
-                  aria-label="Rank (e.g. A)"
+                  className={cn('h-8 w-full text-sm', getFieldClasses(Boolean(createErrors.prizeTier)))}
+                  aria-label="Prize Tier"
                 >
-                  <SelectValue className={cn(!newPrize.prizeCode && 'text-muted-foreground')}>
-                    {newPrize.prizeCode || 'Select rank'}
+                  <SelectValue className={cn(!newPrize.prizeTier && 'text-muted-foreground')}>
+                    {newPrize.prizeTier || 'Select tier'}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false}>
                   <SelectGroup>
-                    {KUJI_PRIZE_CODES.map((code) => (
-                      <SelectItem key={code} value={code}>
-                        {code}
+                    {KUJI_PRIZE_TIERS.map((tier) => (
+                      <SelectItem key={tier} value={tier}>
+                        {getAdminPrizeTierLabel(tier)}
                       </SelectItem>
                     ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              {createErrors.prizeCode ? <p className="mt-1 text-xs text-red-600">{createErrors.prizeCode}</p> : null}
+              <p className="mt-1 text-xs text-muted-foreground">Customer-facing group, e.g. Prize A or Last One.</p>
+              {createErrors.prizeTier ? <p className="mt-1 text-xs text-red-600">{createErrors.prizeTier}</p> : null}
             </div>
 
             <div className="lg:col-span-2">
@@ -739,6 +781,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
       <EditKujiPrizeModal
         open={editingPrize !== null}
         prize={editingPrize}
+        prizes={serverPrizes}
         productId={product.id}
         onOpenChange={(open) => {
           if (!open) {

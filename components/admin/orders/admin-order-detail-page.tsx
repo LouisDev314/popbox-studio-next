@@ -12,6 +12,7 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { formatPrice } from '@/lib/utils';
+import { getAdminPrizeTierLabel } from '@/lib/kuji-prize-codes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -320,7 +321,9 @@ function OrderTicketsSection({ order }: { order: IOrderDetail }) {
             </div>
             <div className="text-left sm:text-right">
               {ticket.prize ? (
-                <span className="font-semibold text-primary">Prize {ticket.prize.prizeCode}: {ticket.prize.name}</span>
+                <span className="font-semibold text-primary">
+                  {ticket.prize.prizeCode} · {getAdminPrizeTierLabel(ticket.prize.prizeTier)}: {ticket.prize.name}
+                </span>
               ) : ticket.voidedAt ? (
                 <span className="text-red-500">Voided</span>
               ) : (

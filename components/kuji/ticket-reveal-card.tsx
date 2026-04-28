@@ -4,6 +4,7 @@ import { type ReactNode } from 'react';
 import Image from 'next/image';
 import { Sparkles } from 'lucide-react';
 import { IOrderTicket } from '@/interfaces/order';
+import { getPrizeTierLabel } from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
 
 interface ITicketRevealCardProps {
@@ -152,7 +153,7 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
         <div className="absolute inset-0 backface-hidden [transform:rotateY(180deg)]">
           <TicketFace>
             <TicketMeta
-              eyebrow={prize ? `Prize ${prize.prizeCode}` : 'Prize revealed'}
+              eyebrow={prize ? getPrizeTierLabel(prize.prizeTier) : 'Prize revealed'}
               title={prize?.name ?? 'Prize revealed'}
             />
           </TicketFace>

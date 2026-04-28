@@ -115,6 +115,7 @@ describe('OrderTicketsPageClient', () => {
         prize: {
           id: 'prize-1',
           prizeCode: 'F',
+          prizeTier: 'F',
           name: 'Prize One',
           description: null,
           imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
@@ -147,6 +148,7 @@ describe('OrderTicketsPageClient', () => {
       prize: {
         id: 'prize-1',
         prizeCode: 'F',
+        prizeTier: 'F',
         name: 'Prize One',
         description: null,
         imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
@@ -219,6 +221,7 @@ describe('OrderTicketsPageClient', () => {
         prize: {
           id: 'prize-1',
           prizeCode: 'F',
+          prizeTier: 'F',
           name: 'Prize One',
           description: null,
           imageUrl: null,
@@ -244,6 +247,7 @@ describe('OrderTicketsPageClient', () => {
         prize: {
           id: 'prize-1',
           prizeCode: 'F',
+          prizeTier: 'F',
           name: 'Prize One',
           description: null,
           imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
@@ -291,6 +295,7 @@ describe('OrderTicketsPageClient', () => {
           prize: {
             id: 'prize-1',
             prizeCode: 'C',
+            prizeTier: 'C',
             name: 'Prize One',
             description: null,
             imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
@@ -304,6 +309,7 @@ describe('OrderTicketsPageClient', () => {
           prize: {
             id: 'prize-2',
             prizeCode: 'G',
+            prizeTier: 'G',
             name: 'Prize Two',
             description: null,
             imageUrl: 'https://cdn.example.com/prizes/prize-two.jpg',
@@ -368,6 +374,7 @@ describe('OrderTicketsPageClient', () => {
             prize: {
               id: 'prize-1',
               prizeCode: 'A',
+              prizeTier: 'A',
               name: 'Prize One',
               description: 'Overlay prize dialog copy',
               imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
@@ -469,6 +476,7 @@ describe('OrderTicketsPageClient', () => {
       prize: {
         id: 'prize-1',
         prizeCode: 'A',
+        prizeTier: 'A',
         name: 'Prize One',
         description: 'Prize dialog copy',
         imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',

@@ -32,6 +32,7 @@ describe('KujiPrizeTiles', () => {
           kujiProductName: 'Ichiban Kuji Moonlight Parade',
           name: 'Prize One',
           prizeCode: 'A',
+          prizeTier: 'A',
         }]}
       />,
     );

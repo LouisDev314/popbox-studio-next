@@ -1,10 +1,11 @@
 import { type IKujiPrize, type IKujiTicketSummary, type IProductCard } from '@/interfaces/product';
+import { isLastOnePrizeTier } from '@/lib/kuji-prize-codes';
 
 type TProductStockLike = Pick<IProductCard, 'inventory' | 'productType' | 'ticketSummary'> & {
   kujiPrizes?: IKujiPrize[];
 };
 
-type KujiPrizeLike = Pick<IKujiPrize, 'prizeCode' | 'initialQuantity' | 'remainingQuantity'>;
+type KujiPrizeLike = Pick<IKujiPrize, 'prizeTier' | 'initialQuantity' | 'remainingQuantity'>;
 
 export type InventoryStatus = 'sold_out' | 'low_stock' | 'in_stock';
 
@@ -16,10 +17,6 @@ interface IProductInventoryState {
 }
 
 export const MAX_IN_CART_MESSAGE = 'You already have the maximum available quantity in your cart.';
-
-function normalizePrizeCode(prizeCode: string): string {
-  return prizeCode.trim().toUpperCase();
-}
 
 function normalizeTicketCount(value: number | null | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
@@ -110,13 +107,13 @@ export function getProductInventoryStatusLabel(product: TProductStockLike): stri
   return inventoryState.status === 'low_stock' ? 'Low in Stock' : 'Stock Available';
 }
 
-export function isLastOnePrize(prizeCode: string): boolean {
-  return normalizePrizeCode(prizeCode) === 'LO';
+export function isLastOnePrize(prizeTier: string): boolean {
+  return isLastOnePrizeTier(prizeTier);
 }
 
 export function getKujiTicketSummary(prizes: KujiPrizeLike[]): IKujiTicketSummary {
   return prizes.reduce<IKujiTicketSummary>((summary, prize) => {
-    if (isLastOnePrize(prize.prizeCode)) {
+    if (isLastOnePrize(prize.prizeTier)) {
       return summary;
     }
 
@@ -157,7 +154,7 @@ export function getKujiSellableQuantity(product: TProductStockLike): number | nu
 
   if (Array.isArray(product.kujiPrizes) && product.kujiPrizes.length > 0) {
     return product.kujiPrizes.reduce((total, prize) => {
-      if (isLastOnePrize(prize.prizeCode)) {
+      if (isLastOnePrize(prize.prizeTier)) {
         return total;
       }
 

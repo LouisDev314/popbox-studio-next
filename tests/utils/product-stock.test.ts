@@ -10,22 +10,22 @@ describe('product-stock', () => {
   it('excludes the LO prize and clamps invalid values when deriving kuji ticket totals', () => {
     const summary = getKujiTicketSummary([
       {
-        prizeCode: 'A',
+        prizeTier: 'A',
         initialQuantity: 50,
         remainingQuantity: 14,
       },
       {
-        prizeCode: 'B',
+        prizeTier: 'B',
         initialQuantity: -5,
         remainingQuantity: -2,
       },
       {
-        prizeCode: 'C',
+        prizeTier: 'C',
         initialQuantity: 30,
         remainingQuantity: 12,
       },
       {
-        prizeCode: 'LO',
+        prizeTier: 'LO',
         initialQuantity: 1,
         remainingQuantity: 1,
       },
@@ -50,6 +50,7 @@ describe('product-stock', () => {
         {
           id: 'prize-a',
           prizeCode: 'A',
+          prizeTier: 'A',
           name: 'Prize A',
           description: null,
           imageUrl: null,
@@ -83,6 +84,7 @@ describe('product-stock', () => {
         {
           id: 'prize-a',
           prizeCode: 'A',
+          prizeTier: 'A',
           name: 'Prize A',
           description: null,
           imageUrl: null,
@@ -93,6 +95,7 @@ describe('product-stock', () => {
         {
           id: 'prize-b',
           prizeCode: 'B',
+          prizeTier: 'B',
           name: 'Prize B',
           description: null,
           imageUrl: null,
@@ -102,7 +105,8 @@ describe('product-stock', () => {
         },
         {
           id: 'prize-lo',
-          prizeCode: 'LO',
+          prizeCode: 'L1',
+          prizeTier: 'LO',
           name: 'Last One',
           description: null,
           imageUrl: null,

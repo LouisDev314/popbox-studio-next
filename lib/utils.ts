@@ -1,6 +1,11 @@
 import { ReadonlyURLSearchParams } from 'next/navigation';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import {
+  getPrizeTierLabel,
+  isLastOnePrizeTier,
+  normalizeKujiPrizeTier,
+} from '@/lib/kuji-prize-codes';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -65,19 +70,13 @@ export function getPrizeStockClasses(count: number, total: number): string {
 }
 
 export function getPrizeBadgeLabel(prizeCode: string): string {
-  const code = prizeCode.toUpperCase();
-
-  if (code.includes('LAST')) {
-    return 'Last Prize';
-  }
-
-  return `Prize ${prizeCode}`;
+  return getPrizeTierLabel(prizeCode);
 }
 
-export function getPrizeBadgeClasses(prizeCode: string): string {
-  const code = prizeCode.toUpperCase();
+export function getPrizeBadgeClasses(prizeTier: string): string {
+  const code = normalizeKujiPrizeTier(prizeTier);
 
-  if (code.includes('LAST')) {
+  if (isLastOnePrizeTier(code)) {
     return 'border-primary/30 bg-accent text-foreground';
   }
 

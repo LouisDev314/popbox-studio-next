@@ -4,18 +4,24 @@ import {
   type IAdminKujiPrizeUpdateRequest,
   IKujiPrize,
 } from '@/interfaces/product';
-import { type KujiPrizeCode, parseKujiPrizeCode } from '@/lib/kuji-prize-codes';
+import {
+  type KujiPrizeTier,
+  normalizeKujiPrizeCode,
+  normalizeKujiPrizeTier,
+  parseKujiPrizeCode,
+} from '@/lib/kuji-prize-codes';
 
 export type EditableKujiPrizeField = keyof Pick<
   IKujiPrize,
-  'prizeCode' | 'name' | 'description' | 'imageUrl' | 'initialQuantity' | 'remainingQuantity' | 'sortOrder'
+  'prizeCode' | 'prizeTier' | 'name' | 'description' | 'imageUrl' | 'initialQuantity' | 'remainingQuantity' | 'sortOrder'
 >;
 
-export type EditableKujiPrizeTextField = Exclude<EditableKujiPrizeField, 'prizeCode'>;
+export type EditableKujiPrizeTextField = Exclude<EditableKujiPrizeField, 'prizeTier'>;
 
 export type KujiPrizeFormData = {
-  prizeCode: KujiPrizeCode | '';
-  invalidPrizeCode: string | null;
+  prizeCode: string;
+  prizeTier: KujiPrizeTier | '';
+  invalidPrizeTier: string | null;
   name: string;
   description: string;
   imageUrl: string;
@@ -27,7 +33,8 @@ export type KujiPrizeFormData = {
 export type KujiPrizeFieldErrors = Partial<Record<EditableKujiPrizeField | 'form', string>>;
 
 export type NormalizedKujiPrizeFormData = {
-  prizeCode: KujiPrizeCode | null;
+  prizeCode: string | null;
+  prizeTier: string | null;
   name: string;
   description: string | null;
   imageUrl: string | null;
@@ -40,27 +47,28 @@ type ValidateKujiPrizeFormDataOptions = {
   skipImageUrlValidation?: boolean;
 };
 
-type ComparableKujiPrize = Omit<NormalizedKujiPrizeFormData, 'prizeCode' | 'initialQuantity' | 'remainingQuantity' | 'sortOrder'> & {
+type ComparableKujiPrize = Omit<NormalizedKujiPrizeFormData, 'prizeCode' | 'prizeTier' | 'initialQuantity' | 'remainingQuantity' | 'sortOrder'> & {
   prizeCode: string;
+  prizeTier: string;
   initialQuantity: number;
   remainingQuantity: number;
   sortOrder: number;
 };
 
-function createPrizeCodeState(prizeCode: string | undefined): Pick<KujiPrizeFormData, 'prizeCode' | 'invalidPrizeCode'> {
-  const normalizedPrizeCode = normalizeRequiredText(prizeCode ?? '');
-  const parsedPrizeCode = parseKujiPrizeCode(normalizedPrizeCode);
+function createPrizeTierState(prizeTier: string | undefined): Pick<KujiPrizeFormData, 'prizeTier' | 'invalidPrizeTier'> {
+  const normalizedPrizeTier = normalizeKujiPrizeTier(prizeTier ?? '');
+  const parsedPrizeTier = parseKujiPrizeCode(normalizedPrizeTier);
 
-  if (parsedPrizeCode) {
+  if (parsedPrizeTier) {
     return {
-      prizeCode: parsedPrizeCode,
-      invalidPrizeCode: null,
+      prizeTier: parsedPrizeTier,
+      invalidPrizeTier: null,
     };
   }
 
   return {
-    prizeCode: '',
-    invalidPrizeCode: normalizedPrizeCode === '' ? null : normalizedPrizeCode,
+    prizeTier: '',
+    invalidPrizeTier: normalizedPrizeTier === '' ? null : normalizedPrizeTier,
   };
 }
 
@@ -68,7 +76,8 @@ export function createKujiPrizeFormData(
   prize: Partial<Pick<IKujiPrize, EditableKujiPrizeField>> = {},
 ): KujiPrizeFormData {
   return {
-    ...createPrizeCodeState(prize.prizeCode),
+    prizeCode: normalizeKujiPrizeCode(prize.prizeCode ?? ''),
+    ...createPrizeTierState(prize.prizeTier),
     name: prize.name ?? '',
     description: prize.description ?? '',
     imageUrl: prize.imageUrl ?? '',
@@ -110,8 +119,14 @@ export function isValidUrl(value: string): boolean {
 }
 
 export function normalizeKujiPrizeFormData(formData: KujiPrizeFormData): NormalizedKujiPrizeFormData {
+  const normalizedPrizeCode = normalizeKujiPrizeCode(formData.prizeCode);
+  const normalizedPrizeTier = formData.prizeTier === ''
+    ? ''
+    : normalizeKujiPrizeTier(formData.prizeTier);
+
   return {
-    prizeCode: formData.prizeCode === '' ? null : formData.prizeCode,
+    prizeCode: normalizedPrizeCode === '' ? null : normalizedPrizeCode,
+    prizeTier: normalizedPrizeTier === '' ? null : normalizedPrizeTier,
     name: normalizeRequiredText(formData.name),
     description: normalizeOptionalText(formData.description),
     imageUrl: normalizeOptionalText(formData.imageUrl),
@@ -123,7 +138,8 @@ export function normalizeKujiPrizeFormData(formData: KujiPrizeFormData): Normali
 
 function normalizePrizeForComparison(prize: IKujiPrize): ComparableKujiPrize {
   return {
-    prizeCode: parseKujiPrizeCode(prize.prizeCode) ?? normalizeRequiredText(prize.prizeCode),
+    prizeCode: normalizeKujiPrizeCode(prize.prizeCode),
+    prizeTier: normalizeKujiPrizeTier(prize.prizeTier),
     name: normalizeRequiredText(prize.name),
     description: normalizeOptionalText(prize.description ?? ''),
     imageUrl: normalizeOptionalText(prize.imageUrl ?? ''),
@@ -140,7 +156,11 @@ export function validateKujiPrizeFormData(
   const errors: KujiPrizeFieldErrors = {};
 
   if (formData.prizeCode === null) {
-    errors.prizeCode = 'Rank is required.';
+    errors.prizeCode = 'Prize code is required.';
+  }
+
+  if (formData.prizeTier === null) {
+    errors.prizeTier = 'Prize tier is required.';
   }
 
   if (formData.name === '') {
@@ -179,15 +199,17 @@ export function buildKujiPrizeCreatePayload(
 ): IAdminKujiPrizeCreateRequest {
   if (
     formData.prizeCode === null ||
+    formData.prizeTier === null ||
     formData.initialQuantity === null ||
     formData.remainingQuantity === null ||
     formData.sortOrder === null
   ) {
-    throw new Error('Kuji prize payload requires a valid rank, numeric quantity, and sort order values.');
+    throw new Error('Kuji prize payload requires a valid prize code, prize tier, numeric quantity, and sort order values.');
   }
 
   return {
     prizeCode: formData.prizeCode,
+    prizeTier: formData.prizeTier,
     name: formData.name,
     description: formData.description,
     imageUrl: formData.imageUrl,
@@ -206,6 +228,10 @@ export function buildKujiPrizeUpdatePayload(
 
   if (formData.prizeCode !== null && formData.prizeCode !== originalPrize.prizeCode) {
     payload.prizeCode = formData.prizeCode;
+  }
+
+  if (formData.prizeTier !== null && formData.prizeTier !== originalPrize.prizeTier) {
+    payload.prizeTier = formData.prizeTier;
   }
 
   if (formData.name !== originalPrize.name) {
@@ -277,6 +303,15 @@ export function mapKujiPrizeServerValidationErrors(
       ),
     },
     {
+      field: 'prizeTier',
+      match: (path, message) => (
+        path.includes('prizetier')
+        || path.includes('prize_tier')
+        || message.includes('prize tier')
+        || message.includes('prizetier')
+      ),
+    },
+    {
       field: 'imageUrl',
       match: (path, message) => (
         path.includes('imageurl')
@@ -337,4 +372,25 @@ export function mapKujiPrizeServerValidationErrors(
   }
 
   return errors;
+}
+
+export function hasDuplicatePrizeCode(
+  prizes: Pick<IKujiPrize, 'id' | 'prizeCode'>[],
+  prizeCode: string | null,
+  excludePrizeId?: string,
+): boolean {
+  if (!prizeCode) {
+    return false;
+  }
+
+  const normalizedPrizeCode = normalizeKujiPrizeCode(prizeCode);
+
+  return prizes.some((prize) => (
+    prize.id !== excludePrizeId &&
+    normalizeKujiPrizeCode(prize.prizeCode) === normalizedPrizeCode
+  ));
+}
+
+export function getDuplicatePrizeCodeMessage(): string {
+  return 'A prize with this code already exists for this product. Use a unique prize code.';
 }

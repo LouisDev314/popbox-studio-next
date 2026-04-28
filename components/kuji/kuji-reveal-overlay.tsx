@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { KujiPrizeTiles, type IKujiPrizeTileItem } from '@/components/kuji/kuji-prize-tiles';
+import { getPrizeTierLabel } from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
 import type { IOrderTicket } from '@/interfaces/order';
 
@@ -61,6 +62,7 @@ function buildSummaryPrizeTiles(tickets: IOrderTicket[]): IKujiPrizeTileItem[] {
       kujiProductName: ticket.kujiProduct.name,
       name: ticket.prize.name,
       prizeCode: ticket.prize.prizeCode,
+      prizeTier: ticket.prize.prizeTier,
     }];
   });
 }
@@ -149,7 +151,7 @@ function KujiSingleRevealResultView(props: {
   ticket: IOrderTicket;
 }) {
   const prizeName = props.ticket.prize?.name ?? 'Prize revealed';
-  const prizeCode = props.ticket.prize?.prizeCode ?? '—';
+  const prizeTierLabel = getPrizeTierLabel(props.ticket.prize?.prizeTier);
 
   return (
     <OverlayAtmosphere>
@@ -159,11 +161,11 @@ function KujiSingleRevealResultView(props: {
             Congratulations
           </h2>
           <p className="text-lg font-semibold text-muted-foreground">
-            {prizeName}
+            {prizeTierLabel} · {prizeName}
           </p>
           <div className="flex items-center justify-center gap-2">
             <span className="inline-flex rounded-full border border-border/70 bg-background/75 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-foreground/78 shadow-sm">
-              Prize {prizeCode}
+              {prizeTierLabel}
             </span>
             {props.progressLabel ? (
               <span className="inline-flex rounded-full border border-border/70 bg-background/75 px-3 py-1 text-xs font-semibold text-muted-foreground shadow-sm">

@@ -45,7 +45,7 @@ export interface IOrderTicket {
   revealedAt: string | null;
   voidedAt: string | null;
   voidReason: string | null;
-  prize: Pick<IKujiPrize, 'id' | 'name' | 'description' | 'imageUrl' | 'prizeCode'> | null;
+  prize: Pick<IKujiPrize, 'id' | 'name' | 'description' | 'imageUrl' | 'prizeCode' | 'prizeTier'> | null;
   kujiProduct: {
     id: string;
     name: string;

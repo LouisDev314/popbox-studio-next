@@ -12,7 +12,8 @@ function createTicket(overrides: Partial<IOrderTicket> = {}): IOrderTicket {
     voidReason: null,
     prize: {
       id: 'prize-1',
-      prizeCode: 'B',
+      prizeCode: 'B1',
+      prizeTier: 'B',
       name: 'Grand Figure',
       description: 'This is prize a for testing',
       imageUrl: 'https://cdn.example.com/prizes/grand-figure.jpg',
@@ -58,7 +59,8 @@ describe('TicketRevealCard', () => {
         ticket={createTicket({
           prize: {
             id: 'prize-1',
-            prizeCode: 'B',
+            prizeCode: 'B1',
+            prizeTier: 'B',
             name: 'Grand Figure',
             description: null,
             imageUrl: 'https://cdn.example.com/prizes/grand-figure.jpg',

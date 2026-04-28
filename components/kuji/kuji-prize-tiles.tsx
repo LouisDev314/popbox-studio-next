@@ -12,6 +12,7 @@ import {
 export interface IKujiPrizeTileItem {
   id: string;
   prizeCode: string;
+  prizeTier: string;
   name: string;
   description: string | null;
   imageUrl: string | null;
@@ -37,7 +38,7 @@ interface IKujiPrizeTileCardProps {
 }
 
 function KujiPrizeTileCard(props: IKujiPrizeTileCardProps) {
-  const badgeLabel = getPrizeBadgeLabel(props.item.prizeCode);
+  const badgeLabel = getPrizeBadgeLabel(props.item.prizeTier);
 
   const content = (
     <>
@@ -66,7 +67,7 @@ function KujiPrizeTileCard(props: IKujiPrizeTileCardProps) {
           <span
             className={cn(
               'inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]',
-              getPrizeBadgeClasses(props.item.prizeCode),
+              getPrizeBadgeClasses(props.item.prizeTier),
             )}
           >
             {badgeLabel}
@@ -157,7 +158,7 @@ function KujiPrizeDialog(props: {
     );
   }
 
-  const badgeLabel = getPrizeBadgeLabel(props.item.prizeCode);
+  const badgeLabel = getPrizeBadgeLabel(props.item.prizeTier);
 
   return (
     <Dialog modal={props.modal} open={props.open} onOpenChange={props.onOpenChange}>
@@ -184,7 +185,7 @@ function KujiPrizeDialog(props: {
               <span
                 className={cn(
                   'inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
-                  getPrizeBadgeClasses(props.item.prizeCode),
+                  getPrizeBadgeClasses(props.item.prizeTier),
                 )}
               >
                 {badgeLabel}

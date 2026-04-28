@@ -83,6 +83,7 @@ function buildRevealedPrizeTiles(tickets: IOrderTicket[]): IKujiPrizeTileItem[] 
       imageUrl: ticket.prize.imageUrl,
       name: ticket.prize.name,
       prizeCode: ticket.prize.prizeCode,
+      prizeTier: ticket.prize.prizeTier,
     }];
   });
 }

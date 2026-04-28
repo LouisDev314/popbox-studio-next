@@ -7,6 +7,7 @@ import {
   getPrizeStockClasses,
   getPrizeStockLabel,
 } from '@/lib/utils';
+import { isLastOnePrizeTier } from '@/lib/kuji-prize-codes';
 
 interface IKujiPrizesViewProps {
   prizes: IKujiPrize[];
@@ -16,11 +17,12 @@ function toPrizeTile(prize: IKujiPrize): IKujiPrizeTileItem {
   return {
     id: prize.id,
     prizeCode: prize.prizeCode,
+    prizeTier: prize.prizeTier,
     name: prize.name,
     description: prize.description,
     imageUrl: prize.imageUrl,
     stockClassName: getPrizeStockClasses(prize.remainingQuantity, prize.initialQuantity),
-    stockLabel: prize.prizeCode === 'LO'
+    stockLabel: isLastOnePrizeTier(prize.prizeTier)
       ? null
       : getPrizeStockLabel(prize.remainingQuantity, prize.initialQuantity),
   };

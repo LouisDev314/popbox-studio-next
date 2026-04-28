@@ -21,7 +21,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { uploadAdminProductKujiPrizeImage } from '@/lib/api/admin-client';
-import { KUJI_PRIZE_CODES, isKujiPrizeCode } from '@/lib/kuji-prize-codes';
+import {
+  KUJI_PRIZE_TIERS,
+  getAdminPrizeTierLabel,
+  isKujiPrizeCode,
+} from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
 import {
@@ -31,12 +35,14 @@ import {
   KujiPrizeFormData,
   buildKujiPrizeUpdatePayload,
   createKujiPrizeFormData,
+  getDuplicatePrizeCodeMessage,
+  hasDuplicatePrizeCode,
   mapKujiPrizeServerValidationErrors,
   normalizeKujiPrizeFormData,
   validateKujiPrizeFormData,
 } from './kuji-prize-form-utils';
 
-const INVALID_PRIZE_CODE_SELECT_VALUE = '__invalid_prize_code__';
+const INVALID_PRIZE_TIER_SELECT_VALUE = '__invalid_prize_tier__';
 
 type EditKujiPrizeNotification = {
   type: 'success' | 'error';
@@ -58,6 +64,7 @@ interface IReplacePrizeImageFieldProps {
 interface IEditKujiPrizeFormProps {
   productId: string;
   prize: IKujiPrize;
+  prizes: IKujiPrize[];
   onCancel: () => void;
   onSuccess: () => void;
   onNotify: (notification: EditKujiPrizeNotification) => void;
@@ -138,7 +145,7 @@ function ReplacePrizeImageField({
 
 // This form intentionally keeps related edit logic colocated for the modal workflow.
 // eslint-disable-next-line complexity
-export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNotify }: IEditKujiPrizeFormProps) {
+export function EditKujiPrizeForm({ productId, prize, prizes, onCancel, onSuccess, onNotify }: IEditKujiPrizeFormProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<KujiPrizeFormData>(() => createKujiPrizeFormData(prize));
   const [errors, setErrors] = useState<KujiPrizeFieldErrors>({});
@@ -179,7 +186,7 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
       if (status === HttpStatusCode.Conflict) {
         setErrors((currentErrors) => ({
           ...currentErrors,
-          form: 'Inventory conflict. Check quantities.',
+          prizeCode: getDuplicatePrizeCodeMessage(),
         }));
         return;
       }
@@ -212,18 +219,27 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
     });
   };
 
-  const handlePrizeCodeChange = (value: string | null) => {
+  const handlePrizeCodeChange = (value: string) => {
+    setFormData((currentFormData) => ({
+      ...currentFormData,
+      prizeCode: value,
+    }));
+
+    clearFieldError('prizeCode');
+  };
+
+  const handlePrizeTierChange = (value: string | null) => {
     if (!value || !isKujiPrizeCode(value)) {
       return;
     }
 
     setFormData((currentFormData) => ({
       ...currentFormData,
-      prizeCode: value,
-      invalidPrizeCode: null,
+      prizeTier: value,
+      invalidPrizeTier: null,
     }));
 
-    clearFieldError('prizeCode');
+    clearFieldError('prizeTier');
   };
 
   const handleFieldChange = (field: EditableKujiPrizeTextField, value: string) => {
@@ -265,6 +281,13 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
+      return;
+    }
+
+    if (hasDuplicatePrizeCode(prizes, normalizedFormData.prizeCode, prize.id)) {
+      setErrors({
+        prizeCode: getDuplicatePrizeCodeMessage(),
+      });
       return;
     }
 
@@ -316,44 +339,59 @@ export function EditKujiPrizeForm({ productId, prize, onCancel, onSuccess, onNot
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-foreground">Rank (e.g. A)</label>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Prize Code</label>
+          <Input
+            required
+            value={formData.prizeCode}
+            onChange={(event) => handlePrizeCodeChange(event.target.value)}
+            onBlur={(event) => handlePrizeCodeChange(event.target.value.trim().toUpperCase())}
+            className={cn('uppercase', getFieldClasses(Boolean(errors.prizeCode)))}
+            placeholder="A1"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">Unique per product, e.g. A1, A2, B1, LO.</p>
+          {errors.prizeCode ? <p className="mt-1 text-xs text-red-600">{errors.prizeCode}</p> : null}
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-foreground">Prize Tier</label>
           <Select
-            value={formData.invalidPrizeCode ? INVALID_PRIZE_CODE_SELECT_VALUE : formData.prizeCode}
-            onValueChange={handlePrizeCodeChange}
+            value={formData.invalidPrizeTier ? INVALID_PRIZE_TIER_SELECT_VALUE : formData.prizeTier}
+            onValueChange={handlePrizeTierChange}
             modal={false}
           >
             <SelectTrigger
-              className={cn('w-full', getFieldClasses(Boolean(errors.prizeCode)))}
-              aria-label="Rank (e.g. A)"
+              className={cn('w-full', getFieldClasses(Boolean(errors.prizeTier)))}
+              aria-label="Prize Tier"
             >
-              <SelectValue className={cn(!formData.prizeCode && !formData.invalidPrizeCode && 'text-muted-foreground')}>
-                {formData.invalidPrizeCode
-                  ? `${formData.invalidPrizeCode} (unsupported current value)`
-                  : formData.prizeCode || 'Select rank'}
+              <SelectValue className={cn(!formData.prizeTier && !formData.invalidPrizeTier && 'text-muted-foreground')}>
+                {formData.invalidPrizeTier
+                  ? `${formData.invalidPrizeTier} (unsupported current value)`
+                  : formData.prizeTier || 'Select tier'}
               </SelectValue>
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
               <SelectGroup>
-                {formData.invalidPrizeCode ? (
+                {formData.invalidPrizeTier ? (
                   <>
-                    <SelectItem value={INVALID_PRIZE_CODE_SELECT_VALUE} disabled>
-                      {formData.invalidPrizeCode} (unsupported current value)
+                    <SelectItem value={INVALID_PRIZE_TIER_SELECT_VALUE} disabled>
+                      {formData.invalidPrizeTier} (unsupported current value)
                     </SelectItem>
                     <SelectSeparator />
                   </>
                 ) : null}
-                {KUJI_PRIZE_CODES.map((code) => (
-                  <SelectItem key={code} value={code}>
-                    {code}
+                {KUJI_PRIZE_TIERS.map((tier) => (
+                  <SelectItem key={tier} value={tier}>
+                    {getAdminPrizeTierLabel(tier)}
                   </SelectItem>
                 ))}
               </SelectGroup>
             </SelectContent>
           </Select>
-          {formData.invalidPrizeCode ? (
-            <p className="mt-1 text-xs text-amber-600">Choose a valid rank before saving this prize.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Customer-facing group, e.g. Prize A or Last One.</p>
+          {formData.invalidPrizeTier ? (
+            <p className="mt-1 text-xs text-amber-600">Choose a valid tier before saving this prize.</p>
           ) : null}
-          {errors.prizeCode ? <p className="mt-1 text-xs text-red-600">{errors.prizeCode}</p> : null}
+          {errors.prizeTier ? <p className="mt-1 text-xs text-red-600">{errors.prizeTier}</p> : null}
         </div>
 
         <div>

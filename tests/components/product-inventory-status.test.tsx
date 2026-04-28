@@ -18,6 +18,7 @@ describe('ProductInventoryStatus', () => {
             {
               id: 'prize-a',
               prizeCode: 'A',
+              prizeTier: 'A',
               name: 'Prize A',
               description: null,
               imageUrl: null,
@@ -28,6 +29,7 @@ describe('ProductInventoryStatus', () => {
             {
               id: 'prize-b',
               prizeCode: 'B',
+              prizeTier: 'B',
               name: 'Prize B',
               description: null,
               imageUrl: null,
@@ -37,7 +39,8 @@ describe('ProductInventoryStatus', () => {
             },
             {
               id: 'prize-lo',
-              prizeCode: 'LO',
+              prizeCode: 'L1',
+              prizeTier: 'LO',
               name: 'Last One',
               description: null,
               imageUrl: null,

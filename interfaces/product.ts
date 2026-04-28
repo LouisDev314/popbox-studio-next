@@ -61,6 +61,7 @@ export interface IProductInventory {
 export interface IKujiPrize {
   id: string;
   prizeCode: string;
+  prizeTier: string;
   name: string;
   description: string | null;
   imageUrl: string | null;
@@ -251,6 +252,7 @@ export type IAdminTagUpdateRequest = Partial<IAdminTagCreateRequest>;
 
 export interface IAdminKujiPrizeCreateRequest {
   prizeCode: string;
+  prizeTier: string;
   name: string;
   description: string | null;
   imageUrl: string | null;

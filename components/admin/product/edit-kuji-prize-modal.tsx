@@ -1,6 +1,7 @@
 'use client';
 
 import { IKujiPrize } from '@/interfaces/product';
+import { getAdminPrizeTierLabel } from '@/lib/kuji-prize-codes';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ type EditKujiPrizeNotification = {
 interface IEditKujiPrizeModalProps {
   open: boolean;
   prize: IKujiPrize | null;
+  prizes: IKujiPrize[];
   productId: string;
   onOpenChange: (open: boolean) => void;
   onNotify: (notification: EditKujiPrizeNotification) => void;
@@ -27,6 +29,7 @@ interface IEditKujiPrizeModalProps {
 export function EditKujiPrizeModal({
   open,
   prize,
+  prizes,
   productId,
   onOpenChange,
   onNotify,
@@ -41,7 +44,7 @@ export function EditKujiPrizeModal({
         <div className="max-h-[calc(100vh-1.5rem)] overflow-y-auto p-6 sm:p-8">
           <DialogHeader className="mb-6 pr-12">
             <DialogTitle className="text-xl font-semibold text-foreground">
-              Edit Prize {prize.prizeCode}
+              Edit {prize.prizeCode} · {getAdminPrizeTierLabel(prize.prizeTier)}
             </DialogTitle>
             <DialogDescription>
               Update prize details, stock counts, and display order. Changes refresh from the backend after save.
@@ -52,6 +55,7 @@ export function EditKujiPrizeModal({
             key={prize.id}
             productId={productId}
             prize={prize}
+            prizes={prizes}
             onCancel={() => onOpenChange(false)}
             onSuccess={() => onOpenChange(false)}
             onNotify={onNotify}
