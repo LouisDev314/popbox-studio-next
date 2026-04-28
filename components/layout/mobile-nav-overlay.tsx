@@ -73,7 +73,7 @@ export function MobileNavOverlay(props: IMobileNavOverlayProps) {
   return (
     <div
       className={cn(
-        'fixed inset-x-0 top-26 bottom-0 z-40',
+        'fixed inset-x-0 top-25 sm:top-26 bottom-0 z-40',
         isOpen ? 'pointer-events-auto' : 'pointer-events-none',
         containerClassName,
       )}
