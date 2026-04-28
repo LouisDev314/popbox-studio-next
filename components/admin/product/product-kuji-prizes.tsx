@@ -700,7 +700,6 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <p className="mt-1 text-xs text-muted-foreground">Customer-facing group, e.g. Prize A or Last One.</p>
               {createErrors.prizeTier ? <p className="mt-1 text-xs text-red-600">{createErrors.prizeTier}</p> : null}
             </div>
 

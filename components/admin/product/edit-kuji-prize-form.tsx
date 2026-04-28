@@ -387,7 +387,6 @@ export function EditKujiPrizeForm({ productId, prize, prizes, onCancel, onSucces
               </SelectGroup>
             </SelectContent>
           </Select>
-          <p className="mt-1 text-xs text-muted-foreground">Customer-facing group, e.g. Prize A or Last One.</p>
           {formData.invalidPrizeTier ? (
             <p className="mt-1 text-xs text-amber-600">Choose a valid tier before saving this prize.</p>
           ) : null}
