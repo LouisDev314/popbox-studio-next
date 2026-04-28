@@ -282,6 +282,7 @@ describe('OrderTicketsPageClient', () => {
     const user = userEvent.setup();
     const ticketOne = createTicket({ id: 'ticket-1' });
     const ticketTwo = createTicket({ id: 'ticket-2' });
+    const ticketThree = createTicket({ id: 'ticket-3' });
 
     vi.mocked(MutationConfigs.revealTicket)
       .mockResolvedValueOnce(
@@ -294,6 +295,20 @@ describe('OrderTicketsPageClient', () => {
             name: 'Prize Two',
             description: null,
             imageUrl: 'https://cdn.example.com/prizes/prize-two.jpg',
+          },
+          revealedAt: '2026-04-12T00:00:00.000Z',
+        }),
+      )
+      .mockResolvedValueOnce(
+        createApiResponse({
+          ...ticketThree,
+          prize: {
+            id: 'prize-3',
+            prizeCode: 'H',
+            prizeTier: 'H',
+            name: 'Prize Three',
+            description: null,
+            imageUrl: 'https://cdn.example.com/prizes/prize-three.jpg',
           },
           revealedAt: '2026-04-12T00:00:00.000Z',
         }),
@@ -317,7 +332,7 @@ describe('OrderTicketsPageClient', () => {
     renderWithProviders(
       <OrderTicketsPageClient
         initialViewData={createViewData({
-          unrevealed: [ticketOne, ticketTwo],
+          unrevealed: [ticketOne, ticketTwo, ticketThree],
         })}
         publicId="pbs-TICKETS"
       />,
@@ -333,7 +348,7 @@ describe('OrderTicketsPageClient', () => {
     fireEvent.ended(screen.getByTestId('kuji-reveal-video'));
 
     await waitFor(() => {
-      expect(screen.getByText('Ticket 2 / 2')).toBeInTheDocument();
+      expect(screen.getByText('Ticket 1 / 3')).toBeInTheDocument();
     });
 
     expect(screen.getByRole('button', { name: 'Reveal Next' })).toBeInTheDocument();
@@ -344,6 +359,21 @@ describe('OrderTicketsPageClient', () => {
 
     await waitFor(() => {
       expect(vi.mocked(MutationConfigs.revealTicket)).toHaveBeenNthCalledWith(2, {
+        publicId: 'pbs-TICKETS',
+        ticketId: 'ticket-3',
+      });
+    });
+
+    fireEvent.ended(screen.getByTestId('kuji-reveal-video'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Ticket 2 / 3')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Reveal Next' }));
+
+    await waitFor(() => {
+      expect(vi.mocked(MutationConfigs.revealTicket)).toHaveBeenNthCalledWith(3, {
         publicId: 'pbs-TICKETS',
         ticketId: 'ticket-1',
       });
@@ -358,6 +388,7 @@ describe('OrderTicketsPageClient', () => {
     expect(screen.queryByRole('button', { name: 'Reveal Next' })).not.toBeInTheDocument();
     expect(screen.getAllByText('Prize One').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Prize Two').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Prize Three').length).toBeGreaterThan(0);
   });
 
   it('shows the final summary after a single-ticket reveal completes', async () => {

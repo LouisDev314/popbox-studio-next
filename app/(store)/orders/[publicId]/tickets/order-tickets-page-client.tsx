@@ -169,14 +169,20 @@ function getNextRevealTicketIdOrFirstRemaining(
     ?? null;
 }
 
-function buildProgressLabel(revealSequenceIds: string[], currentTicketId: string): string | null {
-  const currentIndex = revealSequenceIds.indexOf(currentTicketId);
-
-  if (currentIndex === -1 || revealSequenceIds.length === 0) {
+function buildProgressLabel(revealSequenceIds: string[], unrevealedTickets: IOrderTicket[]): string | null {
+  if (revealSequenceIds.length === 0) {
     return null;
   }
 
-  return `Ticket ${currentIndex + 1} / ${revealSequenceIds.length}`;
+  const sequenceTicketIds = new Set(revealSequenceIds);
+  const remainingSequenceTickets = unrevealedTickets.filter((ticket) => sequenceTicketIds.has(ticket.id)).length;
+  const revealedSequenceTickets = revealSequenceIds.length - remainingSequenceTickets;
+
+  if (revealedSequenceTickets <= 0) {
+    return null;
+  }
+
+  return `Ticket ${revealedSequenceTickets} / ${revealSequenceIds.length}`;
 }
 
 export default function OrderTicketsPageClient(props: IOrderTicketsPageClientProps) {
@@ -515,7 +521,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
     ? getNextRevealTicketIdOrFirstRemaining(revealSequenceIds, currentRevealedTicket.id, viewData.unrevealed)
     : null;
   const progressLabel = currentRevealedTicket
-    ? buildProgressLabel(revealSequenceIds, currentRevealedTicket.id)
+    ? buildProgressLabel(revealSequenceIds, viewData.unrevealed)
     : null;
 
   const { unrevealed, revealed, counts } = viewData;
