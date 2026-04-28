@@ -159,6 +159,16 @@ function getNextRevealTicketId(
   return null;
 }
 
+function getNextRevealTicketIdOrFirstRemaining(
+  revealSequenceIds: string[],
+  currentTicketId: string,
+  unrevealedTickets: IOrderTicket[],
+): string | null {
+  return getNextRevealTicketId(revealSequenceIds, currentTicketId, unrevealedTickets)
+    ?? unrevealedTickets[0]?.id
+    ?? null;
+}
+
 function buildProgressLabel(revealSequenceIds: string[], currentTicketId: string): string | null {
   const currentIndex = revealSequenceIds.indexOf(currentTicketId);
 
@@ -293,13 +303,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
       return;
     }
 
-    const nextTicketId = getNextRevealTicketId(
-      revealSequenceIdsRef.current,
-      revealedTicket.id,
-      nextViewData.unrevealed,
-    );
-
-    if (nextTicketId) {
+    if (nextViewData.unrevealed.length > 0) {
       setPhase('showingSingleRevealResult');
       return;
     }
@@ -474,7 +478,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
       return;
     }
 
-    const nextTicketId = getNextRevealTicketId(
+    const nextTicketId = getNextRevealTicketIdOrFirstRemaining(
       revealSequenceIdsRef.current,
       currentRevealedTicket.id,
       viewDataRef.current.unrevealed,
@@ -508,7 +512,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
   }, [resetRevealFlow]);
 
   const currentNextTicketId = currentRevealedTicket
-    ? getNextRevealTicketId(revealSequenceIds, currentRevealedTicket.id, viewData.unrevealed)
+    ? getNextRevealTicketIdOrFirstRemaining(revealSequenceIds, currentRevealedTicket.id, viewData.unrevealed)
     : null;
   const progressLabel = currentRevealedTicket
     ? buildProgressLabel(revealSequenceIds, currentRevealedTicket.id)
@@ -574,7 +578,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
               size="lg"
               onClick={handleRevealAll}
               disabled={isInteractionLocked}
-              className="h-14 rounded-xl px-8 text-lg font-bold transition-all active:scale-95"
+              className="h-14 w-fit rounded-xl px-6 text-lg font-bold transition-all active:scale-95"
             >
               <span className="flex items-center gap-2">
                 <PackageOpen className="h-5 w-5" />
