@@ -382,16 +382,26 @@ describe('OrderTicketsPageClient', () => {
     fireEvent.ended(screen.getByTestId('kuji-reveal-video'));
 
     await waitFor(() => {
+      expect(screen.getByText('Ticket 3 / 3')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: 'View Results' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reveal Next' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Return' })).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Prize One' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'View Results' }));
+
+    await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Return' })).toBeInTheDocument();
     });
 
-    expect(screen.queryByRole('button', { name: 'Reveal Next' })).not.toBeInTheDocument();
     expect(screen.getAllByText('Prize One').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Prize Two').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Prize Three').length).toBeGreaterThan(0);
   });
 
-  it('shows the final summary after a single-ticket reveal completes', async () => {
+  it('shows the single result before the final summary after a single-ticket reveal completes', async () => {
     const user = userEvent.setup();
 
     vi.mocked(MutationConfigs.revealTicket).mockResolvedValue(
@@ -420,14 +430,23 @@ describe('OrderTicketsPageClient', () => {
     fireEvent.ended(screen.getByTestId('kuji-reveal-video'));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Return' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'View Results' })).toBeInTheDocument();
     });
 
     expect(screen.queryByRole('button', { name: 'Reveal Next' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Return' })).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Prize One' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'View Results' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Return' })).toBeInTheDocument();
+    });
+
     expect(screen.getAllByText('Prize One').length).toBeGreaterThan(0);
   });
 
-  it('advances in unrevealed order and lands the final single reveal on the summary overlay', async () => {
+  it('advances in unrevealed order and shows the final single reveal before the summary overlay', async () => {
     const user = userEvent.setup();
     const ticketOne = createTicket({ id: 'ticket-1' });
     const ticketTwo = createTicket({
@@ -500,10 +519,20 @@ describe('OrderTicketsPageClient', () => {
     fireEvent.ended(screen.getByTestId('kuji-reveal-video'));
 
     await waitFor(() => {
+      expect(screen.getByText('Ticket 2 / 2')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: 'View Results' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reveal Next' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Return' })).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Prize Two' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'View Results' }));
+
+    await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Return' })).toBeInTheDocument();
     });
 
-    expect(screen.queryByRole('button', { name: 'Reveal Next' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Return' })).toBeInTheDocument();
     expect(screen.getAllByText('Prize One').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Prize Two').length).toBeGreaterThan(0);

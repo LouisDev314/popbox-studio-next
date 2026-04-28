@@ -145,6 +145,7 @@ function KujiRevealWaitingView(props: {
 }
 
 function KujiSingleRevealResultView(props: {
+  hasNextTicket: boolean;
   onAdvanceToNext: () => void;
   onReturnToTickets: () => void;
   progressLabel: string | null;
@@ -152,6 +153,7 @@ function KujiSingleRevealResultView(props: {
 }) {
   const prizeName = props.ticket.prize?.name ?? 'Prize revealed';
   const prizeTierLabel = getPrizeTierLabel(props.ticket.prize?.prizeTier);
+  const primaryActionLabel = props.hasNextTicket ? 'Reveal Next' : 'View Results';
 
   return (
     <OverlayAtmosphere>
@@ -204,7 +206,7 @@ function KujiSingleRevealResultView(props: {
             onClick={props.onAdvanceToNext}
             className="h-12 min-w-0 flex-1 rounded-full px-6 text-sm font-semibold shadow-[0_20px_55px_-30px_rgba(15,23,42,0.45)] sm:h-13 sm:text-base"
           >
-            <span className="truncate">Reveal Next</span>
+            <span className="truncate">{primaryActionLabel}</span>
           </Button>
         </div>
       </div>
@@ -287,8 +289,9 @@ export function KujiRevealOverlay(props: IKujiRevealOverlayProps) {
             <KujiRevealWaitingView mode={props.mode} />
           ) : null}
 
-          {props.phase === 'showingSingleRevealResult' && props.currentTicket && props.hasNextTicket ? (
+          {props.phase === 'showingSingleRevealResult' && props.currentTicket ? (
             <KujiSingleRevealResultView
+              hasNextTicket={props.hasNextTicket}
               onAdvanceToNext={props.onAdvanceToNext}
               onReturnToTickets={props.onReturnToTickets}
               progressLabel={props.progressLabel}

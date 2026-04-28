@@ -309,13 +309,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
       return;
     }
 
-    if (nextViewData.unrevealed.length > 0) {
-      setPhase('showingSingleRevealResult');
-      return;
-    }
-
-    setSummaryTickets(buildSummaryTickets(nextViewData.revealed));
-    setPhase('showingAllRevealedSummary');
+    setPhase('showingSingleRevealResult');
   }, []);
 
   const { mutation: revealSingle, isPending: isSingleRevealPending } = useCustomizeMutation<
