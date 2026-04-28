@@ -383,14 +383,13 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
         </div>
       </header>
 
-      <div className={cn(hasStoreBanner ? 'h-[6.5rem]' : 'h-16')} aria-hidden="true" />
+      <div className={cn(hasStoreBanner ? 'h-26' : 'h-16')} aria-hidden="true" />
 
       <MobileNavOverlay
         ariaLabel="Search PopBox Studio products"
         initialFocusId={MOBILE_SEARCH_INPUT_ID}
         isOpen={isSearchOpen}
         onClose={closeMobilePanel}
-        containerClassName=""
         restoreFocusId={MOBILE_SEARCH_BUTTON_ID}
       >
         <MobileSearchPanel
