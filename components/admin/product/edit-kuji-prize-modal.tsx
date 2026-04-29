@@ -46,9 +46,6 @@ export function EditKujiPrizeModal({
             <DialogTitle className="text-xl font-semibold text-foreground">
               Edit {prize.prizeCode} · {getAdminPrizeTierLabel(prize.prizeTier)}
             </DialogTitle>
-            <DialogDescription>
-              Update prize details, stock counts, and display order. Changes refresh from the backend after save.
-            </DialogDescription>
           </DialogHeader>
 
           <EditKujiPrizeForm

@@ -2,7 +2,6 @@
 
 import { type ReactNode, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { StorefrontImage } from '@/components/ui/storefront-image';
 import {
   cn,
   getPrizeBadgeClasses,
@@ -37,48 +36,51 @@ interface IKujiPrizeTileCardProps {
   onSelect: () => void;
 }
 
-function KujiPrizeTileCard(props: IKujiPrizeTileCardProps) {
-  const badgeLabel = getPrizeBadgeLabel(props.item.prizeTier);
+function KujiPrizeImage(props: {
+  alt: string;
+  className?: string;
+  compact?: boolean;
+  label: string;
+  src: string | null;
+}) {
+  if (props.src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={props.src}
+        alt={props.alt}
+        className={cn(
+          'mx-auto block h-auto w-full object-contain',
+          props.compact ? 'max-h-56' : 'max-h-128',
+          props.className,
+        )}
+      />
+    );
+  }
 
+  return null;
+}
+
+function KujiPrizeTileCard(props: IKujiPrizeTileCardProps) {
   const content = (
     <>
-      <div className={cn(
-        'relative overflow-hidden bg-muted/25',
-        props.compact ? 'aspect-square' : 'aspect-4/3',
-      )}
-      >
-        <StorefrontImage
+      <div className="relative flex w-full items-center justify-center overflow-hidden bg-muted/25">
+        <KujiPrizeImage
           src={props.item.imageUrl}
           alt={props.item.name}
           label={props.item.name}
-          className="h-full w-full"
-          sizes={
-            props.compact
-              ? '(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw'
-              : '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw'
-          }
-          imageClassName={cn(
-            'h-full w-full transition-transform duration-500 ease-out',
-            props.interactive && 'group-hover:scale-105',
+          compact={props.compact}
+          className={cn(
+            'transition-transform duration-500 ease-out',
+            props.interactive && 'group-hover:scale-[1.02]',
           )}
         />
-
-        <div className="absolute left-3 top-3">
-          <span
-            className={cn(
-              'inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]',
-              getPrizeBadgeClasses(props.item.prizeTier),
-            )}
-          >
-            {badgeLabel}
-          </span>
-        </div>
 
         {props.item.stockLabel ? (
           <div className="absolute right-3 top-3">
             <span
               className={cn(
-                'inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold',
+                'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold',
                 props.item.stockClassName ?? 'border-border/70 bg-background text-muted-foreground',
               )}
             >
@@ -169,13 +171,11 @@ function KujiPrizeDialog(props: {
         <div className="grid max-h-[min(88vh,960px)] overflow-y-auto lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
           <div className="bg-background p-4 sm:p-6 lg:p-8">
             <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-muted/25">
-              <StorefrontImage
+              <KujiPrizeImage
                 src={props.item.imageUrl}
                 alt={props.item.name}
                 label={props.item.name}
-                className="aspect-square w-full"
-                sizes="(max-width: 1024px) calc(100vw - 3rem), 42rem"
-                imageClassName="h-full w-full"
+                className="max-h-[min(72vh,44rem)]"
               />
             </div>
           </div>

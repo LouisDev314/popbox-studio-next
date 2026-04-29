@@ -236,7 +236,7 @@ function KujiAllPrizesSummaryView(props: {
               items={prizeTiles}
               emptyState={(
                 <div className="flex min-h-56 items-center justify-center rounded-[1.25rem] border border-dashed border-border/70 bg-muted/20 px-6 text-center text-sm text-muted-foreground sm:text-base">
-                  Your ticket summary is syncing. You can return now, and the updated prize list will remain on the tickets page.
+                  Summarizing your ticket result. You can return now, and the updated prize list will remain on the tickets page.
                 </div>
               )}
             />
