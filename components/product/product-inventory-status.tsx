@@ -92,9 +92,5 @@ function getDetailTextClasses(
     return 'text-destructive';
   }
 
-  if (status === 'low_stock') {
-    return 'text-amber-500';
-  }
-
   return 'text-primary';
 }

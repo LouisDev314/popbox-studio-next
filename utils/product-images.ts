@@ -48,7 +48,7 @@ export function getProductCoverImage(product: ProductWithImages): IProductImage 
   const sortedImages = getSortedProductImages(product);
   const coverImage = sortedImages[getProductCoverImageIndex(product)];
 
-  if (product.productType === 'kuji' && sortedImages.length > 1 && coverImage) {
+  if (product.productType === 'kuji' && sortedImages.length === 1 && coverImage) {
     return getKujiProductImageFromCoverImage(coverImage) ?? coverImage;
   }
 
