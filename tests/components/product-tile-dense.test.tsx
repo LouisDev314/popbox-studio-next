@@ -109,6 +109,30 @@ describe('ProductTileDense', () => {
     expect(screen.getByAltText('Only kuji image')).toHaveAttribute('src', 'https://example.com/products/kuji-only.jpg');
   });
 
+  it('uses derived product artwork for kuji cards when the list payload only includes cover-webp', () => {
+    renderWithProviders(
+      <ProductTileDense
+        product={createProductCard({
+          id: 'kuji-product',
+          name: 'Kuji Product',
+          slug: 'kuji-product',
+          productType: 'kuji',
+          images: [
+            {
+              id: 'cover-image',
+              storageKey: 'products/kuji-product-cover-webp',
+              altText: 'Kuji product cover',
+              sortOrder: 0,
+              url: 'https://example.com/products/kuji-product-cover-webp',
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByAltText('Kuji product cover')).toHaveAttribute('src', 'https://example.com/products/kuji-product-product-webp');
+  });
+
   it('keeps the first sorted image for standard product covers', () => {
     renderWithProviders(
       <ProductTileDense

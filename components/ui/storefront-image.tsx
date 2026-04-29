@@ -9,6 +9,7 @@ interface IStorefrontImageProps {
   alt: string;
   className?: string;
   fallbackClassName?: string;
+  fallbackSrc?: string | null;
   imageClassName?: string;
   label?: string;
   sizes?: string;
@@ -31,15 +32,17 @@ function buildFallbackLabel(label: string) {
 }
 
 export function StorefrontImage(props: IStorefrontImageProps) {
+  const [currentSrc, setCurrentSrc] = useState(props.src ?? null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
+    setCurrentSrc(props.src ?? null);
     setIsLoaded(false);
     setHasError(false);
-  }, [props.src]);
+  }, [props.src, props.fallbackSrc]);
 
-  if (props.src && !hasError) {
+  if (currentSrc && !hasError) {
     return (
       <div className={cn('relative h-full w-full', props.className)}>
         {!isLoaded ? (
@@ -50,7 +53,7 @@ export function StorefrontImage(props: IStorefrontImageProps) {
           />
         ) : null}
         <Image
-          src={props.src}
+          src={currentSrc}
           alt={props.alt}
           fill
           sizes={props.sizes ?? '100vw'}
@@ -59,7 +62,15 @@ export function StorefrontImage(props: IStorefrontImageProps) {
             isLoaded ? 'opacity-100' : 'opacity-0',
             props.imageClassName,
           )}
-          onError={() => setHasError(true)}
+          onError={() => {
+            if (props.fallbackSrc && currentSrc !== props.fallbackSrc) {
+              setCurrentSrc(props.fallbackSrc);
+              setIsLoaded(false);
+              return;
+            }
+
+            setHasError(true);
+          }}
           onLoad={() => setIsLoaded(true)}
           priority={props.priority ?? false}
         />

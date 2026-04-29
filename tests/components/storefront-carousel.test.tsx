@@ -135,4 +135,35 @@ describe('StorefrontCarousel', () => {
     expect(emblaApi.scrollPrev).toHaveBeenCalledTimes(1);
     expect(emblaApi.scrollNext).toHaveBeenCalledTimes(1);
   });
+
+  it('uses the shared product cover image for kuji slides', () => {
+    const products = [
+      createProductCard({
+        id: 'kuji-product',
+        name: 'Kuji Product',
+        slug: 'kuji-product',
+        productType: 'kuji',
+        images: [
+          {
+            id: 'banner-image',
+            storageKey: 'products/kuji-banner.jpg',
+            altText: 'Wide banner art',
+            sortOrder: 0,
+            url: 'https://example.com/products/kuji-banner.jpg',
+          },
+          {
+            id: 'cover-image',
+            storageKey: 'products/kuji-cover.jpg',
+            altText: 'Square product cover',
+            sortOrder: 1,
+            url: 'https://example.com/products/kuji-cover.jpg',
+          },
+        ],
+      }),
+    ];
+
+    renderWithProviders(
+      <StorefrontCarousel featuredProducts={products} />,
+    );
+  });
 });

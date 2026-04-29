@@ -8,8 +8,37 @@ import { type IProduct } from '@/interfaces/product';
 import { createProductCard } from '../fixtures';
 import { renderWithProviders, resetStores } from '../test-utils';
 
+const lottieCompleteListeners = vi.hoisted(() => new Set<() => void>());
 const originalNavigatorClipboard = navigator.clipboard;
 const originalNavigatorShare = navigator.share;
+
+vi.mock('@lottiefiles/dotlottie-react', () => ({
+  DotLottieReact: ({
+    dotLottieRefCallback,
+    src,
+  }: {
+    dotLottieRefCallback?: (player: {
+      addEventListener: (event: string, listener: () => void) => void;
+      removeEventListener: (event: string, listener: () => void) => void;
+    } | null) => void;
+    src: string;
+  }) => {
+    dotLottieRefCallback?.({
+      addEventListener: (event, listener) => {
+        if (event === 'complete') {
+          lottieCompleteListeners.add(listener);
+        }
+      },
+      removeEventListener: (event, listener) => {
+        if (event === 'complete') {
+          lottieCompleteListeners.delete(listener);
+        }
+      },
+    });
+
+    return <span data-testid="product-action-lottie" data-src={src} />;
+  },
+}));
 
 function createProduct(overrides: Partial<IProduct> = {}): IProduct {
   const productCard = createProductCard(overrides);
@@ -42,9 +71,18 @@ function mockNavigatorShare(share?: typeof navigator.share) {
   });
 }
 
+function completeLottieAnimations() {
+  act(() => {
+    for (const listener of Array.from(lottieCompleteListeners)) {
+      listener();
+    }
+  });
+}
+
 describe('ProductActions', () => {
   beforeEach(() => {
     resetStores();
+    lottieCompleteListeners.clear();
   });
 
   afterEach(() => {
@@ -72,37 +110,31 @@ describe('ProductActions', () => {
   });
 
   it('shows inline success feedback after adding a product to cart', async () => {
-    vi.useFakeTimers();
-
     renderWithProviders(<ProductActions product={createProduct()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add to Cart' }));
 
     expect(screen.getByRole('button', { name: 'Added' })).toBeDisabled();
+    await screen.findByTestId('product-action-lottie');
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(useCartStore.getState().items).toHaveLength(1);
 
-    act(() => {
-      vi.advanceTimersByTime(700);
-    });
+    completeLottieAnimations();
 
     expect(screen.getByRole('button', { name: 'Add to Cart' })).not.toBeDisabled();
   });
 
   it('shows inline success feedback when adding to and removing from wishlist', async () => {
-    vi.useFakeTimers();
-
     renderWithProviders(<ProductActions product={createProduct()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add to Wishlist' }));
 
     expect(screen.getByRole('button', { name: 'Added' })).toBeDisabled();
+    await screen.findByTestId('product-action-lottie');
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(useWishlistStore.getState().items).toHaveLength(1);
 
-    act(() => {
-      vi.advanceTimersByTime(700);
-    });
+    completeLottieAnimations();
 
     expect(screen.getByRole('button', { name: 'Remove from Wishlist' })).not.toBeDisabled();
 
@@ -110,40 +142,35 @@ describe('ProductActions', () => {
 
     expect(useWishlistStore.getState().items).toHaveLength(0);
     expect(screen.getByRole('button', { name: 'Removed' })).toBeDisabled();
+    await screen.findByTestId('product-action-lottie');
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('clears inline cart success feedback after the configured duration', async () => {
-    vi.useFakeTimers();
-
     renderWithProviders(<ProductActions product={createProduct()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add to Cart' }));
 
     expect(screen.getByRole('button', { name: 'Added' })).toBeInTheDocument();
+    await screen.findByTestId('product-action-lottie');
 
-    act(() => {
-      vi.advanceTimersByTime(700);
-    });
+    completeLottieAnimations();
 
     expect(screen.queryByRole('button', { name: 'Added' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add to Cart' })).toBeInTheDocument();
   });
 
   it('prevents repeat cart actions while inline feedback is active', async () => {
-    vi.useFakeTimers();
-
     renderWithProviders(<ProductActions product={createProduct()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add to Cart' }));
     fireEvent.click(screen.getByRole('button', { name: 'Added' }));
+    await screen.findByTestId('product-action-lottie');
 
     expect(useCartStore.getState().items[0]?.quantity).toBe(1);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
 
-    act(() => {
-      vi.advanceTimersByTime(700);
-    });
+    completeLottieAnimations();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add to Cart' }));
 
@@ -181,8 +208,6 @@ describe('ProductActions', () => {
   });
 
   it('disables the action buttons during their guarded interaction window', async () => {
-    vi.useFakeTimers();
-
     renderWithProviders(<ProductActions product={createProduct()} />);
 
     const cartButton = screen.getByRole('button', { name: 'Add to Cart' });
@@ -191,20 +216,21 @@ describe('ProductActions', () => {
     fireEvent.click(cartButton);
 
     expect(cartButton).toBeDisabled();
+    expect(wishlistButton).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Increase quantity' })).not.toBeDisabled();
+    await screen.findByTestId('product-action-lottie');
 
-    act(() => {
-      vi.advanceTimersByTime(700);
-    });
+    completeLottieAnimations();
 
     expect(cartButton).not.toBeDisabled();
 
     fireEvent.click(wishlistButton);
 
     expect(screen.getByRole('button', { name: 'Added' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add to Cart' })).not.toBeDisabled();
+    await screen.findByTestId('product-action-lottie');
 
-    act(() => {
-      vi.advanceTimersByTime(700);
-    });
+    completeLottieAnimations();
 
     expect(screen.getByRole('button', { name: 'Remove from Wishlist' })).not.toBeDisabled();
   });

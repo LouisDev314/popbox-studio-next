@@ -1,8 +1,10 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
-import { Check, Heart, Share, ShoppingBag } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { DotLottie } from '@lottiefiles/dotlottie-react';
+import { Heart, Share, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { useCartStore } from '@/hooks/use-cart';
@@ -27,6 +29,12 @@ interface IProductActionsProps {
 }
 
 type TStorefrontAction = 'cart' | 'share' | 'wishlist';
+type TFeedbackAction = Exclude<TStorefrontAction, 'share'>;
+
+const DotLottieReact = dynamic(
+  () => import('@lottiefiles/dotlottie-react').then((module) => module.DotLottieReact),
+  { ssr: false },
+);
 
 interface IProductQuantityState {
   availabilityLabel: string;
@@ -118,25 +126,79 @@ function getProductActionState(product: IProduct, currentCartQuantity: number): 
 }
 
 const ACTION_COOLDOWN_MS = 300;
-const ACTION_SUCCESS_FEEDBACK_MS = 700;
+const ACTION_SUCCESS_FEEDBACK_FALLBACK_MS = 1200;
 const SECONDARY_ACTION_BUTTON_CLASS_NAME = 'h-12 w-full rounded-2xl border-border/70 bg-background text-sm font-semibold text-foreground hover:bg-accent/70';
+
+function ProductActionAnimation(props: {
+  label: string;
+  onComplete: () => void;
+  src: string;
+}) {
+  const playerRef = useRef<DotLottie | null>(null);
+  const onCompleteRef = useRef(props.onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = props.onComplete;
+  }, [props.onComplete]);
+
+  const handleComplete = useCallback(() => {
+    onCompleteRef.current();
+  }, []);
+
+  const handlePlayerRef = useCallback((player: DotLottie | null) => {
+    if (playerRef.current) {
+      playerRef.current.removeEventListener('complete', handleComplete);
+    }
+
+    playerRef.current = player;
+
+    if (player) {
+      player.addEventListener('complete', handleComplete);
+    }
+  }, [handleComplete]);
+
+  useEffect(() => {
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.removeEventListener('complete', handleComplete);
+      }
+    };
+  }, [handleComplete]);
+
+  return (
+    <span className="flex items-center justify-center" aria-hidden="true">
+      <DotLottieReact
+        src={props.src}
+        autoplay
+        loop={false}
+        className="h-8 w-8"
+        dotLottieRefCallback={handlePlayerRef}
+        data-testid="product-action-lottie"
+      />
+      <span className="sr-only">{props.label}</span>
+    </span>
+  );
+}
 
 function WishlistActionButton(props: {
   feedback: 'added' | 'removed' | null;
   hasWishlistHydrated: boolean;
   isBusy: boolean;
   isWishlisted: boolean;
+  onAnimationComplete: () => void;
   onClick: () => void;
 }) {
   const isSuccessVisible = props.feedback !== null && props.isBusy;
+  const normalLabel = props.hasWishlistHydrated && props.isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist';
   const label = isSuccessVisible
     ? props.feedback === 'removed' ? 'Removed' : 'Added'
-    : props.hasWishlistHydrated && props.isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist';
+    : normalLabel;
 
   return (
     <Button
       type="button"
       variant="outline"
+      aria-label={label}
       aria-pressed={props.hasWishlistHydrated && props.isWishlisted}
       className={cn(
         SECONDARY_ACTION_BUTTON_CLASS_NAME,
@@ -149,16 +211,22 @@ function WishlistActionButton(props: {
       data-testid="wishlist-toggle"
     >
       {isSuccessVisible ? (
-        <Check className="mr-2 h-5 w-5 scale-110 text-primary transition-transform duration-150" />
-      ) : (
-        <Heart
-          className={cn(
-            'mr-2 h-5 w-5',
-            props.hasWishlistHydrated && props.isWishlisted ? 'text-primary' : 'text-muted-foreground',
-          )}
+        <ProductActionAnimation
+          src="/add-to-wishlist-button.lottie"
+          label={label}
+          onComplete={props.onAnimationComplete}
         />
+      ) : (
+        <>
+          <Heart
+            className={cn(
+              'mr-2 h-5 w-5',
+              props.hasWishlistHydrated && props.isWishlisted ? 'text-primary' : 'text-muted-foreground',
+            )}
+          />
+          <span aria-live="polite">{label}</span>
+        </>
       )}
-      <span aria-live="polite">{label}</span>
     </Button>
   );
 }
@@ -167,24 +235,34 @@ function AddToCartButton(props: {
   addButtonLabel: string;
   disabled: boolean;
   isSuccessVisible: boolean;
+  onAnimationComplete: () => void;
   onClick: () => void;
 }) {
+  const label = props.isSuccessVisible ? 'Added' : props.addButtonLabel;
+
   return (
     <Button
       size="lg"
+      aria-label={label}
       className="mt-5 h-14 w-full rounded-xl text-lg font-semibold"
       disabled={props.disabled}
       onClick={props.onClick}
       data-testid="add-to-cart"
     >
       {props.isSuccessVisible ? (
-        <Check className="mr-2 h-5 w-5 scale-110 transition-transform duration-150" />
+        <ProductActionAnimation
+          src="/add-to-cart-button.lottie"
+          label={label}
+          onComplete={props.onAnimationComplete}
+        />
       ) : (
-        <ShoppingBag className="mr-2 h-5 w-5" />
+        <>
+          <ShoppingBag className="mr-2 h-5 w-5" />
+          <span aria-live="polite">
+            {props.addButtonLabel}
+          </span>
+        </>
       )}
-      <span aria-live="polite">
-        {props.isSuccessVisible ? 'Added' : props.addButtonLabel}
-      </span>
     </Button>
   );
 }
@@ -245,7 +323,32 @@ export function ProductActions(props: IProductActionsProps) {
     };
   }, []);
 
-  const scheduleActionRelease = (action: TStorefrontAction) => {
+  const completeGuardedAction = useCallback((action: TStorefrontAction) => {
+    const existingTimeoutId = releaseTimeoutRef.current[action];
+
+    if (existingTimeoutId !== null) {
+      window.clearTimeout(existingTimeoutId);
+      releaseTimeoutRef.current[action] = null;
+    }
+
+    cooldownUntilRef.current[action] = 0;
+
+    setDisabledActions((currentDisabledActions) => ({
+      ...currentDisabledActions,
+      [action]: false,
+    }));
+
+    setBusyAction((currentBusyAction) => (currentBusyAction === action ? null : currentBusyAction));
+    if (action === 'cart') {
+      setCartFeedback(null);
+    }
+
+    if (action === 'wishlist') {
+      setWishlistFeedback(null);
+    }
+  }, []);
+
+  const scheduleActionRelease = (action: TStorefrontAction, timeoutMs: number) => {
     const existingTimeoutId = releaseTimeoutRef.current[action];
 
     if (existingTimeoutId !== null) {
@@ -253,22 +356,8 @@ export function ProductActions(props: IProductActionsProps) {
     }
 
     releaseTimeoutRef.current[action] = window.setTimeout(() => {
-      setDisabledActions((currentDisabledActions) => ({
-        ...currentDisabledActions,
-        [action]: false,
-      }));
-
-      setBusyAction((currentBusyAction) => (currentBusyAction === action ? null : currentBusyAction));
-      if (action === 'cart') {
-        setCartFeedback(null);
-      }
-
-      if (action === 'wishlist') {
-        setWishlistFeedback(null);
-      }
-
-      releaseTimeoutRef.current[action] = null;
-    }, action === 'share' ? ACTION_COOLDOWN_MS : ACTION_SUCCESS_FEEDBACK_MS);
+      completeGuardedAction(action);
+    }, timeoutMs);
   };
 
   const activateGuardedAction = (action: TStorefrontAction) => {
@@ -292,15 +381,17 @@ export function ProductActions(props: IProductActionsProps) {
     return true;
   };
 
-  const runGuardedAction = (action: TStorefrontAction, fn: () => void) => {
+  const runGuardedAction = (action: TStorefrontAction, fn: () => boolean) => {
     if (!activateGuardedAction(action)) {
       return;
     }
 
+    let didShowFeedback = false;
+
     try {
-      fn();
+      didShowFeedback = fn();
     } finally {
-      scheduleActionRelease(action);
+      scheduleActionRelease(action, didShowFeedback ? ACTION_SUCCESS_FEEDBACK_FALLBACK_MS : ACTION_COOLDOWN_MS);
     }
   };
 
@@ -312,7 +403,7 @@ export function ProductActions(props: IProductActionsProps) {
     try {
       await fn();
     } finally {
-      scheduleActionRelease(action);
+      scheduleActionRelease(action, ACTION_COOLDOWN_MS);
     }
   };
 
@@ -323,12 +414,13 @@ export function ProductActions(props: IProductActionsProps) {
       if (!result.success) {
         setCartFeedback(null);
         setFeedbackMessage(result.message);
-        return;
+        return false;
       }
 
       setFeedbackMessage(null);
       setCartFeedback('added');
       setQuantity(1);
+      return true;
     });
   };
 
@@ -357,8 +449,13 @@ export function ProductActions(props: IProductActionsProps) {
 
       toggleWishlistItem(mapProductToWishlistItem(props.product));
       setWishlistFeedback(nextFeedback);
+      return true;
     });
   };
+
+  const handleFeedbackAnimationComplete = useCallback((action: TFeedbackAction) => {
+    completeGuardedAction(action);
+  }, [completeGuardedAction]);
 
   return (
     <div className="mt-8 space-y-4" data-testid="product-actions">
@@ -368,6 +465,7 @@ export function ProductActions(props: IProductActionsProps) {
           hasWishlistHydrated={hasWishlistHydrated}
           isBusy={isWishlistBusy}
           isWishlisted={isWishlisted}
+          onAnimationComplete={() => handleFeedbackAnimationComplete('wishlist')}
           onClick={handleWishlistToggle}
         />
 
@@ -389,7 +487,7 @@ export function ProductActions(props: IProductActionsProps) {
             <p className="font-medium text-lg">Quantity</p>
           </div>
           <QuantityStepper
-            disabled={actionState.isAddDisabled || isCartBusy}
+            disabled={actionState.isAddDisabled}
             value={clampedQuantity}
             decreaseDisabled={clampedQuantity <= 1}
             increaseDisabled={clampedQuantity >= quantityCap}
@@ -423,6 +521,7 @@ export function ProductActions(props: IProductActionsProps) {
           addButtonLabel={actionState.addButtonLabel}
           disabled={actionState.isAddDisabled || isCartBusy}
           isSuccessVisible={isCartSuccessVisible}
+          onAnimationComplete={() => handleFeedbackAnimationComplete('cart')}
           onClick={handleAdd}
         />
       </div>
