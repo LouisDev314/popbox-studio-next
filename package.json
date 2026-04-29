@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint . --fix",
     "test": "vitest run",
+    "test:e2e:preprod": "playwright test --config=playwright.config.ts",
     "check": "pnpm lint && pnpm test && pnpm build"
   },
   "dependencies": {
@@ -52,6 +53,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.1",
     "@tailwindcss/postcss": "^4.2.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",

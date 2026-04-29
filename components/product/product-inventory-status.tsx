@@ -35,6 +35,8 @@ export function ProductInventoryStatus(props: IProductInventoryStatusProps) {
           'mt-5 w-fit rounded-2xl px-4 py-2 bg-primary/12 text-primary',
           props.className,
         )}
+        data-testid="product-inventory-status"
+        data-inventory-status={inventoryState.status}
       >
         <span
           className={cn(
@@ -55,6 +57,8 @@ export function ProductInventoryStatus(props: IProductInventoryStatusProps) {
         getCardTextClasses(inventoryState.status),
         props.className,
       )}
+      data-testid="product-inventory-status"
+      data-inventory-status={inventoryState.status}
     >
       {isSoldOut ? (
         <CircleX className="h-4 w-4 shrink-0" />

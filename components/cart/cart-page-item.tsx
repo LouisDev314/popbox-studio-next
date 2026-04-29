@@ -26,6 +26,8 @@ export function CartPageItem(props: ICartPageItemProps) {
     <article
       className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-opacity data-[disabled=true]:opacity-70 sm:p-5"
       data-disabled={props.disabled ? 'true' : undefined}
+      data-testid="cart-item"
+      data-product-slug={props.item.product.slug}
     >
       <div className="flex flex-row gap-4">
         <Link
@@ -57,6 +59,8 @@ export function CartPageItem(props: ICartPageItemProps) {
                   className="h-10 w-fit rounded-xl px-4 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   disabled={props.disabled}
                   onClick={props.onRemove}
+                  aria-label={`Remove ${props.item.product.name} from cart`}
+                  data-testid="cart-item-remove"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

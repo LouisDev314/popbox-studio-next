@@ -39,7 +39,7 @@ export function CartSummary(props: ICartSummaryProps) {
         : 'You qualify for free shipping.';
 
   return (
-    <div className={cn('rounded-4xl border border-border/60 bg-card p-6 shadow-sm', props.className)}>
+    <div className={cn('rounded-4xl border border-border/60 bg-card p-6 shadow-sm', props.className)} data-testid="cart-summary">
       {hasHeaderContent ? (
         <div className="space-y-1.5">
           {resolvedHeading !== null ? (

@@ -285,7 +285,7 @@ export function ProductActions(props: IProductActionsProps) {
   };
 
   return (
-    <div className="mt-8 space-y-4">
+    <div className="mt-8 space-y-4" data-testid="product-actions">
       <div className="flex gap-3">
         <Button
           type="button"
@@ -299,6 +299,7 @@ export function ProductActions(props: IProductActionsProps) {
           )}
           disabled={isWishlistBusy}
           onClick={handleWishlistToggle}
+          data-testid="wishlist-toggle"
         >
           <Heart
             className={cn(
@@ -362,6 +363,7 @@ export function ProductActions(props: IProductActionsProps) {
           className="mt-5 h-14 w-full rounded-xl text-lg font-semibold"
           disabled={actionState.isAddDisabled || isCartBusy}
           onClick={handleAdd}
+          data-testid="add-to-cart"
         >
           <ShoppingBag className="mr-2 h-5 w-5" />
           {actionState.addButtonLabel}

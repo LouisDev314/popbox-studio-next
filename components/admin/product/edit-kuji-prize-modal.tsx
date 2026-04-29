@@ -5,7 +5,6 @@ import { getAdminPrizeTierLabel } from '@/lib/kuji-prize-codes';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';

@@ -22,6 +22,9 @@ export function ProductTileDense(props: IProductTileDenseProps) {
     <Link
       href={`/products/${product.slug}`}
       className="group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      data-testid="product-card"
+      data-product-slug={product.slug}
+      data-product-type={product.productType}
     >
       <div className="relative aspect-square overflow-hidden rounded-xl">
         {product.productType === 'kuji' && (
