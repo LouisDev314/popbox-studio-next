@@ -36,11 +36,6 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
               <h1 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
                 Thank you for your order!
               </h1>
-
-              <p className="mx-auto max-w-xl text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7">
-                Your order will be processed within 2 business days. We’ll email you as
-                soon as it ships.
-              </p>
             </div>
 
             <GuestOrderMeta publicId={order.publicId} placedAt={order.placedAt} />
@@ -61,6 +56,10 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
             </div>
           )}
         </div>
+        <p className="mx-auto max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7 mt-8">
+          **Your order will be processed within 2 business days. We’ll email you as
+          soon as it ships.
+        </p>
       </div>
 
       <div className="mb-12 grid grid-cols-1 gap-8 md:grid-cols-3">

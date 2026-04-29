@@ -25,13 +25,13 @@ export function GuestOrderMeta(props: IGuestOrderMetaProps) {
   return (
     <div className="mt-6 flex flex-col items-center gap-3 text-center sm:mt-8 lg:text-left">
       <div className="flex w-full justify-center items-center gap-4">
-        <span className="text-sm font-medium uppercase tracking-widest text-muted-foreground">
+        <span className="text-xs sm:text-sm font-medium uppercase tracking-widest text-muted-foreground">
           Order Number
         </span>
 
         <div className="flex w-fit items-center rounded-2xl border border-border/60 bg-background/80 p-1.5 shadow-sm">
           <div className="min-w-0 flex-1 px-3 py-2 text-center lg:text-left">
-            <span className="block break-all text-lg font-semibold tracking-tight text-primary sm:text-xl lg:text-2xl">
+            <span className="block break-all text-lg font-semibold tracking-tight text-primary text-nowrap sm:text-xl lg:text-2xl">
               {props.publicId}
             </span>
           </div>
