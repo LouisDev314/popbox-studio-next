@@ -4,14 +4,15 @@ import { useState } from 'react';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type IProduct } from '@/interfaces/product';
 import Image from 'next/image';
+import { getProductCoverImageIndex, getSortedProductImages } from '@/utils/product-images';
 
 interface IProductGalleryProps {
   product: IProduct;
 }
 
 export function ProductGallery(props: IProductGalleryProps) {
-  const [activeImage, setActiveImage] = useState(0);
-  const images = props.product.images;
+  const images = getSortedProductImages(props.product);
+  const [activeImage, setActiveImage] = useState(() => getProductCoverImageIndex(props.product));
   const activeImageData = images[activeImage];
 
   return (

@@ -1,8 +1,9 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import { Sparkles } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { IOrderTicket } from '@/interfaces/order';
 import { getPrizeTierLabel } from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
@@ -39,16 +40,32 @@ function TicketFace(props: {
   disabled?: boolean;
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
+  const [isTicketImageLoaded, setIsTicketImageLoaded] = useState(false);
+  const [hasTicketImageError, setHasTicketImageError] = useState(false);
   const content = (
     <>
-      <Image
-        src="/kuji-ticket.webp"
-        alt=""
-        fill
-        priority={false}
-        sizes="(min-width: 1280px) 36rem, (min-width: 640px) 42rem, 100vw"
-        className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.015]"
-      />
+      {!isTicketImageLoaded && !hasTicketImageError ? (
+        <Skeleton
+          aria-hidden="true"
+          data-testid="ticket-image-skeleton"
+          className="absolute inset-0 h-full w-full rounded-none bg-muted/60"
+        />
+      ) : null}
+      {!hasTicketImageError ? (
+        <Image
+          src="/kuji-ticket.webp"
+          alt=""
+          fill
+          priority={false}
+          sizes="(min-width: 1280px) 36rem, (min-width: 640px) 42rem, 100vw"
+          className={cn(
+            'object-cover object-center transition-all duration-700 ease-out group-hover:scale-[1.015]',
+            isTicketImageLoaded ? 'opacity-100' : 'opacity-0',
+          )}
+          onError={() => setHasTicketImageError(true)}
+          onLoad={() => setIsTicketImageLoaded(true)}
+        />
+      ) : null}
       {/* subtle readability mask (top + bottom only, no heavy full darkening) */}
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,13,28,0.35)_0%,rgba(8,13,28,0.08)_40%,rgba(8,13,28,0.45)_100%)]" />
 

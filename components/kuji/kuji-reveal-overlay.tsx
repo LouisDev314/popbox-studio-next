@@ -1,7 +1,7 @@
 'use client';
 
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StorefrontImage } from '@/components/ui/storefront-image';
@@ -9,6 +9,10 @@ import { KujiPrizeTiles, type IKujiPrizeTileItem } from '@/components/kuji/kuji-
 import { getPrizeTierLabel } from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
 import type { IOrderTicket } from '@/interfaces/order';
+
+const KUJI_REVEAL_VIDEO_SRC = '/kuji-reveal.mp4';
+const REVEAL_VIDEO_STALL_TIMEOUT_MS = 9000;
+const REVEAL_VIDEO_PLAY_FAILURE_SKIP_MS = 150;
 
 export type TKujiRevealOverlayPhase =
   | 'playingRevealVideo'
@@ -71,18 +75,78 @@ function KujiRevealVideoView(props: {
   mode: TKujiRevealOverlayMode | null;
   onVideoComplete: () => void;
 }) {
+  const { onVideoComplete } = props;
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hasCompletedRef = useRef(false);
+  const stallTimeoutRef = useRef<number | null>(null);
+  const playFailureTimeoutRef = useRef<number | null>(null);
+
+  const clearVideoTimeouts = useCallback(() => {
+    if (stallTimeoutRef.current !== null) {
+      window.clearTimeout(stallTimeoutRef.current);
+      stallTimeoutRef.current = null;
+    }
+
+    if (playFailureTimeoutRef.current !== null) {
+      window.clearTimeout(playFailureTimeoutRef.current);
+      playFailureTimeoutRef.current = null;
+    }
+  }, []);
+
+  const completeVideoGate = useCallback(() => {
+    if (hasCompletedRef.current) {
+      return;
+    }
+
+    hasCompletedRef.current = true;
+    clearVideoTimeouts();
+    onVideoComplete();
+  }, [clearVideoTimeouts, onVideoComplete]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+
+    if (!video) {
+      completeVideoGate();
+      return;
+    }
+
+    stallTimeoutRef.current = window.setTimeout(completeVideoGate, REVEAL_VIDEO_STALL_TIMEOUT_MS);
+
+    try {
+      video.load();
+      const playResult = video.play();
+
+      if (playResult && typeof playResult.catch === 'function') {
+        playResult.catch(() => {
+          playFailureTimeoutRef.current = window.setTimeout(
+            completeVideoGate,
+            REVEAL_VIDEO_PLAY_FAILURE_SKIP_MS,
+          );
+        });
+      }
+    } catch {
+      playFailureTimeoutRef.current = window.setTimeout(
+        completeVideoGate,
+        REVEAL_VIDEO_PLAY_FAILURE_SKIP_MS,
+      );
+    }
+
+    return clearVideoTimeouts;
+  }, [clearVideoTimeouts, completeVideoGate]);
+
   return (
     <OverlayAtmosphere className="bg-[#08111f] text-white before:bg-sky-500/18 after:bg-cyan-400/14">
       <div className="relative flex h-full min-h-0 flex-1 items-center justify-center">
         <video
-          autoPlay
+          ref={videoRef}
           controls={false}
           muted
-          onEnded={props.onVideoComplete}
-          onError={props.onVideoComplete}
+          onEnded={completeVideoGate}
+          onError={completeVideoGate}
           playsInline
           preload="auto"
-          src="/kuji-reveal.mp4"
+          src={KUJI_REVEAL_VIDEO_SRC}
           className="absolute inset-0 h-full w-full object-cover"
           data-testid="kuji-reveal-video"
         />

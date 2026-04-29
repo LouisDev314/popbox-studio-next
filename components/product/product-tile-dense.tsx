@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import type { IProductCard } from '@/interfaces/product';
 import { formatPrice } from '@/lib/utils';
+import { getProductCoverImage } from '@/utils/product-images';
 import { getProductInventoryState } from '@/utils/product-stock';
 
 const DENSE_PRODUCT_IMAGE_SIZES = '(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw';
@@ -17,6 +18,7 @@ export function ProductTileDense(props: IProductTileDenseProps) {
   const { product, priority = false, sizes = DENSE_PRODUCT_IMAGE_SIZES } = props;
   const inventoryState = getProductInventoryState(product);
   const isSoldOut = inventoryState.hasInventoryData && inventoryState.status === 'sold_out';
+  const coverImage = getProductCoverImage(product);
 
   return (
     <Link
@@ -38,8 +40,8 @@ export function ProductTileDense(props: IProductTileDenseProps) {
         )}
 
         <StorefrontImage
-          src={product.images?.[0]?.url}
-          alt={product.images?.[0]?.altText ?? product.name}
+          src={coverImage?.url}
+          alt={coverImage?.altText ?? product.name}
           label={product.name}
           priority={priority}
           sizes={sizes}

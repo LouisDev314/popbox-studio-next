@@ -77,6 +77,8 @@ describe('StorefrontCarousel', () => {
     const mediaFrame = link?.querySelector('div.relative.aspect-\\[1\\.85\\/1\\]');
     const desktopLayout = slide?.querySelector('div.relative.lg\\:flex');
     const sharedControls = container.querySelector('.group-hover\\:opacity-100.md\\:flex');
+    const scrollHintIcon = container.querySelector('svg.lucide-chevron-down');
+    const scrollHint = scrollHintIcon?.closest('.xl\\:flex');
 
     expect(slide).toHaveClass('flex-[0_0_100%]');
     expect(slide?.className).not.toContain('lg:flex-[0_0_84%]');
@@ -91,6 +93,7 @@ describe('StorefrontCarousel', () => {
     expect(mediaFrame?.className).not.toContain('xl:h-[30rem]');
     expect(mediaFrame?.className).not.toContain('lg:w-[min(100%,72rem)]');
     expect(container.querySelector('.group-hover\\/slide\\:opacity-100.lg\\:block')).not.toBeInTheDocument();
+    expect(scrollHint).toHaveClass('pointer-events-none', 'hidden', 'xl:flex');
     expect(sharedControls).toHaveClass('lg:left-0', 'lg:right-0', 'lg:w-full', 'lg:px-10');
     expect(sharedControls?.className).not.toContain('lg:max-w-6xl');
   });

@@ -89,7 +89,7 @@ describe('WishlistDrawer', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('shows a removal success alert when deleting a wishlist item', async () => {
+  it('removes a wishlist item without a normal success alert', async () => {
     act(() => {
       useWishlistStore.setState({
         hasHydrated: true,
@@ -103,6 +103,6 @@ describe('WishlistDrawer', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
 
     expect(useWishlistStore.getState().items).toHaveLength(0);
-    expect(screen.getByRole('status')).toHaveTextContent('Removed from wishlist');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });
