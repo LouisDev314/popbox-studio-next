@@ -15,7 +15,7 @@ export function StorefrontKujiBanner() {
               alt="What is Ichiban Kuji banner"
               width={1600}
               height={560}
-              priority={false}
+              priority
               className="h-auto w-full transition-transform duration-500 ease-out group-hover:scale-[1.01]"
               sizes="(min-width: 1024px) 896px, (min-width: 640px) 92vw, 100vw"
             />
