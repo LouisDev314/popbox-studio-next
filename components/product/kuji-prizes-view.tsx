@@ -45,7 +45,7 @@ export function KujiPrizesView(props: IKujiPrizesViewProps) {
         <h2 className="text-2xl font-bold tracking-tight">Prizes List</h2>
       </div>
 
-      <div className="space-y-8">
+      <div className="max-w-5xl space-y-8">
         {prizeGroups.map((group) => {
           const headingId = `kuji-prize-tier-${group.tier.toLowerCase() || 'unknown'}`;
 
