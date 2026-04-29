@@ -53,6 +53,7 @@ function FilterOptionButton(props: IFilterOptionButtonProps) {
 
 type ITagCheckboxRowProps = {
   checked: boolean;
+  id: string;
   label: string;
   onChange: () => void;
   variant?: TFilterPanelVariant;
@@ -74,6 +75,7 @@ function TagCheckboxRow(props: ITagCheckboxRowProps) {
       )}
     >
       <Checkbox
+        id={props.id}
         checked={props.checked}
         onCheckedChange={props.onChange}
         className={cn(
@@ -210,6 +212,7 @@ export function FilterPanelContent(props: IFilterPanelContentProps) {
                   <TagCheckboxRow
                     key={tag.id}
                     checked={selectedTagSet.has(normalizeTagSlug(tag.slug))}
+                    id={`product-filter-${variant}-${normalizeTagSlug(tag.slug)}`}
                     label={tag.name}
                     onChange={() => props.onTagToggle(tag.slug)}
                     variant={variant}

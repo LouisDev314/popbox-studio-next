@@ -5,6 +5,12 @@ import { expectAdminPageUsable, loginAsAdmin } from './support/admin';
 
 test.describe('admin authentication and read-only admin pages', () => {
   test('unauthenticated admin users are redirected to login', async ({ page, consoleErrors }) => {
+    await page.context().clearCookies();
+    await page.addInitScript(() => {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    });
+
     await page.goto('/admin/products');
     await expect(page).toHaveURL(/\/admin\/login/);
     await expect(page.getByRole('heading', { name: 'Admin Login' })).toBeVisible();

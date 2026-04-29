@@ -417,6 +417,7 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
             ) : null}
           </Button>
           <Select
+            id="products-sort-select"
             value={props.initialSort}
             onValueChange={handleSortChange}
             modal={false}

@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { type ReactNode } from 'react';
 import './globals.css';
-import { ReactQueryProvider } from '@/components/react-query-provider';
-import { ThemeProvider } from '@/components/theme-provider';
+import { AppProviders } from '@/components/app-providers';
 import { Analytics } from '@vercel/analytics/next';
 import getPublicEnvConfig from '@/configs/public-env';
 import { SpeedInsights } from '@vercel/speed-insights/next'
@@ -55,16 +54,9 @@ export default function RootLayout(props: Readonly<IRootLayoutProps>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <ReactQueryProvider>
-            {props.children}
-          </ReactQueryProvider>
-        </ThemeProvider>
+        <AppProviders>
+          {props.children}
+        </AppProviders>
         <Analytics />
         <SpeedInsights />
       </body>

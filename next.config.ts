@@ -31,6 +31,7 @@ if (shouldEnableSentryBuild && !hasRequiredSentryBuildEnv) {
 }
 
 const nextConfig: NextConfig = {
+  htmlLimitedBots: /.*/,
   async rewrites() {
     return {
       beforeFiles: [

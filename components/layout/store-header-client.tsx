@@ -42,6 +42,7 @@ const MOBILE_CART_BUTTON_ID = 'store-mobile-cart-trigger';
 const MOBILE_MENU_BUTTON_ID = 'store-mobile-menu-trigger';
 const MOBILE_SEARCH_BUTTON_ID = 'store-mobile-search-trigger';
 const MOBILE_SEARCH_INPUT_ID = 'store-mobile-search-input';
+const COLLECTIONS_MENU_TRIGGER_ID = 'store-collections-menu-trigger';
 
 interface IStoreHeaderActionsProps {
   hasCartHydrated: boolean;
@@ -329,8 +330,9 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
                   </Link>
                 ))}
                 {collectionMenuItems.length > 0 ? (
-                  <DropdownMenu>
+                  <DropdownMenu defaultTriggerId={COLLECTIONS_MENU_TRIGGER_ID}>
                     <DropdownMenuTrigger
+                      id={COLLECTIONS_MENU_TRIGGER_ID}
                       aria-current={isCollectionsActive ? 'page' : undefined}
                       className={cn(
                         getDesktopNavItemClassName(isCollectionsActive, true),

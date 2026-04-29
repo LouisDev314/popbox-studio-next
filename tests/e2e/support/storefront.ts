@@ -37,5 +37,5 @@ export async function expectCartContainsProduct(page: Page, slug: string): Promi
 
 export async function gotoProductsPage(page: Page): Promise<void> {
   await page.goto('/products');
-  await expect(page.getByRole('heading', { name: /products|shop|merchandise/i })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'All Products' })).toBeVisible();
 }

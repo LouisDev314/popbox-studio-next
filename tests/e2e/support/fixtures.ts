@@ -9,7 +9,7 @@ function isCriticalConsoleMessage(message: string): boolean {
   return !IGNORED_CONSOLE_FRAGMENTS.some((fragment) => message.includes(fragment));
 }
 
-export const test = base.extend<{ consoleErrors: string[] }>({
+export const test = base.extend<{ consoleErrors: string[]; serverErrors: string[] }>({
   consoleErrors: async ({ page }, run) => {
     const errors: string[] = [];
 
@@ -25,8 +25,29 @@ export const test = base.extend<{ consoleErrors: string[] }>({
       }
     });
 
+    page.on('response', (response) => {
+      if (response.status() < 500) {
+        return;
+      }
+
+      errors.push(`[response.${response.status()}] ${response.request().method()} ${response.url()}`);
+    });
+
     page.on('pageerror', (error) => {
       errors.push(`[pageerror] ${error.message}`);
+    });
+
+    await run(errors);
+  },
+  serverErrors: async ({ page }, run) => {
+    const errors: string[] = [];
+
+    page.on('response', (response) => {
+      if (response.status() < 500) {
+        return;
+      }
+
+      errors.push(`[response.${response.status()}] ${response.request().method()} ${response.url()}`);
     });
 
     await run(errors);

@@ -25,7 +25,7 @@ test.describe('responsive, failure, and SEO checks', () => {
     await expectNoCriticalConsoleErrors(consoleErrors);
   });
 
-  test('autocomplete API failure shows a friendly message without stack traces', async ({ page, consoleErrors }) => {
+  test('autocomplete API failure shows a friendly message without stack traces', async ({ page, consoleErrors, serverErrors }) => {
     await page.route('**/api/v1/search/autocomplete**', async (route) => {
       await route.fulfill({
         status: 500,
@@ -46,7 +46,16 @@ test.describe('responsive, failure, and SEO checks', () => {
 
     await expect(page.getByText('Autocomplete is unavailable right now.')).toBeVisible();
     await expectNoStackTrace(page.locator('body'));
-    await expectNoCriticalConsoleErrors(consoleErrors);
+
+    const unexpectedServerErrors = serverErrors.filter((entry) => !entry.includes('/api/v1/search/autocomplete'));
+    expect(unexpectedServerErrors, unexpectedServerErrors.join('\n')).toEqual([]);
+    expect(serverErrors.some((entry) => entry.includes('/api/v1/search/autocomplete'))).toBe(true);
+
+    const unexpectedConsoleErrors = consoleErrors.filter((entry) => (
+      !entry.includes('/api/v1/search/autocomplete')
+      && !entry.includes('Failed to load resource: the server responded with a status of 500')
+    ));
+    expect(unexpectedConsoleErrors, unexpectedConsoleErrors.join('\n')).toEqual([]);
   });
 
   test('homepage and legal pages expose basic metadata', async ({ page, consoleErrors }) => {
