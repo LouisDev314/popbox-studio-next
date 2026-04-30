@@ -1,9 +1,7 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DotLottie } from '@lottiefiles/dotlottie-react';
+import { type MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { Heart, Share, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
@@ -12,7 +10,9 @@ import { useStorefrontAlert } from '@/hooks/use-storefront-alert';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import { type IProduct } from '@/interfaces/product';
 import { shareProduct } from '@/lib/share-product';
+import { flyProductImageToTarget } from '@/lib/ui/fly-to-target';
 import { cn } from '@/lib/utils';
+import { getProductCoverImage } from '@/utils/product-images';
 import { mapProductToWishlistItem } from '@/utils/wishlist';
 import {
   getProductSellableQuantity,
@@ -29,12 +29,6 @@ interface IProductActionsProps {
 }
 
 type TStorefrontAction = 'cart' | 'share' | 'wishlist';
-type TFeedbackAction = Exclude<TStorefrontAction, 'share'>;
-
-const DotLottieReact = dynamic(
-  () => import('@lottiefiles/dotlottie-react').then((module) => module.DotLottieReact),
-  { ssr: false },
-);
 
 interface IProductQuantityState {
   availabilityLabel: string;
@@ -129,64 +123,12 @@ const ACTION_COOLDOWN_MS = 300;
 const ACTION_SUCCESS_FEEDBACK_FALLBACK_MS = 1200;
 const SECONDARY_ACTION_BUTTON_CLASS_NAME = 'h-12 w-full rounded-2xl border-border/70 bg-background text-sm font-semibold text-foreground hover:bg-accent/70';
 
-function ProductActionAnimation(props: {
-  label: string;
-  onComplete: () => void;
-  src: string;
-}) {
-  const playerRef = useRef<DotLottie | null>(null);
-  const onCompleteRef = useRef(props.onComplete);
-
-  useEffect(() => {
-    onCompleteRef.current = props.onComplete;
-  }, [props.onComplete]);
-
-  const handleComplete = useCallback(() => {
-    onCompleteRef.current();
-  }, []);
-
-  const handlePlayerRef = useCallback((player: DotLottie | null) => {
-    if (playerRef.current) {
-      playerRef.current.removeEventListener('complete', handleComplete);
-    }
-
-    playerRef.current = player;
-
-    if (player) {
-      player.addEventListener('complete', handleComplete);
-    }
-  }, [handleComplete]);
-
-  useEffect(() => {
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.removeEventListener('complete', handleComplete);
-      }
-    };
-  }, [handleComplete]);
-
-  return (
-    <span className="flex items-center justify-center" aria-hidden="true">
-      <DotLottieReact
-        src={props.src}
-        autoplay
-        loop={false}
-        className="h-8 w-8"
-        dotLottieRefCallback={handlePlayerRef}
-        data-testid="product-action-lottie"
-      />
-      <span className="sr-only">{props.label}</span>
-    </span>
-  );
-}
-
 function WishlistActionButton(props: {
   feedback: 'added' | 'removed' | null;
   hasWishlistHydrated: boolean;
   isBusy: boolean;
   isWishlisted: boolean;
-  onAnimationComplete: () => void;
-  onClick: () => void;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
   const isSuccessVisible = props.feedback !== null && props.isBusy;
   const normalLabel = props.hasWishlistHydrated && props.isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist';
@@ -211,11 +153,7 @@ function WishlistActionButton(props: {
       data-testid="wishlist-toggle"
     >
       {isSuccessVisible ? (
-        <ProductActionAnimation
-          src="/add-to-wishlist-button.lottie"
-          label={label}
-          onComplete={props.onAnimationComplete}
-        />
+        <span aria-live="polite">{label}</span>
       ) : (
         <>
           <Heart
@@ -235,8 +173,7 @@ function AddToCartButton(props: {
   addButtonLabel: string;
   disabled: boolean;
   isSuccessVisible: boolean;
-  onAnimationComplete: () => void;
-  onClick: () => void;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
   const label = props.isSuccessVisible ? 'Added' : props.addButtonLabel;
 
@@ -250,11 +187,7 @@ function AddToCartButton(props: {
       data-testid="add-to-cart"
     >
       {props.isSuccessVisible ? (
-        <ProductActionAnimation
-          src="/add-to-cart-button.lottie"
-          label={label}
-          onComplete={props.onAnimationComplete}
-        />
+        <span aria-live="polite">{label}</span>
       ) : (
         <>
           <ShoppingBag className="mr-2 h-5 w-5" />
@@ -295,6 +228,7 @@ export function ProductActions(props: IProductActionsProps) {
   });
   const { showSuccess } = useStorefrontAlert();
 
+  const flyImage = getProductCoverImage(props.product) ?? props.product.images[0] ?? null;
   const currentCartQuantity = cartItems.find((item) => item.product.id === props.product.id)?.quantity ?? 0;
   const actionState = getProductActionState(props.product, currentCartQuantity);
   const quantityCap = actionState.quantityCap;
@@ -304,6 +238,18 @@ export function ProductActions(props: IProductActionsProps) {
   const isWishlistBusy = disabledActions.wishlist;
   const isKuji = isKujiProduct(props.product);
   const isCartSuccessVisible = cartFeedback !== null && isCartBusy;
+  const fireProductFlyAnimation = (target: 'cart' | 'wishlist', sourceElement: Element) => {
+    try {
+      flyProductImageToTarget({
+        imageAlt: flyImage?.altText ?? props.product.name,
+        imageUrl: flyImage?.url,
+        sourceElement,
+        target,
+      });
+    } catch {
+      // Decorative feedback must never affect product actions.
+    }
+  };
 
   useEffect(() => {
     const releaseTimeouts = releaseTimeoutRef.current;
@@ -407,7 +353,9 @@ export function ProductActions(props: IProductActionsProps) {
     }
   };
 
-  const handleAdd = () => {
+  const handleAdd = (event: MouseEvent<HTMLButtonElement>) => {
+    const sourceElement = event.currentTarget;
+
     void runGuardedAction('cart', () => {
       const result = addItem(props.product, clampedQuantity);
 
@@ -420,6 +368,7 @@ export function ProductActions(props: IProductActionsProps) {
       setFeedbackMessage(null);
       setCartFeedback('added');
       setQuantity(1);
+      fireProductFlyAnimation('cart', sourceElement);
       return true;
     });
   };
@@ -443,19 +392,22 @@ export function ProductActions(props: IProductActionsProps) {
     });
   };
 
-  const handleWishlistToggle = () => {
+  const handleWishlistToggle = (event: MouseEvent<HTMLButtonElement>) => {
+    const sourceElement = event.currentTarget;
+
     void runGuardedAction('wishlist', () => {
       const nextFeedback = isWishlisted ? 'removed' : 'added';
 
       toggleWishlistItem(mapProductToWishlistItem(props.product));
       setWishlistFeedback(nextFeedback);
+
+      if (!isWishlisted) {
+        fireProductFlyAnimation('wishlist', sourceElement);
+      }
+
       return true;
     });
   };
-
-  const handleFeedbackAnimationComplete = useCallback((action: TFeedbackAction) => {
-    completeGuardedAction(action);
-  }, [completeGuardedAction]);
 
   return (
     <div className="mt-8 space-y-4" data-testid="product-actions">
@@ -465,7 +417,6 @@ export function ProductActions(props: IProductActionsProps) {
           hasWishlistHydrated={hasWishlistHydrated}
           isBusy={isWishlistBusy}
           isWishlisted={isWishlisted}
-          onAnimationComplete={() => handleFeedbackAnimationComplete('wishlist')}
           onClick={handleWishlistToggle}
         />
 
@@ -521,7 +472,6 @@ export function ProductActions(props: IProductActionsProps) {
           addButtonLabel={actionState.addButtonLabel}
           disabled={actionState.isAddDisabled || isCartBusy}
           isSuccessVisible={isCartSuccessVisible}
-          onAnimationComplete={() => handleFeedbackAnimationComplete('cart')}
           onClick={handleAdd}
         />
       </div>

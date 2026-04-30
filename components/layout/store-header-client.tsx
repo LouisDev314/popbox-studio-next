@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, type FormEvent, useCallback, useEffect, useState } from 'react';
+import { Suspense, type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, Heart, Search, ShoppingBag } from 'lucide-react';
@@ -33,6 +33,7 @@ import { useMobileNavbarVisibility } from '@/hooks/use-mobile-navbar-visibility'
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import { type IProductSuggestion, IProductSuggestionResponse } from '@/interfaces/product';
 import { formatQuantity } from '@/lib/format-quantity';
+import { FLY_TARGET_REQUEST_EVENT } from '@/lib/ui/fly-to-target';
 import { cn } from '@/lib/utils';
 
 type TMobilePanel = 'menu' | 'search' | null;
@@ -43,6 +44,7 @@ const MOBILE_MENU_BUTTON_ID = 'store-mobile-menu-trigger';
 const MOBILE_SEARCH_BUTTON_ID = 'store-mobile-search-trigger';
 const MOBILE_SEARCH_INPUT_ID = 'store-mobile-search-input';
 const COLLECTIONS_MENU_TRIGGER_ID = 'store-collections-menu-trigger';
+const FLY_TARGET_HEADER_REVEAL_MS = 900;
 
 interface IStoreHeaderActionsProps {
   hasCartHydrated: boolean;
@@ -76,7 +78,7 @@ function getDesktopNavItemClassName(isActive: boolean, isTrigger = false) {
 
 function StoreHeaderActions(props: IStoreHeaderActionsProps) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex shrink-0 items-center gap-2">
       <button
         id={MOBILE_SEARCH_BUTTON_ID}
         type="button"
@@ -94,6 +96,7 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
       <button
         id={WISHLIST_BUTTON_ID}
         type="button"
+        data-fly-target="wishlist"
         className="relative rounded-full border border-transparent bg-background p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={props.onWishlistOpen}
       >
@@ -109,6 +112,7 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
       <button
         id={MOBILE_CART_BUTTON_ID}
         type="button"
+        data-fly-target="cart"
         className="relative rounded-full border border-transparent bg-background p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={props.onCartOpen}
       >
@@ -127,7 +131,7 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
         aria-expanded={props.isMenuOpen}
         aria-label={props.isMenuOpen ? 'Close menu' : 'Open menu'}
         className={cn(
-          'relative inline-flex h-10 w-10 items-center justify-center rounded-full border p-2 text-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 lg:hidden',
+          'relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border p-2 text-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 xl:hidden',
           props.isMenuOpen ? 'border-primary/30 bg-accent' : 'border-border/60 bg-background',
         )}
         onClick={props.onMenuToggle}
@@ -165,9 +169,11 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
 
   const [activeMobilePanel, setActiveMobilePanel] = useState<TMobilePanel>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isFlyTargetHeaderVisible, setIsFlyTargetHeaderVisible] = useState(false);
   const [hasStoreBanner, setHasStoreBanner] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const flyTargetHeaderRevealTimeoutRef = useRef<number | null>(null);
 
   const debouncedSearchQuery = useDebouncedValue(searchQuery.trim(), 220);
   const shouldFetchAutocomplete = activeMobilePanel === 'search' && debouncedSearchQuery.length >= 2;
@@ -187,7 +193,12 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
   const totalWishlistItems = wishlistItems.length;
   const isMenuOpen = activeMobilePanel === 'menu';
   const isSearchOpen = activeMobilePanel === 'search';
-  const shouldShowMobileNavbar = activeMobilePanel !== null || isCartOpen || isWishlistOpen || isMobileNavbarVisible;
+  const shouldShowMobileNavbar =
+    activeMobilePanel !== null ||
+    isCartOpen ||
+    isWishlistOpen ||
+    isFlyTargetHeaderVisible ||
+    isMobileNavbarVisible;
   const autocompleteSuggestions = shouldFetchAutocomplete
     ? autocompleteResponse?.data?.data?.items ?? []
     : [];
@@ -222,6 +233,31 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
       window.clearTimeout(timeoutId);
     };
   }, [isSearchOpen]);
+
+  useEffect(() => {
+    const handleFlyTargetRequest = () => {
+      if (flyTargetHeaderRevealTimeoutRef.current !== null) {
+        window.clearTimeout(flyTargetHeaderRevealTimeoutRef.current);
+      }
+
+      setIsFlyTargetHeaderVisible(true);
+      flyTargetHeaderRevealTimeoutRef.current = window.setTimeout(() => {
+        flyTargetHeaderRevealTimeoutRef.current = null;
+        setIsFlyTargetHeaderVisible(false);
+      }, FLY_TARGET_HEADER_REVEAL_MS);
+    };
+
+    window.addEventListener(FLY_TARGET_REQUEST_EVENT, handleFlyTargetRequest);
+
+    return () => {
+      window.removeEventListener(FLY_TARGET_REQUEST_EVENT, handleFlyTargetRequest);
+
+      if (flyTargetHeaderRevealTimeoutRef.current !== null) {
+        window.clearTimeout(flyTargetHeaderRevealTimeoutRef.current);
+        flyTargetHeaderRevealTimeoutRef.current = null;
+      }
+    };
+  }, [flyTargetHeaderRevealTimeoutRef]);
 
   const closeMobilePanel = () => {
     if (activeMobilePanel === 'search') {
@@ -306,19 +342,22 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
         <StorefrontBanner onVisibilityChange={handleBannerVisibilityChange} />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-8">
+            <div className="flex min-w-0 flex-1 items-center gap-5 xl:gap-8">
               <Link
                 href="/"
                 aria-label="PopBox Studio"
-                className="inline-flex h-10 shrink-0 items-center justify-center gap-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="inline-flex h-10 min-w-0 shrink-0 items-center justify-center gap-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <BrandLogo variant="nav" />
-                <span aria-hidden="true" className="text-base font-bold tracking-tight text-primary sm:text-lg">
-                  PopBox <span className='text-foreground'>Studio</span>
+                <span
+                  aria-hidden="true"
+                  className="hidden min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-base font-bold tracking-tight text-primary sm:inline-block sm:text-lg"
+                >
+                  PopBox <span className="text-foreground">Studio</span>
                 </span>
                 <span className="sr-only">PopBox Studio</span>
               </Link>
-              <nav className="hidden lg:flex lg:items-center lg:gap-2" aria-label="Primary">
+              <nav className="hidden shrink-0 flex-nowrap items-center gap-2 xl:flex" aria-label="Primary">
                 {desktopNavItems.map((item) => (
                   <Link
                     key={item.href}
@@ -412,7 +451,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
         ariaLabel="Store navigation menu"
         isOpen={isMenuOpen}
         onClose={closeMobilePanel}
-        containerClassName="lg:hidden"
+        containerClassName="xl:hidden"
         panelClassName="bottom-0"
         restoreFocusId={MOBILE_MENU_BUTTON_ID}
       >

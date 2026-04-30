@@ -2,6 +2,39 @@ import { expect, test } from './support/fixtures';
 import { expectNoCriticalConsoleErrors, expectNoStackTrace, expectPageMetadata, expectUsablePage } from './support/assertions';
 
 test.describe('responsive, failure, and SEO checks', () => {
+  test('storefront header does not overflow across responsive breakpoints', async ({ page, consoleErrors }) => {
+    const viewportWidths = [390, 430, 768, 1024, 1280, 1440];
+
+    for (const width of viewportWidths) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+
+      await expect(page.getByRole('link', { exact: true, name: 'PopBox Studio' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Open search' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Open wishlist' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Open cart' })).toBeVisible();
+
+      const primaryNav = page.getByRole('navigation', { name: 'Primary' });
+      const menuButton = page.getByRole('button', { name: 'Open menu' });
+
+      if (width >= 1280) {
+        await expect(primaryNav).toBeVisible();
+        await expect(menuButton).toBeHidden();
+      } else {
+        await expect(primaryNav).toBeHidden();
+        await expect(menuButton).toBeVisible();
+      }
+
+      const hasHorizontalOverflow = await page.evaluate(() => (
+        document.documentElement.scrollWidth > document.documentElement.clientWidth
+        || document.body.scrollWidth > document.body.clientWidth
+      ));
+      expect(hasHorizontalOverflow, `Header introduced horizontal overflow at ${width}px`).toBe(false);
+    }
+
+    await expectNoCriticalConsoleErrors(consoleErrors);
+  });
+
   test('mobile header menu, search, cart, and product filters remain usable', async ({ page, consoleErrors, isMobile }) => {
     test.skip(!isMobile, 'This check runs only in the mobile project.');
 

@@ -8,36 +8,12 @@ import { type IProduct } from '@/interfaces/product';
 import { createProductCard } from '../fixtures';
 import { renderWithProviders, resetStores } from '../test-utils';
 
-const lottieCompleteListeners = vi.hoisted(() => new Set<() => void>());
+const flyProductImageToTargetMock = vi.hoisted(() => vi.fn());
 const originalNavigatorClipboard = navigator.clipboard;
 const originalNavigatorShare = navigator.share;
 
-vi.mock('@lottiefiles/dotlottie-react', () => ({
-  DotLottieReact: ({
-    dotLottieRefCallback,
-    src,
-  }: {
-    dotLottieRefCallback?: (player: {
-      addEventListener: (event: string, listener: () => void) => void;
-      removeEventListener: (event: string, listener: () => void) => void;
-    } | null) => void;
-    src: string;
-  }) => {
-    dotLottieRefCallback?.({
-      addEventListener: (event, listener) => {
-        if (event === 'complete') {
-          lottieCompleteListeners.add(listener);
-        }
-      },
-      removeEventListener: (event, listener) => {
-        if (event === 'complete') {
-          lottieCompleteListeners.delete(listener);
-        }
-      },
-    });
-
-    return <span data-testid="product-action-lottie" data-src={src} />;
-  },
+vi.mock('@/lib/ui/fly-to-target', () => ({
+  flyProductImageToTarget: flyProductImageToTargetMock,
 }));
 
 function createProduct(overrides: Partial<IProduct> = {}): IProduct {
@@ -71,18 +47,16 @@ function mockNavigatorShare(share?: typeof navigator.share) {
   });
 }
 
-function completeLottieAnimations() {
+function completeActionFeedback() {
   act(() => {
-    for (const listener of Array.from(lottieCompleteListeners)) {
-      listener();
-    }
+    vi.advanceTimersByTime(1200);
   });
 }
 
 describe('ProductActions', () => {
   beforeEach(() => {
     resetStores();
-    lottieCompleteListeners.clear();
+    flyProductImageToTargetMock.mockReset();
   });
 
   afterEach(() => {
@@ -110,31 +84,44 @@ describe('ProductActions', () => {
   });
 
   it('shows inline success feedback after adding a product to cart', async () => {
+    vi.useFakeTimers();
     renderWithProviders(<ProductActions product={createProduct()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add to Cart' }));
 
     expect(screen.getByRole('button', { name: 'Added' })).toBeDisabled();
-    await screen.findByTestId('product-action-lottie');
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(useCartStore.getState().items).toHaveLength(1);
+    expect(flyProductImageToTargetMock).toHaveBeenCalledWith(expect.objectContaining({
+      imageAlt: 'Ichiban Figure',
+      imageUrl: 'https://example.com/products/figure-1.jpg',
+      sourceElement: expect.any(HTMLButtonElement),
+      target: 'cart',
+    }));
 
-    completeLottieAnimations();
+    completeActionFeedback();
 
     expect(screen.getByRole('button', { name: 'Add to Cart' })).not.toBeDisabled();
   });
 
   it('shows inline success feedback when adding to and removing from wishlist', async () => {
+    vi.useFakeTimers();
     renderWithProviders(<ProductActions product={createProduct()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add to Wishlist' }));
 
     expect(screen.getByRole('button', { name: 'Added' })).toBeDisabled();
-    await screen.findByTestId('product-action-lottie');
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(useWishlistStore.getState().items).toHaveLength(1);
+    expect(flyProductImageToTargetMock).toHaveBeenCalledWith(expect.objectContaining({
+      imageAlt: 'Ichiban Figure',
+      imageUrl: 'https://example.com/products/figure-1.jpg',
+      sourceElement: expect.any(HTMLButtonElement),
+      target: 'wishlist',
+    }));
 
-    completeLottieAnimations();
+    completeActionFeedback();
+    flyProductImageToTargetMock.mockClear();
 
     expect(screen.getByRole('button', { name: 'Remove from Wishlist' })).not.toBeDisabled();
 
@@ -142,35 +129,35 @@ describe('ProductActions', () => {
 
     expect(useWishlistStore.getState().items).toHaveLength(0);
     expect(screen.getByRole('button', { name: 'Removed' })).toBeDisabled();
-    await screen.findByTestId('product-action-lottie');
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(flyProductImageToTargetMock).not.toHaveBeenCalled();
   });
 
   it('clears inline cart success feedback after the configured duration', async () => {
+    vi.useFakeTimers();
     renderWithProviders(<ProductActions product={createProduct()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add to Cart' }));
 
     expect(screen.getByRole('button', { name: 'Added' })).toBeInTheDocument();
-    await screen.findByTestId('product-action-lottie');
 
-    completeLottieAnimations();
+    completeActionFeedback();
 
     expect(screen.queryByRole('button', { name: 'Added' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add to Cart' })).toBeInTheDocument();
   });
 
   it('prevents repeat cart actions while inline feedback is active', async () => {
+    vi.useFakeTimers();
     renderWithProviders(<ProductActions product={createProduct()} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add to Cart' }));
     fireEvent.click(screen.getByRole('button', { name: 'Added' }));
-    await screen.findByTestId('product-action-lottie');
 
     expect(useCartStore.getState().items[0]?.quantity).toBe(1);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
 
-    completeLottieAnimations();
+    completeActionFeedback();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add to Cart' }));
 
@@ -208,6 +195,7 @@ describe('ProductActions', () => {
   });
 
   it('disables the action buttons during their guarded interaction window', async () => {
+    vi.useFakeTimers();
     renderWithProviders(<ProductActions product={createProduct()} />);
 
     const cartButton = screen.getByRole('button', { name: 'Add to Cart' });
@@ -218,9 +206,8 @@ describe('ProductActions', () => {
     expect(cartButton).toBeDisabled();
     expect(wishlistButton).not.toBeDisabled();
     expect(screen.getByRole('button', { name: 'Increase quantity' })).not.toBeDisabled();
-    await screen.findByTestId('product-action-lottie');
 
-    completeLottieAnimations();
+    completeActionFeedback();
 
     expect(cartButton).not.toBeDisabled();
 
@@ -228,11 +215,37 @@ describe('ProductActions', () => {
 
     expect(screen.getByRole('button', { name: 'Added' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Add to Cart' })).not.toBeDisabled();
-    await screen.findByTestId('product-action-lottie');
 
-    completeLottieAnimations();
+    completeActionFeedback();
 
     expect(screen.getByRole('button', { name: 'Remove from Wishlist' })).not.toBeDisabled();
+  });
+
+  it('keeps cart and wishlist state updates immediate when decorative animation fails', () => {
+    flyProductImageToTargetMock.mockImplementation(() => {
+      throw new Error('animation unavailable');
+    });
+
+    renderWithProviders(<ProductActions product={createProduct()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Cart' }));
+
+    expect(useCartStore.getState().items).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Wishlist' }));
+
+    expect(useWishlistStore.getState().items).toHaveLength(1);
+  });
+
+  it('keeps cart state updates independent from reduced-motion animation behavior', () => {
+    flyProductImageToTargetMock.mockImplementation(() => undefined);
+
+    renderWithProviders(<ProductActions product={createProduct()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Cart' }));
+
+    expect(useCartStore.getState().items).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Added' })).toBeDisabled();
   });
 
   it('preserves inline cart validation messaging for unsuccessful adds', async () => {
