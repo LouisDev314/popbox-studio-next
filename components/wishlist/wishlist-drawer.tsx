@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StorefrontDrawerEmptyState } from '@/components/ui/storefront-drawer-empty-state';
 import { StorefrontDrawer } from '@/components/ui/storefront-drawer';
 import { StorefrontImage } from '@/components/ui/storefront-image';
@@ -13,6 +14,26 @@ interface IWishlistDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   triggerButtonId?: string;
+}
+
+function WishlistDrawerItemSkeleton() {
+  return (
+    <article className="rounded-[1.75rem] border border-border/70 bg-card p-4 pb-2">
+      <div className="flex gap-4">
+        <Skeleton className="h-20 w-20 shrink-0 rounded-2xl" />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-4 w-full rounded-full" />
+            <Skeleton className="h-4 w-4/5 rounded-full" />
+            <Skeleton className="h-4 w-20 rounded-full" />
+          </div>
+          <div className="mt-3 flex justify-end">
+            <Skeleton className="h-9 w-20 rounded-full" />
+          </div>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 export function WishlistDrawer(props: IWishlistDrawerProps) {
@@ -44,10 +65,10 @@ export function WishlistDrawer(props: IWishlistDrawerProps) {
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex-1 overflow-y-auto py-5 px-4">
           {!hasHydrated ? (
-            <div className="space-y-4">
-              <div className="h-6 w-32 rounded-full bg-muted/40" />
-              <div className="h-24 rounded-3xl bg-muted/35" />
-              <div className="h-24 rounded-3xl bg-muted/25" />
+            <div className="space-y-4" aria-hidden="true">
+              <Skeleton className="h-6 w-32 rounded-full" />
+              <WishlistDrawerItemSkeleton />
+              <WishlistDrawerItemSkeleton />
             </div>
           ) : items.length === 0 ? (
             <StorefrontDrawerEmptyState

@@ -314,8 +314,10 @@ describe('OrderTicketsPageClient', () => {
       expect(screen.getByText('Congratulations')).toBeInTheDocument();
     });
 
-    expect(screen.getByRole('img', { name: 'Prize One' })).toBeInTheDocument();
-    expect(screen.getByTestId('storefront-image-skeleton')).toBeInTheDocument();
+    const prizeImages = screen.getAllByRole('img', { name: 'Prize One' });
+
+    expect(prizeImages.length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId('storefront-image-skeleton').length).toBeGreaterThan(0);
   });
 
   it('allows skipping the single reveal video and still advances into the result flow', async () => {

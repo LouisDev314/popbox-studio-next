@@ -1,5 +1,5 @@
-import Image from 'next/image';
 import Link from 'next/link';
+import { StorefrontImage } from '@/components/ui/storefront-image';
 
 export function StorefrontKujiBanner() {
   return (
@@ -9,14 +9,13 @@ export function StorefrontKujiBanner() {
           href="/ichiban-kuji"
           className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4"
         >
-          <div className="overflow-hidden rounded-[1.25rem] border border-border/60 bg-card">
-            <Image
+          <div className="relative aspect-[20/7] overflow-hidden rounded-[1.25rem] border border-border/60 bg-card">
+            <StorefrontImage
               src="/what-is-ichiban-kuji.webp"
               alt="What is Ichiban Kuji banner"
-              width={1600}
-              height={560}
               priority
-              className="h-auto w-full transition-transform duration-500 ease-out group-hover:scale-[1.01]"
+              className="h-full w-full"
+              imageClassName="transition-transform duration-500 ease-out group-hover:scale-[1.01]"
               sizes="(min-width: 1024px) 896px, (min-width: 640px) 92vw, 100vw"
             />
           </div>

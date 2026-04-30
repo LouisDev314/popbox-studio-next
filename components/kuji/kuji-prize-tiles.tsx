@@ -2,6 +2,7 @@
 
 import { type ReactNode, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import { StorefrontImage } from '@/components/ui/storefront-image';
 import {
   cn,
   getPrizeBadgeClasses,
@@ -43,22 +44,25 @@ function KujiPrizeImage(props: {
   label: string;
   src: string | null;
 }) {
-  if (props.src) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
+  return (
+    <div
+      className={cn(
+        'relative mx-auto w-full',
+        props.compact ? 'aspect-square' : 'aspect-[4/3]',
+        props.className,
+      )}
+    >
+      <StorefrontImage
         src={props.src}
         alt={props.alt}
-        className={cn(
-          'mx-auto block h-auto w-full object-contain',
-          props.compact ? 'max-h-56' : 'max-h-128',
-          props.className,
-        )}
+        label={props.label}
+        sizes={props.compact ? '(max-width: 640px) 50vw, 12rem' : '(max-width: 1024px) 50vw, 24rem'}
+        className="h-full w-full"
+        imageClassName="object-contain"
+        fallbackClassName={props.compact ? 'px-3 py-1.5 text-[10px]' : undefined}
       />
-    );
-  }
-
-  return null;
+    </div>
+  );
 }
 
 function KujiPrizeTileCard(props: IKujiPrizeTileCardProps) {

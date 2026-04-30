@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import { Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,6 +42,23 @@ function TicketFace(props: {
 }) {
   const [isTicketImageLoaded, setIsTicketImageLoaded] = useState(false);
   const [hasTicketImageError, setHasTicketImageError] = useState(false);
+  const ticketImageRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    const image = ticketImageRef.current;
+    let isMounted = true;
+
+    queueMicrotask(() => {
+      if (isMounted && image?.complete && image.naturalWidth > 0) {
+        setIsTicketImageLoaded(true);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const content = (
     <>
       {!isTicketImageLoaded && !hasTicketImageError ? (
@@ -53,6 +70,7 @@ function TicketFace(props: {
       ) : null}
       {!hasTicketImageError ? (
         <Image
+          ref={ticketImageRef}
           src="/kuji-ticket.webp"
           alt=""
           fill

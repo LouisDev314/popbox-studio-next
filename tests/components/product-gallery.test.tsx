@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { type ImgHTMLAttributes } from 'react';
-import { screen, within } from '@testing-library/react';
+import { forwardRef, type ImgHTMLAttributes } from 'react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ProductGallery } from '@/components/product/product-gallery';
@@ -10,15 +10,17 @@ import { createProductCard } from '../fixtures';
 import { renderWithProviders } from '../test-utils';
 
 vi.mock('next/image', () => ({
-  default: ({
+  default: forwardRef<HTMLImageElement, ImgHTMLAttributes<HTMLImageElement> & {
+    fill?: boolean;
+    priority?: boolean;
+  }>(function MockNextImage({
     alt,
     fill: _fill,
     priority: _priority,
     ...props
-  }: ImgHTMLAttributes<HTMLImageElement> & {
-    fill?: boolean;
-    priority?: boolean;
-  }) => <img {...props} alt={alt ?? ''} />,
+  }, ref) {
+    return <img ref={ref} {...props} alt={alt ?? ''} />;
+  }),
 }));
 
 function createProduct(overrides: Partial<IProduct> = {}): IProduct {
@@ -35,6 +37,54 @@ function createProduct(overrides: Partial<IProduct> = {}): IProduct {
 }
 
 describe('ProductGallery', () => {
+  it('shows layout-stable image skeletons for the main image and thumbnails until images load', () => {
+    const { container } = renderWithProviders(
+      <ProductGallery
+        product={createProduct({
+          images: [
+            {
+              id: 'primary-image',
+              storageKey: 'products/standard-primary.jpg',
+              altText: 'Primary image',
+              sortOrder: 0,
+              url: 'https://example.com/products/standard-primary.jpg',
+            },
+            {
+              id: 'secondary-image',
+              storageKey: 'products/standard-secondary.jpg',
+              altText: 'Secondary image',
+              sortOrder: 2,
+              url: 'https://example.com/products/standard-secondary.jpg',
+            },
+          ],
+        })}
+      />,
+    );
+
+    const mainFrame = container.querySelector('.relative.aspect-square.w-full');
+    const firstThumbnail = screen.getByRole('button', { name: 'View image 1 of 2' });
+
+    expect(mainFrame).not.toBeNull();
+    expect(within(mainFrame as HTMLElement).getByTestId('storefront-image-skeleton')).toHaveClass(
+      'absolute',
+      'inset-0',
+      'h-full',
+      'w-full',
+    );
+    expect(within(firstThumbnail).getByTestId('storefront-image-skeleton')).toHaveClass(
+      'absolute',
+      'inset-0',
+      'h-full',
+      'w-full',
+    );
+
+    fireEvent.load(within(mainFrame as HTMLElement).getByAltText('Primary image'));
+    fireEvent.load(within(firstThumbnail).getByAltText('Primary image'));
+
+    expect(within(mainFrame as HTMLElement).queryByTestId('storefront-image-skeleton')).not.toBeInTheDocument();
+    expect(within(firstThumbnail).queryByTestId('storefront-image-skeleton')).not.toBeInTheDocument();
+  });
+
   it('starts kuji products on the second sorted image and keeps thumbnails usable', async () => {
     const user = userEvent.setup();
     const { container } = renderWithProviders(

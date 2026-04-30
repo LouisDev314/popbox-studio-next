@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import Image from 'next/image';
+import { StorefrontImage } from '@/components/ui/storefront-image';
 
 export function StorefrontBottomCta() {
   return (
@@ -30,11 +30,11 @@ export function StorefrontBottomCta() {
 
       <div className="relative overflow-hidden border border-border/60 bg-card text-left">
         <div className="relative min-h-48 sm:min-h-58 lg:min-h-68">
-          <Image
+          <StorefrontImage
             src="/kuji-bottom-cta.webp"
             alt="Ichiban Kuji lucky draw banner"
-            fill
-            className="object-cover object-center sm:object-[center_40%]"
+            className="absolute inset-0 h-full w-full"
+            imageClassName="object-cover object-center sm:object-[center_40%]"
             sizes="(min-width: 1024px) 1200px, 100vw"
           />
           <div className="absolute inset-0 bg-black/22" />

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const DEFAULT_ITEM_CLASS_NAME =
@@ -93,10 +94,13 @@ export function ProductCarouselSkeleton(props: IProductCarouselSkeletonProps) {
             data-slot="product-carousel-item"
             className={cn(DEFAULT_ITEM_CLASS_NAME, itemClassName)}
           >
-            <div className="space-y-1">
-              <div className="aspect-square rounded-xl bg-muted animate-pulse" />
-              <div className="h-3 rounded bg-muted/80 animate-pulse" />
-              <div className="h-3 w-2/3 rounded bg-muted/60 animate-pulse" />
+            <div className="flex flex-col gap-1">
+              <Skeleton className="aspect-square rounded-xl" />
+              <div className="mt-1 flex flex-col gap-1 px-0.5">
+                <Skeleton className="h-3.5 rounded-full" />
+                <Skeleton className="h-3.5 w-4/5 rounded-full" />
+                <Skeleton className="h-4 w-2/3 rounded-full" />
+              </div>
             </div>
           </div>
         ))}

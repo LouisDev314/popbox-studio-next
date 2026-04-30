@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { StorefrontImage } from '@/components/ui/storefront-image';
 import { createPageMetadata } from '@/lib/seo';
 
 const PAGE_TITLE = 'What\'s Ichiban Kuji?';
@@ -70,14 +70,13 @@ export default function IchibanKujiPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="overflow-hidden rounded-[1.75rem] border border-border/60 bg-muted/20">
-                <Image
+              <div className="relative aspect-[20/7] overflow-hidden rounded-[1.75rem] border border-border/60 bg-muted/20">
+                <StorefrontImage
                   src="/what-is-ichiban-kuji.webp"
                   alt="Ichiban Kuji product lineup"
-                  width={1600}
-                  height={560}
                   priority
-                  className="h-full w-full object-cover"
+                  className="h-full w-full"
+                  imageClassName="object-cover"
                   sizes="(min-width: 1024px) 50vw, 100vw"
                 />
               </div>

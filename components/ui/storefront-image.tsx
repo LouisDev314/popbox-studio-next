@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -35,12 +35,28 @@ export function StorefrontImage(props: IStorefrontImageProps) {
   const [currentSrc, setCurrentSrc] = useState(props.src ?? null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const imageRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     setCurrentSrc(props.src ?? null);
     setIsLoaded(false);
     setHasError(false);
   }, [props.src, props.fallbackSrc]);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    let isMounted = true;
+
+    queueMicrotask(() => {
+      if (isMounted && image?.complete && image.naturalWidth > 0) {
+        setIsLoaded(true);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentSrc]);
 
   if (currentSrc && !hasError) {
     return (
@@ -53,6 +69,7 @@ export function StorefrontImage(props: IStorefrontImageProps) {
           />
         ) : null}
         <Image
+          ref={imageRef}
           src={currentSrc}
           alt={props.alt}
           fill
