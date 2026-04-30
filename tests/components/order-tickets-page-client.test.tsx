@@ -3,7 +3,7 @@
 import { type ImgHTMLAttributes } from 'react';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { HttpStatusCode, type AxiosResponse } from 'axios';
+import { AxiosHeaders, HttpStatusCode, type AxiosResponse } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OrderTicketsPageClient from '@/app/(store)/orders/[publicId]/tickets/order-tickets-page-client';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -75,7 +75,7 @@ function createViewData(overrides: Partial<IGuestTicketView> = {}): IGuestTicket
 
 function createApiResponse<T>(data: T): AxiosResponse<IBaseApiResponse<T>> {
   return {
-    config: {},
+    config: { headers: new AxiosHeaders() },
     data: {
       code: HttpStatusCode.Ok,
       data,

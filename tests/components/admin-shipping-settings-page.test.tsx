@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AxiosError } from 'axios';
+import { AxiosError, AxiosHeaders } from 'axios';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import { AdminShippingSettingsPage } from '@/components/admin/settings/admin-shipping-settings-page';
@@ -39,7 +39,7 @@ function createApiResponse(data: IShippingSettings) {
     status: 200,
     statusText: 'OK',
     headers: {},
-    config: {},
+    config: { headers: new AxiosHeaders() },
   };
 }
 
@@ -55,7 +55,7 @@ function createApiError(message = 'Request failed with status code 500') {
     status: 500,
     statusText: 'Server Error',
     headers: {},
-    config: {},
+    config: { headers: new AxiosHeaders() },
   });
 }
 

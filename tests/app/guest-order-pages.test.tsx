@@ -59,7 +59,17 @@ describe('guest order pages', () => {
 
   it('shows FAQ and shipping links on the guest order detail page', async () => {
     vi.mocked(getPublicGuestOrder).mockResolvedValue({
+      billingAddress: null,
+      cancelledAt: null,
+      customer: {
+        email: 'popbox@example.com',
+        firstName: 'Pop',
+        id: 'customer-1',
+        lastName: 'Box',
+        phone: null,
+      },
       currency: 'CAD',
+      id: 'order-1',
       items: [
         {
           id: 'item-1',
@@ -74,14 +84,16 @@ describe('guest order pages', () => {
           metadata: null,
         },
       ],
+      paidAt: null,
       placedAt: '2026-01-01T00:00:00.000Z',
       publicId: 'pbs-ORDER',
+      refundedAt: null,
       shipment: null,
       shippingAddress: {
         city: 'Toronto',
         fullName: 'Pop Box',
         line1: '123 Queen St',
-        line2: null,
+        line2: '',
         postalCode: 'M5H 2N2',
         province: 'ON',
       },
@@ -108,7 +120,17 @@ describe('guest order pages', () => {
 
   it('renders the initials fallback when a guest order item imageUrl is null', async () => {
     vi.mocked(getPublicGuestOrder).mockResolvedValue({
+      billingAddress: null,
+      cancelledAt: null,
+      customer: {
+        email: 'popbox@example.com',
+        firstName: 'Pop',
+        id: 'customer-1',
+        lastName: 'Box',
+        phone: null,
+      },
       currency: 'CAD',
+      id: 'order-1',
       items: [
         {
           id: 'item-1',
@@ -123,14 +145,16 @@ describe('guest order pages', () => {
           metadata: null,
         },
       ],
+      paidAt: null,
       placedAt: '2026-01-01T00:00:00.000Z',
       publicId: 'pbs-ORDER',
+      refundedAt: null,
       shipment: null,
       shippingAddress: {
         city: 'Toronto',
         fullName: 'Pop Box',
         line1: '123 Queen St',
-        line2: null,
+        line2: '',
         postalCode: 'M5H 2N2',
         province: 'ON',
       },

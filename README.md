@@ -213,7 +213,7 @@ pnpm build && pnpm start
 | `NEXT_PUBLIC_SITE_URL`                         | Public     | Canonical site URL for metadata and absolute URLs                                          |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`           | Public     | Stripe.js                                                                                  |
 | `NEXT_PUBLIC_SUPABASE_URL`                     | Public     | Supabase project URL                                                                       |
-| `NEXT_PUBLIC_SUPABASE_PUBLIC_KEY` | Public     | Supabase anon/public key                                                                   |
+| `NEXT_PUBLIC_SUPABASE_PUBLIC_KEY`             | Public     | Supabase anon/public key                                                                   |
 | `NEXT_PUBLIC_IS_SITE_OPEN`                     | Public     | Set to `false` for maintenance-style behavior (default: open)                              |
 | `STRIPE_SECRET_KEY`                            | Server only | Stripe server SDK                                                                          |
 
@@ -233,7 +233,7 @@ Use `.env.local` locally (gitignored).
 | `pnpm start`    | Production server           |
 | `pnpm lint`     | ESLint                      |
 | `pnpm lint:fix` | ESLint with fixes           |
-| `pnpm check`    | Lint + build                |
+| `pnpm check`    | Lint + tests + typecheck    |
 | `pnpm test`     | Vitest                      |
 
 ---
@@ -264,7 +264,6 @@ tests/               # Vitest
 
 ## Roadmap / future improvements
 
-- Broader E2E coverage for checkout, guest order cookie flows, and Kuji ticket paths against a staging API
 - Documented performance and image/CDN defaults per environment
 - Accessibility and i18n expansion as product scope grows
 

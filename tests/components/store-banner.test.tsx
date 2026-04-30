@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { AxiosHeaders } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import useEmblaCarousel from 'embla-carousel-react';
 import QueryConfigs from '@/configs/api/query-config';
@@ -51,7 +52,7 @@ function createApiResponse(data: IStoreBannerSettings) {
     status: 200,
     statusText: 'OK',
     headers: {},
-    config: {},
+    config: { headers: new AxiosHeaders() },
   };
 }
 
@@ -160,7 +161,7 @@ describe('StorefrontBanner', () => {
     const intervalCallbacks: Array<() => void> = [];
     vi.spyOn(window, 'setInterval').mockImplementation((callback: TimerHandler, timeout?: number) => {
       if (timeout === 5000 && typeof callback === 'function') {
-        intervalCallbacks.push(callback);
+        intervalCallbacks.push(() => callback());
       }
 
       return intervalCallbacks.length as unknown as ReturnType<typeof window.setInterval>;
@@ -192,7 +193,7 @@ describe('StorefrontBanner', () => {
     const intervalCallbacks: Array<() => void> = [];
     vi.spyOn(window, 'setInterval').mockImplementation((callback: TimerHandler, timeout?: number) => {
       if (timeout === 5000 && typeof callback === 'function') {
-        intervalCallbacks.push(callback);
+        intervalCallbacks.push(() => callback());
       }
 
       return intervalCallbacks.length as unknown as ReturnType<typeof window.setInterval>;

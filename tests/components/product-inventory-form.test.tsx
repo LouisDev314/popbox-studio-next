@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { AxiosError } from 'axios';
+import { AxiosError, AxiosHeaders } from 'axios';
 import { describe, expect, it, vi } from 'vitest';
 import MutationConfigs from '@/configs/api/mutation-config';
 import { ProductInventoryForm } from '@/components/admin/product/product-inventory-form';
@@ -47,7 +47,7 @@ function createApiError(message: string) {
     status: 400,
     statusText: 'Bad Request',
     headers: {},
-    config: {},
+    config: { headers: new AxiosHeaders() },
   });
 }
 
