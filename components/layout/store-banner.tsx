@@ -70,7 +70,7 @@ function StoreBannerMessage(props: { item: IStoreBannerItem }) {
 
   if (linkHref.startsWith('https://')) {
     return (
-      <a href={linkHref} target="_blank" rel="noreferrer" className={linkClassName}>
+      <a href={linkHref} target="_blank" rel="noopener noreferrer" className={linkClassName}>
         {message}
       </a>
     );

@@ -16,10 +16,12 @@ import { getPublicProductBySlug, isPublicApiNotFoundError } from '@/lib/api/publ
 import { formatPrice } from '@/lib/utils';
 import {
   buildAbsoluteUrl,
+  BRAND_NAME,
   createPageMetadata,
   truncateMetaDescription,
 } from '@/lib/seo';
 import { getProductInventoryState } from '@/utils/product-stock';
+import { getProductCoverImage, getSortedProductImages } from '@/utils/product-images';
 import {
   Accordion,
   AccordionContent,
@@ -79,17 +81,17 @@ export async function generateMetadata(
 
   try {
     const product = await getPublicProductBySlug(params.slug);
-    const primaryImage = product.images[0]?.url;
+    const primaryImage = getProductCoverImage(product);
 
     return createPageMetadata({
       title: product.name,
       description: getProductMetadataDescription(product),
       path,
-      openGraphImages: primaryImage
+      openGraphImages: primaryImage?.url
         ? [
           {
-            url: primaryImage,
-            alt: product.images[0]?.altText || product.name,
+            url: primaryImage.url,
+            alt: primaryImage.altText || product.name,
           },
         ]
         : undefined,
@@ -140,14 +142,19 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
   const productDescription = product.description?.trim() || 'No description available.';
   const productCategory = product.productType === 'kuji' ? 'Ichiban Kuji' : 'Anime merchandise';
   const productOfferAvailability = getProductOfferAvailability(product);
+  const productImages = getSortedProductImages(product).map((image) => image.url).filter(Boolean);
   const productJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
     description: productDescription,
     url: buildAbsoluteUrl(productPath),
-    image: product.images.map((image) => image.url).filter(Boolean),
+    image: productImages,
     category: productCategory,
+    brand: {
+      '@type': 'Brand',
+      name: BRAND_NAME,
+    },
     ...(product.sku
       ? {
         sku: product.sku,
@@ -158,6 +165,10 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
       url: buildAbsoluteUrl(productPath),
       price: (product.priceCents / 100).toFixed(2),
       priceCurrency: product.currency,
+      seller: {
+        '@type': 'Organization',
+        name: BRAND_NAME,
+      },
       ...(productOfferAvailability
         ? {
           availability: productOfferAvailability,
@@ -190,7 +201,7 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
       />
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:gap-16">
         <div className="lg:sticky lg:top-24 lg:self-start">
-          <ProductGallery product={product} />
+          <ProductGallery product={product} priority />
         </div>
 
         <div className="relative z-10 flex flex-col">

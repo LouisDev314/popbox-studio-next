@@ -288,7 +288,7 @@ describe('StorefrontBanner', () => {
     const link = await screen.findByRole('link', { name: 'Follow PopBox Studio.' });
     expect(link).toHaveAttribute('href', 'https://example.com/popbox');
     expect(link).toHaveAttribute('target', '_blank');
-    expect(link).toHaveAttribute('rel', 'noreferrer');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.queryByText('Do not render this label')).not.toBeInTheDocument();
   });
 

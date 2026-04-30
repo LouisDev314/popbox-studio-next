@@ -56,10 +56,9 @@ export async function ProductRecommendations(props: IProductRecommendationsProps
         className="mt-6 sm:mt-8"
         ariaLabel="Recommended products"
         getItemKey={(product) => product.id}
-        renderItem={(product, index) => (
+        renderItem={(product) => (
           <ProductTileDense
             product={product}
-            priority={index < RELATED_PRODUCTS_LIMIT}
             sizes="(max-width: 640px) 46vw, (max-width: 768px) 31vw, (max-width: 1200px) 23vw, 15vw"
           />
         )}

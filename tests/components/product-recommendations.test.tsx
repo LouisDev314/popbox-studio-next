@@ -16,12 +16,12 @@ vi.mock('next/image', () => ({
   default: ({
     alt,
     fill: _fill,
-    priority: _priority,
+    priority,
     ...props
   }: ImgHTMLAttributes<HTMLImageElement> & {
     fill?: boolean;
     priority?: boolean;
-  }) => <img {...props} alt={alt ?? ''} />,
+  }) => <img {...props} alt={alt ?? ''} data-priority={priority ? 'true' : undefined} />,
 }));
 
 vi.mock('@/lib/api/public-storefront', () => ({
@@ -69,6 +69,7 @@ describe('ProductRecommendations', () => {
     expect(container.querySelector('a[href="/products/product-2"]')).toBeInTheDocument();
     expect(container.querySelector('a[href="/products/product-5"]')).toBeInTheDocument();
     expect(container.querySelector('a[href="/products/product-1"]')).not.toBeInTheDocument();
+    expect(container.querySelector('img[data-priority="true"]')).not.toBeInTheDocument();
   });
 
   it('uses a carousel-shaped loading fallback', () => {

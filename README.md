@@ -215,7 +215,6 @@ pnpm build && pnpm start
 | `NEXT_PUBLIC_SUPABASE_URL`                     | Public     | Supabase project URL                                                                       |
 | `NEXT_PUBLIC_SUPABASE_PUBLIC_KEY`             | Public     | Supabase anon/public key                                                                   |
 | `NEXT_PUBLIC_IS_SITE_OPEN`                     | Public     | Set to `false` for maintenance-style behavior (default: open)                              |
-| `STRIPE_SECRET_KEY`                            | Server only | Stripe server SDK                                                                          |
 
 On Vercel, `VERCEL_URL` / `VERCEL_PROJECT_PRODUCTION_URL` can back `NEXT_PUBLIC_SITE_URL` when unset—see
 `configs/public-env.ts`.

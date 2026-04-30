@@ -16,10 +16,10 @@ vi.mock('next/image', () => ({
   }>(function MockNextImage({
     alt,
     fill: _fill,
-    priority: _priority,
+    priority,
     ...props
   }, ref) {
-    return <img ref={ref} {...props} alt={alt ?? ''} />;
+    return <img ref={ref} {...props} alt={alt ?? ''} data-priority={priority ? 'true' : undefined} />;
   }),
 }));
 
@@ -40,6 +40,7 @@ describe('ProductGallery', () => {
   it('shows layout-stable image skeletons for the main image and thumbnails until images load', () => {
     const { container } = renderWithProviders(
       <ProductGallery
+        priority
         product={createProduct({
           images: [
             {
@@ -65,6 +66,8 @@ describe('ProductGallery', () => {
     const firstThumbnail = screen.getByRole('button', { name: 'View image 1 of 2' });
 
     expect(mainFrame).not.toBeNull();
+    expect(within(mainFrame as HTMLElement).getByAltText('Primary image')).toHaveAttribute('data-priority', 'true');
+    expect(within(firstThumbnail).getByAltText('Primary image')).not.toHaveAttribute('data-priority');
     expect(within(mainFrame as HTMLElement).getByTestId('storefront-image-skeleton')).toHaveClass(
       'absolute',
       'inset-0',

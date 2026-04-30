@@ -8,6 +8,7 @@ import { getProductCoverImageIndex, getSortedProductImages } from '@/utils/produ
 
 interface IProductGalleryProps {
   product: IProduct;
+  priority?: boolean;
 }
 
 export function ProductGallery(props: IProductGalleryProps) {
@@ -22,6 +23,7 @@ export function ProductGallery(props: IProductGalleryProps) {
           src={activeImageData?.url}
           alt={activeImageData?.altText || props.product.name}
           label={props.product.name}
+          priority={props.priority}
           sizes="(max-width: 1024px) 100vw, 50vw"
           imageClassName="transition-transform duration-500 ease-out"
         />
