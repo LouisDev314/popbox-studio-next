@@ -1,4 +1,4 @@
-import { AxiosError } from 'axios';
+import { AxiosError, AxiosHeaders } from 'axios';
 import { describe, expect, it } from 'vitest';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
 
@@ -8,7 +8,7 @@ function createAxiosError(data: unknown, status = 500, message = 'Request failed
     status,
     statusText: 'Server Error',
     headers: {},
-    config: {},
+    config: { headers: new AxiosHeaders() },
   });
 }
 
