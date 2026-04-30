@@ -4,7 +4,7 @@ import { type ImgHTMLAttributes } from 'react';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpStatusCode, type AxiosResponse } from 'axios';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OrderTicketsPageClient from '@/app/(store)/orders/[publicId]/tickets/order-tickets-page-client';
 import MutationConfigs from '@/configs/api/mutation-config';
 import QueryConfigs from '@/configs/api/query-config';
@@ -106,6 +106,19 @@ function createDeferred<T>() {
 }
 
 describe('OrderTicketsPageClient', () => {
+  beforeEach(() => {
+    vi.mocked(MutationConfigs.revealAllTickets).mockReset();
+    vi.mocked(MutationConfigs.revealTicket).mockReset();
+    vi.mocked(QueryConfigs.fetchGuestTickets).mockReset();
+    vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
   it('starts single reveal immediately and opens the video overlay', async () => {
     const user = userEvent.setup();
     const revealTicket = vi.mocked(MutationConfigs.revealTicket);
@@ -139,6 +152,33 @@ describe('OrderTicketsPageClient', () => {
       ticketId: 'ticket-1',
     });
     expect(screen.getByTestId('kuji-reveal-video')).toBeInTheDocument();
+  });
+
+  it('does not duplicate reveal API calls when the reveal button is clicked repeatedly', async () => {
+    const user = userEvent.setup();
+    const revealTicket = vi.mocked(MutationConfigs.revealTicket);
+    const deferredReveal = createDeferred<AxiosResponse<IBaseApiResponse<IOrderTicket>>>();
+
+    revealTicket.mockReturnValue(deferredReveal.promise);
+    vi.mocked(QueryConfigs.fetchGuestTickets).mockRejectedValue(new Error('refresh failed'));
+
+    renderWithProviders(
+      <OrderTicketsPageClient
+        initialViewData={createViewData()}
+        publicId="pbs-TICKETS"
+      />,
+    );
+
+    const revealButton = screen.getByRole('button', { name: 'Reveal ticket for Test Product 1' });
+
+    await user.click(revealButton);
+    fireEvent.click(revealButton);
+
+    expect(revealTicket).toHaveBeenCalledTimes(1);
+    expect(revealTicket).toHaveBeenCalledWith({
+      publicId: 'pbs-TICKETS',
+      ticketId: 'ticket-1',
+    });
   });
 
   it('keeps leaked prize data inside its grouped product section and still starts the reveal flow', async () => {
@@ -237,6 +277,45 @@ describe('OrderTicketsPageClient', () => {
     expect(screen.getByRole('button', { name: 'Reveal Next' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Back to tickets' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Prize One' })).toBeInTheDocument();
+  });
+
+  it('degrades gracefully to the result when reveal video playback fails', async () => {
+    vi
+      .mocked(HTMLMediaElement.prototype.play)
+      .mockReturnValue(Promise.reject(new DOMException('Playback blocked', 'NotAllowedError')));
+
+    vi.mocked(MutationConfigs.revealTicket).mockResolvedValue(
+      createApiResponse(createTicket({
+        prize: {
+          id: 'prize-1',
+          prizeCode: 'F',
+          prizeTier: 'F',
+          name: 'Prize One',
+          description: null,
+          imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
+        },
+        revealedAt: '2026-04-12T00:00:00.000Z',
+      })),
+    );
+    vi.mocked(QueryConfigs.fetchGuestTickets).mockRejectedValue(new Error('refresh failed'));
+
+    renderWithProviders(
+      <OrderTicketsPageClient
+        initialViewData={createViewData()}
+        publicId="pbs-TICKETS"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reveal ticket for Test Product 1' }));
+
+    expect(screen.getByTestId('kuji-reveal-video')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText('Congratulations')).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('img', { name: 'Prize One' })).toBeInTheDocument();
+    expect(screen.getByTestId('storefront-image-skeleton')).toBeInTheDocument();
   });
 
   it('allows skipping the single reveal video and still advances into the result flow', async () => {

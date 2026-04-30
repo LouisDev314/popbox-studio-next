@@ -1,13 +1,19 @@
-import { cn } from '@/lib/utils';
+'use client';
+
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 interface IStorefrontImageProps {
   alt: string;
   className?: string;
   fallbackClassName?: string;
+  fallbackSrc?: string | null;
   imageClassName?: string;
   label?: string;
   sizes?: string;
+  skeletonClassName?: string;
   src?: string | null;
   priority?: boolean;
 }
@@ -26,15 +32,46 @@ function buildFallbackLabel(label: string) {
 }
 
 export function StorefrontImage(props: IStorefrontImageProps) {
-  if (props.src) {
+  const [currentSrc, setCurrentSrc] = useState(props.src ?? null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setCurrentSrc(props.src ?? null);
+    setIsLoaded(false);
+    setHasError(false);
+  }, [props.src, props.fallbackSrc]);
+
+  if (currentSrc && !hasError) {
     return (
       <div className={cn('relative h-full w-full', props.className)}>
+        {!isLoaded ? (
+          <Skeleton
+            aria-hidden="true"
+            data-testid="storefront-image-skeleton"
+            className={cn('absolute inset-0 h-full w-full rounded-none', props.skeletonClassName)}
+          />
+        ) : null}
         <Image
-          src={props.src}
+          src={currentSrc}
           alt={props.alt}
           fill
           sizes={props.sizes ?? '100vw'}
-          className={cn('object-cover', props.imageClassName)}
+          className={cn(
+            'object-cover transition-opacity duration-200',
+            isLoaded ? 'opacity-100' : 'opacity-0',
+            props.imageClassName,
+          )}
+          onError={() => {
+            if (props.fallbackSrc && currentSrc !== props.fallbackSrc) {
+              setCurrentSrc(props.fallbackSrc);
+              setIsLoaded(false);
+              return;
+            }
+
+            setHasError(true);
+          }}
+          onLoad={() => setIsLoaded(true)}
           priority={props.priority ?? false}
         />
       </div>

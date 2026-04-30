@@ -4,7 +4,7 @@ import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import type { EmblaCarouselType } from 'embla-carousel';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { StorefrontImage } from '@/components/ui/storefront-image';
@@ -190,7 +190,7 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
                       </div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/28 via-45% to-transparent" />
                       <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-16 text-white sm:px-7 sm:pb-6 sm:pt-20 lg:px-10 lg:pb-9 lg:pt-20 xl:px-12 xl:pb-10">
-                        <div className="min-w-0">
+                        <div className="min-w-0 xl:max-w-2xl">
                           <p className="mb-2 text-[10px] font-semibold tracking-[0.28em] text-white/72 uppercase sm:mb-3 sm:text-xs">
                             {getCarouselEyebrowLabel(product)}
                           </p>
@@ -209,6 +209,15 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-12 z-20 hidden justify-center xl:flex"
+      >
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/12 text-white/85 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.8)] backdrop-blur-sm motion-safe:animate-bounce motion-reduce:animate-none">
+          <ChevronDown className="h-5 w-5" />
         </div>
       </div>
 

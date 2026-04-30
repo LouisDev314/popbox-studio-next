@@ -30,6 +30,20 @@ interface IGroupedTicketsSection {
   unrevealed: IOrderTicket[];
 }
 
+function KujiRevealVideoWarmup() {
+  return (
+    <video
+      aria-hidden="true"
+      className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
+      muted
+      playsInline
+      preload="auto"
+      src="/kuji-reveal.mp4"
+      tabIndex={-1}
+    />
+  );
+}
+
 function upsertTicket(tickets: IOrderTicket[], nextTicket: IOrderTicket) {
   const existingIndex = tickets.findIndex((ticket) => ticket.id === nextTicket.id);
 
@@ -525,6 +539,8 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
 
   return (
     <>
+      <KujiRevealVideoWarmup />
+
       <KujiRevealOverlay
         currentTicket={currentRevealedTicket}
         hasNextTicket={currentNextTicketId !== null}

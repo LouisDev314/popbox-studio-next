@@ -52,4 +52,115 @@ describe('ProductTileDense', () => {
 
     expect(screen.queryByText(/tickets$/)).not.toBeInTheDocument();
   });
+
+  it('uses the second sorted image for kuji product covers when available', () => {
+    renderWithProviders(
+      <ProductTileDense
+        product={createProductCard({
+          id: 'kuji-product',
+          name: 'Kuji Product',
+          slug: 'kuji-product',
+          productType: 'kuji',
+          images: [
+            {
+              id: 'cover-image',
+              storageKey: 'products/kuji-cover.jpg',
+              altText: 'Square product cover',
+              sortOrder: 1,
+              url: 'https://example.com/products/kuji-cover.jpg',
+            },
+            {
+              id: 'banner-image',
+              storageKey: 'products/kuji-banner.jpg',
+              altText: 'Wide banner art',
+              sortOrder: 0,
+              url: 'https://example.com/products/kuji-banner.jpg',
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByAltText('Square product cover')).toHaveAttribute('src', 'https://example.com/products/kuji-cover.jpg');
+    expect(screen.queryByAltText('Wide banner art')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the first sorted image for kuji covers when no second image exists', () => {
+    renderWithProviders(
+      <ProductTileDense
+        product={createProductCard({
+          id: 'kuji-product',
+          name: 'Kuji Product',
+          slug: 'kuji-product',
+          productType: 'kuji',
+          images: [
+            {
+              id: 'only-image',
+              storageKey: 'products/kuji-only.jpg',
+              altText: 'Only kuji image',
+              sortOrder: 3,
+              url: 'https://example.com/products/kuji-only.jpg',
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByAltText('Only kuji image')).toHaveAttribute('src', 'https://example.com/products/kuji-only.jpg');
+  });
+
+  it('uses derived product artwork for kuji cards when the list payload only includes cover-webp', () => {
+    renderWithProviders(
+      <ProductTileDense
+        product={createProductCard({
+          id: 'kuji-product',
+          name: 'Kuji Product',
+          slug: 'kuji-product',
+          productType: 'kuji',
+          images: [
+            {
+              id: 'cover-image',
+              storageKey: 'products/kuji-product-cover-webp',
+              altText: 'Kuji product cover',
+              sortOrder: 0,
+              url: 'https://example.com/products/kuji-product-cover-webp',
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByAltText('Kuji product cover')).toHaveAttribute('src', 'https://example.com/products/kuji-product-product-webp');
+  });
+
+  it('keeps the first sorted image for standard product covers', () => {
+    renderWithProviders(
+      <ProductTileDense
+        product={createProductCard({
+          id: 'standard-product',
+          name: 'Standard Product',
+          slug: 'standard-product',
+          images: [
+            {
+              id: 'secondary-image',
+              storageKey: 'products/standard-secondary.jpg',
+              altText: 'Secondary standard image',
+              sortOrder: 1,
+              url: 'https://example.com/products/standard-secondary.jpg',
+            },
+            {
+              id: 'primary-image',
+              storageKey: 'products/standard-primary.jpg',
+              altText: 'Primary standard image',
+              sortOrder: 0,
+              url: 'https://example.com/products/standard-primary.jpg',
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByAltText('Primary standard image')).toHaveAttribute('src', 'https://example.com/products/standard-primary.jpg');
+    expect(screen.queryByAltText('Secondary standard image')).not.toBeInTheDocument();
+  });
 });

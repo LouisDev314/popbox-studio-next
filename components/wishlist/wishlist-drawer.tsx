@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { StorefrontDrawerEmptyState } from '@/components/ui/storefront-drawer-empty-state';
 import { StorefrontDrawer } from '@/components/ui/storefront-drawer';
 import { StorefrontImage } from '@/components/ui/storefront-image';
-import { useStorefrontAlert } from '@/hooks/use-storefront-alert';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import { formatPrice } from '@/lib/utils';
 
@@ -23,11 +22,9 @@ export function WishlistDrawer(props: IWishlistDrawerProps) {
   const items = useWishlistStore((state) => state.items);
   const hasHydrated = useWishlistStore((state) => state.hasHydrated);
   const removeWishlistItem = useWishlistStore((state) => state.removeWishlistItem);
-  const { showSuccess } = useStorefrontAlert();
 
   const handleRemoveWishlistItem = (productId: string) => {
     removeWishlistItem(productId);
-    showSuccess('Removed from wishlist', undefined, 'warning');
   };
 
   return (

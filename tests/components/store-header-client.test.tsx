@@ -1,6 +1,6 @@
 import { act, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StoreHeaderClient } from '@/components/layout/store-header-client';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { renderWithProviders, resetStores } from '../test-utils';
@@ -24,7 +24,22 @@ vi.mock('@/components/layout/store-banner', () => ({
 }));
 
 vi.mock('@/components/layout/mobile-nav-overlay', () => ({
-  MobileNavOverlay: ({ children }: { children: ReactNode }) => <>{children}</>,
+  MobileNavOverlay: ({
+    ariaLabel,
+    children,
+    containerClassName,
+  }: {
+    ariaLabel: string;
+    children: ReactNode;
+    containerClassName?: string;
+  }) => (
+    <div
+      className={containerClassName}
+      data-testid={ariaLabel === 'Store navigation menu' ? 'store-menu-overlay' : 'store-search-overlay'}
+    >
+      {children}
+    </div>
+  ),
 }));
 
 vi.mock('@/components/layout/mobile-menu-panel', () => ({
@@ -48,8 +63,14 @@ vi.mock('@/hooks/use-mobile-navbar-visibility', () => ({
 }));
 
 describe('StoreHeaderClient', () => {
-  it('hides the storefront nav on checkout success until local cleanup completes for the session', () => {
+  beforeEach(() => {
     resetStores();
+    navigationMock.pathname = '/';
+    navigationMock.searchParams = new URLSearchParams();
+    navigationMock.push.mockClear();
+  });
+
+  it('hides the storefront nav on checkout success until local cleanup completes for the session', () => {
     navigationMock.pathname = '/checkout/success';
     navigationMock.searchParams = new URLSearchParams('session_id=cs_test_123');
 
@@ -64,5 +85,36 @@ describe('StoreHeaderClient', () => {
     expect(screen.getByRole('banner')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'PopBox Studio' })).toHaveAttribute('href', '/');
     expect(screen.getByAltText('PopBox Studio')).toHaveAttribute('src', expect.stringContaining('store-logo.png'));
+  });
+
+  it('uses the compact header below xl and preserves fly animation targets', () => {
+    const { container } = renderWithProviders(<StoreHeaderClient collectionNavItems={[]} />);
+
+    const primaryNav = screen.getByRole('navigation', { name: 'Primary' });
+    expect(primaryNav).toHaveClass('hidden', 'xl:flex', 'shrink-0', 'flex-nowrap');
+    expect(primaryNav).not.toHaveClass('lg:flex');
+
+    const menuButton = screen.getByRole('button', { name: 'Open menu' });
+    expect(menuButton).toHaveClass('xl:hidden', 'shrink-0');
+    expect(menuButton).not.toHaveClass('lg:hidden');
+
+    expect(screen.getByTestId('store-menu-overlay')).toHaveClass('xl:hidden');
+    expect(screen.getByTestId('store-menu-overlay')).not.toHaveClass('lg:hidden');
+
+    const wishlistButton = screen.getByRole('button', { name: 'Open wishlist' });
+    const cartButton = screen.getByRole('button', { name: 'Open cart' });
+    expect(wishlistButton).toHaveAttribute('data-fly-target', 'wishlist');
+    expect(cartButton).toHaveAttribute('data-fly-target', 'cart');
+    expect(cartButton.parentElement).toHaveClass('shrink-0');
+
+    const brandLink = screen.getByRole('link', { name: 'PopBox Studio' });
+    expect(brandLink).toHaveClass('min-w-0', 'shrink-0');
+    expect(container.querySelector('span[aria-hidden="true"]')).toHaveClass(
+      'hidden',
+      'overflow-hidden',
+      'text-ellipsis',
+      'whitespace-nowrap',
+      'sm:inline-block',
+    );
   });
 });

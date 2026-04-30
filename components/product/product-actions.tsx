@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { type MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { Heart, Share, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
@@ -10,7 +10,9 @@ import { useStorefrontAlert } from '@/hooks/use-storefront-alert';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import { type IProduct } from '@/interfaces/product';
 import { shareProduct } from '@/lib/share-product';
+import { flyProductImageToTarget } from '@/lib/ui/fly-to-target';
 import { cn } from '@/lib/utils';
+import { getProductCoverImage } from '@/utils/product-images';
 import { mapProductToWishlistItem } from '@/utils/wishlist';
 import {
   getProductSellableQuantity,
@@ -118,7 +120,85 @@ function getProductActionState(product: IProduct, currentCartQuantity: number): 
 }
 
 const ACTION_COOLDOWN_MS = 300;
+const ACTION_SUCCESS_FEEDBACK_FALLBACK_MS = 1200;
 const SECONDARY_ACTION_BUTTON_CLASS_NAME = 'h-12 w-full rounded-2xl border-border/70 bg-background text-sm font-semibold text-foreground hover:bg-accent/70';
+
+function WishlistActionButton(props: {
+  feedback: 'added' | 'removed' | null;
+  hasWishlistHydrated: boolean;
+  isBusy: boolean;
+  isWishlisted: boolean;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+}) {
+  const isSuccessVisible = props.feedback !== null && props.isBusy;
+  const normalLabel = props.hasWishlistHydrated && props.isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist';
+  const label = isSuccessVisible
+    ? props.feedback === 'removed' ? 'Removed' : 'Added'
+    : normalLabel;
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      aria-label={label}
+      aria-pressed={props.hasWishlistHydrated && props.isWishlisted}
+      className={cn(
+        SECONDARY_ACTION_BUTTON_CLASS_NAME,
+        props.hasWishlistHydrated && props.isWishlisted
+          ? 'border-primary/30 bg-accent hover:bg-accent'
+          : undefined,
+      )}
+      disabled={props.isBusy}
+      onClick={props.onClick}
+      data-testid="wishlist-toggle"
+    >
+      {isSuccessVisible ? (
+        <span aria-live="polite">{label}</span>
+      ) : (
+        <>
+          <Heart
+            className={cn(
+              'mr-2 h-5 w-5',
+              props.hasWishlistHydrated && props.isWishlisted ? 'text-primary' : 'text-muted-foreground',
+            )}
+          />
+          <span aria-live="polite">{label}</span>
+        </>
+      )}
+    </Button>
+  );
+}
+
+function AddToCartButton(props: {
+  addButtonLabel: string;
+  disabled: boolean;
+  isSuccessVisible: boolean;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+}) {
+  const label = props.isSuccessVisible ? 'Added' : props.addButtonLabel;
+
+  return (
+    <Button
+      size="lg"
+      aria-label={label}
+      className="mt-5 h-14 w-full rounded-xl text-lg font-semibold"
+      disabled={props.disabled}
+      onClick={props.onClick}
+      data-testid="add-to-cart"
+    >
+      {props.isSuccessVisible ? (
+        <span aria-live="polite">{label}</span>
+      ) : (
+        <>
+          <ShoppingBag className="mr-2 h-5 w-5" />
+          <span aria-live="polite">
+            {props.addButtonLabel}
+          </span>
+        </>
+      )}
+    </Button>
+  );
+}
 
 export function ProductActions(props: IProductActionsProps) {
   const addItem = useCartStore((state) => state.addItem);
@@ -128,6 +208,8 @@ export function ProductActions(props: IProductActionsProps) {
   const isWishlisted = useWishlistStore((state) => state.isProductWishlisted(props.product.id));
   const [quantity, setQuantity] = useState(1);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [cartFeedback, setCartFeedback] = useState<'added' | null>(null);
+  const [wishlistFeedback, setWishlistFeedback] = useState<'added' | 'removed' | null>(null);
   const [busyAction, setBusyAction] = useState<TStorefrontAction | null>(null);
   const [disabledActions, setDisabledActions] = useState<Record<TStorefrontAction, boolean>>({
     cart: false,
@@ -146,6 +228,7 @@ export function ProductActions(props: IProductActionsProps) {
   });
   const { showSuccess } = useStorefrontAlert();
 
+  const flyImage = getProductCoverImage(props.product) ?? props.product.images[0] ?? null;
   const currentCartQuantity = cartItems.find((item) => item.product.id === props.product.id)?.quantity ?? 0;
   const actionState = getProductActionState(props.product, currentCartQuantity);
   const quantityCap = actionState.quantityCap;
@@ -154,6 +237,19 @@ export function ProductActions(props: IProductActionsProps) {
   const isShareBusy = disabledActions.share;
   const isWishlistBusy = disabledActions.wishlist;
   const isKuji = isKujiProduct(props.product);
+  const isCartSuccessVisible = cartFeedback !== null && isCartBusy;
+  const fireProductFlyAnimation = (target: 'cart' | 'wishlist', sourceElement: Element) => {
+    try {
+      flyProductImageToTarget({
+        imageAlt: flyImage?.altText ?? props.product.name,
+        imageUrl: flyImage?.url,
+        sourceElement,
+        target,
+      });
+    } catch {
+      // Decorative feedback must never affect product actions.
+    }
+  };
 
   useEffect(() => {
     const releaseTimeouts = releaseTimeoutRef.current;
@@ -173,7 +269,32 @@ export function ProductActions(props: IProductActionsProps) {
     };
   }, []);
 
-  const scheduleActionRelease = (action: TStorefrontAction) => {
+  const completeGuardedAction = useCallback((action: TStorefrontAction) => {
+    const existingTimeoutId = releaseTimeoutRef.current[action];
+
+    if (existingTimeoutId !== null) {
+      window.clearTimeout(existingTimeoutId);
+      releaseTimeoutRef.current[action] = null;
+    }
+
+    cooldownUntilRef.current[action] = 0;
+
+    setDisabledActions((currentDisabledActions) => ({
+      ...currentDisabledActions,
+      [action]: false,
+    }));
+
+    setBusyAction((currentBusyAction) => (currentBusyAction === action ? null : currentBusyAction));
+    if (action === 'cart') {
+      setCartFeedback(null);
+    }
+
+    if (action === 'wishlist') {
+      setWishlistFeedback(null);
+    }
+  }, []);
+
+  const scheduleActionRelease = (action: TStorefrontAction, timeoutMs: number) => {
     const existingTimeoutId = releaseTimeoutRef.current[action];
 
     if (existingTimeoutId !== null) {
@@ -181,14 +302,8 @@ export function ProductActions(props: IProductActionsProps) {
     }
 
     releaseTimeoutRef.current[action] = window.setTimeout(() => {
-      setDisabledActions((currentDisabledActions) => ({
-        ...currentDisabledActions,
-        [action]: false,
-      }));
-
-      setBusyAction((currentBusyAction) => (currentBusyAction === action ? null : currentBusyAction));
-      releaseTimeoutRef.current[action] = null;
-    }, ACTION_COOLDOWN_MS);
+      completeGuardedAction(action);
+    }, timeoutMs);
   };
 
   const activateGuardedAction = (action: TStorefrontAction) => {
@@ -212,15 +327,17 @@ export function ProductActions(props: IProductActionsProps) {
     return true;
   };
 
-  const runGuardedAction = (action: TStorefrontAction, fn: () => void) => {
+  const runGuardedAction = (action: TStorefrontAction, fn: () => boolean) => {
     if (!activateGuardedAction(action)) {
       return;
     }
 
+    let didShowFeedback = false;
+
     try {
-      fn();
+      didShowFeedback = fn();
     } finally {
-      scheduleActionRelease(action);
+      scheduleActionRelease(action, didShowFeedback ? ACTION_SUCCESS_FEEDBACK_FALLBACK_MS : ACTION_COOLDOWN_MS);
     }
   };
 
@@ -232,22 +349,27 @@ export function ProductActions(props: IProductActionsProps) {
     try {
       await fn();
     } finally {
-      scheduleActionRelease(action);
+      scheduleActionRelease(action, ACTION_COOLDOWN_MS);
     }
   };
 
-  const handleAdd = () => {
+  const handleAdd = (event: MouseEvent<HTMLButtonElement>) => {
+    const sourceElement = event.currentTarget;
+
     void runGuardedAction('cart', () => {
       const result = addItem(props.product, clampedQuantity);
 
       if (!result.success) {
+        setCartFeedback(null);
         setFeedbackMessage(result.message);
-        return;
+        return false;
       }
 
       setFeedbackMessage(null);
+      setCartFeedback('added');
       setQuantity(1);
-      showSuccess('Added to cart');
+      fireProductFlyAnimation('cart', sourceElement);
+      return true;
     });
   };
 
@@ -270,45 +392,33 @@ export function ProductActions(props: IProductActionsProps) {
     });
   };
 
-  const handleWishlistToggle = () => {
+  const handleWishlistToggle = (event: MouseEvent<HTMLButtonElement>) => {
+    const sourceElement = event.currentTarget;
+
     void runGuardedAction('wishlist', () => {
-      const shouldShowSuccess = !isWishlisted;
+      const nextFeedback = isWishlisted ? 'removed' : 'added';
 
       toggleWishlistItem(mapProductToWishlistItem(props.product));
+      setWishlistFeedback(nextFeedback);
 
-      showSuccess(
-        shouldShowSuccess ? 'Added to wishlist' : 'Removed from wishlist',
-        undefined,
-        shouldShowSuccess ? 'success' : 'warning',
-      );
+      if (!isWishlisted) {
+        fireProductFlyAnimation('wishlist', sourceElement);
+      }
+
+      return true;
     });
   };
 
   return (
     <div className="mt-8 space-y-4" data-testid="product-actions">
       <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          aria-pressed={hasWishlistHydrated && isWishlisted}
-          className={cn(
-            SECONDARY_ACTION_BUTTON_CLASS_NAME,
-            hasWishlistHydrated && isWishlisted
-              ? 'border-primary/30 bg-accent hover:bg-accent'
-              : undefined,
-          )}
-          disabled={isWishlistBusy}
+        <WishlistActionButton
+          feedback={wishlistFeedback}
+          hasWishlistHydrated={hasWishlistHydrated}
+          isBusy={isWishlistBusy}
+          isWishlisted={isWishlisted}
           onClick={handleWishlistToggle}
-          data-testid="wishlist-toggle"
-        >
-          <Heart
-            className={cn(
-              'mr-2 h-5 w-5',
-              hasWishlistHydrated && isWishlisted ? 'text-primary' : 'text-muted-foreground',
-            )}
-          />
-          {hasWishlistHydrated && isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
-        </Button>
+        />
 
         <Button
           type="button"
@@ -328,7 +438,7 @@ export function ProductActions(props: IProductActionsProps) {
             <p className="font-medium text-lg">Quantity</p>
           </div>
           <QuantityStepper
-            disabled={actionState.isAddDisabled || isCartBusy}
+            disabled={actionState.isAddDisabled}
             value={clampedQuantity}
             decreaseDisabled={clampedQuantity <= 1}
             increaseDisabled={clampedQuantity >= quantityCap}
@@ -358,16 +468,12 @@ export function ProductActions(props: IProductActionsProps) {
           <p className="mt-3 text-sm font-medium text-foreground">{feedbackMessage}</p>
         ) : null}
 
-        <Button
-          size="lg"
-          className="mt-5 h-14 w-full rounded-xl text-lg font-semibold"
+        <AddToCartButton
+          addButtonLabel={actionState.addButtonLabel}
           disabled={actionState.isAddDisabled || isCartBusy}
+          isSuccessVisible={isCartSuccessVisible}
           onClick={handleAdd}
-          data-testid="add-to-cart"
-        >
-          <ShoppingBag className="mr-2 h-5 w-5" />
-          {actionState.addButtonLabel}
-        </Button>
+        />
       </div>
 
       <p className="text-sm leading-6 text-muted-foreground">

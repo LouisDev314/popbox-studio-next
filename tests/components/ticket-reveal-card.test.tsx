@@ -88,6 +88,7 @@ describe('TicketRevealCard', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Reveal ticket for Test Product 2' })).toBeInTheDocument();
+    expect(screen.getAllByTestId('ticket-image-skeleton').length).toBeGreaterThan(0);
     expect(screen.queryByRole('heading', { name: 'Test Product 2' })).not.toBeInTheDocument();
     expect(screen.queryByAltText('Test Product 2')).not.toBeInTheDocument();
     expect(screen.queryByText('Test Product 2')).not.toBeInTheDocument();
