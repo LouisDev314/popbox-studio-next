@@ -44,8 +44,16 @@ function KujiPrizeImage(props: {
   label: string;
   src: string | null;
 }) {
+  const [loadedImageRatio, setLoadedImageRatio] = useState<{
+    ratio: number;
+    src: string | null;
+  } | null>(null);
+  const imageAspectRatio = loadedImageRatio?.src === props.src ? loadedImageRatio.ratio : null;
+
   return (
     <div
+      data-testid="kuji-prize-image-frame"
+      style={imageAspectRatio ? { aspectRatio: imageAspectRatio } : undefined}
       className={cn(
         'relative mx-auto w-full',
         props.compact ? 'aspect-square' : 'aspect-[4/3]',
@@ -60,6 +68,22 @@ function KujiPrizeImage(props: {
         className="h-full w-full"
         imageClassName="object-contain"
         fallbackClassName={props.compact ? 'px-3 py-1.5 text-[10px]' : undefined}
+        onImageLoad={(image) => {
+          if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+            const ratio = image.naturalWidth / image.naturalHeight;
+
+            setLoadedImageRatio((currentRatio) => {
+              if (currentRatio?.src === props.src && currentRatio.ratio === ratio) {
+                return currentRatio;
+              }
+
+              return {
+                ratio,
+                src: props.src,
+              };
+            });
+          }
+        }}
       />
     </div>
   );

@@ -6,6 +6,18 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { KujiPrizeTiles } from '@/components/kuji/kuji-prize-tiles';
 
+function loadImageWithNaturalSize(image: HTMLImageElement, naturalWidth: number, naturalHeight: number) {
+  Object.defineProperty(image, 'naturalWidth', {
+    configurable: true,
+    value: naturalWidth,
+  });
+  Object.defineProperty(image, 'naturalHeight', {
+    configurable: true,
+    value: naturalHeight,
+  });
+  fireEvent.load(image);
+}
+
 vi.mock('next/image', () => ({
   default: forwardRef<HTMLImageElement, ImgHTMLAttributes<HTMLImageElement> & {
     fill?: boolean;
@@ -50,7 +62,7 @@ describe('KujiPrizeTiles', () => {
       'w-full',
     );
 
-    fireEvent.load(within(prizeTile).getByAltText('Prize One'));
+    loadImageWithNaturalSize(within(prizeTile).getByAltText('Prize One'), 800, 800);
 
     expect(within(prizeTile).queryByTestId('storefront-image-skeleton')).not.toBeInTheDocument();
 
@@ -59,5 +71,31 @@ describe('KujiPrizeTiles', () => {
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toHaveTextContent('Premium prize details');
     });
+  });
+
+  it('sizes regular prize image frames from the loaded image ratio instead of a fixed square crop', () => {
+    render(
+      <KujiPrizeTiles
+        enableDialog={false}
+        items={[{
+          description: null,
+          id: 'prize-landscape',
+          imageUrl: 'https://cdn.example.com/prizes/prize-landscape.jpg',
+          name: 'Landscape Prize',
+          prizeCode: 'B',
+          prizeTier: 'B',
+        }]}
+      />,
+    );
+
+    const prizeTile = screen.getByRole('article');
+    const imageFrame = within(prizeTile).getByTestId('kuji-prize-image-frame');
+
+    expect(imageFrame).toHaveClass('aspect-[4/3]');
+    expect(imageFrame).not.toHaveStyle({ aspectRatio: '2' });
+
+    loadImageWithNaturalSize(within(prizeTile).getByAltText('Landscape Prize'), 1200, 600);
+
+    expect(imageFrame).toHaveStyle({ aspectRatio: '2' });
   });
 });

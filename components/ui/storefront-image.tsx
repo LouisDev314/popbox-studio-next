@@ -12,6 +12,7 @@ interface IStorefrontImageProps {
   fallbackSrc?: string | null;
   imageClassName?: string;
   label?: string;
+  onImageLoad?: (image: HTMLImageElement) => void;
   sizes?: string;
   skeletonClassName?: string;
   src?: string | null;
@@ -32,6 +33,7 @@ function buildFallbackLabel(label: string) {
 }
 
 export function StorefrontImage(props: IStorefrontImageProps) {
+  const { onImageLoad } = props;
   const [currentSrc, setCurrentSrc] = useState(props.src ?? null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -50,13 +52,14 @@ export function StorefrontImage(props: IStorefrontImageProps) {
     queueMicrotask(() => {
       if (isMounted && image?.complete && image.naturalWidth > 0) {
         setIsLoaded(true);
+        onImageLoad?.(image);
       }
     });
 
     return () => {
       isMounted = false;
     };
-  }, [currentSrc]);
+  }, [currentSrc, onImageLoad]);
 
   if (currentSrc && !hasError) {
     return (
@@ -88,7 +91,10 @@ export function StorefrontImage(props: IStorefrontImageProps) {
 
             setHasError(true);
           }}
-          onLoad={() => setIsLoaded(true)}
+          onLoad={(event) => {
+            setIsLoaded(true);
+            onImageLoad?.(event.currentTarget);
+          }}
           priority={props.priority ?? false}
         />
       </div>
