@@ -34,7 +34,7 @@ function hasMeaningfulValue(value: SearchParamValue) {
     return value.some((entry) => entry.trim().length > 0);
   }
 
-  return value?.trim().length ? true : false;
+  return !!value?.trim().length;
 }
 
 function getMeaningfulKeys(searchParams: TRouteSearchParams): string[] {
