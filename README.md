@@ -1,281 +1,221 @@
 # PopBox Studio — Next.js Frontend
 
-**SSR-first anime e-commerce storefront and admin UI with real checkout, guest orders, and Ichiban Kuji–style ticket and
-prize flows—backed by a separate Express `/api/v1` service.**
+Production-oriented Next.js App Router frontend for a single-vendor anime merchandise and Ichiban Kuji storefront. The app
+renders the public storefront, guest order/ticket flows, and an authenticated admin UI while consuming a separate
+`/api/v1` backend for inventory, checkout, orders, and persistence.
+
+For deeper interview notes, see [docs/interview-prep.md](docs/interview-prep.md).
 
 ---
 
-## Highlights
+## Project Summary
 
-### Why this project matters
+PopBox Studio demonstrates frontend engineering for a real commerce surface:
 
-This project demonstrates production-grade frontend engineering across SSR commerce, secure session handling, strict API
-contract consumption, and real-world checkout flows. It reflects how a modern frontend integrates with backend-owned
-business logic without duplicating critical rules such as payments, inventory, and order state.
+- **SSR-first storefront** for homepage, listings, collections, product detail pages, legal/content pages, and SEO-critical
+  routes.
+- **Interactive client islands** for cart, wishlist, checkout handoff, search/autocomplete, drawers, admin CRUD, and Kuji
+  ticket reveal.
+- **Backend-owned commerce truth** for pricing, inventory, order state, Stripe Checkout, Kuji ticket allocation, and prize
+  reveal results.
+- **Cookie-backed guest order access** where a token bootstrap route forwards backend `Set-Cookie` headers and subsequent
+  order/ticket reads rely on cookies.
+- **Portfolio-ready admin** for products, images, collections, tags, orders, customers, legal content, shipping settings,
+  and store banner settings.
 
-- **SSR-first storefront** — Server-rendered discovery, PDP, collections, and SEO-critical surfaces; client islands for
-  cart, checkout handoff, and interactive admin.
-- **Cookie-backed guest orders** — Access token hits a bootstrap route; the backend sets an **HttpOnly** session cookie;
-  order and ticket APIs **require that cookie** (no long-lived token in client storage as a substitute).
-- **Strict API consumption** — Typed boundaries, Axios + TanStack Query, and **`QueryConfigs`-style** request
-  definitions; **no raw `fetch` in the client data layer** (per repo conventions).
-- **Kuji in the UI** — Ticket purchase and prize reveal experiences (e.g. `components/kuji/`, Kuji-aware product
-  surfaces) without re-implementing inventory or draw rules on the frontend.
-- **Stripe Checkout, server-owned truth** — Browser redirects to Stripe; success and order state are confirmed through
-  the API, not assumed on the client alone.
-- **Unified storefront + admin architecture** — `app/(store)` and `app/(admin)` route groups share components and design
-  tokens while
-  keeping concerns separated.
+No production live-site URL is declared in this repository. Local and deployment URLs are configured through environment
+variables.
 
 ---
 
-## Overview
+## Tech Stack
 
-PopBox Studio sells standard anime merchandise and **Ichiban Kuji–style** lottery products. This repository is the
-**Next.js App Router frontend**: it renders the public site and staff admin, and calls a **versioned REST API** on
-another origin.
+| Area | Choices |
+| --- | --- |
+| Framework | Next.js App Router, React 19 |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4, shadcn-style primitives, Radix UI, CVA, `tailwind-merge` |
+| Server/client data | Axios, TanStack Query, centralized query/mutation configs |
+| Client state | Zustand persisted cart and wishlist stores |
+| Forms/validation | React Hook Form, Zod, local validation helpers |
+| Auth/admin | Supabase client session handling, Bearer auth headers for admin API calls |
+| Payments | Stripe Checkout handoff through backend API responses |
+| Observability | Sentry, Vercel Analytics, Vercel Speed Insights |
+| Testing | Vitest, Testing Library, MSW |
 
-The backend owns validation, inventory, payments, webhooks, and persistence. The frontend focuses on **presentation and
-orchestration, with strict separation from backend business logic, clear server/client boundaries, and safe flows that
-reflect real production auth and http-only cookie-based session handling**.
-
----
-
-## Tech stack
-
-| Area               | Choices                                                                              |
-|--------------------|--------------------------------------------------------------------------------------|
-| Framework          | Next.js (App Router), React 19                                                       |
-| Language           | TypeScript (strict)                                                                  |
-| Styling            | Tailwind CSS v4, shadcn-style primitives (Radix, CVA, `tailwind-merge`)              |
-| Client data        | TanStack Query + **Axios**; centralized request config                               |
-| Forms / validation | React Hook Form, Zod                                                                 |
-| Auth integration   | Supabase client libraries where the API/auth design requires them                    |
-| Payments (client)  | Stripe.js / Stripe.js (Checkout redirect and client-side integration where required) |
-| Theming            | `next-themes` Light-only design system (premium storefront direction)                |
-| Tooling            | pnpm, ESLint (`eslint-config-next`), Vitest + Testing Library + MSW                  |
-
-**Runtime:** Node.js **24.x** (`package.json` `engines`).
+Runtime: Node.js **24.x**.
 
 ---
 
-## Features
+## Key Frontend Capabilities
 
-**Customer-facing**
+**Customer storefront**
 
-- Homepage, collections, product listing, PDP, search
-- Cart, Stripe Checkout redirect, checkout success handling
-- Guest order lookup: token bootstrap → cookie session → order detail and **Kuji ticket / reveal** views
-- Supporting pages: about, contact, legal/FAQ
-- SEO: metadata, sitemap, robots, Open Graph
+- Homepage, products, search, collections, product detail pages, cart, checkout success, about/contact/FAQ/legal pages.
+- Standard and Kuji product display with inventory-aware UI.
+- Guest order detail and Kuji ticket pages protected by backend-issued cookie sessions.
+- Kuji single-ticket and reveal-all flows with video overlay, waiting state, summary state, and backend-sourced prize data.
 
-**System / engineering**
+**Admin workflows**
 
-- Server-safe reads for public storefront data (e.g. `lib/api/public-storefront.ts` → `/api/v1/...`)
-- Client mutations and interactive data via shared Axios client and query hooks
-- Admin: catalog, orders, customers, collections, tags, legal content (`app/(admin)/admin/...`)
-- Feature-oriented components under `components/storefront`, `components/admin`, `components/kuji`, etc.
+- Supabase session gate for `/admin`.
+- Product create/edit, inventory update, media upload/delete/reorder, Kuji prize management, collection/tag management.
+- Order list/detail, status updates, shipment updates, refunds, resend confirmation action.
+- Customer list, legal/FAQ editor, shipping settings, and storefront banner settings.
 
----
+**Quality and platform**
 
-## Architecture
-
-| Layer                 | Responsibility                                                                                                                   |
-|-----------------------|----------------------------------------------------------------------------------------------------------------------------------|
-| **Route groups**      | `(store)` = public site; `(admin)` = staff tools. Same deployable app, different layouts and guards.                             |
-| **Server Components** | Default. Own initial HTML, SEO, and server-side data reads where the module is server-safe.                                      |
-| **Client Components** | Hooks, React Query, forms, cart/checkout UX, admin interactivity.                                                                |
-| **Server-safe API**   | Modules such as `lib/api/public-storefront.ts` call `/api/v1` during SSR or RSC without browser-only APIs.                       |
-| **Client API layer**  | `configs/api/query-config.ts` (and related) + `httpClient()` + `useCustomizeQuery` / mutations—**no raw `fetch`** in that layer. |
-| **Backend**           | Separate Express service: `/api/v1`, domain modules, Zod, Stripe, Supabase, Resend, etc.                                         |
+- `next/image` with Supabase storage remote patterns and fallback image states.
+- Metadata helpers, canonical URLs, dynamic sitemap, robots rules, Product JSON-LD, FAQ JSON-LD, and homepage WebSite
+  JSON-LD.
+- Loading skeletons, empty/error states, toast feedback, guarded checkout interactions, and responsive layouts.
 
 ---
 
-## System overview
+## Architecture Overview
+
+| Layer | Responsibility |
+| --- | --- |
+| `app/(store)` | Public storefront routes, SEO metadata, guest order pages, Kuji ticket pages |
+| `app/(admin)` | Authenticated admin routes and admin-only metadata/noindex behavior |
+| Server Components | Default page/rendering layer for initial HTML and server-safe public API reads |
+| Client Components | Cart/wishlist state, React Query, forms, drawers, checkout handoff, admin CRUD, Kuji reveal |
+| `lib/api/public-storefront.ts` | Server-only Axios reads to the backend for storefront SSR/RSC use cases |
+| `configs/api/*` | Client query/mutation request definitions used by React Query hooks |
+| Backend API | Separate `/api/v1` service that owns validation, inventory, payments, order state, and Kuji results |
 
 ```mermaid
 flowchart LR
-
     U[Users] --> N[Next.js Frontend]
 
-    subgraph Frontend_App
+    subgraph Frontend
         N --> S[Storefront]
         N --> A[Admin]
     end
 
-    N --> API[Express Backend /api/v1]
+    N --> API[Backend API /api/v1]
 
-    subgraph Backend_Services
-        API --> STRIPE[Stripe]
-        API --> DB[(PostgreSQL / Drizzle ORM)]
-        API --> SUPA[Supabase]
-        API --> EMAIL[Resend Email]
+    subgraph External_Systems
+        API --> STRIPE[Stripe Checkout]
+        API --> SUPA[Supabase-backed data and auth]
+        API --> EMAIL[Email service]
     end
 ```
 
 ---
 
-## Key flows
+## Core Flows
 
-- **Guest checkout → order access**
-    - User completes Stripe Checkout
-    - Redirect to success page
-    - Backend verifies payment and sets HttpOnly session cookie
-    - Subsequent order and ticket requests require cookie (no token fallback)
+**Checkout and guest order access**
 
 ```mermaid
 flowchart TD
-
-    subgraph Checkout_and_Guest_Orders
-        A[Guest checkout] --> B[Redirect to Stripe Checkout]
-        B --> C[Return to success page]
-        C --> D[Backend verifies payment]
-        D --> E[Backend sets HttpOnly session cookie]
-        E --> F[Order and ticket APIs require cookie]
-    end
+    A[Cart builds productId and quantity payload] --> B[Backend creates Stripe Checkout session]
+    B --> C[Frontend validates Stripe Checkout URL]
+    C --> D[Browser redirects to Stripe]
+    D --> E[Success page confirms session through API]
+    E --> F[Guest token bootstrap route forwards backend Set-Cookie]
+    F --> G[Order and ticket pages read backend state with cookie]
 ```
 
-- **Ichiban Kuji purchase → ticket reveal**
-    - User purchases Kuji tickets
-    - Order stores ticket allocations
-    - Frontend renders reveal flows based on backend state
-    - No prize logic is computed on the client
+**Ichiban Kuji reveal**
 
 ```mermaid
 flowchart TD
-
-    subgraph Kuji_Flow
-        G[Kuji ticket purchase] --> H[Backend creates order and ticket allocations]
-        H --> I[Frontend loads order state from API]
-        I --> J[User reveals tickets in UI]
-        J --> K[Prize outcome comes from backend state]
-    end
+    A[User opens ticket page] --> B[Frontend loads ticket view from API]
+    B --> C{Ticket revealed?}
+    C -->|No| D[Render masked ticket card]
+    C -->|Yes| E[Render prize details from ticket.prize]
+    D --> F[Reveal single or reveal all mutation]
+    F --> G[Backend returns revealed prize state]
+    G --> H[Overlay shows result or summary]
 ```
 
-- **Admin → catalog → storefront**
-    - Admin updates products, inventory, or Kuji configuration
-    - Backend persists and enforces rules
-    - Storefront reflects changes via API-driven SSR + client updates
+**Admin to storefront**
 
 ```mermaid
 flowchart TD
-
-    subgraph Admin_to_Storefront
-        L[Admin updates catalog or Kuji config] --> M[Backend validates and persists changes]
-        M --> N[Storefront reads updated API data]
-        N --> O[SSR and client UI reflect latest state]
-    end
+    A[Admin edits catalog, media, Kuji prizes, or settings] --> B[Admin API validates and persists]
+    B --> C[React Query invalidates admin cache]
+    B --> D[Storefront reads latest public API data]
+    D --> E[SSR and client UI reflect updated state]
 ```
 
 ---
 
-## Key engineering decisions
+## Local Setup
 
-- **SSR-first for commerce SEO** — Category, product, and collection URLs are meaningful to crawlers and first paint;
-  hydration cost is pushed to interactive shells.
-- **Backend as source of truth** — Stock, pricing eligibility, payment completion, and order/ticket state come from the
-  API; the UI reflects responses and error shapes instead of guessing outcomes after Stripe redirect.
-- **HttpOnly session for guest orders** — A one-time access path establishes a server session; subsequent order/ticket
-  calls rely on **cookies**, reducing exposure of long-lived secrets in JS-accessible storage and matching how the API
-  enforces access.
-- **No business logic smuggling** — Types and UI states align with the API contract; the frontend does not re-implement
-  Kuji draw rules, inventory decrements, or webhook semantics.
-- **Centralized HTTP** — One Axios configuration (base URL, interceptors) keeps behavior consistent between admin and
-  storefront clients.
-- **Strict TypeScript + Zod** — Compile-time safety at boundaries; runtime validation where user input hits the wire.
-- **Design system cohesion** — Shared UI primitives keep storefront and admin visually and behaviorally aligned without
-  copy-pasting patterns.
-
----
-
-## Getting started
-
-**Requirements:** Node.js 24.x, pnpm.
+Requirements: Node.js 24.x and pnpm.
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Dev server: **[http://localhost:3001](http://localhost:3001)** (`next dev -p 3001`).
+Dev server: [http://localhost:3001](http://localhost:3001)
+
+For production-style local runs:
 
 ```bash
-pnpm build && pnpm start
+pnpm build
+pnpm start
 ```
 
 ---
 
-## Environment variables
+## Environment Variables
 
-| Variable                                       | Scope      | Purpose                                                                                    |
-|------------------------------------------------|------------|--------------------------------------------------------------------------------------------|
-| `NEXT_PUBLIC_API_BASE_URL`                     | Public     | Backend origin for `/api/v1` (required in production; dev default `http://localhost:3000`) |
-| `NEXT_PUBLIC_SITE_URL`                         | Public     | Canonical site URL for metadata and absolute URLs                                          |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`           | Public     | Stripe.js                                                                                  |
-| `NEXT_PUBLIC_SUPABASE_URL`                     | Public     | Supabase project URL                                                                       |
-| `NEXT_PUBLIC_SUPABASE_PUBLIC_KEY`             | Public     | Supabase anon/public key                                                                   |
-| `NEXT_PUBLIC_IS_SITE_OPEN`                     | Public     | Set to `false` for maintenance-style behavior (default: open)                              |
+Use `.env.local` locally. `.env.example` shows the required public configuration.
 
-On Vercel, `VERCEL_URL` / `VERCEL_PROJECT_PRODUCTION_URL` can back `NEXT_PUBLIC_SITE_URL` when unset—see
-`configs/public-env.ts`.
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | Backend origin for `/api/v1`; required in production, defaults to `http://localhost:3000` in dev |
+| `NEXT_PUBLIC_SITE_URL` | Canonical site URL for metadata and absolute URLs |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLIC_KEY` | Supabase anon/public key |
+| `NEXT_PUBLIC_IS_SITE_OPEN` | Set to `false` for maintenance-style storefront gating |
 
-Use `.env.local` locally (gitignored).
-
----
-
-## Scripts
-
-| Command         | Description                 |
-|-----------------|-----------------------------|
-| `pnpm dev`      | Dev server on port **3001** |
-| `pnpm build`    | Production build            |
-| `pnpm start`    | Production server           |
-| `pnpm lint`     | ESLint                      |
-| `pnpm lint:fix` | ESLint with fixes           |
-| `pnpm check`    | Lint + tests + typecheck    |
-| `pnpm test`     | Vitest                      |
+On Vercel, `VERCEL_PROJECT_PRODUCTION_URL` or `VERCEL_URL` can back `NEXT_PUBLIC_SITE_URL` when it is not explicitly set.
 
 ---
 
-## API overview
+## Quality Checks
 
-- **Contract:** REST under **`/api/v1`** on `NEXT_PUBLIC_API_BASE_URL`.
-- **This app:** Consumer only—OpenAPI / backend repo is authoritative.
-- **Examples:** `lib/api/public-storefront.ts` and `configs/api/query-config.ts` (home, products, collections, search,
-  checkout success, orders, tickets, legal, etc.).
+| Command | Purpose |
+| --- | --- |
+| `pnpm test` | Vitest unit/component tests |
+| `pnpm build` | Production Next.js build |
+| `pnpm exec tsc --noEmit` | TypeScript typecheck |
+| `pnpm check` | Repo quality command: lint with fixes, tests, and build |
+
+Note: `pnpm lint` is configured as `eslint . --fix`, so inspect diffs after running `pnpm check`.
 
 ---
 
-## Folder structure (high level)
+## Folder Structure
 
 ```text
-app/                 # App Router: (store), (admin), layouts, metadata
-components/          # UI, layout, storefront, admin, kuji
-configs/             # Env (public + server-only), API query/mutation configs
-hooks/               # React Query helpers and app hooks
-lib/                 # API helpers, SEO, utilities
-interfaces/          # Shared TypeScript types
-public/              # Static assets
-tests/               # Vitest
+app/                 # App Router route groups, layouts, metadata, loading/error boundaries
+components/          # UI primitives, storefront, admin, cart, wishlist, Kuji components
+configs/             # Public env and API query/mutation configs
+hooks/               # React Query wrappers, Zustand stores, checkout/search/mobile hooks
+interfaces/          # Shared TypeScript contracts for API payloads
+lib/                 # Server-safe API reads, SEO helpers, filters, Sentry, Supabase client
+tests/               # Vitest, Testing Library, MSW-backed coverage
+public/              # Static images/video used by storefront and Kuji reveal UI
 ```
 
 ---
 
-## Roadmap / future improvements
+## Documentation
 
-- Documented performance and image/CDN defaults per environment
-- Accessibility and i18n expansion as product scope grows
-
----
-
-## Further reading
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Learn Next.js](https://nextjs.org/learn)
-- [Deploying Next.js](https://nextjs.org/docs/app/building-your-application/deploying)
+- [Interview prep guide](docs/interview-prep.md) explains architecture, flows, trade-offs, and common interview answers.
+- Backend behavior is described only where the frontend integrates with it; the backend repository remains the source of
+  truth for persistence, inventory, payment, email, and webhook implementation details.
 
 ---
 
 ## License
 
-No `LICENSE` file is present in this repository. Confirm usage with the maintainers before reuse or redistribution.
+No `LICENSE` file is present in this repository. Confirm usage with the maintainer before reuse or redistribution.
