@@ -11,12 +11,12 @@ vi.mock('next/image', () => ({
   default: ({
     alt,
     fill: _fill,
-    priority: _priority,
+    priority,
     ...props
   }: ImgHTMLAttributes<HTMLImageElement> & {
     fill?: boolean;
     priority?: boolean;
-  }) => <img {...props} alt={alt ?? ''} />,
+  }) => <img {...props} alt={alt ?? ''} data-priority={priority ? 'true' : undefined} />,
 }));
 
 function createProducts(count: number) {
@@ -68,5 +68,21 @@ describe('HomeProductSection', () => {
 
     expect(denseGrid).toBeInTheDocument();
     expect(denseGrid).toHaveClass('grid-cols-3', 'md:grid-cols-4', 'xl:grid-cols-5');
+  });
+
+  it('keeps below-hero product section images out of priority loading', () => {
+    renderWithProviders(
+      <HomeProductSection
+        title="Explore More"
+        products={createProducts(6)}
+        limit={6}
+        viewAllHref="/products"
+      />,
+    );
+
+    const productImages = screen.getAllByRole('img', { name: /Product \d/ });
+
+    expect(productImages).toHaveLength(6);
+    expect(productImages.every((image) => !image.dataset.priority)).toBe(true);
   });
 });

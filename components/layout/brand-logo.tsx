@@ -19,8 +19,9 @@ export function BrandLogo({ className, variant = 'nav' }: IBrandLogoProps) {
       <Image
         src="/store-logo.png"
         alt="PopBox Studio"
-        width={40}
-        height={40}
+        width={56}
+        height={56}
+        sizes="56px"
         className="h-full w-full object-contain"
         priority={variant === 'nav'}
       />

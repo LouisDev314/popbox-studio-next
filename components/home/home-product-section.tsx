@@ -31,7 +31,7 @@ export function HomeProductSection(props: IHomeProductSectionProps) {
         </Link>
       </div>
 
-      <ProductGridDense products={previewProducts} priorityCount={6} />
+      <ProductGridDense products={previewProducts} priorityCount={0} />
     </section>
   );
 }

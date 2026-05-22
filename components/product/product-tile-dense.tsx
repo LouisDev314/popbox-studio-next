@@ -1,5 +1,6 @@
+/* eslint-disable @next/next/no-img-element */
+
 import Link from 'next/link';
-import Image from 'next/image';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import type { IProductCard } from '@/interfaces/product';
 import { formatPrice } from '@/lib/utils';
@@ -32,7 +33,7 @@ export function ProductTileDense(props: IProductTileDenseProps) {
     >
       <div className="relative aspect-square overflow-hidden rounded-xl">
         {product.productType === 'kuji' && (
-          <Image
+          <img
             src="/logo-kuji.png"
             alt="Kuji"
             width={40}

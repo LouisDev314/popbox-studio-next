@@ -30,6 +30,7 @@ describe('StorefrontImage', () => {
         src="https://example.com/products/figure.jpg"
         alt="Figure"
         className="rounded-2xl"
+        sizes="20rem"
       />,
     );
 
@@ -52,6 +53,7 @@ describe('StorefrontImage', () => {
       <StorefrontImage
         src="https://example.com/products/figure-1.jpg"
         alt="Figure"
+        sizes="20rem"
       />,
     );
 
@@ -63,6 +65,7 @@ describe('StorefrontImage', () => {
       <StorefrontImage
         src="https://example.com/products/figure-2.jpg"
         alt="Figure"
+        sizes="20rem"
       />,
     );
 
@@ -78,6 +81,7 @@ describe('StorefrontImage', () => {
       <StorefrontImage
         src="https://example.com/products/cached-figure.jpg"
         alt="Cached figure"
+        sizes="20rem"
       />,
     );
 
@@ -94,6 +98,7 @@ describe('StorefrontImage', () => {
         src="https://example.com/products/kuji-product-product-webp"
         fallbackSrc="https://example.com/products/kuji-product-cover-webp"
         alt="Kuji product"
+        sizes="20rem"
       />,
     );
 

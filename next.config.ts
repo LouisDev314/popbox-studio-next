@@ -80,6 +80,7 @@ const nextConfig: NextConfig = {
     };
   },
   images: {
+    minimumCacheTTL: 2678400,
     remotePatterns: supabaseImageHostnames.map((hostname) => ({
       protocol: 'https',
       hostname,

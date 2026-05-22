@@ -16,7 +16,7 @@ vi.mock('next/image', () => ({
   }: ImgHTMLAttributes<HTMLImageElement> & {
     fill?: boolean;
     priority?: boolean;
-  }) => <img {...props} alt={alt ?? ''} />,
+  }) => <img {...props} alt={alt ?? ''} data-next-image="true" />,
 }));
 
 describe('ProductTileDense', () => {
@@ -36,7 +36,7 @@ describe('ProductTileDense', () => {
       />,
     );
 
-    expect(screen.getByRole('img', { name: 'Kuji' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Kuji' })).not.toHaveAttribute('data-next-image');
   });
 
   it('does not render a ticket summary for non-kuji cards', () => {

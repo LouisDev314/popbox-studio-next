@@ -1,9 +1,10 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useState } from 'react';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type IProduct } from '@/interfaces/product';
-import Image from 'next/image';
 import { getProductCoverImageIndex, getSortedProductImages } from '@/utils/product-images';
 
 interface IProductGalleryProps {
@@ -28,7 +29,7 @@ export function ProductGallery(props: IProductGalleryProps) {
           imageClassName="transition-transform duration-500 ease-out"
         />
         {props.product.productType === 'kuji' && (
-          <Image
+          <img
             src="/logo-kuji.png"
             alt="Kuji"
             width={40}

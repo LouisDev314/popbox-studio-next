@@ -19,7 +19,15 @@ vi.mock('next/image', () => ({
     priority,
     ...props
   }, ref) {
-    return <img ref={ref} {...props} alt={alt ?? ''} data-priority={priority ? 'true' : undefined} />;
+    return (
+      <img
+        ref={ref}
+        {...props}
+        alt={alt ?? ''}
+        data-next-image="true"
+        data-priority={priority ? 'true' : undefined}
+      />
+    );
   }),
 }));
 
@@ -118,6 +126,7 @@ describe('ProductGallery', () => {
 
     expect(mainFrame).not.toBeNull();
     expect(within(mainFrame as HTMLElement).getByAltText('Square cover')).toHaveAttribute('src', 'https://example.com/products/kuji-cover.jpg');
+    expect(within(mainFrame as HTMLElement).getByRole('img', { name: 'Kuji' })).not.toHaveAttribute('data-next-image');
     expect(screen.getByText('2 / 2')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'View image 1 of 2' }));

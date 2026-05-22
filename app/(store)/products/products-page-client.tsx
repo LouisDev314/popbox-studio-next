@@ -99,7 +99,7 @@ function ProductsResults(props: IProductsResultsProps) {
   }
 
   return (
-    <ProductGridDense products={props.products} priorityCount={6} />
+    <ProductGridDense products={props.products} priorityCount={3} />
   );
 }
 

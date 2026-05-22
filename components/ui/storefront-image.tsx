@@ -13,7 +13,7 @@ interface IStorefrontImageProps {
   imageClassName?: string;
   label?: string;
   onImageLoad?: (image: HTMLImageElement) => void;
-  sizes?: string;
+  sizes: string;
   skeletonClassName?: string;
   src?: string | null;
   priority?: boolean;
@@ -76,7 +76,7 @@ export function StorefrontImage(props: IStorefrontImageProps) {
           src={currentSrc}
           alt={props.alt}
           fill
-          sizes={props.sizes ?? '100vw'}
+          sizes={props.sizes}
           className={cn(
             'object-cover transition-opacity duration-200',
             isLoaded ? 'opacity-100' : 'opacity-0',

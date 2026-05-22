@@ -247,6 +247,7 @@ function OrderItemImage({
       alt={altText || productName}
       width={64}
       height={64}
+      sizes="64px"
       className="h-16 w-16 shrink-0 rounded-lg border border-border/50 bg-muted object-cover"
     />
   );
