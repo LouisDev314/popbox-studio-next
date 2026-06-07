@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StoreHeaderClient } from '@/components/layout/store-header-client';
@@ -20,7 +20,6 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/components/layout/store-banner', () => ({
-  isVisibleStoreBanner: () => false,
   StorefrontBanner: () => null,
 }));
 
@@ -75,7 +74,7 @@ describe('StoreHeaderClient', () => {
     navigationMock.pathname = '/checkout/success';
     navigationMock.searchParams = new URLSearchParams('session_id=cs_test_123');
 
-    renderWithProviders(<StoreHeaderClient collectionNavItems={[]} initialStoreBanner={null} />);
+    renderWithProviders(<StoreHeaderClient collectionNavItems={[]} />);
 
     expect(screen.queryByRole('banner')).not.toBeInTheDocument();
 
@@ -89,9 +88,7 @@ describe('StoreHeaderClient', () => {
   });
 
   it('uses the compact header below xl and preserves fly animation targets', () => {
-    const { container } = renderWithProviders(
-      <StoreHeaderClient collectionNavItems={[]} initialStoreBanner={null} />,
-    );
+    const { container } = renderWithProviders(<StoreHeaderClient collectionNavItems={[]} />);
 
     const primaryNav = screen.getByRole('navigation', { name: 'Primary' });
     expect(primaryNav).toHaveClass('hidden', 'xl:flex', 'shrink-0', 'flex-nowrap');
@@ -100,8 +97,6 @@ describe('StoreHeaderClient', () => {
     const menuButton = screen.getByRole('button', { name: 'Open menu' });
     expect(menuButton).toHaveClass('xl:hidden', 'shrink-0');
     expect(menuButton).not.toHaveClass('lg:hidden');
-
-    fireEvent.click(menuButton);
 
     expect(screen.getByTestId('store-menu-overlay')).toHaveClass('xl:hidden');
     expect(screen.getByTestId('store-menu-overlay')).not.toHaveClass('lg:hidden');

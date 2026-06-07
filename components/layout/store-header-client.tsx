@@ -1,13 +1,15 @@
 'use client';
 
-import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
+import { Suspense, type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, Heart, Search, ShoppingBag } from 'lucide-react';
+import { CartDrawer } from '@/components/cart/cart-drawer';
 import { BrandLogo } from '@/components/layout/brand-logo';
+import { MobileMenuPanel } from '@/components/layout/mobile-menu-panel';
 import { MobileNavOverlay } from '@/components/layout/mobile-nav-overlay';
-import { StorefrontBanner, isVisibleStoreBanner } from '@/components/layout/store-banner';
+import { MobileSearchPanel } from '@/components/layout/mobile-search-panel';
+import { StorefrontBanner } from '@/components/layout/store-banner';
 import {
   DESKTOP_PRIMARY_NAV_ITEMS,
   FEATURED_NAV_HREF,
@@ -21,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { WishlistDrawer } from '@/components/wishlist/wishlist-drawer';
 import QueryConfigs from '@/configs/api/query-config';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
@@ -29,27 +32,9 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useMobileNavbarVisibility } from '@/hooks/use-mobile-navbar-visibility';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import { type IProductSuggestion, IProductSuggestionResponse } from '@/interfaces/product';
-import type { IStoreBannerSettings } from '@/interfaces/settings';
 import { formatQuantity } from '@/lib/format-quantity';
 import { FLY_TARGET_REQUEST_EVENT } from '@/lib/ui/fly-to-target';
 import { cn } from '@/lib/utils';
-
-const CartDrawer = dynamic(
-  () => import('@/components/cart/cart-drawer').then((module) => module.CartDrawer),
-  { ssr: false },
-);
-const MobileMenuPanel = dynamic(
-  () => import('@/components/layout/mobile-menu-panel').then((module) => module.MobileMenuPanel),
-  { ssr: false },
-);
-const MobileSearchPanel = dynamic(
-  () => import('@/components/layout/mobile-search-panel').then((module) => module.MobileSearchPanel),
-  { ssr: false },
-);
-const WishlistDrawer = dynamic(
-  () => import('@/components/wishlist/wishlist-drawer').then((module) => module.WishlistDrawer),
-  { ssr: false },
-);
 
 type TMobilePanel = 'menu' | 'search' | null;
 
@@ -76,32 +61,6 @@ interface IStoreHeaderActionsProps {
 
 interface IStoreHeaderClientProps {
   collectionNavItems: IStoreCollectionNavItem[];
-  initialStoreBanner: IStoreBannerSettings | null;
-}
-
-interface IHeaderDeferredSurfacesProps {
-  autocompleteSuggestions: IProductSuggestion[];
-  collectionNavItems: IStoreCollectionNavItem[];
-  hasCartDrawerMounted: boolean;
-  hasMobileMenuMounted: boolean;
-  hasMobileSearchMounted: boolean;
-  hasWishlistDrawerMounted: boolean;
-  isAutocompleteError: boolean;
-  isAutocompletePending: boolean;
-  isCartOpen: boolean;
-  isMenuOpen: boolean;
-  isSearchOpen: boolean;
-  isWishlistOpen: boolean;
-  onCartClose: () => void;
-  onMenuClose: () => void;
-  onMenuNavigate: () => void;
-  onNavigate: (href: string) => void;
-  onSearchQueryChange: (value: string) => void;
-  onSearchSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  onSuggestionSelect: (suggestion: IProductSuggestion) => void;
-  onWishlistClose: () => void;
-  searchQuery: string;
-  setSearchQuery: (searchQuery: string) => void;
 }
 
 function getDesktopNavItemClassName(isActive: boolean, isTrigger = false) {
@@ -197,68 +156,6 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
   );
 }
 
-function HeaderDeferredSurfaces(props: IHeaderDeferredSurfacesProps) {
-  return (
-    <>
-      {props.hasMobileSearchMounted ? (
-        <MobileNavOverlay
-          ariaLabel="Search PopBox Studio products"
-          initialFocusId={MOBILE_SEARCH_INPUT_ID}
-          isOpen={props.isSearchOpen}
-          onClose={props.onMenuClose}
-          restoreFocusId={MOBILE_SEARCH_BUTTON_ID}
-        >
-          <MobileSearchPanel
-            autocompleteSuggestions={props.autocompleteSuggestions}
-            isAutocompleteError={props.isAutocompleteError}
-            isAutocompletePending={props.isAutocompletePending}
-            onNavigate={props.onNavigate}
-            onSearchQueryChange={props.onSearchQueryChange}
-            onSearchSubmit={props.onSearchSubmit}
-            onSuggestionSelect={props.onSuggestionSelect}
-            searchInputId={MOBILE_SEARCH_INPUT_ID}
-            searchQuery={props.searchQuery}
-            setSearchQuery={props.setSearchQuery}
-          />
-        </MobileNavOverlay>
-      ) : null}
-
-      {props.hasMobileMenuMounted ? (
-        <MobileNavOverlay
-          ariaLabel="Store navigation menu"
-          isOpen={props.isMenuOpen}
-          onClose={props.onMenuClose}
-          containerClassName="xl:hidden"
-          panelClassName="bottom-0"
-          restoreFocusId={MOBILE_MENU_BUTTON_ID}
-        >
-          <MobileMenuPanel
-            collectionNavItems={props.collectionNavItems}
-            isOpen={props.isMenuOpen}
-            onNavigate={props.onMenuNavigate}
-          />
-        </MobileNavOverlay>
-      ) : null}
-
-      {props.hasWishlistDrawerMounted ? (
-        <WishlistDrawer
-          isOpen={props.isWishlistOpen}
-          onClose={props.onWishlistClose}
-          triggerButtonId={WISHLIST_BUTTON_ID}
-        />
-      ) : null}
-
-      {props.hasCartDrawerMounted ? (
-        <CartDrawer
-          isOpen={props.isCartOpen}
-          onClose={props.onCartClose}
-          triggerButtonId={MOBILE_CART_BUTTON_ID}
-        />
-      ) : null}
-    </>
-  );
-}
-
 export function StoreHeaderClient(props: IStoreHeaderClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -271,13 +168,9 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
   const checkoutSuccessCleanupSessionId = useCheckoutUiStore((state) => state.checkoutSuccessCleanupSessionId);
 
   const [activeMobilePanel, setActiveMobilePanel] = useState<TMobilePanel>(null);
-  const [hasCartDrawerMounted, setHasCartDrawerMounted] = useState(false);
-  const [hasMobileMenuMounted, setHasMobileMenuMounted] = useState(false);
-  const [hasMobileSearchMounted, setHasMobileSearchMounted] = useState(false);
-  const [hasWishlistDrawerMounted, setHasWishlistDrawerMounted] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isFlyTargetHeaderVisible, setIsFlyTargetHeaderVisible] = useState(false);
-  const [hasStoreBanner, setHasStoreBanner] = useState(() => isVisibleStoreBanner(props.initialStoreBanner));
+  const [hasStoreBanner, setHasStoreBanner] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const flyTargetHeaderRevealTimeoutRef = useRef<number | null>(null);
@@ -387,14 +280,6 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
       setSearchQuery('');
     }
 
-    if (nextPanel === 'menu') {
-      setHasMobileMenuMounted(true);
-    }
-
-    if (nextPanel === 'search') {
-      setHasMobileSearchMounted(true);
-    }
-
     setActiveMobilePanel(nextPanel);
   };
 
@@ -424,7 +309,6 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
 
     setActiveMobilePanel(null);
     setIsWishlistOpen(false);
-    setHasCartDrawerMounted(true);
     setIsCartOpen(true);
   };
 
@@ -435,7 +319,6 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
 
     setActiveMobilePanel(null);
     setIsCartOpen(false);
-    setHasWishlistDrawerMounted(true);
     setIsWishlistOpen(true);
   };
 
@@ -456,10 +339,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
           'shadow-sm',
         )}
       >
-        <StorefrontBanner
-          initialBanner={props.initialStoreBanner}
-          onVisibilityChange={handleBannerVisibilityChange}
-        />
+        <StorefrontBanner onVisibilityChange={handleBannerVisibilityChange} />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 items-center gap-5 xl:gap-8">
@@ -546,30 +426,50 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
 
       <div className={cn(hasStoreBanner ? 'h-25 sm:h-26' : 'h-16')} aria-hidden="true" />
 
-      <HeaderDeferredSurfaces
-        autocompleteSuggestions={autocompleteSuggestions}
-        collectionNavItems={props.collectionNavItems}
-        hasCartDrawerMounted={hasCartDrawerMounted}
-        hasMobileMenuMounted={hasMobileMenuMounted}
-        hasMobileSearchMounted={hasMobileSearchMounted}
-        hasWishlistDrawerMounted={hasWishlistDrawerMounted}
-        isAutocompleteError={isAutocompleteError}
-        isAutocompletePending={isAutocompletePending}
-        isCartOpen={isCartOpen}
-        isMenuOpen={isMenuOpen}
-        isSearchOpen={isSearchOpen}
-        isWishlistOpen={isWishlistOpen}
-        onCartClose={() => setIsCartOpen(false)}
-        onMenuClose={closeMobilePanel}
-        onMenuNavigate={handleMobileMenuNavigate}
-        onNavigate={navigateWithMobileClose}
-        onSearchQueryChange={setSearchQuery}
-        onSearchSubmit={handleSearchSubmit}
-        onSuggestionSelect={handleSuggestionSelect}
-        onWishlistClose={() => setIsWishlistOpen(false)}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+      <MobileNavOverlay
+        ariaLabel="Search PopBox Studio products"
+        initialFocusId={MOBILE_SEARCH_INPUT_ID}
+        isOpen={isSearchOpen}
+        onClose={closeMobilePanel}
+        restoreFocusId={MOBILE_SEARCH_BUTTON_ID}
+      >
+        <MobileSearchPanel
+          autocompleteSuggestions={autocompleteSuggestions}
+          isAutocompleteError={isAutocompleteError}
+          isAutocompletePending={isAutocompletePending}
+          onNavigate={navigateWithMobileClose}
+          onSearchQueryChange={setSearchQuery}
+          onSearchSubmit={handleSearchSubmit}
+          onSuggestionSelect={handleSuggestionSelect}
+          searchInputId={MOBILE_SEARCH_INPUT_ID}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
+      </MobileNavOverlay>
+
+      <MobileNavOverlay
+        ariaLabel="Store navigation menu"
+        isOpen={isMenuOpen}
+        onClose={closeMobilePanel}
+        containerClassName="xl:hidden"
+        panelClassName="bottom-0"
+        restoreFocusId={MOBILE_MENU_BUTTON_ID}
+      >
+        <Suspense fallback={null}>
+          <MobileMenuPanel
+            collectionNavItems={props.collectionNavItems}
+            isOpen={isMenuOpen}
+            onNavigate={handleMobileMenuNavigate}
+          />
+        </Suspense>
+      </MobileNavOverlay>
+
+      <WishlistDrawer
+        isOpen={isWishlistOpen}
+        onClose={() => setIsWishlistOpen(false)}
+        triggerButtonId={WISHLIST_BUTTON_ID}
       />
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} triggerButtonId={MOBILE_CART_BUTTON_ID} />
     </>
   );
 }

@@ -28,7 +28,6 @@ interface IStoreBannerRowProps {
 }
 
 interface IStorefrontBannerProps {
-  initialBanner?: IStoreBannerSettings | null;
   onVisibilityChange?: (isVisible: boolean) => void;
 }
 
@@ -244,17 +243,16 @@ function StoreBannerCarousel(props: {
 }
 
 export function StorefrontBanner(props: IStorefrontBannerProps) {
-  const { initialBanner, onVisibilityChange } = props;
+  const { onVisibilityChange } = props;
   const { data: bannerResponse } = useCustomizeQuery<IStoreBannerSettings>({
     queryKey: PUBLIC_STORE_BANNER_QUERY_KEY,
     queryFn: QueryConfigs.fetchPublicStoreBanner,
-    enabled: initialBanner === undefined,
     retry: false,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
 
-  const banner = initialBanner !== undefined ? initialBanner : bannerResponse?.data.data ?? null;
+  const banner = bannerResponse?.data.data ?? null;
   const isVisible = isVisibleStoreBanner(banner);
 
   useEffect(() => {

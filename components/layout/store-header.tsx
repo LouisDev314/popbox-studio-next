@@ -1,7 +1,6 @@
-import { getPublicCollections, getPublicStoreBannerSettings } from '@/lib/api/public-storefront';
+import { getPublicCollections } from '@/lib/api/public-storefront';
 import { mapCollectionToNavItem } from '@/components/layout/store-navigation';
 import { StoreHeaderClient } from '@/components/layout/store-header-client';
-import type { IStoreBannerSettings } from '@/interfaces/settings';
 
 async function getActiveCollectionNavItems() {
   try {
@@ -22,24 +21,8 @@ async function getActiveCollectionNavItems() {
   }
 }
 
-async function getInitialStoreBanner(): Promise<IStoreBannerSettings | null> {
-  try {
-    return await getPublicStoreBannerSettings();
-  } catch {
-    return null;
-  }
-}
-
 export async function StoreHeader() {
-  const [collectionNavItems, initialStoreBanner] = await Promise.all([
-    getActiveCollectionNavItems(),
-    getInitialStoreBanner(),
-  ]);
+  const collectionNavItems = await getActiveCollectionNavItems();
 
-  return (
-    <StoreHeaderClient
-      collectionNavItems={collectionNavItems}
-      initialStoreBanner={initialStoreBanner}
-    />
-  );
+  return <StoreHeaderClient collectionNavItems={collectionNavItems} />;
 }
