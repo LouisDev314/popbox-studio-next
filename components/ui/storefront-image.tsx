@@ -17,6 +17,7 @@ interface IStorefrontImageProps {
   skeletonClassName?: string;
   src?: string | null;
   priority?: boolean;
+  loading?: 'eager' | 'lazy' | undefined;
 }
 
 function buildFallbackLabel(label: string) {
@@ -91,6 +92,7 @@ export function StorefrontImage(props: IStorefrontImageProps) {
 
             setHasError(true);
           }}
+          loading={props.loading}
           onLoad={(event) => {
             setIsLoaded(true);
             onImageLoad?.(event.currentTarget);
