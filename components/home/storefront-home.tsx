@@ -1,6 +1,6 @@
 import { StorefrontBottomCta } from '@/components/home/storefront-bottom-cta';
 import { HomeProductSection } from '@/components/home/home-product-section';
-import { StorefrontFeaturedCarouselClient } from '@/components/home/storefront-featured-carousel-client';
+import { StorefrontCarousel } from '@/components/home/storefront-carousel';
 import { StorefrontHero } from '@/components/home/storefront-hero';
 import { StorefrontKujiBanner } from '@/components/home/storefront-kuji-banner';
 import type { IHomepageData } from '@/interfaces/home';
@@ -16,7 +16,7 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
   return (
     <div className="w-full">
       {hasFeatured ? (
-        <StorefrontFeaturedCarouselClient featuredProducts={featured} />
+        <StorefrontCarousel featuredProducts={featured} />
       ) : (
         <StorefrontHero
           title="Discover Premium Collectibles"

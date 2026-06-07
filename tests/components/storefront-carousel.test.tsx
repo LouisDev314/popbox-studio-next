@@ -9,9 +9,6 @@ import { createProductCard } from '../fixtures';
 import { renderWithProviders } from '../test-utils';
 
 const emblaRef = vi.fn();
-const autoplayPlugin = {
-  stop: vi.fn(),
-};
 
 let mockScrollSnaps: number[] = [];
 let mockSelectedIndex = 0;
@@ -30,16 +27,12 @@ vi.mock('next/image', () => ({
   default: ({
     alt,
     fill: _fill,
-    priority: _priority,
+    priority,
     ...props
   }: ImgHTMLAttributes<HTMLImageElement> & {
     fill?: boolean;
     priority?: boolean;
-  }) => <img {...props} alt={alt ?? ''} />,
-}));
-
-vi.mock('embla-carousel-autoplay', () => ({
-  default: vi.fn(() => autoplayPlugin),
+  }) => <img {...props} alt={alt ?? ''} data-priority={priority ? 'true' : undefined} />,
 }));
 
 vi.mock('embla-carousel-react', () => ({
@@ -51,7 +44,6 @@ describe('StorefrontCarousel', () => {
     mockScrollSnaps = [];
     mockSelectedIndex = 0;
     emblaRef.mockClear();
-    autoplayPlugin.stop.mockClear();
     emblaApi.off.mockClear();
     emblaApi.on.mockClear();
     emblaApi.scrollNext.mockClear();
@@ -136,6 +128,30 @@ describe('StorefrontCarousel', () => {
     expect(emblaApi.scrollNext).toHaveBeenCalledTimes(1);
   });
 
+  it('priority-loads only the first carousel image', () => {
+    const products = [
+      createProductCard({
+        id: 'product-1',
+        name: 'Featured Release',
+        slug: 'featured-release',
+      }),
+      createProductCard({
+        id: 'product-2',
+        name: 'Second Release',
+        slug: 'second-release',
+      }),
+    ];
+
+    renderWithProviders(
+      <StorefrontCarousel featuredProducts={products} />,
+    );
+
+    expect(screen.getByAltText('Featured Release')).toHaveAttribute('data-priority', 'true');
+    expect(screen.getByAltText('Featured Release')).toHaveAttribute('loading', 'eager');
+    expect(screen.getByAltText('Second Release')).not.toHaveAttribute('data-priority');
+    expect(screen.getByAltText('Second Release')).toHaveAttribute('loading', 'lazy');
+  });
+
   it('uses the shared product cover image for kuji slides', () => {
     const products = [
       createProductCard({
@@ -164,6 +180,11 @@ describe('StorefrontCarousel', () => {
 
     renderWithProviders(
       <StorefrontCarousel featuredProducts={products} />,
+    );
+
+    expect(screen.getByAltText('Square product cover')).toHaveAttribute(
+      'src',
+      'https://example.com/products/kuji-cover.jpg',
     );
   });
 });

@@ -32,6 +32,7 @@ if (shouldEnableSentryBuild && !hasRequiredSentryBuildEnv) {
 
 const nextConfig: NextConfig = {
   htmlLimitedBots: /.*/,
+  allowedDevOrigins: ['127.0.0.1'],
   async rewrites() {
     return {
       beforeFiles: [

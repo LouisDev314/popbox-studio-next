@@ -8,6 +8,7 @@ import type { ICheckoutSuccess } from '@/interfaces/checkout';
 import type { IHomepageData } from '@/interfaces/home';
 import type { IFaqListResponse, IPublicFaqItem, IPublicLegalDocument, LegalDocumentType } from '@/interfaces/legal';
 import type { IGuestOrderDetail, IGuestTicketView } from '@/interfaces/order';
+import type { IStoreBannerSettings } from '@/interfaces/settings';
 import type {
   IProduct,
   IProductListPage,
@@ -122,6 +123,10 @@ export const getPublicLegalDocument = cache(
 
 export const getPublicShippingSettings = cache(async (): Promise<IShippingSettings> => {
   return readPublicData<IShippingSettings>('/api/v1/settings/shipping');
+});
+
+export const getPublicStoreBannerSettings = cache(async (): Promise<IStoreBannerSettings> => {
+  return readPublicData<IStoreBannerSettings>('/api/v1/settings/store-banner');
 });
 
 export const getPublicFaqItems = cache(async (): Promise<IPublicFaqItem[]> => {

@@ -13,7 +13,6 @@ export function StorefrontKujiBanner() {
             <StorefrontImage
               src="/what-is-ichiban-kuji.webp"
               alt="What is Ichiban Kuji banner"
-              priority
               className="h-full w-full"
               imageClassName="transition-transform duration-500 ease-out group-hover:scale-[1.01]"
               sizes="(min-width: 1024px) 896px, (min-width: 640px) 92vw, 100vw"

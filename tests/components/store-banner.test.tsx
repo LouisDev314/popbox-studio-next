@@ -115,6 +115,23 @@ describe('StorefrontBanner', () => {
     expect(screen.queryByRole('button', { name: /Previous announcement/i })).not.toBeInTheDocument();
   });
 
+  it('uses initial banner data without refetching on mount', () => {
+    const fetchSpy = vi.spyOn(QueryConfigs, 'fetchPublicStoreBanner');
+
+    renderWithProviders(
+      <StorefrontBanner
+        initialBanner={createStoreBannerSettings({
+          items: [
+            createStoreBannerItem({ message: 'Server rendered banner.' }),
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText('Server rendered banner.')).toBeInTheDocument();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('renders multiple active items as Embla slides with prev and next controls', async () => {
     vi.spyOn(QueryConfigs, 'fetchPublicStoreBanner').mockResolvedValue(
       createApiResponse(createStoreBannerSettings({

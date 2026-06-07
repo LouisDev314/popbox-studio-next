@@ -1,28 +1,13 @@
-'use client';
-
-import useEmblaCarousel from 'embla-carousel-react';
-import Autoplay from 'embla-carousel-autoplay';
-import type { EmblaCarouselType } from 'embla-carousel';
+import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { StorefrontImage } from '@/components/ui/storefront-image';
+import { StorefrontCarouselClient } from '@/components/home/storefront-carousel-client';
 import { cn, formatPrice } from '@/lib/utils';
-import { IProductCard } from '@/interfaces/product';
+import type { IProductCard } from '@/interfaces/product';
+import { getProductCoverImage } from '@/utils/product-images';
 
 interface IStorefrontCarouselProps {
   featuredProducts: IProductCard[];
   className?: string;
-  onStateChange?: (state: IStorefrontCarouselState) => void;
-}
-
-export interface IStorefrontCarouselState {
-  selectedIndex: number;
-  scrollSnaps: number[];
-  scrollTo: (index: number) => void;
-  scrollPrev: () => void;
-  scrollNext: () => void;
 }
 
 function getCarouselEyebrowLabel(product: IProductCard) {
@@ -33,215 +18,84 @@ function getCarouselEyebrowLabel(product: IProductCard) {
   return product.collections[0]?.name ?? 'PopBox Studio Pick';
 }
 
-function areNumberArraysEqual(first: number[], second: number[]) {
-  if (first.length !== second.length) {
-    return false;
+function buildFallbackLabel(label: string) {
+  const trimmedLabel = label.trim();
+
+  if (!trimmedLabel) {
+    return 'PB';
   }
 
-  return first.every((value, index) => value === second[index]);
+  const words = trimmedLabel.split(/\s+/).slice(0, 2);
+  const initials = words.map((word) => word[0]?.toUpperCase() ?? '').join('');
+
+  return initials || trimmedLabel.slice(0, 2).toUpperCase();
 }
 
 export function StorefrontCarousel(props: IStorefrontCarouselProps) {
-  const { featuredProducts, className, onStateChange } = props;
-
-  const autoplay = useRef(
-    Autoplay({
-      delay: 3000,
-      stopOnInteraction: true,
-    }),
-  );
-  const lastReportedState = useRef<IStorefrontCarouselState | null>(null);
-  const emblaOptions = useMemo(
-    () => ({
-      loop: true,
-      align: 'start' as const,
-      slidesToScroll: 1,
-    }),
-    [],
-  );
-  const emblaPlugins = useMemo(() => [autoplay.current], []);
-
-  const [emblaRef, emblaApi] = useEmblaCarousel(emblaOptions, emblaPlugins);
-
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [scrollSnaps, setScrollSnaps] = useState<number[]>([]);
-
-  const scrollPrev = useCallback(() => {
-    autoplay.current.stop();
-    emblaApi?.scrollPrev();
-  }, [emblaApi]);
-
-  const scrollNext = useCallback(() => {
-    autoplay.current.stop();
-    emblaApi?.scrollNext();
-  }, [emblaApi]);
-
-  const scrollTo = useCallback(
-    (index: number) => {
-      autoplay.current.stop();
-      emblaApi?.scrollTo(index);
-    },
-    [emblaApi],
-  );
-
-  const syncScrollSnaps = useCallback((api: EmblaCarouselType) => {
-    const nextScrollSnaps = api.scrollSnapList();
-
-    setScrollSnaps((currentScrollSnaps) =>
-      areNumberArraysEqual(currentScrollSnaps, nextScrollSnaps)
-        ? currentScrollSnaps
-        : nextScrollSnaps,
-    );
-  }, []);
-
-  const syncSelectedIndex = useCallback((api: EmblaCarouselType) => {
-    const nextSelectedIndex = api.selectedScrollSnap();
-
-    setSelectedIndex((currentSelectedIndex) =>
-      currentSelectedIndex === nextSelectedIndex ? currentSelectedIndex : nextSelectedIndex,
-    );
-  }, []);
-
-  useEffect(() => {
-    if (!emblaApi) {
-      return;
-    }
-
-    syncScrollSnaps(emblaApi);
-    syncSelectedIndex(emblaApi);
-
-    emblaApi.on('reInit', syncScrollSnaps);
-    emblaApi.on('reInit', syncSelectedIndex);
-    emblaApi.on('select', syncSelectedIndex);
-
-    return () => {
-      emblaApi.off('reInit', syncScrollSnaps);
-      emblaApi.off('reInit', syncSelectedIndex);
-      emblaApi.off('select', syncSelectedIndex);
-    };
-  }, [emblaApi, syncScrollSnaps, syncSelectedIndex]);
-
-  useEffect(() => {
-    if (!onStateChange) {
-      return;
-    }
-
-    const nextState = {
-      selectedIndex,
-      scrollSnaps,
-      scrollTo,
-      scrollPrev,
-      scrollNext,
-    };
-    const previousState = lastReportedState.current;
-
-    if (
-      previousState &&
-      previousState.selectedIndex === nextState.selectedIndex &&
-      previousState.scrollTo === nextState.scrollTo &&
-      previousState.scrollPrev === nextState.scrollPrev &&
-      previousState.scrollNext === nextState.scrollNext &&
-      areNumberArraysEqual(previousState.scrollSnaps, nextState.scrollSnaps)
-    ) {
-      return;
-    }
-
-    lastReportedState.current = nextState;
-    onStateChange(nextState);
-  }, [onStateChange, scrollNext, scrollPrev, scrollSnaps, scrollTo, selectedIndex]);
+  const { featuredProducts } = props;
 
   if (!featuredProducts || featuredProducts.length === 0) {
     return null;
   }
 
   return (
-    <section
-      className={cn(
-        'group relative overflow-hidden bg-background',
-        className,
-      )}
-    >
-      <div className="w-full overflow-hidden" ref={emblaRef}>
-        <div className="flex touch-pan-y">
-          {featuredProducts.map((product, index) => {
-            return (
-              <div
-                key={product.id}
-                className="relative min-w-0 flex-[0_0_100%]"
+    <StorefrontCarouselClient className={props.className} slideCount={featuredProducts.length}>
+      {featuredProducts.map((product, index) => {
+        const image = getProductCoverImage(product);
+
+        return (
+          <div
+            key={product.id}
+            className="relative min-w-0 flex-[0_0_100%]"
+          >
+            <div className="relative lg:flex lg:w-full lg:justify-center">
+              <Link
+                href={`/products/${product.slug}`}
+                className="group/slide relative block w-full"
               >
-                <div className="relative lg:flex lg:w-full lg:justify-center">
-                  <Link
-                    href={`/products/${product.slug}`}
-                    className="group/slide relative block w-full"
-                    onClick={() => autoplay.current.stop()}
+                <div className="relative aspect-[1.85/1] w-full overflow-hidden sm:aspect-[2/1]">
+                  <div
+                    className={cn(
+                      'absolute inset-0 h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(239,158,191,0.2),transparent_34%),linear-gradient(160deg,#1c1016_0%,#32202a_54%,#130d10_100%)] lg:bg-none',
+                      !image?.url && 'flex items-center justify-center',
+                    )}
                   >
-                    <div className="relative aspect-[1.85/1] w-full overflow-hidden sm:aspect-[2/1]">
-                      <div className="absolute inset-0">
-                        <StorefrontImage
-                          src={product.images?.[0]?.url}
-                          alt={product.images?.[0]?.altText ?? product.name}
-                          label={product.name}
-                          priority={index === 0}
-                          sizes="100vw"
-                          className="h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(239,158,191,0.2),transparent_34%),linear-gradient(160deg,#1c1016_0%,#32202a_54%,#130d10_100%)] lg:bg-none"
-                          imageClassName="object-cover object-center transition-transform duration-700 ease-out group-hover/slide:scale-[1.02]"
-                          fallbackClassName="border-white/15 bg-white/10 text-white/82 shadow-none backdrop-blur-sm"
-                        />
+                    {image?.url ? (
+                      <Image
+                        src={image.url}
+                        alt={image.altText ?? product.name}
+                        fill
+                        loading={index === 0 ? 'eager' : 'lazy'}
+                        priority={index === 0}
+                        sizes="100vw"
+                        className="object-cover object-center transition-transform duration-700 ease-out group-hover/slide:scale-[1.02]"
+                      />
+                    ) : (
+                      <div className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold tracking-[0.24em] text-white/82 uppercase shadow-none backdrop-blur-sm">
+                        {buildFallbackLabel(product.name)}
                       </div>
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/28 via-45% to-transparent" />
-                      <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-16 text-white sm:px-7 sm:pb-6 sm:pt-20 lg:px-10 lg:pb-9 lg:pt-20 xl:px-12 xl:pb-10">
-                        <div className="min-w-0 xl:max-w-2xl">
-                          <p className="mb-2 text-[10px] font-semibold tracking-[0.28em] text-white/72 uppercase sm:mb-3 sm:text-xs">
-                            {getCarouselEyebrowLabel(product)}
-                          </p>
-                          <p className="line-clamp-2 text-2xl leading-[0.98] font-semibold tracking-[-0.03em] sm:text-3xl md:text-4xl">
-                            {product.name}
-                          </p>
-                          <p className="mt-1.5 text-sm font-medium text-white/78 sm:mt-2 sm:text-base">
-                            {formatPrice(product.priceCents, product.currency)}
-                          </p>
-                        </div>
-                      </div>
-
+                    )}
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/28 via-45% to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-16 text-white sm:px-7 sm:pb-6 sm:pt-20 lg:px-10 lg:pb-9 lg:pt-20 xl:px-12 xl:pb-10">
+                    <div className="min-w-0 xl:max-w-2xl">
+                      <p className="mb-2 text-[10px] font-semibold tracking-[0.28em] text-white/72 uppercase sm:mb-3 sm:text-xs">
+                        {getCarouselEyebrowLabel(product)}
+                      </p>
+                      <p className="line-clamp-2 text-2xl leading-[0.98] font-semibold tracking-[-0.03em] sm:text-3xl md:text-4xl">
+                        {product.name}
+                      </p>
+                      <p className="mt-1.5 text-sm font-medium text-white/78 sm:mt-2 sm:text-base">
+                        {formatPrice(product.priceCents, product.currency)}
+                      </p>
                     </div>
-                  </Link>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-12 z-20 hidden justify-center xl:flex"
-      >
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/12 text-white/85 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.8)] backdrop-blur-sm motion-safe:animate-bounce motion-reduce:animate-none">
-          <ChevronDown className="h-5 w-5" />
-        </div>
-      </div>
-
-      <div className="pointer-events-none absolute inset-y-0 left-4 right-4 z-20 hidden items-center justify-between opacity-0 transition-opacity duration-300 group-hover:opacity-100 md:flex lg:left-0 lg:right-0 lg:w-full lg:px-10">
-        <Button
-          variant="outline"
-          size="icon"
-          className="pointer-events-auto h-12 w-12 rounded-full border-border bg-white text-foreground shadow-sm transition-transform hover:scale-105 hover:bg-muted"
-          onClick={scrollPrev}
-          aria-label="Previous slide"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="pointer-events-auto h-12 w-12 rounded-full border-border bg-white text-foreground shadow-sm transition-transform hover:scale-105 hover:bg-muted"
-          onClick={scrollNext}
-          aria-label="Next slide"
-        >
-          <ChevronRight className="h-6 w-6" />
-        </Button>
-      </div>
-
-    </section>
+              </Link>
+            </div>
+          </div>
+        );
+      })}
+    </StorefrontCarouselClient>
   );
 }

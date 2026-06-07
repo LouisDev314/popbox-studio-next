@@ -7,7 +7,7 @@ import { formatPrice } from '@/lib/utils';
 import { getProductCoverImage, getSortedProductImages } from '@/utils/product-images';
 import { getProductInventoryState } from '@/utils/product-stock';
 
-const DENSE_PRODUCT_IMAGE_SIZES = '(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw';
+const DENSE_PRODUCT_IMAGE_SIZES = '(max-width: 639px) calc((100vw - 2rem) / 3), (max-width: 767px) calc((100vw - 3rem) / 3), (max-width: 1279px) calc((100vw - 4.5rem) / 4), calc((100vw - 6rem) / 5)';
 
 interface IProductTileDenseProps {
   product: IProductCard;
