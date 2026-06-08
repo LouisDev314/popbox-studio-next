@@ -44,7 +44,7 @@ export function StorefrontImage(props: IStorefrontImageProps) {
     setCurrentSrc(props.src ?? null);
     setIsLoaded(false);
     setHasError(false);
-  }, [props.src, props.fallbackSrc]);
+  }, [props.src, props.fallbackSrc, props.priority]);
 
   useEffect(() => {
     const image = imageRef.current;

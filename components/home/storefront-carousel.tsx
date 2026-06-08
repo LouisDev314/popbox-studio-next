@@ -163,7 +163,9 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
     >
       <div className="w-full overflow-hidden" ref={emblaRef}>
         <div className="flex touch-pan-y">
-          {featuredProducts.map((product) => {
+          {featuredProducts.map((product, index) => {
+            const isFirstSlide = index === 0;
+
             return (
               <div
                 key={product.id}
@@ -181,8 +183,8 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
                           src={product.images?.[0]?.url}
                           alt={product.images?.[0]?.altText ?? product.name}
                           label={product.name}
-                          priority
-                          loading='eager'
+                          priority={isFirstSlide}
+                          loading={isFirstSlide ? 'eager' : undefined}
                           sizes="100vw"
                           className="h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(239,158,191,0.2),transparent_34%),linear-gradient(160deg,#1c1016_0%,#32202a_54%,#130d10_100%)] lg:bg-none"
                           imageClassName="object-cover object-center transition-transform duration-700 ease-out group-hover/slide:scale-[1.02]"
