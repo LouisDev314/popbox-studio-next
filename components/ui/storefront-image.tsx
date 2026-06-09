@@ -10,9 +10,11 @@ interface IStorefrontImageProps {
   className?: string;
   fallbackClassName?: string;
   fallbackSrc?: string | null;
+  fetchPriority?: 'high' | 'low' | 'auto';
   imageClassName?: string;
   label?: string;
   onImageLoad?: (image: HTMLImageElement) => void;
+  revealImmediately?: boolean;
   sizes: string;
   skeletonClassName?: string;
   src?: string | null;
@@ -65,7 +67,7 @@ export function StorefrontImage(props: IStorefrontImageProps) {
   if (currentSrc && !hasError) {
     return (
       <div className={cn('relative h-full w-full', props.className)}>
-        {!isLoaded ? (
+        {!props.revealImmediately && !isLoaded ? (
           <Skeleton
             aria-hidden="true"
             data-testid="storefront-image-skeleton"
@@ -79,10 +81,13 @@ export function StorefrontImage(props: IStorefrontImageProps) {
           fill
           sizes={props.sizes}
           className={cn(
-            'object-cover transition-opacity duration-200',
-            isLoaded ? 'opacity-100' : 'opacity-0',
+            'object-cover',
+            props.revealImmediately
+              ? 'opacity-100'
+              : ['transition-opacity duration-200', isLoaded ? 'opacity-100' : 'opacity-0'],
             props.imageClassName,
           )}
+          fetchPriority={props.fetchPriority}
           onError={() => {
             if (props.fallbackSrc && currentSrc !== props.fallbackSrc) {
               setCurrentSrc(props.fallbackSrc);

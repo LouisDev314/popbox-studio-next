@@ -98,6 +98,42 @@ describe('StorefrontCarousel', () => {
     expect(sharedControls?.className).not.toContain('lg:max-w-6xl');
   });
 
+  it('reveals only the first slide immediately and requests the capped responsive image size', () => {
+    const products = [
+      createProductCard({
+        id: 'product-1',
+        name: 'Featured Release',
+        slug: 'featured-release',
+      }),
+      createProductCard({
+        id: 'product-2',
+        name: 'Second Release',
+        slug: 'second-release',
+      }),
+    ];
+
+    renderWithProviders(
+      <StorefrontCarousel featuredProducts={products} />,
+    );
+
+    const firstImage = screen.getByAltText('Featured Release');
+    const secondImage = screen.getByAltText('Second Release');
+    const carouselSizes = '(max-width: 639px) 412px, (max-width: 1280px) 100vw, 1280px';
+
+    expect(firstImage).toHaveAttribute('loading', 'eager');
+    expect(firstImage).toHaveAttribute('fetchpriority', 'high');
+    expect(firstImage).toHaveAttribute('sizes', carouselSizes);
+    expect(firstImage).toHaveClass('opacity-100');
+    expect(firstImage).not.toHaveClass('transition-opacity', 'opacity-0');
+
+    expect(secondImage).not.toHaveAttribute('loading', 'eager');
+    expect(secondImage).not.toHaveAttribute('fetchpriority', 'high');
+    expect(secondImage).toHaveAttribute('sizes', carouselSizes);
+    expect(secondImage).toHaveClass('opacity-0');
+    expect(secondImage.parentElement?.querySelector('[data-testid="storefront-image-skeleton"]'))
+      .toBeInTheDocument();
+  });
+
   it('keeps arrows and dots wired through the featured carousel client', async () => {
     mockScrollSnaps = [0, 1];
     mockSelectedIndex = 1;

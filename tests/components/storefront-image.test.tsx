@@ -48,6 +48,21 @@ describe('StorefrontImage', () => {
     expect(image).toHaveClass('opacity-100');
   });
 
+  it('renders immediately without a skeleton or opacity gate when requested', () => {
+    render(
+      <StorefrontImage
+        src="https://example.com/products/hero.jpg"
+        alt="Hero"
+        sizes="100vw"
+        revealImmediately
+      />,
+    );
+
+    expect(screen.queryByTestId('storefront-image-skeleton')).not.toBeInTheDocument();
+    expect(screen.getByAltText('Hero')).toHaveClass('opacity-100');
+    expect(screen.getByAltText('Hero')).not.toHaveClass('transition-opacity', 'opacity-0');
+  });
+
   it('shows the skeleton again when the image source changes', () => {
     const { rerender } = render(
       <StorefrontImage
