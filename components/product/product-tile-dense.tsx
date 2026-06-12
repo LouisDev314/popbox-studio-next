@@ -38,6 +38,8 @@ export function ProductTileDense(props: IProductTileDenseProps) {
             alt="Kuji"
             width={40}
             height={40}
+            loading="lazy"
+            decoding="async"
             className="absolute left-2 top-2 z-10 h-5 sm:h-7 w-auto"
           />
         )}
