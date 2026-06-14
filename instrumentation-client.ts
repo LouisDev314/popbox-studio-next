@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import {
+  filterAndSanitizeSentryEvent,
   getClientSentryDsn,
   sanitizeBreadcrumb,
   sanitizeSentryEvent,
@@ -12,7 +13,7 @@ Sentry.init({
   enabled: sentryEnabled,
   tracesSampleRate: sentryTracesSampleRate,
   sendDefaultPii: false,
-  beforeSend: sanitizeSentryEvent,
+  beforeSend: filterAndSanitizeSentryEvent,
   beforeSendTransaction: sanitizeSentryEvent,
   beforeBreadcrumb: sanitizeBreadcrumb,
 });

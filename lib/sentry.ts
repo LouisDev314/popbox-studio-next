@@ -1,6 +1,7 @@
 import type { Breadcrumb, Event } from '@sentry/nextjs';
 
 const REDACTED_VALUE = '[REDACTED]';
+const IGNORED_ERROR_MESSAGE = 'Non-Error promise rejection captured with value: Object Not Found Matching Id:5';
 
 const SENSITIVE_QUERY_KEYS = new Set(['token', 'session_id', 'checkout_session_id']);
 const SENSITIVE_HEADER_KEYS = new Set(['authorization', 'cookie', 'set-cookie']);
@@ -15,6 +16,17 @@ export function getClientSentryDsn(): string | undefined {
 
 export function getServerSentryDsn(): string | undefined {
   return process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
+}
+
+export function filterAndSanitizeSentryEvent<T extends Event>(event: T): T | null {
+  const exceptionValues = event.exception?.values;
+  const matchesIgnoredException = exceptionValues?.some((exception) => exception.value === IGNORED_ERROR_MESSAGE);
+
+  if (event.message === IGNORED_ERROR_MESSAGE || matchesIgnoredException) {
+    return null;
+  }
+
+  return sanitizeSentryEvent(event);
 }
 
 export function sanitizeSentryEvent<T extends Event>(event: T): T {
