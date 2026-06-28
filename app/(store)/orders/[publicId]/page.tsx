@@ -4,7 +4,6 @@ import { GuestOrderDetail } from './guest-order-detail';
 import {
   getGuestOrderPath,
   getGuestAccessPath,
-  getGuestTokenEntryPath,
   normalizeDynamicSegment,
   normalizeSearchValue,
 } from './guest-order-routing';
@@ -44,8 +43,8 @@ export default async function GuestOrderPage(props: GuestOrderPageProps) {
     return <InvalidOrderLinkState />;
   }
 
-  if (token && handoff === 'failed') {
-    return <GuestAccessFailedState retryHref={getGuestTokenEntryPath(publicId, 'order', token)} />;
+  if (handoff === 'failed') {
+    return <GuestAccessFailedState />;
   }
 
   if (token) {

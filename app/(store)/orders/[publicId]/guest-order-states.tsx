@@ -41,16 +41,16 @@ export function GuestTicketsNotFoundState() {
   );
 }
 
-export function GuestAccessFailedState(props: { retryHref: string }) {
+export function GuestAccessFailedState() {
   return (
     <div className="container mx-auto px-4 py-32 text-center flex flex-col items-center">
       <h1 className="text-3xl font-bold text-destructive mb-4">Access Link Unavailable</h1>
       <p className="text-muted-foreground mb-8 max-w-lg">
-        We couldn&apos;t verify this guest access link right now. Please try again.
+        We couldn&apos;t verify this guest access link right now. Please reopen the link from your email or contact support.
       </p>
       <div className="flex gap-3">
         <Button asChild className="rounded-xl">
-          <Link href={props.retryHref}>Try Again</Link>
+          <Link href="/contact">Contact Support</Link>
         </Button>
         <Button asChild variant="outline" className="rounded-xl">
           <Link href="/">Return to Home</Link>

@@ -45,6 +45,11 @@ vi.mock('@/lib/api/public-storefront', () => ({
     createdAt: '2026-04-01T10:00:00.000Z',
     updatedAt: '2026-04-01T10:00:00.000Z',
   })),
+  getPublicShippingSettings: vi.fn(async () => ({
+    currency: 'CAD',
+    flatShippingCents: 1200,
+    freeShippingThresholdCents: 10000,
+  })),
   isPublicApiNotFoundError: vi.fn(() => false),
 }));
 
@@ -88,27 +93,35 @@ describe('ProductDetailPage', () => {
 
     expect(jsonLdScript).not.toBeNull();
 
-    const jsonLd = JSON.parse(jsonLdScript?.textContent ?? '{}') as Record<string, unknown>;
-    const brand = jsonLd.brand as Record<string, unknown>;
-    const offers = jsonLd.offers as Record<string, unknown>;
+    const jsonLd = JSON.parse(jsonLdScript?.textContent ?? '[]') as Record<string, unknown>[];
+    const productJsonLd = jsonLd.find((entry) => entry['@type'] === 'Product') ?? {};
+    const breadcrumbJsonLd = jsonLd.find((entry) => entry['@type'] === 'BreadcrumbList') ?? {};
+    const offers = productJsonLd.offers as Record<string, unknown>;
     const seller = offers.seller as Record<string, unknown>;
+    const shippingDetails = offers.shippingDetails as Record<string, unknown>;
 
-    expect(jsonLd['@type']).toBe('Product');
-    expect(jsonLd.image).toEqual([
+    expect(productJsonLd['@type']).toBe('Product');
+    expect(productJsonLd.image).toEqual([
       'https://example.com/products/front.jpg',
       'https://example.com/products/figure.jpg',
     ]);
-    expect(brand).toEqual({
-      '@type': 'Brand',
-      name: 'PopBox Studio',
-    });
     expect(seller).toEqual({
       '@type': 'Organization',
       name: 'PopBox Studio',
     });
-    expect(jsonLd).not.toHaveProperty('review');
-    expect(jsonLd).not.toHaveProperty('aggregateRating');
-    expect(jsonLd).not.toHaveProperty('gtin');
-    expect(offers).not.toHaveProperty('shippingDetails');
+    expect(shippingDetails).toMatchObject({
+      '@type': 'OfferShippingDetails',
+      shippingDestination: {
+        '@type': 'DefinedRegion',
+        addressCountry: 'CA',
+      },
+    });
+    expect(breadcrumbJsonLd).toMatchObject({
+      '@type': 'BreadcrumbList',
+    });
+    expect(productJsonLd).not.toHaveProperty('brand');
+    expect(productJsonLd).not.toHaveProperty('review');
+    expect(productJsonLd).not.toHaveProperty('aggregateRating');
+    expect(productJsonLd).not.toHaveProperty('gtin');
   });
 });

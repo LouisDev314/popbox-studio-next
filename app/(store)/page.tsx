@@ -5,8 +5,8 @@ import { StorefrontHome } from '@/components/home/storefront-home';
 import { Button } from '@/components/ui/button';
 import { getPublicHomepageData } from '@/lib/api/public-storefront';
 import {
-  BRAND_NAME,
-  buildAbsoluteUrl,
+  buildOrganizationJsonLd,
+  buildWebsiteJsonLd,
   createPageMetadata,
   truncateMetaDescription,
 } from '@/lib/seo';
@@ -33,25 +33,17 @@ export default async function StoreRootPage() {
     homeData = null;
   }
 
-  const websiteJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: BRAND_NAME,
-    url: buildAbsoluteUrl('/'),
-    description: HOME_PAGE_DESCRIPTION,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: `${buildAbsoluteUrl('/search/results')}?q={search_term_string}`,
-      'query-input': 'required name=search_term_string',
-    },
-  };
+  const siteJsonLd = [
+    buildOrganizationJsonLd(),
+    buildWebsiteJsonLd(HOME_PAGE_DESCRIPTION),
+  ];
 
   if (!homeData) {
     return (
       <>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
         />
         <div className="container mx-auto flex min-h-[60vh] w-full items-center px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto w-2xl rounded-4xl border border-border/70 bg-card px-8 py-14 text-center shadow-sm">
@@ -75,7 +67,7 @@ export default async function StoreRootPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
       />
       <StorefrontHome homeData={homeData} />
     </>

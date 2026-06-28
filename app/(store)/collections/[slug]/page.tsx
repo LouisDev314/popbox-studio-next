@@ -15,6 +15,8 @@ import {
   storefrontProductSort,
 } from '@/lib/storefront-product-filters';
 import {
+  buildBreadcrumbListJsonLd,
+  buildProductItemListJsonLd,
   createPageMetadata,
   getCollectionListingSeoState,
   truncateMetaDescription,
@@ -73,6 +75,7 @@ export default async function CollectionSlugPage(props: CollectionSlugPageProps)
   const sort = parseProductSortParam(searchParams.sort);
   const selectedTags = parseTagSearchParam(searchParams.tag);
   const serializedTags = serializeTagSearchParam(selectedTags);
+  const seoState = getCollectionListingSeoState(params.slug, searchParams);
 
   const collections = await getPublicCollections();
   const collection = collections.find((item) => item.slug === params.slug && item.isActive);
@@ -106,18 +109,37 @@ export default async function CollectionSlugPage(props: CollectionSlugPageProps)
   const storefrontSort: storefrontProductSort = collection.slug === 'featured'
     ? sort ?? 'featured'
     : sort ?? 'newest';
+  const products = initialPage?.items ?? [];
+  const collectionJsonLd = seoState.shouldIndex && products.length > 0
+    ? [
+      buildBreadcrumbListJsonLd([
+        { name: 'Home', path: '/' },
+        { name: 'Collections', path: '/products' },
+        { name: collection.name, path: seoState.canonicalPath },
+      ]),
+      buildProductItemListJsonLd(products, seoState.canonicalPath),
+    ]
+    : null;
 
   return (
-    <ProductsPageClient
-      availableTags={availableTags}
-      basePath={`/collections/${collection.slug}`}
-      headingTitle={collection.name}
-      initialCollection={collection.slug}
-      initialCursor={cursor}
-      initialPage={initialPage}
-      initialSort={storefrontSort}
-      initialTags={selectedTags}
-      initialType={type}
-    />
+    <>
+      {collectionJsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
+        />
+      ) : null}
+      <ProductsPageClient
+        availableTags={availableTags}
+        basePath={`/collections/${collection.slug}`}
+        headingTitle={collection.name}
+        initialCollection={collection.slug}
+        initialCursor={cursor}
+        initialPage={initialPage}
+        initialSort={storefrontSort}
+        initialTags={selectedTags}
+        initialType={type}
+      />
+    </>
   );
 }

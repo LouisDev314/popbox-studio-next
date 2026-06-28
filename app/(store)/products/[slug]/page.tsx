@@ -12,16 +12,19 @@ import {
   ProductRecommendationsFallback,
 } from '@/components/product/product-recommendations';
 import { type IProduct } from '@/interfaces/product';
-import { getPublicProductBySlug, isPublicApiNotFoundError } from '@/lib/api/public-storefront';
+import {
+  getPublicProductBySlug,
+  getPublicShippingSettings,
+  isPublicApiNotFoundError,
+} from '@/lib/api/public-storefront';
 import { formatPrice } from '@/lib/utils';
 import {
-  buildAbsoluteUrl,
-  BRAND_NAME,
+  buildBreadcrumbListJsonLd,
+  buildProductJsonLd,
   createPageMetadata,
   truncateMetaDescription,
 } from '@/lib/seo';
-import { getProductInventoryState } from '@/utils/product-stock';
-import { getProductCoverImage, getSortedProductImages } from '@/utils/product-images';
+import { getProductCoverImage } from '@/utils/product-images';
 import {
   Accordion,
   AccordionContent,
@@ -53,24 +56,6 @@ function getProductMetadataDescription(product: IProduct) {
     `Shop ${product.name} from the ${collectionText}collection at PopBox Studio. Browse anime figures, gifts, and collectible merchandise online.`,
     165,
   );
-}
-
-function getProductOfferAvailability(product: IProduct) {
-  const inventoryState = getProductInventoryState(product);
-
-  if (!inventoryState.hasInventoryData) {
-    return undefined;
-  }
-
-  if (inventoryState.status === 'sold_out') {
-    return 'https://schema.org/OutOfStock';
-  }
-
-  if (inventoryState.status === 'low_stock') {
-    return 'https://schema.org/LimitedAvailability';
-  }
-
-  return 'https://schema.org/InStock';
 }
 
 export async function generateMetadata(
@@ -140,42 +125,18 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
 
   const productPath = `/products/${product.slug}`;
   const productDescription = product.description?.trim() || 'No description available.';
-  const productCategory = product.productType === 'kuji' ? 'Ichiban Kuji' : 'Anime merchandise';
-  const productOfferAvailability = getProductOfferAvailability(product);
-  const productImages = getSortedProductImages(product).map((image) => image.url).filter(Boolean);
-  const productJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    description: productDescription,
-    url: buildAbsoluteUrl(productPath),
-    image: productImages,
-    category: productCategory,
-    brand: {
-      '@type': 'Brand',
-      name: BRAND_NAME,
-    },
-    ...(product.sku
-      ? {
-        sku: product.sku,
-      }
-      : {}),
-    offers: {
-      '@type': 'Offer',
-      url: buildAbsoluteUrl(productPath),
-      price: (product.priceCents / 100).toFixed(2),
-      priceCurrency: product.currency,
-      seller: {
-        '@type': 'Organization',
-        name: BRAND_NAME,
-      },
-      ...(productOfferAvailability
-        ? {
-          availability: productOfferAvailability,
-        }
-        : {}),
-    },
-  };
+  const shippingSettings = await getPublicShippingSettings().catch(() => null);
+  const productJsonLd = [
+    buildBreadcrumbListJsonLd([
+      { name: 'Home', path: '/' },
+      { name: 'Products', path: '/products' },
+      { name: product.name, path: productPath },
+    ]),
+    buildProductJsonLd(product, {
+      canonicalPath: productPath,
+      shippingSettings,
+    }),
+  ];
 
   const accordionItems = [
     {

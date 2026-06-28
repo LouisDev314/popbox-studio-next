@@ -2,8 +2,8 @@ import axios from 'axios';
 import { NextRequest, NextResponse } from 'next/server';
 import getPublicEnvConfig from '@/configs/public-env';
 import {
+  getGuestAccessFailedPath,
   getGuestOrderPath,
-  getGuestTokenEntryPath,
   getGuestTicketsPath,
   normalizeGuestAccessNext,
 } from '../guest-order-routing';
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     nextTarget === 'tickets' ? getGuestTicketsPath(publicId) : getGuestOrderPath(publicId);
 
   const failurePath = token
-    ? getGuestTokenEntryPath(publicId, nextTarget, token, 'failed')
+    ? getGuestAccessFailedPath(publicId, nextTarget)
     : destinationPath;
 
   if (!token) {

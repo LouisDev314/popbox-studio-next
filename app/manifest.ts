@@ -10,9 +10,12 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'PopBox',
     description: DEFAULT_SITE_DESCRIPTION,
     start_url: '/',
+    scope: '/',
     display: 'standalone',
+    lang: 'en-CA',
     background_color: '#fffafc',
     theme_color: '#f7d6df',
+    categories: ['shopping', 'lifestyle'],
     icons: [
       {
         src: '/favicon.ico',

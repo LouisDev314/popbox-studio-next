@@ -9,6 +9,7 @@ import {
   BRAND_NAME,
   DEFAULT_OG_IMAGE_PATH,
   DEFAULT_SITE_DESCRIPTION,
+  getDefaultRobots,
 } from '@/lib/seo';
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export const metadata: Metadata = {
     template: '%s | PopBox Studio',
   },
   description: DEFAULT_SITE_DESCRIPTION,
+  applicationName: BRAND_NAME,
   manifest: '/manifest.webmanifest',
   icons: {
     icon: '/favicon.ico',
@@ -44,6 +46,7 @@ export const metadata: Metadata = {
     description: DEFAULT_SITE_DESCRIPTION,
     images: [DEFAULT_OG_IMAGE_PATH],
   },
+  robots: getDefaultRobots(),
 };
 
 interface IRootLayoutProps {

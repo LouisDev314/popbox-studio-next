@@ -12,6 +12,8 @@ import {
   storefrontProductSort,
 } from '@/lib/storefront-product-filters';
 import {
+  buildBreadcrumbListJsonLd,
+  buildProductItemListJsonLd,
   createPageMetadata,
   getProductsListingSeoState,
   truncateMetaDescription,
@@ -96,6 +98,7 @@ export default async function ProductsPage(props: ProductsPageProps) {
   const sort = parseProductSortParam(searchParams.sort);
   const storefrontSort: storefrontProductSort = sort ?? 'newest';
   const collection = rawCollection ? rawCollection : undefined;
+  const seoState = getProductsListingSeoState(searchParams);
   const selectedTags = parseTagSearchParam(searchParams.tag);
   const serializedTags = serializeTagSearchParam(selectedTags);
 
@@ -121,15 +124,39 @@ export default async function ProductsPage(props: ProductsPageProps) {
     availableTags = tagsResult.value;
   }
 
+  const products = initialPage?.items ?? [];
+  const listingLabel = type === 'kuji'
+    ? 'Ichiban Kuji'
+    : type === 'standard'
+      ? 'Anime merchandise'
+      : 'Products';
+  const listingJsonLd = seoState.shouldIndex && products.length > 0
+    ? [
+      buildBreadcrumbListJsonLd([
+        { name: 'Home', path: '/' },
+        { name: listingLabel, path: seoState.canonicalPath },
+      ]),
+      buildProductItemListJsonLd(products, seoState.canonicalPath),
+    ]
+    : null;
+
   return (
-    <ProductsPageClient
-      availableTags={availableTags}
-      initialCollection={collection}
-      initialCursor={cursor}
-      initialPage={initialPage}
-      initialSort={storefrontSort}
-      initialTags={selectedTags}
-      initialType={type}
-    />
+    <>
+      {listingJsonLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(listingJsonLd) }}
+        />
+      ) : null}
+      <ProductsPageClient
+        availableTags={availableTags}
+        initialCollection={collection}
+        initialCursor={cursor}
+        initialPage={initialPage}
+        initialSort={storefrontSort}
+        initialTags={selectedTags}
+        initialType={type}
+      />
+    </>
   );
 }

@@ -382,7 +382,7 @@ function OrderSidebar({
             <div>
               <span className="block text-xs text-muted-foreground">Tracking Number</span>
               {normalizedTrackingUrl ? (
-                <a href={normalizedTrackingUrl} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">{order.shipment.trackingNumber}</a>
+                <a href={normalizedTrackingUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">{order.shipment.trackingNumber}</a>
               ) : (
                 <span className="font-medium text-foreground">{order.shipment.trackingNumber}</span>
               )}

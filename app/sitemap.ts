@@ -9,6 +9,9 @@ export const revalidate = 3600;
 
 const PRODUCTS_SITEMAP_PAGE_LIMIT = 50;
 const SITEMAP_TIMEOUT_MS = 5000;
+type SitemapProduct = Awaited<ReturnType<typeof getPublicProductsPage>>['items'][number] & {
+  updatedAt?: string;
+};
 
 function createSitemapEntry(
   path: string,
@@ -100,6 +103,16 @@ function getStaticEntries(): MetadataRoute.Sitemap {
   ];
 }
 
+function parseLastModified(value: string | undefined): Date | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries = getStaticEntries();
   const entries = [...staticEntries];
@@ -126,7 +139,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       entries.push(entry);
     }
   } catch {
-    return entries;
+    // Keep the sitemap useful when one public catalog endpoint is temporarily unavailable.
   }
 
   let cursor: string | undefined;
@@ -135,9 +148,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     try {
       const page = await withTimeout(getPublicProductsPage({ cursor }), SITEMAP_TIMEOUT_MS);
 
-      for (const product of page.items) {
+      for (const product of page.items as SitemapProduct[]) {
+        if (product.status !== 'active') {
+          continue;
+        }
+
         const entry = createSitemapEntry(`/products/${product.slug}`, {
           changeFrequency: 'weekly',
+          lastModified: parseLastModified(product.updatedAt),
           priority: 0.8,
         });
 

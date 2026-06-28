@@ -41,19 +41,13 @@ export function getGuestAccessPath(
   return `/orders/${publicId}/access?${searchParams.toString()}`;
 }
 
-export function getGuestTokenEntryPath(
+export function getGuestAccessFailedPath(
   publicId: string,
   next: GuestAccessNext,
-  token: string,
-  handoff: 'failed' | undefined = undefined,
 ): string {
   const searchParams = new URLSearchParams({
-    token,
+    handoff: 'failed',
   });
-
-  if (handoff) {
-    searchParams.set('handoff', handoff);
-  }
 
   const basePath = next === 'tickets' ? getGuestTicketsPath(publicId) : getGuestOrderPath(publicId);
   return `${basePath}?${searchParams.toString()}`;

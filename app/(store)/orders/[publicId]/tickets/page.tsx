@@ -4,7 +4,6 @@ import OrderTicketsPageClient from './order-tickets-page-client';
 import {
   getGuestTicketsPath,
   getGuestAccessPath,
-  getGuestTokenEntryPath,
   normalizeDynamicSegment,
   normalizeSearchValue,
 } from '../guest-order-routing';
@@ -44,8 +43,8 @@ export default async function OrderTicketsPage(props: OrderTicketsPageProps) {
     return <InvalidOrderLinkState />;
   }
 
-  if (token && handoff === 'failed') {
-    return <GuestAccessFailedState retryHref={getGuestTokenEntryPath(publicId, 'tickets', token)} />;
+  if (handoff === 'failed') {
+    return <GuestAccessFailedState />;
   }
 
   if (token) {

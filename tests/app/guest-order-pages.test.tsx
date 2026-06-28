@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react';
+import axios from 'axios';
+import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import GuestOrderPage from '@/app/(store)/orders/[publicId]/page';
+import { GET as guestAccessGet } from '@/app/(store)/orders/[publicId]/access/route';
 import OrderTicketsPage from '@/app/(store)/orders/[publicId]/tickets/page';
 import {
   getPublicApiErrorStatus,
@@ -24,11 +27,55 @@ vi.mock('@/lib/api/public-storefront', () => ({
   getPublicGuestTickets: vi.fn(),
 }));
 
+vi.mock('axios', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('axios')>();
+
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      get: vi.fn(),
+    },
+  };
+});
+
 describe('guest order pages', () => {
   beforeEach(() => {
+    vi.mocked(axios.get).mockReset();
     vi.mocked(getPublicApiErrorStatus).mockReset();
     vi.mocked(getPublicGuestOrder).mockReset();
     vi.mocked(getPublicGuestTickets).mockReset();
+  });
+
+  it('redirects failed guest token handoffs to a clean url without leaking the token', async () => {
+    vi.mocked(axios.get).mockRejectedValue(new Error('upstream unavailable'));
+
+    const response = await guestAccessGet(
+      new NextRequest('http://localhost:3001/orders/pbs-ORDER/access?next=order&token=secret-token'),
+      {
+        params: Promise.resolve({ publicId: 'pbs-ORDER' }),
+      },
+    );
+
+    const location = response.headers.get('location');
+
+    expect(location).toBe('http://localhost:3001/orders/pbs-ORDER?handoff=failed');
+    expect(location).not.toContain('secret-token');
+    expect(location).not.toContain('token=');
+  });
+
+  it('shows failed guest access guidance without a tokenized retry link', async () => {
+    render(await GuestOrderPage({
+      params: Promise.resolve({ publicId: 'pbs-ORDER' }),
+      searchParams: Promise.resolve({
+        handoff: 'failed',
+      }),
+    }));
+
+    expect(screen.getByText('Access Link Unavailable')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Contact Support' })).toHaveAttribute('href', '/contact');
+    expect(screen.queryByRole('link', { name: 'Try Again' })).not.toBeInTheDocument();
+    expect(getPublicGuestOrder).not.toHaveBeenCalled();
   });
 
   it('keeps 404 guest order failures in the not found state', async () => {
