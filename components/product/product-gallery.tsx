@@ -34,7 +34,7 @@ export function ProductGallery(props: IProductGalleryProps) {
             alt="Kuji"
             width={40}
             height={40}
-            className="absolute left-4 top-4 z-10 h-10 w-auto"
+            className="absolute right-4 top-4 z-10 h-10 w-auto"
           />
         )}
         {images.length > 1 && (
