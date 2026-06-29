@@ -53,20 +53,16 @@ export function getPrizeStockLabel(count: number, total: number): string {
 
 export function getPrizeStockClasses(count: number, total: number): string {
   if (count <= 0) {
-    return 'border-border/80 bg-muted/80 text-foreground';
+    return 'border-border bg-muted text-foreground';
   }
 
   const percentage = total > 0 ? count / total : 0;
 
-  if (count === 1 || percentage <= 0.15) {
-    return 'border-primary/25 bg-accent/80 text-foreground';
-  }
-
   if (percentage <= 0.4 || count <= 5) {
-    return 'border-primary/20 bg-accent/60 text-foreground';
+    return 'border-primary bg-accent text-foreground';
   }
 
-  return 'border-border/70 bg-background text-muted-foreground';
+  return 'border-border bg-background text-muted-foreground';
 }
 
 export function getPrizeBadgeLabel(prizeCode: string): string {

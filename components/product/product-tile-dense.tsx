@@ -40,7 +40,7 @@ export function ProductTileDense(props: IProductTileDenseProps) {
             height={40}
             loading="lazy"
             decoding="async"
-            className="absolute left-2 top-2 z-10 h-5 sm:h-7 w-auto"
+            className="absolute right-2 top-2 z-10 h-5 sm:h-7 w-auto"
           />
         )}
 
