@@ -1,7 +1,8 @@
 import type { Breadcrumb, Event } from '@sentry/nextjs';
 
 const REDACTED_VALUE = '[REDACTED]';
-const IGNORED_ERROR_MESSAGE = 'Non-Error promise rejection captured with value: Object Not Found Matching Id:5';
+const BROWSER_EXTENSION_OBJECT_NOT_FOUND_PATTERN =
+  /^Non-Error promise rejection captured with value: Object Not Found Matching Id:\d+, MethodName:update, ParamCount:4$/;
 
 const SENSITIVE_QUERY_KEYS = new Set(['token', 'session_id', 'checkout_session_id']);
 const SENSITIVE_HEADER_KEYS = new Set(['authorization', 'cookie', 'set-cookie']);
@@ -20,9 +21,11 @@ export function getServerSentryDsn(): string | undefined {
 
 export function filterAndSanitizeSentryEvent<T extends Event>(event: T): T | null {
   const exceptionValues = event.exception?.values;
-  const matchesIgnoredException = exceptionValues?.some((exception) => exception.value === IGNORED_ERROR_MESSAGE);
+  const matchesIgnoredException = exceptionValues?.some((exception) =>
+    isBrowserExtensionObjectNotFoundRejection(exception.value),
+  );
 
-  if (event.message === IGNORED_ERROR_MESSAGE || matchesIgnoredException) {
+  if (isBrowserExtensionObjectNotFoundRejection(event.message) || matchesIgnoredException) {
     return null;
   }
 
@@ -196,4 +199,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isStringRecord(value: unknown): value is Record<string, string> {
   return isRecord(value) && Object.values(value).every((entry) => typeof entry === 'string');
+}
+
+function isBrowserExtensionObjectNotFoundRejection(value: unknown): value is string {
+  return typeof value === 'string' && BROWSER_EXTENSION_OBJECT_NOT_FOUND_PATTERN.test(value);
 }
