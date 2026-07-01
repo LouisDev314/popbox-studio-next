@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import manifest from '@/app/manifest';
 
 describe('manifest', () => {
-  it('uses production storefront metadata and only references existing icon assets', () => {
+  it('uses production storefront metadata and references the app icon', () => {
     const config = manifest();
 
     expect(config).toMatchObject({
@@ -16,11 +16,13 @@ describe('manifest', () => {
       theme_color: '#f7d6df',
       categories: ['shopping', 'lifestyle'],
     });
+
     expect(config.icons).toEqual([
       {
-        src: '/favicon.ico',
-        sizes: 'any',
-        type: 'image/x-icon',
+        src: '/icon.png',
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'any',
       },
     ]);
   });

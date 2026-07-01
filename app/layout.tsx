@@ -4,7 +4,7 @@ import './globals.css';
 import { AppProviders } from '@/components/app-providers';
 import { Analytics } from '@vercel/analytics/next';
 import getPublicEnvConfig from '@/configs/public-env';
-import { SpeedInsights } from '@vercel/speed-insights/next'
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import {
   BRAND_NAME,
   DEFAULT_OG_IMAGE_PATH,
@@ -21,10 +21,6 @@ export const metadata: Metadata = {
   description: DEFAULT_SITE_DESCRIPTION,
   applicationName: BRAND_NAME,
   manifest: '/manifest.webmanifest',
-  icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
-  },
   openGraph: {
     title: BRAND_NAME,
     description: DEFAULT_SITE_DESCRIPTION,
@@ -55,7 +51,7 @@ interface IRootLayoutProps {
 
 export default function RootLayout(props: Readonly<IRootLayoutProps>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en-CA" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col antialiased">
         <AppProviders>
           {props.children}

@@ -109,7 +109,7 @@ function SelectedFilterChips(props: ISelectedFilterChipsProps) {
             type="button"
             onClick={() => props.onTagToggle(tag.slug)}
             className={cn(
-              'inline-flex items-center gap-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60',
+              'inline-flex items-center gap-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 cursor-pointer',
               props.isDrawer
                 ? 'rounded-full bg-muted px-3 py-1.5 text-foreground hover:bg-muted/80'
                 : 'rounded-full border border-border/70 bg-background px-3.5 py-2 text-foreground hover:bg-accent',
