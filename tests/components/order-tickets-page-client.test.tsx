@@ -181,6 +181,25 @@ describe('OrderTicketsPageClient', () => {
     });
   });
 
+  it('loads only the first unrevealed ticket image eagerly for LCP', () => {
+    const firstTicket = createTicket({ id: 'ticket-1' });
+    const secondTicket = createTicket({ id: 'ticket-2' });
+    const { container } = renderWithProviders(
+      <OrderTicketsPageClient
+        initialViewData={createViewData({
+          unrevealed: [firstTicket, secondTicket],
+        })}
+        publicId="pbs-TICKETS"
+      />,
+    );
+
+    const ticketImages = Array.from(container.querySelectorAll('img[src="/kuji-ticket.webp"]'));
+    const eagerTicketImages = ticketImages.filter((image) => image.getAttribute('loading') === 'eager');
+
+    expect(eagerTicketImages).toHaveLength(1);
+    expect(eagerTicketImages[0]).toHaveAttribute('fetchpriority', 'high');
+  });
+
   it('keeps leaked prize data inside its grouped product section and still starts the reveal flow', async () => {
     const user = userEvent.setup();
     const revealTicket = vi.mocked(MutationConfigs.revealTicket);

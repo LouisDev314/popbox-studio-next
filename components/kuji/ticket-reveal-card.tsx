@@ -12,6 +12,7 @@ interface ITicketRevealCardProps {
   ticket: IOrderTicket;
   onReveal: (id: string, focusTarget?: HTMLElement | null) => void;
   isRevealing: boolean;
+  priority?: boolean;
 }
 
 const TICKET_SHAPE_CLASS = '[clip-path:polygon(4.25%_0,95.75%_0,100%_13.5%,100%_86.5%,95.75%_100%,4.25%_100%,0_86.5%,0_13.5%)]';
@@ -42,6 +43,7 @@ function TicketFace(props: {
   ariaLabel?: string;
   disabled?: boolean;
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  priority?: boolean;
 }) {
   const [isTicketImageLoaded, setIsTicketImageLoaded] = useState(false);
   const [hasTicketImageError, setHasTicketImageError] = useState(false);
@@ -77,7 +79,9 @@ function TicketFace(props: {
           src="/kuji-ticket.webp"
           alt=""
           fill
-          priority={false}
+          fetchPriority={props.priority ? 'high' : undefined}
+          loading={props.priority ? 'eager' : undefined}
+          priority={props.priority ?? false}
           sizes="(min-width: 1280px) 36rem, (min-width: 640px) 42rem, 100vw"
           className={cn(
             'object-cover object-center transition-all duration-700 ease-out group-data-[ticket-state=unrevealed]:saturate-[0.94] group-hover:scale-[1.015]',
@@ -181,6 +185,7 @@ export function TicketRevealCard(props: ITicketRevealCardProps) {
             ariaLabel={`Reveal ticket for ${props.ticket.kujiProduct.name}`}
             disabled={props.isRevealing}
             onClick={(event) => props.onReveal(props.ticket.id, event.currentTarget)}
+            priority={props.priority}
           >
             <TicketMeta
               eyebrow="Ichiban Kuji"

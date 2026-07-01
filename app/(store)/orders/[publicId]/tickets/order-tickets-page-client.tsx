@@ -536,6 +536,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
   const groupedSections = buildGroupedTicketSections(viewData);
   const renderedSummaryTickets = summaryTickets.length > 0 ? summaryTickets : buildSummaryTickets(revealed);
   const allRevealed = unrevealed.length === 0;
+  const priorityTicketId = unrevealed[0]?.id ?? null;
 
   return (
     <>
@@ -636,6 +637,7 @@ export default function OrderTicketsPageClient(props: IOrderTicketsPageClientPro
                           ticket={ticket}
                           onReveal={handleReveal}
                           isRevealing={activeTicketId === ticket.id && phase === 'playingRevealVideo'}
+                          priority={ticket.id === priorityTicketId}
                         />
                       </div>
                     ))}
