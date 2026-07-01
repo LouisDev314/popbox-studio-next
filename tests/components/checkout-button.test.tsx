@@ -19,6 +19,7 @@ vi.mock('@/utils/checkout', async () => {
 import { CheckoutButton } from '@/components/cart/checkout-button';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
+import { useCheckoutRestoreGuard } from '@/hooks/use-checkout-restore-guard';
 import MutationConfigs from '@/configs/api/mutation-config';
 import { redirectToCheckout } from '@/utils/checkout';
 import { server } from '../msw/server';
@@ -30,6 +31,23 @@ import {
 import { renderWithProviders } from '../test-utils';
 
 const CHECKOUT_URL = /\/api\/v1\/checkout\/session$/;
+
+function CheckoutButtonWithRestoreGuard() {
+  useCheckoutRestoreGuard();
+
+  return <CheckoutButton />;
+}
+
+function dispatchPersistedPageShow() {
+  const event = new Event('pageshow') as PageTransitionEvent;
+
+  Object.defineProperty(event, 'persisted', {
+    configurable: true,
+    value: true,
+  });
+
+  window.dispatchEvent(event);
+}
 
 describe('CheckoutButton', () => {
   it('keeps checkout blocked until invalid items are removed', async () => {
@@ -231,6 +249,47 @@ describe('CheckoutButton', () => {
       expect(redirectToCheckout).toHaveBeenCalledTimes(1);
     });
     expect(requestCount).toBe(1);
+  });
+
+  it('recovers after Stripe handoff is restored from browser back without resubmitting checkout', async () => {
+    let requestCount = 0;
+
+    server.use(
+      http.post(CHECKOUT_URL, async () => {
+        requestCount += 1;
+        return HttpResponse.json(createCheckoutSessionResponse());
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CheckoutButtonWithRestoreGuard />);
+    const button = screen.getByRole('button', { name: 'Check Out' });
+
+    await userEvent.click(button);
+
+    await waitFor(() => {
+      expect(redirectToCheckout).toHaveBeenCalledTimes(1);
+    });
+    expect(useCheckoutUiStore.getState().isCheckingOut).toBe(true);
+
+    act(() => {
+      dispatchPersistedPageShow();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+    });
+    expect(useCheckoutUiStore.getState().isCheckingOut).toBe(false);
+    expect(requestCount).toBe(1);
+    expect(redirectToCheckout).toHaveBeenCalledTimes(1);
+    expect(useCartStore.getState().items).toHaveLength(1);
   });
 
   it('surfaces timeout failures and clears the checkout pending state', async () => {

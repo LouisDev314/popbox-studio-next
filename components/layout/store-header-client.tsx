@@ -27,6 +27,7 @@ import { WishlistDrawer } from '@/components/wishlist/wishlist-drawer';
 import QueryConfigs from '@/configs/api/query-config';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
+import { useCheckoutRestoreGuard } from '@/hooks/use-checkout-restore-guard';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useMobileNavbarVisibility } from '@/hooks/use-mobile-navbar-visibility';
@@ -157,6 +158,8 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
 }
 
 export function StoreHeaderClient(props: IStoreHeaderClientProps) {
+  useCheckoutRestoreGuard();
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
