@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { type ImgHTMLAttributes } from 'react';
+import { StrictMode, type ImgHTMLAttributes } from 'react';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AxiosHeaders, HttpStatusCode, type AxiosResponse } from 'axios';
@@ -318,6 +318,54 @@ describe('OrderTicketsPageClient', () => {
 
     expect(prizeImages.length).toBeGreaterThan(0);
     expect(screen.getAllByTestId('storefront-image-skeleton').length).toBeGreaterThan(0);
+  });
+
+  it('ignores stale Strict Mode playback rejections while the active reveal video is playing', async () => {
+    const user = userEvent.setup();
+
+    vi
+      .mocked(HTMLMediaElement.prototype.play)
+      .mockRejectedValueOnce(new DOMException('Interrupted by cleanup', 'AbortError'))
+      .mockResolvedValue(undefined);
+
+    vi.mocked(MutationConfigs.revealTicket).mockResolvedValue(
+      createApiResponse(createTicket({
+        prize: {
+          id: 'prize-1',
+          prizeCode: 'F',
+          prizeTier: 'F',
+          name: 'Prize One',
+          description: null,
+          imageUrl: 'https://cdn.example.com/prizes/prize-one.jpg',
+        },
+        revealedAt: '2026-04-12T00:00:00.000Z',
+      })),
+    );
+    vi.mocked(QueryConfigs.fetchGuestTickets).mockRejectedValue(new Error('refresh failed'));
+
+    renderWithProviders(
+      <StrictMode>
+        <OrderTicketsPageClient
+          initialViewData={createViewData()}
+          publicId="pbs-TICKETS"
+        />
+      </StrictMode>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Reveal ticket for Test Product 1' }));
+
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, 250);
+    });
+
+    expect(screen.getByTestId('kuji-reveal-video')).toBeInTheDocument();
+    expect(screen.queryByText('Congratulations')).not.toBeInTheDocument();
+
+    fireEvent.ended(screen.getByTestId('kuji-reveal-video'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Congratulations')).toBeInTheDocument();
+    });
   });
 
   it('allows skipping the single reveal video and still advances into the result flow', async () => {

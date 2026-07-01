@@ -80,6 +80,7 @@ function KujiRevealVideoView(props: {
   const hasCompletedRef = useRef(false);
   const stallTimeoutRef = useRef<number | null>(null);
   const playFailureTimeoutRef = useRef<number | null>(null);
+  const playAttemptIdRef = useRef(0);
 
   const clearVideoTimeouts = useCallback(() => {
     if (stallTimeoutRef.current !== null) {
@@ -105,6 +106,9 @@ function KujiRevealVideoView(props: {
 
   useEffect(() => {
     const video = videoRef.current;
+    const playAttemptId = playAttemptIdRef.current + 1;
+
+    playAttemptIdRef.current = playAttemptId;
 
     if (!video) {
       completeVideoGate();
@@ -113,26 +117,32 @@ function KujiRevealVideoView(props: {
 
     stallTimeoutRef.current = window.setTimeout(completeVideoGate, REVEAL_VIDEO_STALL_TIMEOUT_MS);
 
+    const schedulePlaybackFailureFallback = () => {
+      if (playAttemptIdRef.current !== playAttemptId || hasCompletedRef.current) {
+        return;
+      }
+
+      playFailureTimeoutRef.current = window.setTimeout(
+        completeVideoGate,
+        REVEAL_VIDEO_PLAY_FAILURE_SKIP_MS,
+      );
+    };
+
     try {
       video.load();
       const playResult = video.play();
 
       if (playResult && typeof playResult.catch === 'function') {
-        playResult.catch(() => {
-          playFailureTimeoutRef.current = window.setTimeout(
-            completeVideoGate,
-            REVEAL_VIDEO_PLAY_FAILURE_SKIP_MS,
-          );
-        });
+        playResult.catch(schedulePlaybackFailureFallback);
       }
     } catch {
-      playFailureTimeoutRef.current = window.setTimeout(
-        completeVideoGate,
-        REVEAL_VIDEO_PLAY_FAILURE_SKIP_MS,
-      );
+      schedulePlaybackFailureFallback();
     }
 
-    return clearVideoTimeouts;
+    return () => {
+      playAttemptIdRef.current += 1;
+      clearVideoTimeouts();
+    };
   }, [clearVideoTimeouts, completeVideoGate]);
 
   return (
