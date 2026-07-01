@@ -12,11 +12,15 @@ export const sentryEnabled = process.env.NODE_ENV === 'production';
 export const sentryTracesSampleRate = sentryEnabled ? 0.1 : 1.0;
 
 export function getClientSentryDsn(): string | undefined {
-  return process.env.NEXT_PUBLIC_SENTRY_DSN;
+  return sentryEnabled ? process.env.NEXT_PUBLIC_SENTRY_DSN?.trim() || undefined : undefined;
 }
 
 export function getServerSentryDsn(): string | undefined {
-  return process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN;
+  if (!sentryEnabled) {
+    return undefined;
+  }
+
+  return process.env.SENTRY_DSN?.trim() || process.env.NEXT_PUBLIC_SENTRY_DSN?.trim() || undefined;
 }
 
 export function filterAndSanitizeSentryEvent<T extends Event>(event: T): T | null {
