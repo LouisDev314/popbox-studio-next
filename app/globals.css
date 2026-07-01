@@ -85,3 +85,25 @@ body {
 .surface-scrollbar::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.48);
 }
+
+@keyframes ticket-shine-sweep {
+  0%,
+  64% {
+    opacity: 0;
+    transform: translateX(0) skewX(-12deg);
+  }
+
+  72% {
+    opacity: 0.38;
+  }
+
+  84% {
+    opacity: 0;
+    transform: translateX(760%) skewX(-12deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(760%) skewX(-12deg);
+  }
+}
