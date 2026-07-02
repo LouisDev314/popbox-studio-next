@@ -39,6 +39,13 @@ export interface IShipment {
   deliveredAt: string | null;
 }
 
+export interface IOrderAttention {
+  reasonCode: string;
+  message: string;
+  actionHint: string;
+  createdAt: string | null;
+}
+
 export interface IOrderTicket {
   id: string;
   ticketNumber: string;
@@ -60,6 +67,7 @@ export interface IOrderDetail {
   id: string;
   publicId: string;
   status: IOrderStatus;
+  attention: IOrderAttention | null;
   includesLastOnePrize?: boolean;
   currency: string;
   subtotalCents: number;
@@ -107,6 +115,7 @@ export interface IAdminOrderListItem {
   id: string;
   publicId: string;
   status: IOrderStatus;
+  attention: IOrderAttention | null;
   includesLastOnePrize?: boolean;
   totalCents: number;
   currency: string;
@@ -130,9 +139,4 @@ export interface IAdminOrderShipmentUpdate {
   trackingUrl?: string | null;
   shippedAt?: string | null;
   deliveredAt?: string | null;
-}
-
-export interface IAdminOrderRefundRequest {
-  amountCents?: number;
-  reason?: string | null;
 }

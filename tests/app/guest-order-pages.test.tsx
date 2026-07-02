@@ -106,6 +106,12 @@ describe('guest order pages', () => {
 
   it('shows FAQ and shipping links on the guest order detail page', async () => {
     vi.mocked(getPublicGuestOrder).mockResolvedValue({
+      attention: {
+        reasonCode: 'admin_only_attention',
+        message: 'Backend attention text must stay admin-only.',
+        actionHint: 'Do not show this to customers.',
+        createdAt: '2026-01-01T00:30:00.000Z',
+      },
       billingAddress: null,
       cancelledAt: null,
       customer: {
@@ -163,10 +169,14 @@ describe('guest order pages', () => {
       name: 'Ichiban Figure image',
     })).toHaveAttribute('src', expect.stringContaining('item.jpg'));
     expect(screen.queryByText('Taxes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Backend attention text must stay admin-only.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Do not show this to customers.')).not.toBeInTheDocument();
+    expect(screen.queryByText('admin_only_attention')).not.toBeInTheDocument();
   });
 
   it('renders the initials fallback when a guest order item imageUrl is null', async () => {
     vi.mocked(getPublicGuestOrder).mockResolvedValue({
+      attention: null,
       billingAddress: null,
       cancelledAt: null,
       customer: {

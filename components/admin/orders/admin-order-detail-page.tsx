@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AxiosError, HttpStatusCode } from 'axios';
-import { ArrowLeft, Mail, Package, Truck, XCircle, CreditCard } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Mail, Package, Truck, XCircle } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -23,7 +23,6 @@ import {
 } from '@/interfaces/order';
 import LastOnePrizeBadge from '@/components/admin/orders/last-one-prize-badge';
 import {
-  buildRefundPayload,
   buildShipmentUpdatePayload,
   getAdminOrderId,
   normalizeTrackingUrl,
@@ -123,10 +122,8 @@ interface IOrderActionButtonsProps {
   order: IOrderDetail;
   isStatusUpdating: boolean;
   isShipmentUpdating: boolean;
-  isRefunding: boolean;
   isResendingConfirmation: boolean;
   onUpdateStatus: (newStatus: IOrderStatus) => void;
-  onOpenRefund: () => void;
   onOpenShipment: () => void;
   onResendConfirmation: () => void;
 }
@@ -135,14 +132,11 @@ function OrderActionButtons({
   order,
   isStatusUpdating,
   isShipmentUpdating,
-  isRefunding,
   isResendingConfirmation,
   onUpdateStatus,
-  onOpenRefund,
   onOpenShipment,
   onResendConfirmation,
 }: IOrderActionButtonsProps) {
-  const canRefund = order.status === 'paid' || order.status === 'packed' || order.status === 'shipped' || order.status === 'paid_needs_attention';
   const shipmentActionMode: ShipmentActionMode | null = order.status === 'packed'
     ? 'ship'
     : order.status === 'shipped'
@@ -176,20 +170,6 @@ function OrderActionButtons({
         >
           <Package className="h-4 w-4" />
           Mark Packed
-        </Button>
-      )}
-
-      {canRefund && (
-        <Button
-          type="button"
-          onClick={onOpenRefund}
-          disabled={isRefunding}
-          variant="outline"
-          size="sm"
-          className="w-full justify-center gap-1.5 rounded-lg border-border bg-card text-foreground hover:bg-muted sm:w-auto"
-        >
-          <CreditCard className="h-4 w-4" />
-          Refund
         </Button>
       )}
 
@@ -338,6 +318,39 @@ function OrderTicketsSection({ order }: { order: IOrderDetail }) {
   );
 }
 
+function OrderAttentionSection({ order }: { order: IOrderDetail }) {
+  if (order.status !== 'paid_needs_attention' || !order.attention) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-xl border border-[#f6cdb8] bg-[#fff8f4] p-4 text-sm text-[#7a3b12] shadow-sm sm:p-5">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#fff3ed] text-[#b54708]">
+          <AlertTriangle className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-[#9a4f16]">Needs attention</h2>
+          <p className="mt-2 font-medium text-[#7a3b12]">{order.attention.message}</p>
+          <p className="mt-2 text-[#8a4b1f]">{order.attention.actionHint}</p>
+          <dl className="mt-4 grid gap-3 border-t border-[#f6cdb8] pt-4 sm:grid-cols-2">
+            <div>
+              <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a6a43]">Reason code</dt>
+              <dd className="mt-1 break-words font-mono text-xs text-[#7a3b12]">{order.attention.reasonCode}</dd>
+            </div>
+            {order.attention.createdAt ? (
+              <div>
+                <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a6a43]">Created</dt>
+                <dd className="mt-1 text-[#7a3b12]">{new Date(order.attention.createdAt).toLocaleString()}</dd>
+              </div>
+            ) : null}
+          </dl>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function OrderSidebar({
   order,
 }: {
@@ -473,75 +486,10 @@ function ShipmentDialog({
   );
 }
 
-interface IRefundDialogProps {
-  isOpen: boolean;
-  refundReason: string;
-  isPending: boolean;
-  onOpenChange: (open: boolean) => void;
-  onRefundReasonChange: (reason: string) => void;
-  onSubmit: (e: React.FormEvent) => void;
-}
-
-function RefundDialog({
-  isOpen,
-  refundReason,
-  isPending,
-  onOpenChange,
-  onRefundReasonChange,
-  onSubmit,
-}: IRefundDialogProps) {
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border-border/50 bg-card p-4 sm:max-w-md sm:p-6">
-        <DialogHeader className="mb-4">
-          <DialogTitle className="text-xl font-semibold text-foreground">Refund Order</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <p className="text-sm text-muted-foreground">This will refund the full order amount through the payment gateway and void any active Kuji tickets.</p>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Reason for refund</label>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={refundReason}
-              onChange={(e) => onRefundReasonChange(e.target.value)}
-            >
-              <option value="Customer Request">Customer Request</option>
-              <option value="Out of Stock">Out of Stock</option>
-              <option value="Fraudulent">Fraudulent</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <DialogFooter className="mt-6 flex-col-reverse gap-2 border-t border-border/20 pt-4 sm:flex-row">
-            <Button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              variant="secondary"
-              className="w-full rounded-lg text-muted-foreground sm:w-auto"
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="destructive"
-              disabled={isPending}
-              className="w-full rounded-lg sm:w-auto"
-            >
-              Process Refund
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrderId: string }) {
   const queryClient = useQueryClient();
   const [isShipmentDialogOpen, setIsShipmentDialogOpen] = useState(false);
-  const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
   const [shipmentForm, setShipmentForm] = useState<IShipmentFormValues>(createShipmentForm(null));
-  const [refundReason, setRefundReason] = useState('Customer Request');
   const [actionFeedback, setActionFeedback] = useState<OrderActionFeedback | null>(null);
 
   const { data: fetchRes, isPending } = useCustomizeQuery<IOrderDetail>({
@@ -617,24 +565,6 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
     },
   });
 
-  const { mutation: processRefund, isPending: isRefunding } = useCustomizeMutation({
-    mutationFn: MutationConfigs.refundAdminOrder,
-    onSuccess: async (response) => {
-      await refreshOrderQueries();
-      setIsRefundDialogOpen(false);
-      setActionFeedback({
-        type: 'success',
-        message: getAdminOrderActionSuccessMessage(response.data, 'Order refunded.'),
-      });
-    },
-    onError: (error) => {
-      setActionFeedback({
-        type: 'error',
-        message: getAdminOrderActionErrorMessage(error, 'Failed to refund the order.'),
-      });
-    },
-  });
-
   const { mutation: resendConfirmation, isPending: isResendingConfirmation } = useCustomizeMutation<void, string>({
     mutationFn: MutationConfigs.resendAdminOrderConfirmation,
     onSuccess: (response) => {
@@ -695,18 +625,6 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
     });
   };
 
-  const handleRefundSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setActionFeedback(null);
-    const nextAdminOrderId = resolveAdminOrderId();
-
-    if (!nextAdminOrderId) {
-      return;
-    }
-
-    processRefund({ adminOrderId: nextAdminOrderId, data: buildRefundPayload(refundReason) });
-  };
-
   const handleResendConfirmation = () => {
     setActionFeedback(null);
     const nextAdminOrderId = resolveAdminOrderId();
@@ -739,16 +657,16 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
             order={order}
             isStatusUpdating={isStatusUpdating}
             isShipmentUpdating={isShipmentUpdating}
-            isRefunding={isRefunding}
             isResendingConfirmation={isResendingConfirmation}
             onUpdateStatus={handleUpdateStatus}
-            onOpenRefund={() => setIsRefundDialogOpen(true)}
             onOpenShipment={handleOpenShipment}
             onResendConfirmation={handleResendConfirmation}
           />
           {actionFeedback ? <OrderActionFeedbackBanner feedback={actionFeedback} /> : null}
         </div>
       </div>
+
+      <OrderAttentionSection order={order} />
 
       {order.includesLastOnePrize ? (
         <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 shadow-sm">
@@ -776,14 +694,6 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
         onSubmit={handleShipmentSubmit}
       />
 
-      <RefundDialog
-        isOpen={isRefundDialogOpen}
-        refundReason={refundReason}
-        isPending={isRefunding}
-        onOpenChange={setIsRefundDialogOpen}
-        onRefundReasonChange={setRefundReason}
-        onSubmit={handleRefundSubmit}
-      />
     </div>
   );
 }
