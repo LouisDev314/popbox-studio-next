@@ -6,7 +6,6 @@ import {
   Truck,
   ShoppingCart,
   Tags,
-  Users,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -50,13 +49,6 @@ export const ADMIN_NAV_ITEMS: IAdminNavItem[] = [
     group: 'Sales',
     icon: ShoppingCart,
     matches: (pathname) => matchesAdminPath(pathname, '/admin/orders'),
-  },
-  {
-    label: 'Customers',
-    href: '/admin/customers',
-    group: 'Sales',
-    icon: Users,
-    matches: (pathname) => matchesAdminPath(pathname, '/admin/customers'),
   },
   {
     label: 'Legal & FAQ',

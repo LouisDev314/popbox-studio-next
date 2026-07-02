@@ -4,19 +4,30 @@ type SearchParamValue = string | string[] | undefined;
 
 const VALID_PRODUCT_TYPES = ['standard', 'kuji'] as const satisfies readonly productType[];
 const VALID_ADMIN_PRODUCT_SORTS = [
+  'created_desc',
+  'created_asc',
   'updated_desc',
   'updated_asc',
+  'price_desc',
+  'price_asc',
+  'name_asc',
+  'name_desc',
   'inventory_desc',
   'inventory_asc',
 ] as const;
 export type adminProductSort = (typeof VALID_ADMIN_PRODUCT_SORTS)[number];
+export type AdminProductStatusFilter = productStatus | 'all';
+export type AdminProductTypeFilter = productType | 'all';
 
 export interface IAdminProductListQueryParams {
-  status?: productStatus;
-  type?: productType;
-  collectionId?: string;
-  tagIds?: string[];
-  sort?: adminProductSort;
+  collectionId: string;
+  cursor?: string;
+  limit?: number;
+  productType: AdminProductTypeFilter;
+  search?: string;
+  sort: adminProductSort;
+  status: AdminProductStatusFilter;
+  tagId: string;
 }
 
 export interface IAdminProductSearchState {
@@ -46,12 +57,24 @@ export const ADMIN_PRODUCT_TYPE_ITEMS = [
 ] as const;
 
 export const ADMIN_PRODUCT_SORT_ITEMS = [
-  { label: 'Default order', value: 'default' },
+  { label: 'Created: Newest first', value: 'created_desc' },
+  { label: 'Created: Oldest first', value: 'created_asc' },
   { label: 'Updated: Newest first', value: 'updated_desc' },
   { label: 'Updated: Oldest first', value: 'updated_asc' },
+  { label: 'Price: High to low', value: 'price_desc' },
+  { label: 'Price: Low to high', value: 'price_asc' },
+  { label: 'Name: A to Z', value: 'name_asc' },
+  { label: 'Name: Z to A', value: 'name_desc' },
   { label: 'Inventory: High to low', value: 'inventory_desc' },
   { label: 'Inventory: Low to high', value: 'inventory_asc' },
 ] as const;
+
+export const ADMIN_PRODUCT_DEFAULT_STATUS: AdminProductStatusFilter = 'all';
+export const ADMIN_PRODUCT_DEFAULT_TYPE: AdminProductTypeFilter = 'all';
+export const ADMIN_PRODUCT_DEFAULT_COLLECTION_ID = 'all';
+export const ADMIN_PRODUCT_DEFAULT_TAG_ID = 'all';
+export const ADMIN_PRODUCT_DEFAULT_SORT: adminProductSort = 'updated_desc';
+export const ADMIN_PRODUCT_LIST_LIMIT = 25;
 
 function getFirstParamValue(value: SearchParamValue) {
   if (Array.isArray(value)) {
@@ -87,25 +110,10 @@ export function parseAdminCollectionIdParam(value: SearchParamValue): string | u
   return normalizedValue ? normalizedValue : undefined;
 }
 
-export function parseAdminTagIdsParam(value: SearchParamValue): string[] {
-  const rawValues = Array.isArray(value) ? value : value ? [value] : [];
+export function parseAdminTagIdParam(value: SearchParamValue): string | undefined {
+  const normalizedValue = getFirstParamValue(value)?.trim();
 
-  return Array.from(
-    new Set(
-      rawValues
-        .flatMap((entry) => entry.split(','))
-        .map((entry) => entry.trim())
-        .filter(Boolean),
-    ),
-  );
-}
-
-export function serializeAdminTagIdsParam(values: string[]): string | undefined {
-  const normalizedValues = Array.from(
-    new Set(values.map((entry) => entry.trim()).filter(Boolean)),
-  ).sort((left, right) => left.localeCompare(right));
-
-  return normalizedValues.length > 0 ? normalizedValues.join(',') : undefined;
+  return normalizedValue ? normalizedValue : undefined;
 }
 
 export function parseAdminProductStatusParam(value: SearchParamValue): productStatus | undefined {
@@ -119,14 +127,17 @@ export function parseAdminProductStatusParam(value: SearchParamValue): productSt
 }
 
 export function buildAdminProductListQueryParams(
-  filters: IAdminProductListQueryParams,
+  filters: Partial<IAdminProductListQueryParams>,
 ): IAdminProductListQueryParams {
   return {
-    status: filters.status,
-    type: filters.type,
-    collectionId: filters.collectionId,
-    tagIds: filters.tagIds && filters.tagIds.length > 0 ? filters.tagIds : undefined,
-    sort: filters.sort,
+    collectionId: filters.collectionId?.trim() || ADMIN_PRODUCT_DEFAULT_COLLECTION_ID,
+    cursor: filters.cursor?.trim() || undefined,
+    limit: filters.limit ?? ADMIN_PRODUCT_LIST_LIMIT,
+    productType: filters.productType ?? ADMIN_PRODUCT_DEFAULT_TYPE,
+    search: filters.search?.trim() || undefined,
+    sort: filters.sort ?? ADMIN_PRODUCT_DEFAULT_SORT,
+    status: filters.status ?? ADMIN_PRODUCT_DEFAULT_STATUS,
+    tagId: filters.tagId?.trim() || ADMIN_PRODUCT_DEFAULT_TAG_ID,
   };
 }
 
@@ -134,21 +145,39 @@ export function buildAdminProductsQueryKey(filters: IAdminProductListQueryParams
   return [
     'admin',
     'products',
-    filters.status ?? 'all',
-    filters.type ?? 'all',
-    filters.collectionId ?? 'all',
-    serializeAdminTagIdsParam(filters.tagIds ?? []) ?? 'all',
-    filters.sort ?? 'default',
+    filters.search ?? '',
+    filters.status,
+    filters.productType,
+    filters.collectionId,
+    filters.tagId,
+    filters.sort,
+    filters.cursor ?? '',
+    filters.limit ?? ADMIN_PRODUCT_LIST_LIMIT,
   ] as const;
 }
 
 export function hasActiveAdminProductRefinements(filters: IAdminProductListQueryParams): boolean {
   return Boolean(
-    filters.type
-    || filters.collectionId
-    || (filters.tagIds && filters.tagIds.length > 0)
-    || filters.sort,
+    filters.status !== ADMIN_PRODUCT_DEFAULT_STATUS
+    || filters.productType !== ADMIN_PRODUCT_DEFAULT_TYPE
+    || filters.collectionId !== ADMIN_PRODUCT_DEFAULT_COLLECTION_ID
+    || filters.tagId !== ADMIN_PRODUCT_DEFAULT_TAG_ID
+    || filters.sort !== ADMIN_PRODUCT_DEFAULT_SORT
+    || Boolean(filters.search),
   );
+}
+
+export function buildAdminProductsRequestParams(filters: IAdminProductListQueryParams) {
+  return {
+    ...(filters.search ? { search: filters.search } : {}),
+    status: filters.status,
+    productType: filters.productType,
+    collectionId: filters.collectionId,
+    tagId: filters.tagId,
+    sort: filters.sort,
+    ...(filters.cursor ? { cursor: filters.cursor } : {}),
+    limit: filters.limit ?? ADMIN_PRODUCT_LIST_LIMIT,
+  };
 }
 
 function getAdminProductSearchFields(

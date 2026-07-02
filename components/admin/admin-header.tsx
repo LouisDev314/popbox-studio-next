@@ -26,14 +26,6 @@ function getSearchConfig(pathname: string) {
     } as const;
   }
 
-  if (pathname.startsWith('/admin/customers')) {
-    return {
-      action: '/admin/customers',
-      placeholder: 'Search customers by email',
-      visible: true,
-    } as const;
-  }
-
   return {
     action: '',
     placeholder: '',
@@ -47,7 +39,7 @@ export function AdminHeader() {
   const searchParams = useSearchParams();
   const headerContext = getAdminHeaderContext(pathname);
   const searchConfig = getSearchConfig(pathname);
-  const currentQuery = searchConfig.visible ? searchParams.get('q') ?? '' : '';
+  const currentQuery = searchConfig.visible ? searchParams.get('search') ?? '' : '';
   const [query, setQuery] = useState(currentQuery);
 
   useEffect(() => {
@@ -65,9 +57,9 @@ export function AdminHeader() {
     const params = new URLSearchParams(searchParams.toString());
 
     if (nextQuery) {
-      params.set('q', nextQuery);
+      params.set('search', nextQuery);
     } else {
-      params.delete('q');
+      params.delete('search');
     }
 
     const nextQueryString = params.toString();

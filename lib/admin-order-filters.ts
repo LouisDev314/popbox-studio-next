@@ -1,6 +1,15 @@
 import type { IAdminOrderListItem, IOrderStatus } from '@/interfaces/order';
 
 export type AdminOrderStatusFilter = IOrderStatus | 'all';
+export type AdminOrderSort = 'date_desc' | 'date_asc' | 'total_desc' | 'total_asc';
+
+export interface IAdminOrderListQueryParams {
+  cursor?: string;
+  limit?: number;
+  search?: string;
+  sort: AdminOrderSort;
+  status: AdminOrderStatusFilter;
+}
 
 export const ADMIN_ORDER_STATUS_OPTIONS: Array<{
   label: string;
@@ -17,14 +26,31 @@ export const ADMIN_ORDER_STATUS_OPTIONS: Array<{
   { label: 'Expired', value: 'expired' },
 ] as const;
 
+export const ADMIN_ORDER_SORT_OPTIONS: Array<{
+  label: string;
+  value: AdminOrderSort;
+}> = [
+  { label: 'Newest first', value: 'date_desc' },
+  { label: 'Oldest first', value: 'date_asc' },
+  { label: 'Total: high to low', value: 'total_desc' },
+  { label: 'Total: low to high', value: 'total_asc' },
+] as const;
+
+export const ADMIN_ORDER_DEFAULT_STATUS: AdminOrderStatusFilter = 'all';
+export const ADMIN_ORDER_DEFAULT_SORT: AdminOrderSort = 'date_desc';
+export const ADMIN_ORDER_LIST_LIMIT = 25;
+
 const ADMIN_ORDER_STATUS_VALUES = new Set<IOrderStatus>(
   ADMIN_ORDER_STATUS_OPTIONS
     .filter((option) => option.value !== 'all')
     .map((option) => option.value as IOrderStatus),
 );
+const ADMIN_ORDER_SORT_VALUES = new Set<AdminOrderSort>(
+  ADMIN_ORDER_SORT_OPTIONS.map((option) => option.value),
+);
 
 function normalizeSearchValue(value: string | null | undefined) {
-  return value?.trim().toLocaleLowerCase() ?? '';
+  return value?.trim() ?? '';
 }
 
 export function getAdminOrderCustomerName(order: IAdminOrderListItem) {
@@ -43,60 +69,52 @@ export function parseAdminOrderStatusParam(
     : undefined;
 }
 
-export function getAdminOrderStatusCounts(
-  orders: IAdminOrderListItem[],
-): Record<AdminOrderStatusFilter, number> {
-  const counts = Object.fromEntries(
-    ADMIN_ORDER_STATUS_OPTIONS.map((option) => [option.value, 0]),
-  ) as Record<AdminOrderStatusFilter, number>;
-
-  counts.all = orders.length;
-
-  for (const order of orders) {
-    counts[order.status] += 1;
+export function parseAdminOrderSortParam(
+  value: string | null | undefined,
+): AdminOrderSort | undefined {
+  if (!value) {
+    return undefined;
   }
 
-  return counts;
+  return ADMIN_ORDER_SORT_VALUES.has(value as AdminOrderSort)
+    ? value as AdminOrderSort
+    : undefined;
 }
 
-export function matchesAdminOrderSearch(
-  order: IAdminOrderListItem,
-  query: string,
-) {
-  const normalizedQuery = normalizeSearchValue(query);
+export function buildAdminOrderListQueryParams(filters: {
+  cursor?: string | null;
+  limit?: number;
+  search?: string | null;
+  sort?: AdminOrderSort | null;
+  status?: AdminOrderStatusFilter | null;
+}): IAdminOrderListQueryParams {
+  return {
+    cursor: normalizeSearchValue(filters.cursor) || undefined,
+    limit: filters.limit ?? ADMIN_ORDER_LIST_LIMIT,
+    search: normalizeSearchValue(filters.search) || undefined,
+    sort: filters.sort ?? ADMIN_ORDER_DEFAULT_SORT,
+    status: filters.status ?? ADMIN_ORDER_DEFAULT_STATUS,
+  };
+}
 
-  if (!normalizedQuery) {
-    return true;
-  }
-
+export function buildAdminOrdersQueryKey(filters: IAdminOrderListQueryParams) {
   return [
-    order.publicId,
-    order.customer.email,
-    getAdminOrderCustomerName(order),
-  ].some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
+    'admin',
+    'orders',
+    filters.search ?? '',
+    filters.status,
+    filters.sort,
+    filters.cursor ?? '',
+    filters.limit ?? ADMIN_ORDER_LIST_LIMIT,
+  ] as const;
 }
 
-export function filterAdminOrders(
-  orders: IAdminOrderListItem[],
-  {
-    query,
-    status,
-  }: {
-    query?: string;
-    status?: AdminOrderStatusFilter;
-  },
-) {
-  const normalizedQuery = normalizeSearchValue(query);
-
-  return orders.filter((order) => {
-    if (status && status !== 'all' && order.status !== status) {
-      return false;
-    }
-
-    if (!normalizedQuery) {
-      return true;
-    }
-
-    return matchesAdminOrderSearch(order, normalizedQuery);
-  });
+export function buildAdminOrdersRequestParams(filters: IAdminOrderListQueryParams) {
+  return {
+    ...(filters.search ? { search: filters.search } : {}),
+    status: filters.status,
+    sort: filters.sort,
+    ...(filters.cursor ? { cursor: filters.cursor } : {}),
+    limit: filters.limit ?? ADMIN_ORDER_LIST_LIMIT,
+  };
 }

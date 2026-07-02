@@ -1,6 +1,5 @@
 import type {
   IAdminOrderIdentity,
-  IAdminOrderRefundRequest,
   IAdminOrderShipmentUpdate,
   IShipment,
 } from '@/interfaces/order';
@@ -67,10 +66,4 @@ export function buildShipmentUpdatePayload(
   }
 
   return payload;
-}
-
-export function buildRefundPayload(refundReason: string): IAdminOrderRefundRequest {
-  const normalizedReason = toNullableText(refundReason);
-
-  return normalizedReason ? { reason: normalizedReason } : {};
 }

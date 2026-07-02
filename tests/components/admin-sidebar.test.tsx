@@ -39,6 +39,7 @@ describe('AdminSidebar', () => {
     expect(screen.getByAltText('PopBox Studio')).toHaveAttribute('src', expect.stringContaining('store-logo.png'));
     expect(screen.getByRole('link', { name: /Shipping/i })).toHaveAttribute('href', '/admin/settings/shipping');
     expect(screen.getByRole('link', { name: /Store Banner/i })).toHaveAttribute('href', '/admin/settings/store-banner');
+    expect(screen.queryByRole('link', { name: /Customers/i })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Back to store/i })).toHaveAttribute('href', '/');
   });
 

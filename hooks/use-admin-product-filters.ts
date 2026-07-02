@@ -3,15 +3,18 @@
 import { useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
+  ADMIN_PRODUCT_DEFAULT_COLLECTION_ID,
+  ADMIN_PRODUCT_DEFAULT_SORT,
+  ADMIN_PRODUCT_DEFAULT_STATUS,
+  ADMIN_PRODUCT_DEFAULT_TAG_ID,
+  ADMIN_PRODUCT_DEFAULT_TYPE,
   buildAdminProductListQueryParams,
-  buildAdminProductsQueryKey,
   hasActiveAdminProductRefinements,
   parseAdminCollectionIdParam,
   parseAdminProductSortParam,
   parseAdminProductStatusParam,
   parseAdminProductTypeParam,
-  parseAdminTagIdsParam,
-  serializeAdminTagIdsParam,
+  parseAdminTagIdParam,
   type IAdminProductListQueryParams,
 } from '@/lib/admin-product-filters';
 import type { productStatus } from '@/interfaces/product';
@@ -21,16 +24,16 @@ export function useAdminProductFilters() {
   const searchParams = useSearchParams();
 
   const filters = useMemo<IAdminProductListQueryParams>(() => buildAdminProductListQueryParams({
+    search: searchParams.get('search') ?? undefined,
     status: parseAdminProductStatusParam(searchParams.get('status') ?? undefined),
-    type: parseAdminProductTypeParam(searchParams.get('type') ?? undefined),
+    productType: parseAdminProductTypeParam(searchParams.get('productType') ?? undefined),
     collectionId: parseAdminCollectionIdParam(searchParams.get('collectionId') ?? undefined),
-    tagIds: parseAdminTagIdsParam(searchParams.getAll('tagIds')),
+    tagId: parseAdminTagIdParam(searchParams.get('tagId') ?? undefined),
     sort: parseAdminProductSortParam(searchParams.get('sort') ?? undefined),
   }), [searchParams]);
 
-  const activeTab = filters.status ?? 'all';
+  const activeTab = filters.status;
   const hasActiveRefinements = hasActiveAdminProductRefinements(filters);
-  const queryKey = buildAdminProductsQueryKey(filters);
 
   const replaceSearchParams = (mutator: (params: URLSearchParams) => void) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -44,7 +47,7 @@ export function useAdminProductFilters() {
 
   const setStatus = (nextTab: productStatus | 'all') => {
     replaceSearchParams((params) => {
-      if (nextTab === 'all') {
+      if (nextTab === ADMIN_PRODUCT_DEFAULT_STATUS) {
         params.delete('status');
       } else {
         params.set('status', nextTab);
@@ -54,17 +57,17 @@ export function useAdminProductFilters() {
 
   const setType = (value: string) => {
     replaceSearchParams((params) => {
-      if (value === 'all') {
-        params.delete('type');
+      if (value === ADMIN_PRODUCT_DEFAULT_TYPE) {
+        params.delete('productType');
       } else {
-        params.set('type', value);
+        params.set('productType', value);
       }
     });
   };
 
   const setCollectionId = (value: string) => {
     replaceSearchParams((params) => {
-      if (value === 'all') {
+      if (value === ADMIN_PRODUCT_DEFAULT_COLLECTION_ID) {
         params.delete('collectionId');
       } else {
         params.set('collectionId', value);
@@ -74,7 +77,7 @@ export function useAdminProductFilters() {
 
   const setSort = (value: string) => {
     replaceSearchParams((params) => {
-      if (value === 'default') {
+      if (value === ADMIN_PRODUCT_DEFAULT_SORT) {
         params.delete('sort');
       } else {
         params.set('sort', value);
@@ -82,33 +85,29 @@ export function useAdminProductFilters() {
     });
   };
 
-  const toggleTag = (tagId: string) => {
+  const setTagId = (tagId: string) => {
     replaceSearchParams((params) => {
-      const currentTagIds = parseAdminTagIdsParam(params.getAll('tagIds'));
-      const nextTagIds = currentTagIds.includes(tagId)
-        ? currentTagIds.filter((currentTagId) => currentTagId !== tagId)
-        : [...currentTagIds, tagId];
-      const serializedTagIds = serializeAdminTagIdsParam(nextTagIds);
-
-      if (serializedTagIds) {
-        params.set('tagIds', serializedTagIds);
+      if (tagId === ADMIN_PRODUCT_DEFAULT_TAG_ID) {
+        params.delete('tagId');
       } else {
-        params.delete('tagIds');
+        params.set('tagId', tagId);
       }
     });
   };
 
   const clearTags = () => {
     replaceSearchParams((params) => {
-      params.delete('tagIds');
+      params.delete('tagId');
     });
   };
 
   const clearRefinements = () => {
     replaceSearchParams((params) => {
-      params.delete('type');
+      params.delete('search');
+      params.delete('status');
+      params.delete('productType');
       params.delete('collectionId');
-      params.delete('tagIds');
+      params.delete('tagId');
       params.delete('sort');
     });
   };
@@ -119,11 +118,10 @@ export function useAdminProductFilters() {
     clearTags,
     filters,
     hasActiveRefinements,
-    queryKey,
     setCollectionId,
     setSort,
     setStatus,
+    setTagId,
     setType,
-    toggleTag,
   };
 }

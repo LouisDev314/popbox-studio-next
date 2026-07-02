@@ -2,7 +2,7 @@ import httpClient from '@/api/http-client';
 import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { ICheckoutRequest, ICheckoutSession } from '@/interfaces/checkout';
-import { IOrderTicket, IGuestTicketView, IAdminOrderStatusUpdate, IAdminOrderShipmentUpdate, IAdminOrderRefundRequest, IOrderDetail } from '@/interfaces/order';
+import { IOrderTicket, IGuestTicketView, IAdminOrderStatusUpdate, IAdminOrderShipmentUpdate, IOrderDetail } from '@/interfaces/order';
 import {
   IAdminProduct,
   IAdminProductImagePatch,
@@ -113,9 +113,6 @@ const MutationConfigs = {
   },
   resendAdminOrderConfirmation: async (adminOrderId: string): Promise<AxiosResponse<IBaseApiResponse<void>>> => {
     return httpClient.post(`/api/v1/admin/orders/${adminOrderId}/resend-confirmation`, undefined, await withAdminAuth());
-  },
-  refundAdminOrder: async ({ adminOrderId, data }: { adminOrderId: string; data: IAdminOrderRefundRequest }): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
-    return httpClient.post(`/api/v1/admin/orders/${adminOrderId}/refund`, data, await withAdminAuth());
   },
   createAdminLegalDoc: async (data: IAdminLegalCreate): Promise<AxiosResponse<IBaseApiResponse<IAdminLegalDocument>>> => {
     return httpClient.post('/api/v1/admin/legal', data, await withAdminAuth());

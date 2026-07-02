@@ -1,10 +1,10 @@
 'use client';
 
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { AdminPageLoadingOverlay } from '@/components/admin/admin-page-loading-overlay';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -18,97 +18,84 @@ import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { useAdminProductFilters } from '@/hooks/use-admin-product-filters';
 import {
+  ADMIN_PRODUCT_DEFAULT_STATUS,
   ADMIN_PRODUCT_STATUS_TABS,
-  filterAdminProductsBySearch,
+  buildAdminProductsQueryKey,
 } from '@/lib/admin-product-filters';
 import { cn } from '@/lib/utils';
+import { AdminSearchForm } from '@/components/admin/admin-search-form';
 import type {
   IAdminProduct,
+  IAdminProductListItem,
   IAdminProductListResponse,
   ICollection,
   ITag,
   productStatus,
 } from '@/interfaces/product';
 
-interface IProductsSearchPanelProps {
-  matchingProductsCount: number;
-  onClearSearch: () => void;
-  onSearchQueryChange: (value: string) => void;
-  searchQuery: string;
-  showMatchingCount: boolean;
-}
-
-function ProductsSearchPanel(props: IProductsSearchPanelProps) {
-  return (
-    <section className="rounded-3xl border border-[#e4dccf] bg-[#fbfaf7] p-4 shadow-[0_20px_50px_-44px_rgba(17,24,39,0.4)] lg:p-5">
-      <h2 className="text-[1.4rem] font-semibold tracking-[-0.03em] text-[#111827] sm:text-[1.6rem]">
-          Search products
-      </h2>
-
-      <div className="mt-4 flex flex-col gap-2.5 xl:flex-row xl:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9ca3af]" />
-          <input
-            type="text"
-            value={props.searchQuery}
-            onChange={(event) => props.onSearchQueryChange(event.target.value)}
-            placeholder="Search products"
-            autoComplete="off"
-            spellCheck={false}
-            className="h-12 w-full rounded-[18px] border border-[#dfd5c5] bg-white pl-10 pr-12 text-sm text-[#111827] outline-none transition placeholder:text-[#9ca3af] focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
-          />
-          {props.searchQuery && (
-            <button
-              type="button"
-              aria-label="Clear product search"
-              onClick={props.onClearSearch}
-              className="absolute right-2.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl text-[#6b7280] transition-colors hover:bg-[#f8f4eb] hover:text-[#111827]"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-
-        {props.showMatchingCount && (
-          <div className="rounded-[18px] border border-dashed border-[#dfd5c5] bg-[#f8f4eb] px-4 py-2.5 text-sm text-[#6b7280] xl:min-w-[190px]">
-            <span className="block font-medium text-[#111827]">
-              {props.matchingProductsCount} matching product{props.matchingProductsCount === 1 ? '' : 's'}
-            </span>
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
+// eslint-disable-next-line complexity
 export default function AdminProductsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [pageState, setPageState] = useState<{
+    cursor?: string;
+    products: IAdminProductListItem[];
+    nextCursor: string | null;
+    signature: string;
+  }>({
+    cursor: undefined,
+    products: [],
+    nextCursor: null,
+    signature: '',
+  });
   const {
     activeTab,
     clearRefinements,
-    clearTags,
     filters,
     hasActiveRefinements,
-    queryKey,
     setCollectionId,
     setSort,
     setStatus,
+    setTagId,
     setType,
-    toggleTag,
   } = useAdminProductFilters();
-  const deferredSearchQuery = useDeferredValue(searchQuery.trim());
-  const hasActiveSearch = searchQuery.trim().length > 0;
+  const [searchState, setSearchState] = useState({
+    urlSearch: filters.search ?? '',
+    value: filters.search ?? '',
+  });
+  const searchQuery = searchState.urlSearch === (filters.search ?? '') ? searchState.value : filters.search ?? '';
+  const hasActiveSearch = Boolean(filters.search);
+  const querySignature = `${filters.search ?? ''}|${filters.status}|${filters.productType}|${filters.collectionId}|${filters.tagId}|${filters.sort}`;
+  const isSameQuerySignature = pageState.signature === querySignature;
+  const products = isSameQuerySignature ? pageState.products : [];
+  const nextCursor = isSameQuerySignature ? pageState.nextCursor : null;
+  const queryFilters = useMemo(() => ({
+    ...filters,
+    cursor: isSameQuerySignature ? pageState.cursor : undefined,
+  }), [filters, isSameQuerySignature, pageState.cursor]);
+  const queryKey = useMemo(() => buildAdminProductsQueryKey(queryFilters), [queryFilters]);
+
+  const handleProductsSuccess = useCallback((response: Awaited<ReturnType<typeof QueryConfigs.fetchAdminProducts>>) => {
+    const page = response.data.data;
+    setPageState((currentState) => ({
+      cursor: queryFilters.cursor,
+      products: queryFilters.cursor && currentState.signature === querySignature
+        ? [...currentState.products, ...page.items]
+        : page.items,
+      nextCursor: page.nextCursor,
+      signature: querySignature,
+    }));
+  }, [queryFilters.cursor, querySignature]);
 
   const {
-    data,
     isPending,
     isFetching,
     isError,
   } = useCustomizeQuery<IAdminProductListResponse>({
     queryKey,
-    queryFn: () => QueryConfigs.fetchAdminProducts(filters),
+    queryFn: () => QueryConfigs.fetchAdminProducts(queryFilters),
+    onSuccess: handleProductsSuccess,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
@@ -147,10 +134,6 @@ export default function AdminProductsPage() {
     },
   });
 
-  const products = useMemo(
-    () => data?.data?.data?.items ?? [],
-    [data?.data?.data?.items],
-  );
   const collections = useMemo(
     () => [...(collectionsRes?.data?.data ?? [])].sort((left, right) => (
       left.sortOrder - right.sortOrder || left.name.localeCompare(right.name)
@@ -167,21 +150,15 @@ export default function AdminProductsPage() {
     () => new Map(collections.map((collection) => [collection.id, collection.name])),
     [collections],
   );
-  const searchedProducts = useMemo(() => filterAdminProductsBySearch(
-    products,
-    {
-      query: deferredSearchQuery,
-    },
-  ), [deferredSearchQuery, products]);
-  const visibleProducts = searchedProducts.items;
-  const hasActiveViewState = hasActiveRefinements || hasActiveSearch;
-  const isPageBusy = isPending
-    || isFetching
-    || isCollectionsPending
+  const hasActiveViewState = hasActiveRefinements;
+  const isPageBusy = isCollectionsPending
     || isCollectionsFetching
     || isTagsPending
     || isTagsFetching
     || isPatching;
+  const tableStatusFilter = filters.status === ADMIN_PRODUCT_DEFAULT_STATUS
+    ? undefined
+    : filters.status as productStatus;
 
   const handleStatusChange = (productId: string, newStatus: productStatus) => {
     patchStatus({ productId, status: newStatus });
@@ -192,13 +169,31 @@ export default function AdminProductsPage() {
   };
 
   const handleClearView = () => {
-    if (hasActiveRefinements) {
-      clearRefinements();
+    clearRefinements();
+  };
+
+  const replaceProductSearch = useCallback((nextSearch: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (nextSearch) {
+      params.set('search', nextSearch);
+    } else {
+      params.delete('search');
     }
 
-    if (hasActiveSearch) {
-      setSearchQuery('');
-    }
+    const nextQueryString = params.toString();
+    router.replace(nextQueryString ? `/admin/products?${nextQueryString}` : '/admin/products', { scroll: false });
+  }, [router, searchParams]);
+
+  const submitSearch = () => {
+    const nextSearch = searchQuery.trim();
+    setSearchState({ urlSearch: nextSearch, value: nextSearch });
+    replaceProductSearch(nextSearch);
+  };
+
+  const clearSearch = () => {
+    setSearchState({ urlSearch: '', value: '' });
+    replaceProductSearch('');
   };
 
   return (
@@ -222,13 +217,23 @@ export default function AdminProductsPage() {
           </Button>
         </div>
 
-        <ProductsSearchPanel
-          matchingProductsCount={visibleProducts.length}
-          onClearSearch={() => setSearchQuery('')}
-          onSearchQueryChange={setSearchQuery}
-          searchQuery={searchQuery}
-          showMatchingCount={hasActiveSearch}
-        />
+        <section className="rounded-3xl border border-[#e4dccf] bg-[#fbfaf7] p-4 shadow-[0_20px_50px_-44px_rgba(17,24,39,0.4)] lg:p-5">
+          <AdminSearchForm
+            ariaLabel="Search products"
+            onChange={(value) => setSearchState({ urlSearch: filters.search ?? '', value })}
+            onClear={clearSearch}
+            onSubmit={submitSearch}
+            placeholder="Search products by name, SKU, collection, or tag"
+            value={searchQuery}
+          />
+          {hasActiveSearch ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#8f8577]">
+              <span className="rounded-full border border-[#ece4d8] bg-white px-3 py-1">
+                Search: {filters.search}
+              </span>
+            </div>
+          ) : null}
+        </section>
 
         <section className="rounded-[24px] border border-[#e4dccf] bg-[#fbfaf7] p-4 shadow-[0_20px_50px_-44px_rgba(17,24,39,0.4)] lg:p-5">
           <div className="flex flex-wrap gap-1.5">
@@ -255,18 +260,19 @@ export default function AdminProductsPage() {
             filters={filters}
             hasActiveView={hasActiveViewState}
             isCollectionsError={isCollectionsError}
+            isCollectionsLoading={isCollectionsPending || isCollectionsFetching}
             isTagsError={isTagsError}
+            isTagsLoading={isTagsPending || isTagsFetching}
             onClearView={handleClearView}
-            onClearTags={clearTags}
             onCollectionChange={setCollectionId}
             onSortChange={setSort}
-            onTagToggle={toggleTag}
+            onTagChange={setTagId}
             onTypeChange={setType}
             tags={tags}
           />
 
           <div className="mt-6">
-            {isPending ? (
+            {isPending && products.length === 0 ? (
               <AdminProductsLoadingSkeleton />
             ) : isError ? (
               <div className="rounded-[24px] border border-[#f0d2d2] bg-[#fff7f7] py-16 text-center">
@@ -281,10 +287,29 @@ export default function AdminProductsPage() {
                 onClearView={handleClearView}
                 onRowClick={handleRowClick}
                 onStatusChange={handleStatusChange}
-                products={visibleProducts}
-                statusFilter={filters.status}
+                products={products}
+                statusFilter={tableStatusFilter}
               />
             )}
+            {nextCursor ? (
+              <div className="mt-5 flex justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 rounded-full border-[#dfd5c5] bg-white px-5 text-sm text-[#111827] hover:bg-[#f8f4eb]"
+                  disabled={isFetching}
+                  onClick={() => {
+                    setPageState((currentState) => ({
+                      ...currentState,
+                      cursor: nextCursor,
+                      signature: querySignature,
+                    }));
+                  }}
+                >
+                  {isFetching ? 'Loading...' : 'Load More'}
+                </Button>
+              </div>
+            ) : null}
           </div>
         </section>
       </div>
