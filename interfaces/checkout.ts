@@ -33,8 +33,6 @@ export interface ICheckoutSession {
 
 export interface ICheckoutSuccess {
   publicId: string;
-  orderUrl: string;
-  clientOrderUrl: string;
   needsAttention: boolean;
   order: IOrderDetail;
 }

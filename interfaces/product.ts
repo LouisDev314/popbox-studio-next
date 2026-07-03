@@ -43,8 +43,6 @@ export interface IAdminProductImagePatch {
   url?: string | null;
 }
 
-export type IAdminProductImageUpload = IAdminProductImagePatch;
-
 export interface IAdminProductListPrimaryImage {
   storageKey: string | null;
   altText: string | null;
@@ -263,4 +261,4 @@ export interface IAdminKujiPrizeCreateRequest {
 
 export type IAdminKujiPrizeUpdateRequest = Partial<IAdminKujiPrizeCreateRequest>;
 
-export type IAdminProductImageUploadResponse = IAdminProductImageUpload | IAdminProductImageUpload[];
+export type IAdminProductImageUploadResponse = IAdminProductImagePatch | IAdminProductImagePatch[];

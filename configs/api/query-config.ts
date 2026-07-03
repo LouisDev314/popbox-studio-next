@@ -4,7 +4,7 @@ import { IBaseApiResponse } from '@/interfaces/api-response';
 import { withAdminAuth } from '@/lib/api/admin-client';
 import { buildAdminProductListQueryParams, buildAdminProductsRequestParams, IAdminProductListQueryParams } from '@/lib/admin-product-filters';
 import { buildAdminOrdersRequestParams, IAdminOrderListQueryParams } from '@/lib/admin-order-filters';
-import { IProductListPage, ICollection, ITag, productSort, productType,
+import { ICollection, ITag,
   IProductSuggestionResponse, IAdminProductDetail, IAdminProductListResponse, IKujiPrize,
 } from '@/interfaces/product';
 import { IOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
@@ -27,54 +27,7 @@ function normalizeAdminFaqItems(
   return [];
 }
 
-export function buildProductsQueryParams({
-  collection,
-  pageParam,
-  sort,
-  tag,
-  type,
-}: {
-  pageParam?: string | unknown;
-  collection?: string;
-  tag?: string;
-  type?: productType;
-  sort?: productSort;
-}) {
-  const normalizedCursor = typeof pageParam === 'string' && pageParam.trim() ? pageParam : undefined;
-
-  return {
-    ...(collection ? { collection } : {}),
-    ...(normalizedCursor ? { cursor: normalizedCursor } : {}),
-    ...(sort ? { sort } : {}),
-    ...(tag ? { tag } : {}),
-    ...(type ? { type } : {}),
-  };
-}
-
 const QueryConfigs = {
-  fetchProducts: ({
-    pageParam = undefined,
-    collection,
-    tag,
-    type,
-    sort,
-  }: {
-    pageParam?: string | unknown;
-    collection?: string;
-    tag?: string;
-    type?: productType;
-    sort?: productSort;
-  }): Promise<AxiosResponse<IBaseApiResponse<IProductListPage>>> => {
-    return httpClient.get('/api/v1/products', {
-      params: buildProductsQueryParams({
-        collection,
-        pageParam,
-        sort,
-        tag,
-        type,
-      }),
-    });
-  },
   fetchAutocomplete: (query: string): Promise<AxiosResponse<IBaseApiResponse<IProductSuggestionResponse>>> => {
     return httpClient.get('/api/v1/search/autocomplete', {
       params: {

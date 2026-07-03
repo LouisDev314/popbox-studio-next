@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildProductsQueryParams } from '@/configs/api/query-config';
 
 const httpGet = vi.hoisted(() => vi.fn());
 
@@ -17,28 +16,6 @@ vi.mock('@/lib/api/admin-client', () => ({
     },
   }),
 }));
-
-describe('buildProductsQueryParams', () => {
-  it('omits an empty cursor param', () => {
-    expect(buildProductsQueryParams({
-      collection: 'featured',
-      pageParam: undefined,
-      sort: 'newest',
-    })).toEqual({
-      collection: 'featured',
-      sort: 'newest',
-    });
-  });
-
-  it('omits undefined sort values for default storefront ordering', () => {
-    expect(buildProductsQueryParams({
-      collection: 'featured',
-      sort: undefined,
-    })).toEqual({
-      collection: 'featured',
-    });
-  });
-});
 
 describe('admin query configs', () => {
   beforeEach(() => {

@@ -15,11 +15,6 @@ export interface IBaseApiResponse<Data = Record<string, unknown> | null | unknow
   errors?: IApiValidationErrors;
 }
 
-export interface IApiCursorPagination {
-  nextCursor?: string;
-  previousCursor?: string;
-}
-
 export interface IApiErrorDetails {
   code?: number;
   message: string;
