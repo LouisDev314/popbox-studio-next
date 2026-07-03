@@ -181,12 +181,19 @@ export default function AdminProductsPage() {
       params.delete('search');
     }
 
+    setPageState((currentState) => ({
+      ...currentState,
+      cursor: undefined,
+      nextCursor: null,
+      signature: '',
+    }));
+
     const nextQueryString = params.toString();
     router.replace(nextQueryString ? `/admin/products?${nextQueryString}` : '/admin/products', { scroll: false });
   }, [router, searchParams]);
 
-  const submitSearch = () => {
-    const nextSearch = searchQuery.trim();
+  const submitSearch = (value: string) => {
+    const nextSearch = value.trim();
     setSearchState({ urlSearch: nextSearch, value: nextSearch });
     replaceProductSearch(nextSearch);
   };

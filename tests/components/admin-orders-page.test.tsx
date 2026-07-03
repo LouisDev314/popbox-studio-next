@@ -141,6 +141,23 @@ describe('AdminOrdersPageClient', () => {
     expect(screen.getAllByText('PBX-1002').length).toBeGreaterThan(0);
   });
 
+  it('keeps clearing order search on empty submit', async () => {
+    currentSearchParams = 'search=jordan';
+    vi.spyOn(QueryConfigs, 'fetchAdminOrders').mockResolvedValue(
+      createResponse(createOrdersResponse([createOrder()])),
+    );
+
+    renderWithProviders(<AdminOrdersPageClient />);
+
+    const searchInput = screen.getByRole('searchbox', { name: 'Search orders' });
+
+    await screen.findAllByText('PBX-1001');
+    await userEvent.clear(searchInput);
+    await userEvent.click(screen.getByRole('button', { name: /^Search$/i }));
+
+    expect(replace).toHaveBeenLastCalledWith('/admin/orders', { scroll: false });
+  });
+
   it('status and sort update URL state and reset pagination', async () => {
     const fetchOrders = vi.spyOn(QueryConfigs, 'fetchAdminOrders').mockResolvedValue(
       createResponse(createOrdersResponse([createOrder()], 'cursor-2')),

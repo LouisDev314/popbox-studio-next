@@ -272,8 +272,8 @@ export default function AdminOrdersPageClient() {
     });
   };
 
-  const submitSearch = () => {
-    const nextQuery = searchInput.trim();
+  const submitSearch = (value: string) => {
+    const nextQuery = value.trim();
     setSearchState({ urlSearch: nextQuery, value: nextQuery });
 
     replaceSearchParams((params) => {

@@ -10,7 +10,7 @@ interface IAdminSearchFormProps {
   className?: string;
   onChange: (value: string) => void;
   onClear: () => void;
-  onSubmit: () => void;
+  onSubmit: (value: string) => void;
   placeholder: string;
   value: string;
 }
@@ -20,7 +20,8 @@ export function AdminSearchForm(props: IAdminSearchFormProps) {
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    props.onSubmit();
+    const formData = new FormData(event.currentTarget);
+    props.onSubmit(String(formData.get('search') ?? props.value));
   };
 
   return (
@@ -29,6 +30,7 @@ export function AdminSearchForm(props: IAdminSearchFormProps) {
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-[#9ca3af]" />
         <input
           type="search"
+          name="search"
           value={props.value}
           onChange={(event) => props.onChange(event.target.value)}
           placeholder={props.placeholder}

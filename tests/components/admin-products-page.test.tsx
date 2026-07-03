@@ -196,6 +196,87 @@ describe('AdminProductsPage', () => {
     });
   });
 
+  it('removes search from the URL when submitting an empty product search', async () => {
+    currentSearchParams = 'search=kuji';
+    const fetchProducts = vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockResolvedValue(
+      createResponse(createProductListResponse([createProduct({ name: 'Kuji Figure' })])),
+    );
+
+    let view = renderWithProviders(<AdminProductsPage />);
+
+    const searchInput = screen.getByRole('searchbox', { name: 'Search products' });
+
+    await screen.findAllByText('Kuji Figure');
+    await userEvent.clear(searchInput);
+    await userEvent.click(screen.getByRole('button', { name: /^Search$/i }));
+
+    expect(replace).toHaveBeenLastCalledWith('/admin/products', { scroll: false });
+    view.unmount();
+    view = renderWithProviders(<AdminProductsPage />);
+
+    await waitFor(() => {
+      expect(fetchProducts).toHaveBeenLastCalledWith({
+        collectionId: 'all',
+        cursor: undefined,
+        limit: 25,
+        productType: 'all',
+        search: undefined,
+        sort: 'updated_desc',
+        status: 'all',
+        tagId: 'all',
+      });
+    });
+    view.unmount();
+  });
+
+  it('removes search from the URL when submitting whitespace product search', async () => {
+    currentSearchParams = 'search=kuji';
+    vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockResolvedValue(
+      createResponse(createProductListResponse([createProduct({ name: 'Kuji Figure' })])),
+    );
+
+    renderWithProviders(<AdminProductsPage />);
+
+    const searchInput = screen.getByRole('searchbox', { name: 'Search products' });
+
+    await screen.findAllByText('Kuji Figure');
+    await userEvent.clear(searchInput);
+    await userEvent.type(searchInput, '   ');
+    await userEvent.click(screen.getByRole('button', { name: /^Search$/i }));
+
+    expect(replace).toHaveBeenLastCalledWith('/admin/products', { scroll: false });
+  });
+
+  it('removes search from the URL when clearing product search', async () => {
+    currentSearchParams = 'search=kuji';
+    const fetchProducts = vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockResolvedValue(
+      createResponse(createProductListResponse([createProduct({ name: 'Kuji Figure' })])),
+    );
+
+    let view = renderWithProviders(<AdminProductsPage />);
+
+    await screen.findAllByText('Kuji Figure');
+    await userEvent.click(screen.getByRole('button', { name: 'Clear search products' }));
+
+    expect(replace).toHaveBeenLastCalledWith('/admin/products', { scroll: false });
+    view.unmount();
+    view = renderWithProviders(<AdminProductsPage />);
+
+    await waitFor(() => {
+      expect(fetchProducts).toHaveBeenLastCalledWith({
+        collectionId: 'all',
+        cursor: undefined,
+        limit: 25,
+        productType: 'all',
+        search: undefined,
+        sort: 'updated_desc',
+        status: 'all',
+        tagId: 'all',
+      });
+    });
+    view.unmount();
+  });
+
   it('load more appends rows using nextCursor', async () => {
     const fetchProducts = vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockImplementation((filters) => (
       Promise.resolve(createResponse(createProductListResponse(
