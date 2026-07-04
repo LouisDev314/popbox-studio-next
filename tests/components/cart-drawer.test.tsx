@@ -188,6 +188,25 @@ describe('CartDrawer', () => {
     expect(screen.queryByText(/tax/i)).not.toBeInTheDocument();
   });
 
+  it('routes checkout to the cart page for contact and shipping details', async () => {
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    const onClose = vi.fn();
+    renderWithProviders(<CartDrawerHarness onClose={onClose} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith('/cart');
+  });
+
   it('shows compact free shipping confirmation in the drawer footer', async () => {
     act(() => {
       useCartStore.setState({

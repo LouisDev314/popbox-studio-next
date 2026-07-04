@@ -6,7 +6,7 @@ import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-l
 import { InvalidCartItems } from '@/components/cart/invalid-cart-items';
 import { CartPageItem } from '@/components/cart/cart-page-item';
 import { CartSummary } from '@/components/cart/cart-summary';
-import { CheckoutButton } from '@/components/cart/checkout-button';
+import { CartCheckoutPanel } from '@/components/cart/cart-checkout-panel';
 import { CartPageSkeleton } from '@/components/store/storefront-page-skeletons';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/hooks/use-cart';
@@ -64,12 +64,8 @@ export default function CartPageClient() {
             <div>
               <p className="justify-self-center font-semibold uppercase tracking-[0.24em] text-muted-foreground">Cart</p>
               <h1 className="mt-2 text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                Your cart total is {formatPrice(summary.totalCents, summary.currency)}
+                Your cart subtotal is {formatPrice(summary.subtotalCents, summary.currency)}
               </h1>
-              <CheckoutButton
-                size="lg"
-                className="mt-6 h-12 w-full rounded-full text-base font-semibold"
-              />
             </div>
           </div>
 
@@ -113,10 +109,9 @@ export default function CartPageClient() {
                   </span>
                 )}
               />
-              <CheckoutButton
-                size="lg"
-                className="mt-6 h-12 w-full rounded-full text-base font-semibold"
-              />
+              <div className="mt-6">
+                <CartCheckoutPanel />
+              </div>
             </div>
 
             <div className="flex justify-center">

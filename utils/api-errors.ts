@@ -139,9 +139,7 @@ export function isBaseApiResponse(value: unknown): value is IBaseApiResponse<unk
   return (
     isObject(value)
     && typeof value.message === 'string'
-    && typeof value.status === 'string'
     && typeof value.success === 'boolean'
     && typeof value.code === 'number'
-    && 'data' in value
   );
 }

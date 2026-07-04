@@ -1,35 +1,105 @@
 import { IOrderDetail } from './order';
 
-export interface IAddress {
-  fullName: string | null;
-  line1: string | null;
-  line2: string | null;
-  city: string | null;
-  province: string | null;
-  postalCode: string | null;
-  countryCode: string | null;
-  phone: string | null;
-}
+export type UUID = string;
 
-export interface ICheckoutItem {
-  productId: string;
+export type CanadianProvinceCode =
+  | 'AB'
+  | 'BC'
+  | 'MB'
+  | 'NB'
+  | 'NL'
+  | 'NS'
+  | 'NT'
+  | 'NU'
+  | 'ON'
+  | 'PE'
+  | 'QC'
+  | 'SK'
+  | 'YT';
+
+export interface CheckoutItem {
+  productId: UUID;
   quantity: number;
 }
 
-export interface ICheckoutRequest {
-  items: ICheckoutItem[];
+export interface ShippingAddress {
+  fullName: string;
+  line1: string;
+  line2?: string | null;
+  city: string;
+  province: CanadianProvinceCode;
+  postalCode: string;
+  countryCode: 'CA';
+  phone?: string | null;
 }
 
-export type CheckoutValidationResult =
-  | { data: ICheckoutRequest; success: true }
-  | { issues: string[]; message: string; success: false };
+export interface ContactFields {
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+}
 
-export interface ICheckoutSession {
+export interface CheckoutRequestBody extends ContactFields {
+  items: CheckoutItem[];
+  shippingAddress: ShippingAddress;
+  billingAddress?: ShippingAddress | null;
+  billingSameAsShipping?: boolean;
+}
+
+export type CheckoutQuoteRequest = CheckoutRequestBody;
+export type CheckoutSessionRequest = CheckoutRequestBody;
+
+export interface TaxBreakdown {
+  countryCode: 'CA';
+  provinceCode: CanadianProvinceCode;
+  taxableAmountCents: number;
+  gstRatePpm: number;
+  pstRatePpm: number;
+  hstRatePpm: number;
+  qstRatePpm: number;
+  gstCents: number;
+  pstCents: number;
+  hstCents: number;
+  qstCents: number;
+  totalTaxCents: number;
+}
+
+export interface CheckoutQuoteData {
+  subtotalCents: number;
+  shippingCents: number;
+  taxCents: number;
+  totalCents: number;
+  taxBreakdown: TaxBreakdown;
+}
+
+export interface CheckoutSessionData {
   checkoutUrl: string;
   sessionId: string;
   publicId: string;
   orderId: string;
 }
+
+export type CheckoutValidationResult =
+  | { data: CheckoutRequestBody; success: true }
+  | { issues: string[]; message: string; success: false };
+
+export interface CheckoutCustomerInput extends ContactFields {
+  shippingAddress: {
+    fullName: string;
+    line1: string;
+    line2?: string | null;
+    city: string;
+    province: string;
+    postalCode: string;
+    countryCode: string;
+    phone?: string | null;
+  };
+}
+
+export type ICheckoutItem = CheckoutItem;
+export type ICheckoutRequest = CheckoutSessionRequest;
+export type ICheckoutSession = CheckoutSessionData;
 
 export interface ICheckoutSuccess {
   publicId: string;

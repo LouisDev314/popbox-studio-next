@@ -23,6 +23,7 @@ describe('cart and checkout hydration gating', () => {
       useCartStore.setState({ hasHydrated: true });
     });
 
-    expect(screen.getAllByRole('button', { name: 'Check Out' })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Checkout details' })).toBeInTheDocument();
   });
 });

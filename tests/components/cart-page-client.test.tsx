@@ -82,7 +82,7 @@ describe('CartPageClient', () => {
 
     expect(screen.getByText('$15.99')).toBeInTheDocument();
     expect(screen.getByText('You are $0.01 away from free shipping.')).toBeInTheDocument();
-    expect(screen.queryByText(/tax/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/calculate backend-owned shipping and tax/i)).toBeInTheDocument();
   });
 
   it('shows free shipping at the threshold', () => {

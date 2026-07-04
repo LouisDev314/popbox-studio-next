@@ -1,7 +1,12 @@
 import httpClient from '@/api/http-client';
 import { AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
-import { ICheckoutRequest, ICheckoutSession } from '@/interfaces/checkout';
+import {
+  CheckoutQuoteData,
+  CheckoutQuoteRequest,
+  CheckoutSessionData,
+  CheckoutSessionRequest,
+} from '@/interfaces/checkout';
 import { IOrderTicket, IGuestTicketView, IAdminOrderStatusUpdate, IAdminOrderShipmentUpdate, IOrderDetail } from '@/interfaces/order';
 import {
   IAdminProduct,
@@ -35,10 +40,15 @@ import { IShippingSettings, IUpdateShippingSettingsPayload } from '@/interfaces/
 import { IStoreBannerSettings, IUpdateStoreBannerSettingsPayload } from '@/interfaces/settings';
 
 const MutationConfigs = {
+  createCheckoutQuote: (
+    data: CheckoutQuoteRequest,
+  ): Promise<AxiosResponse<IBaseApiResponse<CheckoutQuoteData>>> => {
+    return httpClient.post('/api/v1/checkout/quote', data);
+  },
   createCheckoutSession: (
-    data: ICheckoutRequest, 
+    data: CheckoutSessionRequest,
     idempotencyKey: string,
-  ): Promise<AxiosResponse<IBaseApiResponse<ICheckoutSession>>> => {
+  ): Promise<AxiosResponse<IBaseApiResponse<CheckoutSessionData>>> => {
     return httpClient.post('/api/v1/checkout/session', data, {
       headers: {
         'Idempotency-Key': idempotencyKey,

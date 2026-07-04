@@ -8,10 +8,12 @@ import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { type IBaseApiResponse } from '@/interfaces/api-response';
-import { type ICheckoutRequest, type ICheckoutSession } from '@/interfaces/checkout';
+import {
+  type CheckoutSessionData,
+  type CheckoutSessionRequest,
+} from '@/interfaces/checkout';
 import { getApiErrorDetails, isTimeoutAxiosError } from '@/utils/api-errors';
 import {
-  buildCheckoutRequest,
   getInvalidCartItemsCheckoutMessage,
   redirectToCheckout,
 } from '@/utils/checkout';
@@ -49,9 +51,9 @@ function getCheckoutRequestErrorMessage(
 function getCheckoutDialogConfig(error: AxiosError) {
   const status = error.response?.status;
 
-  if (status === HttpStatusCode.Conflict) {
+  if (status === HttpStatusCode.Conflict || status === HttpStatusCode.NotFound) {
     return {
-      message: 'This order can no longer be checked out because one or more items are no longer available.',
+      message: 'Checkout is blocked because one or more items are no longer available. Refresh your cart and try again.',
       title: 'Checkout unavailable',
     };
   }
@@ -68,18 +70,18 @@ function getCheckoutDialogConfig(error: AxiosError) {
 
 export function useStartCheckout() {
   const invalidItems = useCartStore((state) => state.invalidItems);
-  const items = useCartStore((state) => state.items);
   const checkoutErrorMessage = useCheckoutUiStore((state) => state.checkoutErrorMessage);
+  const checkoutDialog = useCheckoutUiStore((state) => state.checkoutDialog);
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
 
   const { mutation: createCheckoutSession } = useCustomizeMutation<
-    ICheckoutSession,
-    { data: ICheckoutRequest; key: string }
+    CheckoutSessionData,
+    { data: CheckoutSessionRequest; key: string }
   >({
     mutationFn: ({ data, key }) => MutationConfigs.createCheckoutSession(data, key),
   });
 
-  const startCheckout = useCallback(() => {
+  const startCheckout = useCallback((data: CheckoutSessionRequest) => {
     if (invalidItems.length > 0) {
       useCheckoutUiStore.getState().setCheckoutError(
         getInvalidCartItemsCheckoutMessage(invalidItems),
@@ -87,23 +89,12 @@ export function useStartCheckout() {
       return;
     }
 
-    if (!items.length) {
-      return;
-    }
-
     if (!useCheckoutUiStore.getState().beginCheckout()) {
       return;
     }
 
-    const requestData = buildCheckoutRequest(items);
-
-    if (!requestData.success) {
-      useCheckoutUiStore.getState().setCheckoutError(requestData.message);
-      return;
-    }
-
     createCheckoutSession(
-      { data: requestData.data, key: uuidv4() },
+      { data, key: `checkout-${uuidv4()}` },
       {
         onSuccess: (response) => {
           const checkoutUrl = response.data.data?.checkoutUrl;
@@ -139,9 +130,10 @@ export function useStartCheckout() {
         },
       },
     );
-  }, [createCheckoutSession, invalidItems, items]);
+  }, [createCheckoutSession, invalidItems]);
 
   return {
+    checkoutDialog,
     checkoutErrorMessage,
     isCheckingOut,
     startCheckout,

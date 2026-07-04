@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShoppingBag, Trash2 } from 'lucide-react';
 import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-lock-overlay';
-import { CheckoutButton } from '@/components/cart/checkout-button';
 import { InvalidCartItems } from '@/components/cart/invalid-cart-items';
 import { Button } from '@/components/ui/button';
 import { StorefrontDrawerEmptyState } from '@/components/ui/storefront-drawer-empty-state';
@@ -142,10 +141,16 @@ export function CartDrawer(props: ICartDrawerProps) {
             >
               View Cart
             </Button>
-            <CheckoutButton
+            <Button
               className="h-12 w-full rounded-full font-semibold"
-              label="Check Out"
-            />
+              disabled={isCheckingOut}
+              onClick={() => {
+                onClose();
+                router.push('/cart');
+              }}
+            >
+              Check Out
+            </Button>
           </div>
         </div>
       ) : undefined}
