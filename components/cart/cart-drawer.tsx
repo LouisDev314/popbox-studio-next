@@ -119,39 +119,22 @@ export function CartDrawer(props: ICartDrawerProps) {
               </p>
             ) : null}
           </div>
-          {/* TEMP: Tax disabled (not collecting tax yet) */}
-          {/* <p className="mb-2 text-xs leading-5 text-muted-foreground">
-            Shipping and tax stay estimated on the cart page. Final totals still come from checkout.
-          </p> */}
           <p className="mb-6 text-xs leading-5 text-muted-foreground">
             {hasKujiItems ? 'Kuji items are random draw and final sale. ' : ''}
             <Link href="/legal/shipping-returns" className="underline underline-offset-4 transition-colors hover:text-foreground">
               Shipping &amp; Returns
             </Link>
           </p>
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
-              className="h-12 rounded-full"
-              disabled={isCheckingOut}
-              onClick={() => {
-                onClose();
-                router.push('/cart');
-              }}
-            >
+          <Button
+            className="h-12 w-full rounded-full font-semibold"
+            disabled={isCheckingOut}
+            onClick={() => {
+              onClose();
+              router.push('/cart');
+            }}
+          >
               View Cart
-            </Button>
-            <Button
-              className="h-12 w-full rounded-full font-semibold"
-              disabled={isCheckingOut}
-              onClick={() => {
-                onClose();
-                router.push('/cart');
-              }}
-            >
-              Check Out
-            </Button>
-          </div>
+          </Button>
         </div>
       ) : undefined}
       overlay={isCheckingOut ? (

@@ -5,7 +5,6 @@ import { ShoppingBag } from 'lucide-react';
 import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-lock-overlay';
 import { InvalidCartItems } from '@/components/cart/invalid-cart-items';
 import { CartPageItem } from '@/components/cart/cart-page-item';
-import { CartSummary } from '@/components/cart/cart-summary';
 import { CartCheckoutPanel } from '@/components/cart/cart-checkout-panel';
 import { CartPageSkeleton } from '@/components/store/storefront-page-skeletons';
 import { Button } from '@/components/ui/button';
@@ -69,55 +68,44 @@ export default function CartPageClient() {
             </div>
           </div>
 
-          <div
-            className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,40rem)_22rem] lg:items-start xl:grid-cols-[minmax(0,42rem)_23rem]"
-            data-testid="cart-checkout-layout"
+          <CartCheckoutPanel
+            summary={summary}
+            summaryNote={(
+              <span>
+                {hasKujiItems ? 'Kuji items are random draw and final sale. ' : ''}
+                <Link href="/legal/shipping-returns" className="underline underline-offset-4 transition-colors hover:text-foreground">
+                  Shipping &amp; Returns
+                </Link>
+              </span>
+            )}
           >
-            <div className="space-y-6">
-              <section className="space-y-4" aria-label="Cart items">
-                <InvalidCartItems
-                  disabled={isCheckingOut}
-                  items={invalidItems}
-                  onRemove={removeInvalidItem}
-                />
-                {items.map((item) => (
-                  (() => {
-                    const quantityLimit = getProductSellableQuantity(item.product);
-                    const limitMessage = getProductCartLimitMessage(item.product, item.quantity);
-
-                    return (
-                      <CartPageItem
-                        key={item.id}
-                        disabled={isCheckingOut}
-                        item={item}
-                        maxQuantity={quantityLimit}
-                        limitMessage={limitMessage}
-                        onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
-                        onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
-                        onRemove={() => handleRemoveItem(item.id)}
-                      />
-                    );
-                  })()
-                ))}
-              </section>
-
-              <CartCheckoutPanel />
-            </div>
-
-            <div className="lg:sticky lg:top-24" data-testid="cart-summary-column">
-              <CartSummary
-                summary={summary}
-                note={(
-                  <span>
-                    {hasKujiItems ? 'Kuji items are random draw and final sale. ' : ''}
-                    <Link href="/legal/shipping-returns" className="underline underline-offset-4 transition-colors hover:text-foreground">
-                      Shipping &amp; Returns
-                    </Link>
-                  </span>
-                )}
+            <section className="space-y-4" aria-label="Cart items">
+              <InvalidCartItems
+                disabled={isCheckingOut}
+                items={invalidItems}
+                onRemove={removeInvalidItem}
               />
-            </div>
-          </div>
+              {items.map((item) => (
+                (() => {
+                  const quantityLimit = getProductSellableQuantity(item.product);
+                  const limitMessage = getProductCartLimitMessage(item.product, item.quantity);
+
+                  return (
+                    <CartPageItem
+                      key={item.id}
+                      disabled={isCheckingOut}
+                      item={item}
+                      maxQuantity={quantityLimit}
+                      limitMessage={limitMessage}
+                      onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
+                      onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
+                      onRemove={() => handleRemoveItem(item.id)}
+                    />
+                  );
+                })()
+              ))}
+            </section>
+          </CartCheckoutPanel>
         </div>
 
         {isCheckingOut && <CartInteractionLockOverlay />}

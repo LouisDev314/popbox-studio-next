@@ -7,17 +7,29 @@ type NormalizedGoogleShippingAddress = Partial<Pick<
 >>;
 
 export interface GoogleAddressComponent {
-  long_name: string;
-  short_name: string;
+  long_name?: string;
+  longText?: string;
+  short_name?: string;
+  shortText?: string;
   types: string[];
 }
 
 function getAddressComponent(
   components: GoogleAddressComponent[] | undefined,
   type: string,
-  field: 'long_name' | 'short_name' = 'long_name',
+  field: 'long' | 'short' = 'long',
 ): string {
-  return components?.find((component) => component.types.includes(type))?.[field]?.trim() ?? '';
+  const component = components?.find((currentComponent) => currentComponent.types.includes(type));
+
+  if (!component) {
+    return '';
+  }
+
+  if (field === 'short') {
+    return (component.shortText ?? component.short_name ?? '').trim();
+  }
+
+  return (component.longText ?? component.long_name ?? '').trim();
 }
 
 export function normalizeGooglePlaceToShippingAddress(params: {
@@ -31,9 +43,9 @@ export function normalizeGooglePlaceToShippingAddress(params: {
     getAddressComponent(params.addressComponents, 'locality')
     || getAddressComponent(params.addressComponents, 'postal_town')
     || getAddressComponent(params.addressComponents, 'administrative_area_level_3');
-  const province = getAddressComponent(params.addressComponents, 'administrative_area_level_1', 'short_name').toUpperCase();
+  const province = getAddressComponent(params.addressComponents, 'administrative_area_level_1', 'short').toUpperCase();
   const postalCode = getAddressComponent(params.addressComponents, 'postal_code');
-  const countryCode = getAddressComponent(params.addressComponents, 'country', 'short_name').toUpperCase();
+  const countryCode = getAddressComponent(params.addressComponents, 'country', 'short').toUpperCase();
   const normalizedAddress: NormalizedGoogleShippingAddress = {};
 
   if (line1) {

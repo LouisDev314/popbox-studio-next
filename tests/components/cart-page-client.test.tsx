@@ -82,7 +82,7 @@ describe('CartPageClient', () => {
 
     expect(screen.getByText('$15.99')).toBeInTheDocument();
     expect(screen.getByText('You are $0.01 away from free shipping.')).toBeInTheDocument();
-    expect(screen.getByText(/calculate backend-owned shipping and tax/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Backend quote/i)).not.toBeInTheDocument();
   });
 
   it('uses a focused two-column checkout layout on desktop', () => {

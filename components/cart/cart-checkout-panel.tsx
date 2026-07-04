@@ -2,12 +2,13 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AxiosError } from 'axios';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import MutationConfigs from '@/configs/api/mutation-config';
 import getPublicEnvConfig from '@/configs/public-env';
 import { CheckoutButton } from '@/components/cart/checkout-button';
+import { CartSummary } from '@/components/cart/cart-summary';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ErrorAlert } from '@/components/ui/error-alert';
 import {
@@ -19,19 +20,19 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useStartCheckout } from '@/hooks/use-start-checkout';
+import { type ICartSummary } from '@/interfaces/cart';
 import {
   type CheckoutQuoteData,
   type CheckoutQuoteRequest,
   type CheckoutSessionRequest,
 } from '@/interfaces/checkout';
 import { type IBaseApiResponse } from '@/interfaces/api-response';
-import { cn, formatPrice } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { getApiErrorDetails } from '@/utils/api-errors';
 import {
   buildCheckoutRequest,
@@ -42,49 +43,50 @@ import {
   type GoogleAddressComponent,
 } from '@/utils/google-address';
 
-type TGooglePlacesStatus = 'OK' | 'ZERO_RESULTS' | string;
-
-interface IGoogleAutocompletePrediction {
-  description: string;
-  place_id: string;
+interface IGooglePlace {
+  addressComponents?: GoogleAddressComponent[];
+  fetchFields: (request: { fields: string[] }) => Promise<void>;
 }
 
-interface IGooglePlaceResult {
-  address_components?: GoogleAddressComponent[];
+interface IGooglePlacePrediction {
+  text?: {
+    toString: () => string;
+  };
+  toPlace: () => IGooglePlace;
 }
 
-interface IGoogleAutocompleteService {
-  getPlacePredictions: (
-    request: {
-      componentRestrictions: { country: 'ca' };
-      input: string;
-      types: string[];
-    },
-    callback: (
-      predictions: IGoogleAutocompletePrediction[] | null,
-      status: TGooglePlacesStatus,
-    ) => void,
-  ) => void;
+interface IGoogleAutocompleteSuggestion {
+  placePrediction?: IGooglePlacePrediction;
 }
 
-interface IGooglePlacesService {
-  getDetails: (
-    request: { fields: string[]; placeId: string },
-    callback: (place: IGooglePlaceResult | null, status: TGooglePlacesStatus) => void,
-  ) => void;
+interface IGoogleAutocompleteRequest {
+  includedPrimaryTypes: string[];
+  input: string;
+  language: 'en-CA';
+  locationRestriction: {
+    east: number;
+    north: number;
+    south: number;
+    west: number;
+  };
+  region: 'ca';
+  sessionToken: unknown;
 }
 
-interface IGooglePlacesNamespace {
-  AutocompleteService: new () => IGoogleAutocompleteService;
-  PlacesService: new (node: HTMLDivElement) => IGooglePlacesService;
-  PlacesServiceStatus: { OK: 'OK' };
+interface IGooglePlacesLibrary {
+  AutocompleteSessionToken: new () => unknown;
+  AutocompleteSuggestion: {
+    fetchAutocompleteSuggestions: (request: IGoogleAutocompleteRequest) => Promise<{
+      suggestions?: IGoogleAutocompleteSuggestion[];
+    }>;
+  };
 }
 
 declare global {
   interface Window {
     google?: {
       maps?: {
-        places?: IGooglePlacesNamespace;
+        importLibrary?: (libraryName: 'places') => Promise<IGooglePlacesLibrary>;
       };
     };
   }
@@ -92,11 +94,17 @@ declare global {
 
 const invalidControlClassName =
   '!border-destructive/80 focus-visible:!border-destructive focus-visible:!ring-destructive/20';
+const CANADA_LOCATION_RESTRICTION = {
+  east: -52,
+  north: 84,
+  south: 41,
+  west: -141,
+};
+const GOOGLE_AUTOCOMPLETE_PRIMARY_TYPES = ['street_address', 'premise', 'subpremise'];
+let googlePlacesScriptPromise: Promise<void> | null = null;
 
 const checkoutFormSchema = z.object({
   email: z.string().trim().min(1, 'Email is required.').email('Enter a valid email address.'),
-  firstName: z.string().trim().max(120, 'First name must be 120 characters or fewer.').optional(),
-  lastName: z.string().trim().max(120, 'Last name must be 120 characters or fewer.').optional(),
   phone: z.string().trim().max(40, 'Phone must be 40 characters or fewer.').optional(),
   shippingAddress: z.object({
     fullName: z.string().trim().min(1, 'Full name is required.').max(240, 'Full name must be 240 characters or fewer.'),
@@ -142,30 +150,35 @@ function isCheckoutReady(params: {
   );
 }
 
-function formatTaxRate(ratePpm: number): string {
-  const rate = ratePpm / 10000;
-
-  return `${Number.isInteger(rate) ? rate.toFixed(0) : rate.toFixed(2)}%`;
-}
-
 function loadGooglePlacesScript(apiKey: string): Promise<void> {
-  if (window.google?.maps?.places) {
+  if (window.google?.maps?.importLibrary) {
     return Promise.resolve();
+  }
+
+  if (googlePlacesScriptPromise) {
+    return googlePlacesScriptPromise;
   }
 
   const existingScript = document.querySelector<HTMLScriptElement>('script[data-popbox-google-places="true"]');
 
   if (existingScript) {
-    return new Promise((resolve, reject) => {
+    if (existingScript.dataset.popboxGooglePlacesLoaded === 'true') {
+      return Promise.resolve();
+    }
+
+    googlePlacesScriptPromise = new Promise((resolve, reject) => {
       existingScript.addEventListener('load', () => resolve(), { once: true });
       existingScript.addEventListener('error', () => reject(new Error('Google Places failed to load.')), { once: true });
     });
+
+    return googlePlacesScriptPromise;
   }
 
   const script = document.createElement('script');
   const searchParams = new URLSearchParams({
     key: apiKey,
-    libraries: 'places',
+    loading: 'async',
+    v: 'weekly',
   });
 
   script.async = true;
@@ -173,11 +186,16 @@ function loadGooglePlacesScript(apiKey: string): Promise<void> {
   script.dataset.popboxGooglePlaces = 'true';
   script.src = `https://maps.googleapis.com/maps/api/js?${searchParams.toString()}`;
 
-  return new Promise((resolve, reject) => {
-    script.addEventListener('load', () => resolve(), { once: true });
+  googlePlacesScriptPromise = new Promise((resolve, reject) => {
+    script.addEventListener('load', () => {
+      script.dataset.popboxGooglePlacesLoaded = 'true';
+      resolve();
+    }, { once: true });
     script.addEventListener('error', () => reject(new Error('Google Places failed to load.')), { once: true });
     document.head.appendChild(script);
   });
+
+  return googlePlacesScriptPromise;
 }
 
 function AddressAutocompleteInput(props: {
@@ -192,11 +210,10 @@ function AddressAutocompleteInput(props: {
   onAddressSelected: (values: Partial<CheckoutFormValues['shippingAddress']>) => void;
 }) {
   const apiKey = getPublicEnvConfig().googleMapsApiKey;
-  const autocompleteServiceRef = useRef<IGoogleAutocompleteService | null>(null);
-  const placesServiceRef = useRef<IGooglePlacesService | null>(null);
-  const placesNodeRef = useRef<HTMLDivElement | null>(null);
+  const placesLibraryRef = useRef<IGooglePlacesLibrary | null>(null);
+  const sessionTokenRef = useRef<unknown | null>(null);
   const [isAutocompleteReady, setIsAutocompleteReady] = useState(false);
-  const [predictions, setPredictions] = useState<IGoogleAutocompletePrediction[]>([]);
+  const [predictions, setPredictions] = useState<IGooglePlacePrediction[]>([]);
   const debouncedInput = useDebouncedValue(props.field.value, 250);
   const visiblePredictions =
     isAutocompleteReady && props.field.value.trim().length >= 4
@@ -211,15 +228,21 @@ function AddressAutocompleteInput(props: {
     let isMounted = true;
 
     loadGooglePlacesScript(apiKey)
-      .then(() => {
-        const places = window.google?.maps?.places;
+      .then(async () => {
+        const importLibrary = window.google?.maps?.importLibrary;
 
-        if (!isMounted || !places || !placesNodeRef.current) {
+        if (!importLibrary) {
           return;
         }
 
-        autocompleteServiceRef.current = new places.AutocompleteService();
-        placesServiceRef.current = new places.PlacesService(placesNodeRef.current);
+        const placesLibrary = await importLibrary('places');
+
+        if (!isMounted) {
+          return;
+        }
+
+        placesLibraryRef.current = placesLibrary;
+        sessionTokenRef.current = new placesLibrary.AutocompleteSessionToken();
         setIsAutocompleteReady(true);
       })
       .catch(() => {
@@ -235,55 +258,69 @@ function AddressAutocompleteInput(props: {
 
   useEffect(() => {
     const input = debouncedInput.trim();
-    const autocompleteService = autocompleteServiceRef.current;
+    const placesLibrary = placesLibraryRef.current;
 
-    if (!isAutocompleteReady || !autocompleteService || input.length < 4) {
+    if (!isAutocompleteReady || !placesLibrary || input.length < 4) {
       return;
     }
 
-    autocompleteService.getPlacePredictions(
-      {
-        componentRestrictions: { country: 'ca' },
-        input,
-        types: ['address'],
-      },
-      (nextPredictions, status) => {
-        if (status !== 'OK') {
-          setPredictions([]);
+    let isCancelled = false;
+    const sessionToken = sessionTokenRef.current ?? new placesLibrary.AutocompleteSessionToken();
+
+    sessionTokenRef.current = sessionToken;
+
+    placesLibrary.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+      includedPrimaryTypes: GOOGLE_AUTOCOMPLETE_PRIMARY_TYPES,
+      input,
+      language: 'en-CA',
+      locationRestriction: CANADA_LOCATION_RESTRICTION,
+      region: 'ca',
+      sessionToken,
+    })
+      .then((response) => {
+        if (isCancelled) {
           return;
         }
 
-        setPredictions(nextPredictions ?? []);
-      },
-    );
+        setPredictions(
+          response.suggestions
+            ?.map((suggestion) => suggestion.placePrediction)
+            .filter((placePrediction): placePrediction is IGooglePlacePrediction => Boolean(placePrediction)) ?? [],
+        );
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setPredictions([]);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [debouncedInput, isAutocompleteReady]);
 
-  const handleSelectPrediction = useCallback((prediction: IGoogleAutocompletePrediction) => {
-    const placesService = placesServiceRef.current;
+  const handleSelectPrediction = useCallback((prediction: IGooglePlacePrediction) => {
+    const placesLibrary = placesLibraryRef.current;
+    const description = prediction.text?.toString() ?? '';
 
-    props.field.onChange(prediction.description);
+    props.field.onChange(description);
     setPredictions([]);
 
-    if (!placesService) {
-      return;
-    }
+    const place = prediction.toPlace();
 
-    placesService.getDetails(
-      {
-        fields: ['address_components'],
-        placeId: prediction.place_id,
-      },
-      (place, status) => {
-        if (status !== 'OK') {
-          return;
-        }
-
+    place.fetchFields({ fields: ['addressComponents'] })
+      .then(() => {
         props.onAddressSelected(normalizeGooglePlaceToShippingAddress({
-          addressComponents: place?.address_components,
-          fallbackDescription: prediction.description,
+          addressComponents: place.addressComponents,
+          fallbackDescription: description,
         }));
-      },
-    );
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (placesLibrary) {
+          sessionTokenRef.current = new placesLibrary.AutocompleteSessionToken();
+        }
+      });
   }, [props]);
 
   return (
@@ -299,29 +336,39 @@ function AddressAutocompleteInput(props: {
         onBlur={props.field.onBlur}
         onChange={(event) => props.field.onChange(event.target.value)}
       />
-      <div ref={placesNodeRef} className="hidden" />
       {visiblePredictions.length > 0 ? (
         <div className="absolute left-0 right-0 top-[calc(100%+0.25rem)] z-30 overflow-hidden rounded-xl border border-border bg-popover shadow-lg">
-          {visiblePredictions.map((prediction) => (
-            <button
-              key={prediction.place_id}
-              type="button"
-              className="block w-full px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
-              onClick={() => handleSelectPrediction(prediction)}
-            >
-              {prediction.description}
-            </button>
-          ))}
+          {visiblePredictions.map((prediction, index) => {
+            const description = prediction.text?.toString() ?? '';
+
+            return (
+              <button
+                key={`${description}-${index}`}
+                type="button"
+                className="block w-full px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+                onClick={() => handleSelectPrediction(prediction)}
+              >
+                {description}
+              </button>
+            );
+          })}
         </div>
       ) : null}
     </div>
   );
 }
 
-export function CartCheckoutPanel() {
+interface ICartCheckoutPanelProps {
+  children?: ReactNode;
+  summary?: ICartSummary;
+  summaryNote?: ReactNode;
+}
+
+export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   const invalidItems = useCartStore((state) => state.invalidItems);
   const items = useCartStore((state) => state.items);
   const hasHydrated = useCartStore((state) => state.hasHydrated);
+  const getCartSummary = useCartStore((state) => state.getCartSummary);
   const clearCheckoutDialog = useCheckoutUiStore((state) => state.clearCheckoutDialog);
   const { checkoutDialog, checkoutErrorMessage, isCheckingOut, startCheckout } = useStartCheckout();
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
@@ -335,8 +382,6 @@ export function CartCheckoutPanel() {
   const form = useForm<CheckoutFormValues>({
     defaultValues: {
       email: '',
-      firstName: '',
-      lastName: '',
       phone: '',
       shippingAddress: {
         city: '',
@@ -355,8 +400,6 @@ export function CartCheckoutPanel() {
   const watchedValues = useWatch({ control: form.control });
   const requestResult = useMemo(() => buildCheckoutRequest(items, {
     email: watchedValues.email ?? '',
-    firstName: watchedValues.firstName ?? '',
-    lastName: watchedValues.lastName ?? '',
     phone: watchedValues.phone ?? '',
     shippingAddress: {
       city: watchedValues.shippingAddress?.city ?? '',
@@ -470,332 +513,254 @@ export function CartCheckoutPanel() {
   }
 
   const quote = quoteState.status === 'success' && isQuoteCurrent ? quoteState.data : null;
-  const taxBreakdown = quote?.taxBreakdown;
-  const taxRows = taxBreakdown
-    ? [
-      { amountCents: taxBreakdown.gstCents, label: 'GST', ratePpm: taxBreakdown.gstRatePpm },
-      { amountCents: taxBreakdown.pstCents, label: 'PST', ratePpm: taxBreakdown.pstRatePpm },
-      { amountCents: taxBreakdown.hstCents, label: 'HST', ratePpm: taxBreakdown.hstRatePpm },
-      { amountCents: taxBreakdown.qstCents, label: 'QST', ratePpm: taxBreakdown.qstRatePpm },
-    ].filter((row) => row.amountCents > 0 || row.ratePpm > 0)
-    : [];
+  const summary = props.summary ?? getCartSummary();
+  const isQuotePending = quoteState.status === 'pending' && isQuoteCurrent;
 
   return (
-    <section className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm" aria-label="Checkout details">
-      <div className="space-y-1.5">
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Checkout details</h2>
-        <p className="text-sm leading-6 text-muted-foreground">
-          We ship within Canada only. Stripe will collect payment after these totals are confirmed by PopBox Studio.
-        </p>
-      </div>
+    <>
+      <form
+        className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,40rem)_22rem] lg:items-start xl:grid-cols-[minmax(0,42rem)_23rem]"
+        data-testid="cart-checkout-layout"
+        noValidate
+        onSubmit={form.handleSubmit(handleSubmitCheckout)}
+      >
+        <div className="space-y-6">
+          {props.children}
 
-      <form className="mt-6 space-y-6" noValidate onSubmit={form.handleSubmit(handleSubmitCheckout)}>
-        <FieldGroup>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Controller
-              name="email"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="sm:col-span-2">
-                  <FieldLabel htmlFor="checkout-email">Email</FieldLabel>
-                  <Input
-                    {...field}
-                    id="checkout-email"
-                    type="email"
-                    autoComplete="email"
-                    disabled={isCheckingOut}
-                    aria-invalid={fieldState.invalid}
-                    className={cn(fieldState.invalid && invalidControlClassName)}
-                  />
-                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-                </Field>
-              )}
-            />
-
-            <Controller
-              name="firstName"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="checkout-first-name">First name (optional)</FieldLabel>
-                  <Input
-                    {...field}
-                    id="checkout-first-name"
-                    autoComplete="given-name"
-                    disabled={isCheckingOut}
-                    aria-invalid={fieldState.invalid}
-                    className={cn(fieldState.invalid && invalidControlClassName)}
-                  />
-                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-                </Field>
-              )}
-            />
-
-            <Controller
-              name="lastName"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="checkout-last-name">Last name (optional)</FieldLabel>
-                  <Input
-                    {...field}
-                    id="checkout-last-name"
-                    autoComplete="family-name"
-                    disabled={isCheckingOut}
-                    aria-invalid={fieldState.invalid}
-                    className={cn(fieldState.invalid && invalidControlClassName)}
-                  />
-                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-                </Field>
-              )}
-            />
-
-            <Controller
-              name="phone"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="sm:col-span-2">
-                  <FieldLabel htmlFor="checkout-phone">Phone (optional)</FieldLabel>
-                  <Input
-                    {...field}
-                    id="checkout-phone"
-                    type="tel"
-                    autoComplete="tel"
-                    disabled={isCheckingOut}
-                    aria-invalid={fieldState.invalid}
-                    className={cn(fieldState.invalid && invalidControlClassName)}
-                  />
-                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-                </Field>
-              )}
-            />
-          </div>
-        </FieldGroup>
-
-        <div className="border-t border-border/60 pt-6">
-          <h3 className="text-base font-semibold text-foreground">Shipping address</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Country is fixed to Canada for this checkout.</p>
-        </div>
-
-        <FieldGroup>
-          <Controller
-            name="shippingAddress.fullName"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="checkout-full-name">Full name</FieldLabel>
-                <Input
-                  {...field}
-                  id="checkout-full-name"
-                  autoComplete="name"
-                  disabled={isCheckingOut}
-                  aria-invalid={fieldState.invalid}
-                  className={cn(fieldState.invalid && invalidControlClassName)}
-                />
-                {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-              </Field>
-            )}
-          />
-
-          <Controller
-            name="shippingAddress.line1"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="checkout-line1">Street address</FieldLabel>
-                <AddressAutocompleteInput
-                  disabled={isCheckingOut}
-                  field={field}
-                  invalid={fieldState.invalid}
-                  onAddressSelected={(values) => {
-                    if (values.line1) {
-                      form.setValue('shippingAddress.line1', values.line1, { shouldDirty: true, shouldValidate: true });
-                    }
-                    if (values.city) {
-                      form.setValue('shippingAddress.city', values.city, { shouldDirty: true, shouldValidate: true });
-                    }
-                    if (values.province) {
-                      form.setValue('shippingAddress.province', values.province, { shouldDirty: true, shouldValidate: true });
-                    }
-                    if (values.postalCode) {
-                      form.setValue('shippingAddress.postalCode', values.postalCode, { shouldDirty: true, shouldValidate: true });
-                    }
-                    form.setValue('shippingAddress.countryCode', 'CA', { shouldDirty: true, shouldValidate: true });
-                  }}
-                />
-                <FieldDescription>Start typing for address suggestions, or enter the address manually.</FieldDescription>
-                {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-              </Field>
-            )}
-          />
-
-          <Controller
-            name="shippingAddress.line2"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="checkout-line2">Apartment, suite, etc. (optional)</FieldLabel>
-                <Input
-                  {...field}
-                  id="checkout-line2"
-                  autoComplete="address-line2"
-                  disabled={isCheckingOut}
-                  aria-invalid={fieldState.invalid}
-                  className={cn(fieldState.invalid && invalidControlClassName)}
-                />
-                {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-              </Field>
-            )}
-          />
-
-          <div className="grid gap-5 sm:grid-cols-3">
-            <Controller
-              name="shippingAddress.city"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="checkout-city">City</FieldLabel>
-                  <Input
-                    {...field}
-                    id="checkout-city"
-                    autoComplete="address-level2"
-                    disabled={isCheckingOut}
-                    aria-invalid={fieldState.invalid}
-                    className={cn(fieldState.invalid && invalidControlClassName)}
-                  />
-                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-                </Field>
-              )}
-            />
-
-            <Controller
-              name="shippingAddress.province"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="checkout-province">Province</FieldLabel>
-                  <select
-                    id="checkout-province"
-                    name={field.name}
-                    value={field.value ?? ''}
-                    disabled={isCheckingOut}
-                    aria-invalid={fieldState.invalid}
-                    className={cn(
-                      'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50',
-                      fieldState.invalid && 'border-destructive/80 focus:border-destructive focus:ring-destructive/20',
-                    )}
-                    onBlur={field.onBlur}
-                    onChange={(event) => field.onChange(event.target.value)}
-                  >
-                    <option value="">Choose</option>
-                    {CANADIAN_PROVINCES.map((province) => (
-                      <option key={province.code} value={province.code}>
-                        {province.code} - {province.label}
-                      </option>
-                    ))}
-                  </select>
-                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-                </Field>
-              )}
-            />
-
-            <Controller
-              name="shippingAddress.postalCode"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="checkout-postal-code">Postal code</FieldLabel>
-                  <Input
-                    {...field}
-                    id="checkout-postal-code"
-                    autoComplete="postal-code"
-                    disabled={isCheckingOut}
-                    aria-invalid={fieldState.invalid}
-                    className={cn(fieldState.invalid && invalidControlClassName)}
-                  />
-                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
-                </Field>
-              )}
-            />
-          </div>
-
-          <Controller
-            name="shippingAddress.countryCode"
-            control={form.control}
-            render={({ field }) => (
-              <Field>
-                <FieldLabel htmlFor="checkout-country">Country</FieldLabel>
-                <Input
-                  {...field}
-                  id="checkout-country"
-                  value="Canada"
-                  disabled={true}
-                />
-              </Field>
-            )}
-          />
-        </FieldGroup>
-
-        <div className="rounded-2xl border border-border/60 bg-background/60 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="text-base font-semibold text-foreground">Backend quote</h3>
-            {quoteState.status === 'pending' && isQuoteCurrent ? (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <Spinner className="size-3.5" />
-                Updating
-              </span>
-            ) : null}
-          </div>
-
-          {quote ? (
-            <div className="mt-4 space-y-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium text-foreground">{formatPrice(quote.subtotalCents)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Shipping</span>
-                <span className="font-medium text-foreground">{formatPrice(quote.shippingCents)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Tax</span>
-                <span className="font-medium text-foreground">{formatPrice(quote.taxCents)}</span>
-              </div>
-              {taxRows.length > 0 ? (
-                <div className="space-y-2 rounded-xl bg-muted/35 px-3 py-2">
-                  {taxRows.map((row) => (
-                    <div key={row.label} className="flex items-center justify-between gap-3 text-xs">
-                      <span className="text-muted-foreground">
-                        <span>{row.label}</span>
-                        <span className="ml-1">{formatTaxRate(row.ratePpm)}</span>
-                      </span>
-                      <span className="font-medium text-foreground">{formatPrice(row.amountCents)}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-              <div className="border-t border-border/60 pt-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-base font-semibold text-foreground">Total</span>
-                  <span className="text-xl font-bold text-foreground">{formatPrice(quote.totalCents)}</span>
-                </div>
-              </div>
+          <section className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm" aria-label="Checkout details">
+            <div className="space-y-1.5">
+              <h2 className="text-2xl font-semibold tracking-tight text-foreground">Checkout details</h2>
+              <p className="text-sm leading-6 text-muted-foreground">
+                We ship within Canada only.
+              </p>
             </div>
-          ) : (
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Enter a valid Canadian shipping address to calculate backend-owned shipping and tax.
-            </p>
-          )}
+
+            <div className="mt-6 space-y-6">
+              <FieldGroup>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Controller
+                    name="email"
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid} className="sm:col-span-2">
+                        <FieldLabel htmlFor="checkout-email">Email</FieldLabel>
+                        <Input
+                          {...field}
+                          id="checkout-email"
+                          type="email"
+                          autoComplete="email"
+                          disabled={isCheckingOut}
+                          aria-invalid={fieldState.invalid}
+                          className={cn(fieldState.invalid && invalidControlClassName)}
+                        />
+                        {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      </Field>
+                    )}
+                  />
+
+                  <Controller
+                    name="phone"
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid} className="sm:col-span-2">
+                        <FieldLabel htmlFor="checkout-phone">Phone (optional)</FieldLabel>
+                        <Input
+                          {...field}
+                          id="checkout-phone"
+                          type="tel"
+                          autoComplete="tel"
+                          disabled={isCheckingOut}
+                          aria-invalid={fieldState.invalid}
+                          className={cn(fieldState.invalid && invalidControlClassName)}
+                        />
+                        {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      </Field>
+                    )}
+                  />
+                </div>
+              </FieldGroup>
+              
+              <h3 className="text-base font-semibold text-foreground">Shipping address</h3>
+
+              <FieldGroup>
+                <Controller
+                  name="shippingAddress.fullName"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="checkout-full-name">Full name</FieldLabel>
+                      <Input
+                        {...field}
+                        id="checkout-full-name"
+                        autoComplete="name"
+                        disabled={isCheckingOut}
+                        aria-invalid={fieldState.invalid}
+                        className={cn(fieldState.invalid && invalidControlClassName)}
+                      />
+                      {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    </Field>
+                  )}
+                />
+
+                <Controller
+                  name="shippingAddress.line1"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="checkout-line1">Street address</FieldLabel>
+                      <AddressAutocompleteInput
+                        disabled={isCheckingOut}
+                        field={field}
+                        invalid={fieldState.invalid}
+                        onAddressSelected={(values) => {
+                          if (values.line1) {
+                            form.setValue('shippingAddress.line1', values.line1, { shouldDirty: true, shouldValidate: true });
+                          }
+                          if (values.city) {
+                            form.setValue('shippingAddress.city', values.city, { shouldDirty: true, shouldValidate: true });
+                          }
+                          if (values.province) {
+                            form.setValue('shippingAddress.province', values.province, { shouldDirty: true, shouldValidate: true });
+                          }
+                          if (values.postalCode) {
+                            form.setValue('shippingAddress.postalCode', values.postalCode, { shouldDirty: true, shouldValidate: true });
+                          }
+                          form.setValue('shippingAddress.countryCode', 'CA', { shouldDirty: true, shouldValidate: true });
+                        }}
+                      />
+                      {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    </Field>
+                  )}
+                />
+
+                <Controller
+                  name="shippingAddress.line2"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor="checkout-line2">Apartment, suite, etc. (optional)</FieldLabel>
+                      <Input
+                        {...field}
+                        id="checkout-line2"
+                        autoComplete="address-line2"
+                        disabled={isCheckingOut}
+                        aria-invalid={fieldState.invalid}
+                        className={cn(fieldState.invalid && invalidControlClassName)}
+                      />
+                      {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                    </Field>
+                  )}
+                />
+
+                <div className="grid gap-5 sm:grid-cols-3">
+                  <Controller
+                    name="shippingAddress.city"
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel htmlFor="checkout-city">City</FieldLabel>
+                        <Input
+                          {...field}
+                          id="checkout-city"
+                          autoComplete="address-level2"
+                          disabled={isCheckingOut}
+                          aria-invalid={fieldState.invalid}
+                          className={cn(fieldState.invalid && invalidControlClassName)}
+                        />
+                        {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      </Field>
+                    )}
+                  />
+
+                  <Controller
+                    name="shippingAddress.province"
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel htmlFor="checkout-province">Province</FieldLabel>
+                        <select
+                          id="checkout-province"
+                          name={field.name}
+                          value={field.value ?? ''}
+                          disabled={isCheckingOut}
+                          aria-invalid={fieldState.invalid}
+                          className={cn(
+                            'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50',
+                            fieldState.invalid && 'border-destructive/80 focus:border-destructive focus:ring-destructive/20',
+                          )}
+                          onBlur={field.onBlur}
+                          onChange={(event) => field.onChange(event.target.value)}
+                        >
+                          <option value="">Choose</option>
+                          {CANADIAN_PROVINCES.map((province) => (
+                            <option key={province.code} value={province.code}>
+                              {province.code} - {province.label}
+                            </option>
+                          ))}
+                        </select>
+                        {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      </Field>
+                    )}
+                  />
+
+                  <Controller
+                    name="shippingAddress.postalCode"
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel htmlFor="checkout-postal-code">Postal code</FieldLabel>
+                        <Input
+                          {...field}
+                          id="checkout-postal-code"
+                          autoComplete="postal-code"
+                          disabled={isCheckingOut}
+                          aria-invalid={fieldState.invalid}
+                          className={cn(fieldState.invalid && invalidControlClassName)}
+                        />
+                        {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                      </Field>
+                    )}
+                  />
+                </div>
+
+                <Controller
+                  name="shippingAddress.countryCode"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Field>
+                      <FieldLabel htmlFor="checkout-country">Country</FieldLabel>
+                      <Input
+                        {...field}
+                        id="checkout-country"
+                        value="Canada"
+                        disabled={true}
+                      />
+                    </Field>
+                  )}
+                />
+              </FieldGroup>
+            </div>
+          </section>
         </div>
 
-        <ErrorAlert message={blockingMessage} />
+        <div className="space-y-4 lg:sticky lg:top-24" data-testid="cart-summary-column">
+          <CartSummary
+            summary={summary}
+            note={props.summaryNote}
+            quote={quote}
+            isQuotePending={isQuotePending}
+          />
 
-        <CheckoutButton
-          size="lg"
-          className="h-12 w-full rounded-full text-base font-semibold"
-          disabled={!canCheckout}
-          isPending={isCheckingOut}
-        />
+          <CheckoutButton
+            size="lg"
+            className="h-12 w-full rounded-full text-base font-semibold"
+            data-testid="cart-checkout-submit"
+            disabled={!canCheckout}
+            isPending={isCheckingOut}
+          />
+
+          <ErrorAlert message={blockingMessage} />
+        </div>
       </form>
 
       <Dialog
@@ -828,6 +793,6 @@ export function CartCheckoutPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </section>
+    </>
   );
 }

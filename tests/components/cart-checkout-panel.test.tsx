@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   http,
@@ -47,81 +47,98 @@ import {
 const QUOTE_URL = /\/api\/v1\/checkout\/quote$/;
 const SESSION_URL = /\/api\/v1\/checkout\/session$/;
 
-type GooglePlacesStatus = 'OK' | 'ZERO_RESULTS' | string;
-
 interface GoogleAutocompletePrediction {
-  description: string;
-  place_id: string;
+  placePrediction: {
+    text: { toString: () => string };
+    toPlace: ReturnType<typeof vi.fn<() => {
+      addressComponents?: GoogleAddressComponent[];
+      fetchFields: ReturnType<typeof vi.fn<(request: GooglePlaceDetailsRequest) => Promise<void>>>;
+    }>>;
+  };
 }
 
 interface GoogleAddressComponent {
+  longText?: string;
   long_name: string;
+  shortText?: string;
   short_name: string;
   types: string[];
 }
 
 interface GooglePredictionRequest {
-  componentRestrictions: { country: 'ca' };
+  includedPrimaryTypes: string[];
   input: string;
-  types: string[];
+  language: 'en-CA';
+  locationRestriction: {
+    east: number;
+    north: number;
+    south: number;
+    west: number;
+  };
+  region: 'ca';
+  sessionToken: unknown;
 }
 
 interface GooglePlaceDetailsRequest {
   fields: string[];
-  placeId: string;
 }
 
 interface MockGooglePlaces {
-  getDetails: ReturnType<typeof vi.fn<(request: GooglePlaceDetailsRequest, callback: (
-    place: { address_components?: GoogleAddressComponent[] } | null,
-    status: GooglePlacesStatus,
-  ) => void) => void>>;
-  getPlacePredictions: ReturnType<typeof vi.fn<(request: GooglePredictionRequest, callback: (
-    predictions: GoogleAutocompletePrediction[] | null,
-    status: GooglePlacesStatus,
-  ) => void) => void>>;
+  fetchAutocompleteSuggestions: ReturnType<typeof vi.fn<(request: GooglePredictionRequest) => Promise<{
+    suggestions: GoogleAutocompletePrediction[];
+  }>>>;
+  fetchFields: ReturnType<typeof vi.fn<(request: GooglePlaceDetailsRequest) => Promise<void>>>;
+  importLibrary: ReturnType<typeof vi.fn<(libraryName: 'places') => Promise<unknown>>>;
+  toPlace: ReturnType<typeof vi.fn<() => {
+    addressComponents?: GoogleAddressComponent[];
+    fetchFields: ReturnType<typeof vi.fn<(request: GooglePlaceDetailsRequest) => Promise<void>>>;
+  }>>;
 }
 
 function installMockGooglePlaces(): MockGooglePlaces {
-  const getPlacePredictions = vi.fn((
-    _request: GooglePredictionRequest,
-    callback: (
-      predictions: GoogleAutocompletePrediction[] | null,
-      status: GooglePlacesStatus,
-    ) => void,
-  ) => {
-    callback([
+  const fetchFields = vi.fn(async () => undefined);
+  const place = {
+    addressComponents: [
+      { long_name: '123', longText: '123', short_name: '123', shortText: '123', types: ['street_number'] },
+      { long_name: 'Maple Street', longText: 'Maple Street', short_name: 'Maple St', shortText: 'Maple St', types: ['route'] },
+      { long_name: 'Vancouver', longText: 'Vancouver', short_name: 'Vancouver', shortText: 'Vancouver', types: ['locality'] },
+      { long_name: 'British Columbia', longText: 'British Columbia', short_name: 'BC', shortText: 'BC', types: ['administrative_area_level_1'] },
+      { long_name: 'V6B 1A1', longText: 'V6B 1A1', short_name: 'V6B 1A1', shortText: 'V6B 1A1', types: ['postal_code'] },
+      { long_name: 'Canada', longText: 'Canada', short_name: 'CA', shortText: 'CA', types: ['country'] },
+    ],
+    fetchFields,
+  };
+  const toPlace = vi.fn(() => place);
+  const fetchAutocompleteSuggestions = vi.fn(async () => ({
+    suggestions: [
       {
-        description: '123 Maple Street, Vancouver, BC, Canada',
-        place_id: 'place-123',
+        placePrediction: {
+          text: { toString: () => '123 Maple Street, Vancouver, BC, Canada' },
+          toPlace,
+        },
       },
-    ], 'OK');
-  });
-  const getDetails = vi.fn((
-    _request: GooglePlaceDetailsRequest,
-    callback: (
-      place: { address_components?: GoogleAddressComponent[] } | null,
-      status: GooglePlacesStatus,
-    ) => void,
-  ) => {
-    callback({
-      address_components: [
-        { long_name: '123', short_name: '123', types: ['street_number'] },
-        { long_name: 'Maple Street', short_name: 'Maple St', types: ['route'] },
-        { long_name: 'Vancouver', short_name: 'Vancouver', types: ['locality'] },
-        { long_name: 'British Columbia', short_name: 'BC', types: ['administrative_area_level_1'] },
-        { long_name: 'V6B 1A1', short_name: 'V6B 1A1', types: ['postal_code'] },
-        { long_name: 'Canada', short_name: 'CA', types: ['country'] },
-      ],
-    }, 'OK');
+    ],
+  }));
+  const importLibrary = vi.fn(async (libraryName: 'places') => {
+    if (libraryName !== 'places') {
+      throw new Error(`Unexpected library ${libraryName}`);
+    }
+
+    return {
+      AutocompleteSessionToken: vi.fn(),
+      AutocompleteSuggestion: {
+        fetchAutocompleteSuggestions,
+      },
+    };
   });
   const browserWindow = window as Window & {
     google?: {
       maps?: {
+        importLibrary: typeof importLibrary;
         places?: {
-          AutocompleteService: new () => { getPlacePredictions: typeof getPlacePredictions };
-          PlacesService: new () => { getDetails: typeof getDetails };
-          PlacesServiceStatus: { OK: 'OK' };
+          AutocompleteSuggestion: {
+            fetchAutocompleteSuggestions: typeof fetchAutocompleteSuggestions;
+          };
         };
       };
     };
@@ -129,17 +146,20 @@ function installMockGooglePlaces(): MockGooglePlaces {
 
   browserWindow.google = {
     maps: {
+      importLibrary,
       places: {
-        AutocompleteService: vi.fn(() => ({ getPlacePredictions })),
-        PlacesService: vi.fn(() => ({ getDetails })),
-        PlacesServiceStatus: { OK: 'OK' },
+        AutocompleteSuggestion: {
+          fetchAutocompleteSuggestions,
+        },
       },
     },
   };
 
   return {
-    getDetails,
-    getPlacePredictions,
+    fetchAutocompleteSuggestions,
+    fetchFields,
+    importLibrary,
+    toPlace,
   };
 }
 
@@ -187,8 +207,6 @@ function createQuoteResponse(overrides: Partial<{
 
 async function fillValidCheckoutForm() {
   await userEvent.type(screen.getByLabelText('Email'), 'customer@example.com');
-  await userEvent.type(screen.getByLabelText('First name (optional)'), 'Ada');
-  await userEvent.type(screen.getByLabelText('Last name (optional)'), 'Lovelace');
   await userEvent.type(screen.getByLabelText('Phone (optional)'), '+1 780 555 0100');
   await userEvent.type(screen.getByLabelText('Full name'), 'Ada Lovelace');
   await userEvent.type(screen.getByLabelText('Street address'), '123 Maple Street');
@@ -247,22 +265,34 @@ describe('CartCheckoutPanel', () => {
     expect(await screen.findByRole('button', {
       name: '123 Maple Street, Vancouver, BC, Canada',
     })).toBeInTheDocument();
-    expect(googlePlaces.getPlacePredictions).toHaveBeenCalledWith(
+    expect(googlePlaces.importLibrary).toHaveBeenCalledWith('places');
+    expect(googlePlaces.fetchAutocompleteSuggestions).toHaveBeenCalledWith(
       expect.objectContaining({
-        componentRestrictions: { country: 'ca' },
-        types: ['address'],
+        includedPrimaryTypes: ['street_address', 'premise', 'subpremise'],
+        language: 'en-CA',
+        region: 'ca',
+        sessionToken: expect.anything(),
       }),
-      expect.any(Function),
+    );
+    expect(googlePlaces.fetchAutocompleteSuggestions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        locationRestriction: expect.objectContaining({
+          east: -52,
+          north: 84,
+          south: 41,
+          west: -141,
+        }),
+      }),
     );
 
     await userEvent.click(screen.getByRole('button', {
       name: '123 Maple Street, Vancouver, BC, Canada',
     }));
 
-    expect(googlePlaces.getDetails).toHaveBeenCalledWith({
-      fields: ['address_components'],
-      placeId: 'place-123',
-    }, expect.any(Function));
+    expect(googlePlaces.toPlace).toHaveBeenCalled();
+    expect(googlePlaces.fetchFields).toHaveBeenCalledWith({
+      fields: ['addressComponents'],
+    });
     expect(screen.getByLabelText('Street address')).toHaveValue('123 Maple Street');
     expect(screen.getByLabelText('City')).toHaveValue('Vancouver');
     expect(screen.getByLabelText('Province')).toHaveValue('BC');
@@ -305,17 +335,17 @@ describe('CartCheckoutPanel', () => {
     });
     expect(screen.getByText('GST')).toBeInTheDocument();
     expect(screen.getByText('PST')).toBeInTheDocument();
+    expect(screen.queryByText(/Backend quote/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('cart-summary-backend-totals')).toBeInTheDocument();
     expect(requestBody).toMatchObject({
       billingSameAsShipping: true,
       email: 'customer@example.com',
-      firstName: 'Ada',
       items: [
         {
           productId: '11111111-1111-4111-8111-111111111111',
           quantity: 1,
         },
       ],
-      lastName: 'Lovelace',
       phone: '+1 780 555 0100',
       shippingAddress: {
         city: 'Vancouver',
@@ -326,6 +356,36 @@ describe('CartCheckoutPanel', () => {
         province: 'BC',
       },
     });
+    expect(requestBody).not.toHaveProperty('firstName');
+    expect(requestBody).not.toHaveProperty('lastName');
+  });
+
+  it('shows one full name field and places the only checkout button below the order summary', () => {
+    resetStores();
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    expect(screen.getAllByLabelText('Full name')).toHaveLength(1);
+    expect(screen.queryByLabelText(/First name/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Last name/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Backend quote/i)).not.toBeInTheDocument();
+
+    const buttons = screen.getAllByRole('button', { name: 'Check Out' });
+    expect(buttons).toHaveLength(1);
+    expect(screen.getByTestId('cart-checkout-submit')).toBe(buttons[0]);
+
+    const summaryColumn = screen.getByTestId('cart-summary-column');
+
+    expect(within(summaryColumn).getByTestId('cart-summary')).toBeInTheDocument();
+    expect(within(summaryColumn).getByTestId('cart-checkout-submit')).toBeInTheDocument();
   });
 
   it('shows quote validation errors and keeps checkout disabled', async () => {
@@ -453,6 +513,8 @@ describe('CartCheckoutPanel', () => {
         province: 'BC',
       },
     });
+    expect(sessionBody).not.toHaveProperty('firstName');
+    expect(sessionBody).not.toHaveProperty('lastName');
     expect(sessionBody).not.toHaveProperty('subtotalCents');
     expect(sessionBody).not.toHaveProperty('shippingCents');
     expect(sessionBody).not.toHaveProperty('taxCents');

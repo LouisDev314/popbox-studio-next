@@ -22,6 +22,26 @@ describe('normalizeGooglePlaceToShippingAddress', () => {
     });
   });
 
+  it('maps modern Google Place address components to the checkout shipping address contract', () => {
+    expect(normalizeGooglePlaceToShippingAddress({
+      addressComponents: [
+        { longText: '321', shortText: '321', types: ['street_number'] },
+        { longText: 'Granville Street', shortText: 'Granville St', types: ['route'] },
+        { longText: 'Vancouver', shortText: 'Vancouver', types: ['locality'] },
+        { longText: 'British Columbia', shortText: 'BC', types: ['administrative_area_level_1'] },
+        { longText: 'V6C 1S4', shortText: 'V6C 1S4', types: ['postal_code'] },
+        { longText: 'Canada', shortText: 'CA', types: ['country'] },
+      ],
+      fallbackDescription: '321 Granville Street, Vancouver, BC, Canada',
+    })).toEqual({
+      city: 'Vancouver',
+      countryCode: 'CA',
+      line1: '321 Granville Street',
+      postalCode: 'V6C 1S4',
+      province: 'BC',
+    });
+  });
+
   it('falls back to postal town or administrative area level 3 when locality is missing', () => {
     expect(normalizeGooglePlaceToShippingAddress({
       addressComponents: [
