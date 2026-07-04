@@ -60,7 +60,7 @@ export default function CartPageClient() {
           className={isCheckingOut ? 'pointer-events-none select-none opacity-70 transition-opacity duration-200' : 'transition-opacity duration-200'}
           inert={isCheckingOut}
         >
-          <div className="mb-6 flex flex-col justify-center gap-4 sm:flex-row sm:items-end">
+          <div className="mx-auto mb-6 flex max-w-4xl flex-col justify-center gap-4 sm:flex-row sm:items-end">
             <div>
               <p className="justify-self-center font-semibold uppercase tracking-[0.24em] text-muted-foreground">Cart</p>
               <h1 className="mt-2 text-center text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
@@ -69,35 +69,42 @@ export default function CartPageClient() {
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
-            <section className="space-y-4" aria-label="Cart items">
-              <InvalidCartItems
-                disabled={isCheckingOut}
-                items={invalidItems}
-                onRemove={removeInvalidItem}
-              />
-              {items.map((item) => (
-                (() => {
-                  const quantityLimit = getProductSellableQuantity(item.product);
-                  const limitMessage = getProductCartLimitMessage(item.product, item.quantity);
+          <div
+            className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,40rem)_22rem] lg:items-start xl:grid-cols-[minmax(0,42rem)_23rem]"
+            data-testid="cart-checkout-layout"
+          >
+            <div className="space-y-6">
+              <section className="space-y-4" aria-label="Cart items">
+                <InvalidCartItems
+                  disabled={isCheckingOut}
+                  items={invalidItems}
+                  onRemove={removeInvalidItem}
+                />
+                {items.map((item) => (
+                  (() => {
+                    const quantityLimit = getProductSellableQuantity(item.product);
+                    const limitMessage = getProductCartLimitMessage(item.product, item.quantity);
 
-                  return (
-                    <CartPageItem
-                      key={item.id}
-                      disabled={isCheckingOut}
-                      item={item}
-                      maxQuantity={quantityLimit}
-                      limitMessage={limitMessage}
-                      onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
-                      onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
-                      onRemove={() => handleRemoveItem(item.id)}
-                    />
-                  );
-                })()
-              ))}
-            </section>
+                    return (
+                      <CartPageItem
+                        key={item.id}
+                        disabled={isCheckingOut}
+                        item={item}
+                        maxQuantity={quantityLimit}
+                        limitMessage={limitMessage}
+                        onDecrease={() => updateQuantity(item.id, item.quantity - 1)}
+                        onIncrease={() => updateQuantity(item.id, item.quantity + 1)}
+                        onRemove={() => handleRemoveItem(item.id)}
+                      />
+                    );
+                  })()
+                ))}
+              </section>
 
-            <div className="lg:sticky lg:top-24">
+              <CartCheckoutPanel />
+            </div>
+
+            <div className="lg:sticky lg:top-24" data-testid="cart-summary-column">
               <CartSummary
                 summary={summary}
                 note={(
@@ -109,15 +116,6 @@ export default function CartPageClient() {
                   </span>
                 )}
               />
-              <div className="mt-6">
-                <CartCheckoutPanel />
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <Button asChild variant="outline" className="rounded-xl px-5">
-                Continue shopping
-              </Button>
             </div>
           </div>
         </div>

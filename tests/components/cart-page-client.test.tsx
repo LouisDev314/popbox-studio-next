@@ -85,6 +85,28 @@ describe('CartPageClient', () => {
     expect(screen.getByText(/calculate backend-owned shipping and tax/i)).toBeInTheDocument();
   });
 
+  it('uses a focused two-column checkout layout on desktop', () => {
+    resetStores();
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartPageClient />);
+
+    expect(screen.getByTestId('cart-checkout-layout')).toHaveClass(
+      'mx-auto',
+      'max-w-6xl',
+      'lg:grid-cols-[minmax(0,40rem)_22rem]',
+      'xl:grid-cols-[minmax(0,42rem)_23rem]',
+    );
+    expect(screen.getByTestId('cart-summary-column')).toHaveClass('lg:sticky', 'lg:top-24');
+  });
+
   it('shows free shipping at the threshold', () => {
     resetStores();
 

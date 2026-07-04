@@ -4,7 +4,23 @@ import {
   http,
   HttpResponse,
 } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const publicEnvMock = vi.hoisted(() => ({
+  googleMapsApiKey: '',
+}));
+
+vi.mock('@/configs/public-env', () => ({
+  default: () => ({
+    apiBaseUrl: 'http://localhost:3000',
+    googleMapsApiKey: publicEnvMock.googleMapsApiKey,
+    isSiteOpen: true,
+    siteUrl: 'http://localhost:3001',
+    stripePublishableKey: '',
+    supabasePublicKey: '',
+    supabaseUrl: '',
+  }),
+}));
 
 vi.mock('@/utils/checkout', async () => {
   const actual = await vi.importActual<typeof import('@/utils/checkout')>('@/utils/checkout');
@@ -30,6 +46,107 @@ import {
 
 const QUOTE_URL = /\/api\/v1\/checkout\/quote$/;
 const SESSION_URL = /\/api\/v1\/checkout\/session$/;
+
+type GooglePlacesStatus = 'OK' | 'ZERO_RESULTS' | string;
+
+interface GoogleAutocompletePrediction {
+  description: string;
+  place_id: string;
+}
+
+interface GoogleAddressComponent {
+  long_name: string;
+  short_name: string;
+  types: string[];
+}
+
+interface GooglePredictionRequest {
+  componentRestrictions: { country: 'ca' };
+  input: string;
+  types: string[];
+}
+
+interface GooglePlaceDetailsRequest {
+  fields: string[];
+  placeId: string;
+}
+
+interface MockGooglePlaces {
+  getDetails: ReturnType<typeof vi.fn<(request: GooglePlaceDetailsRequest, callback: (
+    place: { address_components?: GoogleAddressComponent[] } | null,
+    status: GooglePlacesStatus,
+  ) => void) => void>>;
+  getPlacePredictions: ReturnType<typeof vi.fn<(request: GooglePredictionRequest, callback: (
+    predictions: GoogleAutocompletePrediction[] | null,
+    status: GooglePlacesStatus,
+  ) => void) => void>>;
+}
+
+function installMockGooglePlaces(): MockGooglePlaces {
+  const getPlacePredictions = vi.fn((
+    _request: GooglePredictionRequest,
+    callback: (
+      predictions: GoogleAutocompletePrediction[] | null,
+      status: GooglePlacesStatus,
+    ) => void,
+  ) => {
+    callback([
+      {
+        description: '123 Maple Street, Vancouver, BC, Canada',
+        place_id: 'place-123',
+      },
+    ], 'OK');
+  });
+  const getDetails = vi.fn((
+    _request: GooglePlaceDetailsRequest,
+    callback: (
+      place: { address_components?: GoogleAddressComponent[] } | null,
+      status: GooglePlacesStatus,
+    ) => void,
+  ) => {
+    callback({
+      address_components: [
+        { long_name: '123', short_name: '123', types: ['street_number'] },
+        { long_name: 'Maple Street', short_name: 'Maple St', types: ['route'] },
+        { long_name: 'Vancouver', short_name: 'Vancouver', types: ['locality'] },
+        { long_name: 'British Columbia', short_name: 'BC', types: ['administrative_area_level_1'] },
+        { long_name: 'V6B 1A1', short_name: 'V6B 1A1', types: ['postal_code'] },
+        { long_name: 'Canada', short_name: 'CA', types: ['country'] },
+      ],
+    }, 'OK');
+  });
+  const browserWindow = window as Window & {
+    google?: {
+      maps?: {
+        places?: {
+          AutocompleteService: new () => { getPlacePredictions: typeof getPlacePredictions };
+          PlacesService: new () => { getDetails: typeof getDetails };
+          PlacesServiceStatus: { OK: 'OK' };
+        };
+      };
+    };
+  };
+
+  browserWindow.google = {
+    maps: {
+      places: {
+        AutocompleteService: vi.fn(() => ({ getPlacePredictions })),
+        PlacesService: vi.fn(() => ({ getDetails })),
+        PlacesServiceStatus: { OK: 'OK' },
+      },
+    },
+  };
+
+  return {
+    getDetails,
+    getPlacePredictions,
+  };
+}
+
+afterEach(() => {
+  publicEnvMock.googleMapsApiKey = '';
+  delete (window as Window & { google?: unknown }).google;
+});
 
 function createQuoteResponse(overrides: Partial<{
   subtotalCents: number;
@@ -104,6 +221,57 @@ describe('CartCheckoutPanel', () => {
       expect(screen.getByText('$69.43')).toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+  });
+
+  it('fills checkout address fields from a Canadian Google Places prediction without blocking manual edits', async () => {
+    resetStores();
+    publicEnvMock.googleMapsApiKey = 'test-public-google-key';
+    const googlePlaces = installMockGooglePlaces();
+
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await userEvent.type(screen.getByLabelText('Street address'), '123 Map');
+
+    expect(await screen.findByRole('button', {
+      name: '123 Maple Street, Vancouver, BC, Canada',
+    })).toBeInTheDocument();
+    expect(googlePlaces.getPlacePredictions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        componentRestrictions: { country: 'ca' },
+        types: ['address'],
+      }),
+      expect.any(Function),
+    );
+
+    await userEvent.click(screen.getByRole('button', {
+      name: '123 Maple Street, Vancouver, BC, Canada',
+    }));
+
+    expect(googlePlaces.getDetails).toHaveBeenCalledWith({
+      fields: ['address_components'],
+      placeId: 'place-123',
+    }, expect.any(Function));
+    expect(screen.getByLabelText('Street address')).toHaveValue('123 Maple Street');
+    expect(screen.getByLabelText('City')).toHaveValue('Vancouver');
+    expect(screen.getByLabelText('Province')).toHaveValue('BC');
+    expect(screen.getByLabelText('Postal code')).toHaveValue('V6B 1A1');
+
+    await userEvent.clear(screen.getByLabelText('Street address'));
+    await userEvent.type(screen.getByLabelText('Street address'), '125 Maple Street');
+
+    expect(screen.getByLabelText('Street address')).toHaveValue('125 Maple Street');
   });
 
   it('renders backend quote totals and tax breakdown without calculating totals on the client', async () => {

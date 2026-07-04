@@ -36,8 +36,11 @@ import { getApiErrorDetails } from '@/utils/api-errors';
 import {
   buildCheckoutRequest,
   CANADIAN_PROVINCES,
-  isCanadianProvinceCode,
 } from '@/utils/checkout';
+import {
+  normalizeGooglePlaceToShippingAddress,
+  type GoogleAddressComponent,
+} from '@/utils/google-address';
 
 type TGooglePlacesStatus = 'OK' | 'ZERO_RESULTS' | string;
 
@@ -46,14 +49,8 @@ interface IGoogleAutocompletePrediction {
   place_id: string;
 }
 
-interface IGoogleAddressComponent {
-  long_name: string;
-  short_name: string;
-  types: string[];
-}
-
 interface IGooglePlaceResult {
-  address_components?: IGoogleAddressComponent[];
+  address_components?: GoogleAddressComponent[];
 }
 
 interface IGoogleAutocompleteService {
@@ -149,14 +146,6 @@ function formatTaxRate(ratePpm: number): string {
   const rate = ratePpm / 10000;
 
   return `${Number.isInteger(rate) ? rate.toFixed(0) : rate.toFixed(2)}%`;
-}
-
-function getAddressComponent(
-  components: IGoogleAddressComponent[] | undefined,
-  type: string,
-  field: 'long_name' | 'short_name' = 'long_name',
-): string {
-  return components?.find((component) => component.types.includes(type))?.[field] ?? '';
 }
 
 function loadGooglePlacesScript(apiKey: string): Promise<void> {
@@ -289,24 +278,10 @@ function AddressAutocompleteInput(props: {
           return;
         }
 
-        const components = place?.address_components;
-        const streetNumber = getAddressComponent(components, 'street_number');
-        const route = getAddressComponent(components, 'route');
-        const city =
-          getAddressComponent(components, 'locality')
-          || getAddressComponent(components, 'postal_town')
-          || getAddressComponent(components, 'administrative_area_level_3');
-        const province = getAddressComponent(components, 'administrative_area_level_1', 'short_name').toUpperCase();
-        const postalCode = getAddressComponent(components, 'postal_code');
-        const countryCode = getAddressComponent(components, 'country', 'short_name').toUpperCase();
-
-        props.onAddressSelected({
-          city,
-          countryCode: countryCode === 'CA' ? 'CA' : undefined,
-          line1: [streetNumber, route].filter(Boolean).join(' ') || prediction.description,
-          postalCode,
-          province: isCanadianProvinceCode(province) ? province : undefined,
-        });
+        props.onAddressSelected(normalizeGooglePlaceToShippingAddress({
+          addressComponents: place?.address_components,
+          fallbackDescription: prediction.description,
+        }));
       },
     );
   }, [props]);
