@@ -102,6 +102,7 @@ function installMockGooglePlaces(): MockGooglePlaces {
     addressComponents: [
       { long_name: '123', longText: '123', short_name: '123', shortText: '123', types: ['street_number'] },
       { long_name: 'Maple Street', longText: 'Maple Street', short_name: 'Maple St', shortText: 'Maple St', types: ['route'] },
+      { long_name: 'Unit 1204', longText: 'Unit 1204', short_name: '1204', shortText: '1204', types: ['subpremise'] },
       { long_name: 'Vancouver', longText: 'Vancouver', short_name: 'Vancouver', shortText: 'Vancouver', types: ['locality'] },
       { long_name: 'British Columbia', longText: 'British Columbia', short_name: 'BC', shortText: 'BC', types: ['administrative_area_level_1'] },
       { long_name: 'V6B 1A1', longText: 'V6B 1A1', short_name: 'V6B 1A1', shortText: 'V6B 1A1', types: ['postal_code'] },
@@ -340,9 +341,14 @@ describe('CartCheckoutPanel', () => {
       fields: ['addressComponents'],
     });
     expect(screen.getByLabelText('Street address')).toHaveValue('123 Maple Street');
+    expect(screen.getByLabelText('Apartment, suite, etc. (optional)')).toHaveValue('Unit 1204');
     expect(screen.getByLabelText('City')).toHaveValue('Vancouver');
     expect(screen.getByLabelText('Province')).toHaveValue('BC');
     expect(screen.getByLabelText('Postal code')).toHaveValue('V6B 1A1');
+    expect(screen.getByLabelText('Country')).toHaveValue('Canada');
+    expect(screen.queryByRole('button', {
+      name: '123 Maple Street, Vancouver, BC, Canada',
+    })).not.toBeInTheDocument();
 
     await userEvent.type(screen.getByLabelText('Email'), 'customer@example.com');
     await userEvent.type(screen.getByLabelText('Phone (optional)'), '+1 780 555 0100');
@@ -358,6 +364,67 @@ describe('CartCheckoutPanel', () => {
     await userEvent.type(screen.getByLabelText('Street address'), '125 Maple Street');
 
     expect(screen.getByLabelText('Street address')).toHaveValue('125 Maple Street');
+  });
+
+  it('keeps Google autocomplete visible when typing line 1 after accepting a backend suggestion', async () => {
+    resetStores();
+    publicEnvMock.googleMapsApiKey = 'test-public-google-key';
+    const googlePlaces = installMockGooglePlaces();
+    const quoteBodies: Array<Record<string, unknown>> = [];
+
+    server.use(
+      http.post(QUOTE_URL, async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+
+        quoteBodies.push(body);
+
+        if (body.confirmedAddress === true) {
+          return HttpResponse.json(createQuoteResponse());
+        }
+
+        return HttpResponse.json(createAddressNeedsConfirmationResponse(), { status: 422 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await fillValidCheckoutForm();
+
+    expect(await screen.findByText('Confirm your shipping address')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Use suggested address' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+    });
+
+    googlePlaces.fetchAutocompleteSuggestions.mockClear();
+
+    await userEvent.clear(screen.getByLabelText('Street address'));
+    await userEvent.type(screen.getByLabelText('Street address'), '123 Map');
+
+    await waitFor(() => {
+      expect(googlePlaces.fetchAutocompleteSuggestions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          includedRegionCodes: ['ca'],
+          input: '123 Map',
+        }),
+      );
+    });
+    expect(screen.getByRole('button', {
+      name: '123 Maple Street, Vancouver, BC, Canada',
+    })).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(quoteBodies.at(-1)).not.toHaveProperty('confirmedAddress');
+    });
   });
 
   it('loads the Google Maps script once when autocomplete initializes without an existing library', async () => {

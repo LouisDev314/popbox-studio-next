@@ -359,8 +359,14 @@ function AddressAutocompleteInput(props: {
         className={cn(props.invalid && invalidControlClassName)}
         onBlur={props.field.onBlur}
         onChange={(event) => {
+          const nextValue = event.target.value;
+
+          if (nextValue.trim().length < 4) {
+            setPredictions([]);
+          }
+
+          props.field.onChange(nextValue);
           props.onManualEdit();
-          props.field.onChange(event.target.value);
         }}
       />
       {visiblePredictions.length > 0 ? (
@@ -852,6 +858,9 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
 
                           if (values.line1) {
                             form.setValue('shippingAddress.line1', values.line1, { shouldDirty: true, shouldValidate: true });
+                          }
+                          if (values.line2) {
+                            form.setValue('shippingAddress.line2', values.line2, { shouldDirty: true, shouldValidate: true });
                           }
                           if (values.city) {
                             form.setValue('shippingAddress.city', values.city, { shouldDirty: true, shouldValidate: true });
