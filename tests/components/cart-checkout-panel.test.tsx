@@ -1224,12 +1224,18 @@ describe('CartCheckoutPanel', () => {
 
   it('blocks the page while checkout session creation is pending and clears the lock after failure', async () => {
     resetStores();
-    let rejectSession: ((reason?: unknown) => void) | null = null;
+    let failSession: (() => void) | null = null;
 
     server.use(
       http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
-      http.post(SESSION_URL, async () => new Promise((_, reject) => {
-        rejectSession = reject;
+      http.post(SESSION_URL, async () => new Promise((resolve) => {
+        failSession = () => {
+          resolve(HttpResponse.json({
+            code: 400,
+            message: 'Checkout validation failed.',
+            success: false,
+          }, { status: 400 }));
+        };
       })),
     );
 
@@ -1259,13 +1265,13 @@ describe('CartCheckoutPanel', () => {
     expect(document.body).toHaveStyle({ overflow: 'hidden' });
 
     await act(async () => {
-      rejectSession?.(new Error('network down'));
+      failSession?.();
     });
 
     await waitFor(() => {
       expect(screen.queryByRole('status', { name: /Preparing secure checkout/i })).not.toBeInTheDocument();
     });
-    expect(screen.getByRole('dialog', { name: 'Unable to start checkout' })).toHaveTextContent('Something went wrong. Please try again.');
+    expect(screen.getByRole('alert')).toHaveTextContent('Checkout validation failed.');
     expect(document.body).not.toHaveStyle({ overflow: 'hidden' });
 
     unmount();

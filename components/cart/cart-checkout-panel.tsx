@@ -246,6 +246,14 @@ interface ICartCheckoutPanelProps {
   summaryNote?: ReactNode;
 }
 
+function CheckoutHandoffOverlay(props: { isActive: boolean }) {
+  if (!props.isActive) {
+    return null;
+  }
+
+  return <CartInteractionLockOverlay />;
+}
+
 export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   const invalidItems = useCartStore((state) => state.invalidItems);
   const items = useCartStore((state) => state.items);
@@ -873,7 +881,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
         </div>
       </form>
 
-      {isCheckingOut ? <CartInteractionLockOverlay /> : null}
+      <CheckoutHandoffOverlay isActive={isCheckingOut} />
 
       <Dialog
         open={checkoutDialog !== null}
