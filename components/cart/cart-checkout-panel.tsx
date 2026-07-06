@@ -2,11 +2,10 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AxiosError } from 'axios';
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import MutationConfigs from '@/configs/api/mutation-config';
-import getPublicEnvConfig from '@/configs/public-env';
 import { CheckoutButton } from '@/components/cart/checkout-button';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -23,6 +22,10 @@ import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import {
+  type GoogleAddressAutocompleteOption,
+  useGoogleAddressAutocomplete,
+} from '@/hooks/use-google-address-autocomplete';
 import { useStartCheckout } from '@/hooks/use-start-checkout';
 import { type ICartSummary } from '@/interfaces/cart';
 import {
@@ -43,69 +46,9 @@ import {
   CANADIAN_PROVINCES,
   shouldConfirmSuggestedAddress,
 } from '@/utils/checkout';
-import {
-  normalizeGooglePlaceToShippingAddress,
-  type GoogleAddressComponent,
-} from '@/utils/google-address';
-
-interface IGooglePlace {
-  addressComponents?: GoogleAddressComponent[];
-  fetchFields: (request: { fields: string[] }) => Promise<void>;
-}
-
-interface IGooglePlacePrediction {
-  text?: {
-    toString: () => string;
-  };
-  toPlace: () => IGooglePlace;
-}
-
-interface IGoogleAutocompleteSuggestion {
-  placePrediction?: IGooglePlacePrediction;
-}
-
-interface IGoogleAutocompleteRequest {
-  includedRegionCodes?: string[];
-  input: string;
-  language: 'en-CA';
-  locationRestriction?: {
-    east: number;
-    north: number;
-    south: number;
-    west: number;
-  };
-  region: 'ca';
-  sessionToken: unknown;
-}
-
-interface IGooglePlacesLibrary {
-  AutocompleteSessionToken: new () => unknown;
-  AutocompleteSuggestion: {
-    fetchAutocompleteSuggestions: (request: IGoogleAutocompleteRequest) => Promise<{
-      suggestions?: IGoogleAutocompleteSuggestion[];
-    }>;
-  };
-}
-
-declare global {
-  interface Window {
-    google?: {
-      maps?: {
-        importLibrary?: (libraryName: 'places') => Promise<IGooglePlacesLibrary>;
-      };
-    };
-  }
-}
 
 const invalidControlClassName =
   '!border-destructive/80 focus-visible:!border-destructive focus-visible:!ring-destructive/20';
-const CANADA_LOCATION_RESTRICTION = {
-  east: -52,
-  north: 84,
-  south: 41,
-  west: -141,
-};
-let googlePlacesScriptPromise: Promise<void> | null = null;
 
 const checkoutFormSchema = z.object({
   email: z.string().trim().min(1, 'Email is required.').email('Enter a valid email address.'),
@@ -165,54 +108,6 @@ function isCheckoutReady(params: {
   );
 }
 
-function loadGooglePlacesScript(apiKey: string): Promise<void> {
-  if (window.google?.maps?.importLibrary) {
-    return Promise.resolve();
-  }
-
-  if (googlePlacesScriptPromise) {
-    return googlePlacesScriptPromise;
-  }
-
-  const existingScript = document.querySelector<HTMLScriptElement>('script[data-popbox-google-places="true"]');
-
-  if (existingScript) {
-    if (existingScript.dataset.popboxGooglePlacesLoaded === 'true') {
-      return Promise.resolve();
-    }
-
-    googlePlacesScriptPromise = new Promise((resolve, reject) => {
-      existingScript.addEventListener('load', () => resolve(), { once: true });
-      existingScript.addEventListener('error', () => reject(new Error('Google Places failed to load.')), { once: true });
-    });
-
-    return googlePlacesScriptPromise;
-  }
-
-  const script = document.createElement('script');
-  const searchParams = new URLSearchParams({
-    key: apiKey,
-    loading: 'async',
-    v: 'weekly',
-  });
-
-  script.async = true;
-  script.defer = true;
-  script.dataset.popboxGooglePlaces = 'true';
-  script.src = `https://maps.googleapis.com/maps/api/js?${searchParams.toString()}`;
-
-  googlePlacesScriptPromise = new Promise((resolve, reject) => {
-    script.addEventListener('load', () => {
-      script.dataset.popboxGooglePlacesLoaded = 'true';
-      resolve();
-    }, { once: true });
-    script.addEventListener('error', () => reject(new Error('Google Places failed to load.')), { once: true });
-    document.head.appendChild(script);
-  });
-
-  return googlePlacesScriptPromise;
-}
-
 function AddressAutocompleteInput(props: {
   disabled: boolean;
   field: {
@@ -223,129 +118,66 @@ function AddressAutocompleteInput(props: {
   };
   invalid: boolean;
   onAddressSelected: (values: Partial<CheckoutFormValues['shippingAddress']>) => void;
-  onManualEdit: () => void;
+  onManualAddressChanged: () => void;
 }) {
-  const apiKey = getPublicEnvConfig().googleMapsApiKey;
-  const placesLibraryRef = useRef<IGooglePlacesLibrary | null>(null);
-  const sessionTokenRef = useRef<unknown | null>(null);
-  const [isAutocompleteReady, setIsAutocompleteReady] = useState(false);
-  const [predictions, setPredictions] = useState<IGooglePlacePrediction[]>([]);
-  const debouncedInput = useDebouncedValue(props.field.value, 250);
-  const visiblePredictions =
-    isAutocompleteReady && props.field.value.trim().length >= 4
-      ? predictions
-      : [];
+  const autocomplete = useGoogleAddressAutocomplete({
+    disabled: props.disabled,
+    input: props.field.value,
+  });
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const listboxId = 'checkout-line1-suggestions';
+  const visibleSuggestions = autocomplete.suggestions;
+  const activeHighlightedIndex =
+    visibleSuggestions.length === 0
+      ? -1
+      : highlightedIndex >= 0 && highlightedIndex < visibleSuggestions.length
+        ? highlightedIndex
+        : 0;
 
-  useEffect(() => {
-    if (!apiKey) {
+  const handleSelectSuggestion = useCallback(async (suggestion: GoogleAddressAutocompleteOption) => {
+    props.onManualAddressChanged();
+
+    try {
+      const values = await autocomplete.selectSuggestion(suggestion);
+
+      props.onAddressSelected(values);
+    } catch {
+      autocomplete.clearSuggestions();
+    }
+  }, [autocomplete, props]);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (visibleSuggestions.length === 0) {
       return;
     }
 
-    let isMounted = true;
-
-    loadGooglePlacesScript(apiKey)
-      .then(async () => {
-        const importLibrary = window.google?.maps?.importLibrary;
-
-        if (!importLibrary) {
-          return;
-        }
-
-        const placesLibrary = await importLibrary('places');
-
-        if (!isMounted) {
-          return;
-        }
-
-        placesLibraryRef.current = placesLibrary;
-        sessionTokenRef.current = new placesLibrary.AutocompleteSessionToken();
-        setIsAutocompleteReady(true);
-      })
-      .catch(() => {
-        if (isMounted) {
-          setIsAutocompleteReady(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [apiKey]);
-
-  useEffect(() => {
-    const input = debouncedInput.trim();
-    const placesLibrary = placesLibraryRef.current;
-
-    if (!isAutocompleteReady || !placesLibrary || input.length < 4) {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setHighlightedIndex((activeHighlightedIndex + 1) % visibleSuggestions.length);
       return;
     }
 
-    let isCancelled = false;
-    const sessionToken = sessionTokenRef.current ?? new placesLibrary.AutocompleteSessionToken();
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setHighlightedIndex(
+        activeHighlightedIndex <= 0
+          ? visibleSuggestions.length - 1
+          : activeHighlightedIndex - 1,
+      );
+      return;
+    }
 
-    sessionTokenRef.current = sessionToken;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      autocomplete.clearSuggestions();
+      return;
+    }
 
-    const request: IGoogleAutocompleteRequest = {
-      includedRegionCodes: ['ca'],
-      input,
-      language: 'en-CA',
-      region: 'ca',
-      sessionToken,
-    };
-
-    placesLibrary.AutocompleteSuggestion.fetchAutocompleteSuggestions(request)
-      .catch(() => placesLibrary.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-        input,
-        language: 'en-CA',
-        locationRestriction: CANADA_LOCATION_RESTRICTION,
-        region: 'ca',
-        sessionToken,
-      }))
-      .then((response) => {
-        if (isCancelled) {
-          return;
-        }
-
-        setPredictions(
-          response.suggestions
-            ?.map((suggestion) => suggestion.placePrediction)
-            .filter((placePrediction): placePrediction is IGooglePlacePrediction => Boolean(placePrediction)) ?? [],
-        );
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setPredictions([]);
-        }
-      });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [debouncedInput, isAutocompleteReady]);
-
-  const handleSelectPrediction = useCallback((prediction: IGooglePlacePrediction) => {
-    const placesLibrary = placesLibraryRef.current;
-    const description = prediction.text?.toString() ?? '';
-
-    props.field.onChange(description);
-    setPredictions([]);
-
-    const place = prediction.toPlace();
-
-    place.fetchFields({ fields: ['addressComponents'] })
-      .then(() => {
-        props.onAddressSelected(normalizeGooglePlaceToShippingAddress({
-          addressComponents: place.addressComponents,
-          fallbackDescription: description,
-        }));
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        if (placesLibrary) {
-          sessionTokenRef.current = new placesLibrary.AutocompleteSessionToken();
-        }
-      });
-  }, [props]);
+    if (event.key === 'Enter' && activeHighlightedIndex >= 0) {
+      event.preventDefault();
+      void handleSelectSuggestion(visibleSuggestions[activeHighlightedIndex]);
+    }
+  }
 
   return (
     <div className="relative">
@@ -356,35 +188,51 @@ function AddressAutocompleteInput(props: {
         value={props.field.value}
         disabled={props.disabled}
         aria-invalid={props.invalid}
+        aria-autocomplete="list"
+        aria-controls={visibleSuggestions.length > 0 ? listboxId : undefined}
+        aria-expanded={visibleSuggestions.length > 0}
         className={cn(props.invalid && invalidControlClassName)}
         onBlur={props.field.onBlur}
+        onKeyDown={handleKeyDown}
         onChange={(event) => {
           const nextValue = event.target.value;
 
           if (nextValue.trim().length < 4) {
-            setPredictions([]);
+            autocomplete.clearSuggestions();
           }
 
+          autocomplete.resetSelectionSuppression();
           props.field.onChange(nextValue);
-          props.onManualEdit();
+          props.onManualAddressChanged();
         }}
       />
-      {visiblePredictions.length > 0 ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+0.25rem)] z-30 overflow-hidden rounded-xl border border-border bg-popover shadow-lg">
-          {visiblePredictions.map((prediction, index) => {
-            const description = prediction.text?.toString() ?? '';
-
-            return (
-              <button
-                key={`${description}-${index}`}
-                type="button"
-                className="block w-full px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
-                onClick={() => handleSelectPrediction(prediction)}
-              >
-                {description}
-              </button>
-            );
-          })}
+      {visibleSuggestions.length > 0 ? (
+        <div
+          id={listboxId}
+          role="listbox"
+          className="absolute left-0 right-0 top-[calc(100%+0.25rem)] z-50 overflow-hidden rounded-xl border border-border bg-popover shadow-lg"
+        >
+          {visibleSuggestions.map((suggestion, index) => (
+            <button
+              key={suggestion.id}
+              type="button"
+              role="option"
+              aria-selected={index === activeHighlightedIndex}
+              className={cn(
+                'block w-full px-3 py-2 text-left text-sm transition-colors hover:bg-accent',
+                index === activeHighlightedIndex && 'bg-accent',
+              )}
+              onMouseEnter={() => setHighlightedIndex(index)}
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
+              onClick={() => {
+                void handleSelectSuggestion(suggestion);
+              }}
+            >
+              {suggestion.description}
+            </button>
+          ))}
         </div>
       ) : null}
     </div>
@@ -846,7 +694,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
                         disabled={isCheckingOut}
                         field={field}
                         invalid={fieldState.invalid}
-                        onManualEdit={clearAddressConfirmationForManualEdit}
+                        onManualAddressChanged={clearAddressConfirmationForManualEdit}
                         onAddressSelected={(values) => {
                           if (values.countryCode !== 'CA') {
                             setFormErrorMessage('PopBox Studio currently only ships within Canada.');

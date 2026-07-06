@@ -47,6 +47,18 @@ import {
 const QUOTE_URL = /\/api\/v1\/checkout\/quote$/;
 const SESSION_URL = /\/api\/v1\/checkout\/session$/;
 
+function createGooglePrediction(description: string): GoogleAutocompletePrediction {
+  return {
+    placePrediction: {
+      text: { toString: () => description },
+      toPlace: vi.fn(() => ({
+        addressComponents: [],
+        fetchFields: vi.fn(async () => undefined),
+      })),
+    },
+  };
+}
+
 interface GoogleAutocompletePrediction {
   placePrediction: {
     text: { toString: () => string };
@@ -85,6 +97,7 @@ interface GooglePlaceDetailsRequest {
 }
 
 interface MockGooglePlaces {
+  AutocompleteSessionToken: ReturnType<typeof vi.fn<() => unknown>>;
   fetchAutocompleteSuggestions: ReturnType<typeof vi.fn<(request: GooglePredictionRequest) => Promise<{
     suggestions: GoogleAutocompletePrediction[];
   }>>>;
@@ -97,6 +110,7 @@ interface MockGooglePlaces {
 }
 
 function installMockGooglePlaces(): MockGooglePlaces {
+  const AutocompleteSessionToken = vi.fn(() => ({}));
   const fetchFields = vi.fn(async () => undefined);
   const place = {
     addressComponents: [
@@ -127,7 +141,7 @@ function installMockGooglePlaces(): MockGooglePlaces {
     }
 
     return {
-      AutocompleteSessionToken: vi.fn(),
+      AutocompleteSessionToken,
       AutocompleteSuggestion: {
         fetchAutocompleteSuggestions,
       },
@@ -158,6 +172,7 @@ function installMockGooglePlaces(): MockGooglePlaces {
   };
 
   return {
+    AutocompleteSessionToken,
     fetchAutocompleteSuggestions,
     fetchFields,
     importLibrary,
@@ -168,6 +183,9 @@ function installMockGooglePlaces(): MockGooglePlaces {
 afterEach(() => {
   publicEnvMock.googleMapsApiKey = '';
   delete (window as Window & { google?: unknown }).google;
+  document
+    .querySelectorAll('script[data-popbox-google-places="true"]')
+    .forEach((script) => script.remove());
 });
 
 function createQuoteResponse(overrides: Partial<{
@@ -293,6 +311,82 @@ describe('CartCheckoutPanel', () => {
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
   });
 
+  it('keeps manual address entry usable when the Google Maps script fails', async () => {
+    resetStores();
+    publicEnvMock.googleMapsApiKey = 'test-public-google-key';
+
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await waitFor(() => {
+      expect(document.querySelectorAll('script[data-popbox-google-places="true"]')).toHaveLength(1);
+    });
+
+    act(() => {
+      document
+        .querySelector<HTMLScriptElement>('script[data-popbox-google-places="true"]')
+        ?.dispatchEvent(new Event('error'));
+    });
+
+    await fillValidCheckoutForm();
+
+    await waitFor(() => {
+      expect(screen.getByText('$69.43')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+  });
+
+  it('keeps manual address entry usable when Google loads without importLibrary', async () => {
+    resetStores();
+    publicEnvMock.googleMapsApiKey = 'test-public-google-key';
+
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await waitFor(() => {
+      expect(document.querySelectorAll('script[data-popbox-google-places="true"]')).toHaveLength(1);
+    });
+
+    act(() => {
+      (window as Window & {
+        google?: {
+          maps?: {
+            __ib__?: () => void;
+          };
+        };
+      }).google?.maps?.__ib__?.();
+    });
+
+    await fillValidCheckoutForm();
+
+    await waitFor(() => {
+      expect(screen.getByText('$69.43')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+  });
+
   it('fills checkout address fields from a Canadian Google Places prediction without blocking manual edits', async () => {
     resetStores();
     publicEnvMock.googleMapsApiKey = 'test-public-google-key';
@@ -318,7 +412,7 @@ describe('CartCheckoutPanel', () => {
 
     await userEvent.type(screen.getByLabelText('Street address'), '123 Map');
 
-    expect(await screen.findByRole('button', {
+    expect(await screen.findByRole('option', {
       name: '123 Maple Street, Vancouver, BC, Canada',
     })).toBeInTheDocument();
     expect(googlePlaces.importLibrary).toHaveBeenCalledWith('places');
@@ -331,8 +425,9 @@ describe('CartCheckoutPanel', () => {
       }),
     );
     expect(googlePlaces.fetchAutocompleteSuggestions.mock.calls[0]?.[0]).not.toHaveProperty('includedPrimaryTypes');
+    expect(googlePlaces.fetchAutocompleteSuggestions.mock.calls[0]?.[0]).not.toHaveProperty('locationRestriction');
 
-    await userEvent.click(screen.getByRole('button', {
+    await userEvent.click(screen.getByRole('option', {
       name: '123 Maple Street, Vancouver, BC, Canada',
     }));
 
@@ -346,9 +441,10 @@ describe('CartCheckoutPanel', () => {
     expect(screen.getByLabelText('Province')).toHaveValue('BC');
     expect(screen.getByLabelText('Postal code')).toHaveValue('V6B 1A1');
     expect(screen.getByLabelText('Country')).toHaveValue('Canada');
-    expect(screen.queryByRole('button', {
+    expect(screen.queryByRole('option', {
       name: '123 Maple Street, Vancouver, BC, Canada',
     })).not.toBeInTheDocument();
+    expect(googlePlaces.AutocompleteSessionToken).toHaveBeenCalledTimes(2);
 
     await userEvent.type(screen.getByLabelText('Email'), 'customer@example.com');
     await userEvent.type(screen.getByLabelText('Phone (optional)'), '+1 780 555 0100');
@@ -364,6 +460,75 @@ describe('CartCheckoutPanel', () => {
     await userEvent.type(screen.getByLabelText('Street address'), '125 Maple Street');
 
     expect(screen.getByLabelText('Street address')).toHaveValue('125 Maple Street');
+  });
+
+  it('keeps stale Google autocomplete responses from overwriting newer suggestions', async () => {
+    resetStores();
+    publicEnvMock.googleMapsApiKey = 'test-public-google-key';
+    const googlePlaces = installMockGooglePlaces();
+    let resolveFirstRequest: ((response: { suggestions: GoogleAutocompletePrediction[] }) => void) | null = null;
+    let resolveSecondRequest: ((response: { suggestions: GoogleAutocompletePrediction[] }) => void) | null = null;
+
+    googlePlaces.fetchAutocompleteSuggestions.mockImplementation((request) => new Promise((resolve) => {
+      if (request.input === '123 Map') {
+        resolveFirstRequest = resolve;
+        return;
+      }
+
+      if (request.input === '123 Maple') {
+        resolveSecondRequest = resolve;
+        return;
+      }
+
+      resolve({ suggestions: [] });
+    }));
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await userEvent.type(screen.getByLabelText('Street address'), '123 Map');
+
+    await waitFor(() => {
+      expect(resolveFirstRequest).not.toBeNull();
+    });
+
+    await userEvent.type(screen.getByLabelText('Street address'), 'le');
+
+    await waitFor(() => {
+      expect(resolveSecondRequest).not.toBeNull();
+    });
+
+    act(() => {
+      resolveSecondRequest?.({
+        suggestions: [createGooglePrediction('123 Maple Avenue, Toronto, ON, Canada')],
+      });
+    });
+
+    expect(await screen.findByRole('option', {
+      name: '123 Maple Avenue, Toronto, ON, Canada',
+    })).toBeInTheDocument();
+
+    act(() => {
+      resolveFirstRequest?.({
+        suggestions: [createGooglePrediction('123 Map Road, Calgary, AB, Canada')],
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('option', {
+        name: '123 Map Road, Calgary, AB, Canada',
+      })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('option', {
+      name: '123 Maple Avenue, Toronto, ON, Canada',
+    })).toBeInTheDocument();
   });
 
   it('keeps Google autocomplete visible when typing line 1 after accepting a backend suggestion', async () => {
@@ -418,7 +583,7 @@ describe('CartCheckoutPanel', () => {
         }),
       );
     });
-    expect(screen.getByRole('button', {
+    expect(screen.getByRole('option', {
       name: '123 Maple Street, Vancouver, BC, Canada',
     })).toBeInTheDocument();
 
