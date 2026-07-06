@@ -563,6 +563,53 @@ describe('CartCheckoutPanel', () => {
     });
   });
 
+  it('does not show the same accepted suggested address again', async () => {
+    resetStores();
+    const quoteBodies: Array<Record<string, unknown>> = [];
+    let repeatedAcceptedSuggestion = true;
+
+    server.use(
+      http.post(QUOTE_URL, async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+
+        quoteBodies.push(body);
+
+        if (body.confirmedAddress === true) {
+          return HttpResponse.json(createQuoteResponse());
+        }
+
+        if (quoteBodies.length > 1 && repeatedAcceptedSuggestion) {
+          repeatedAcceptedSuggestion = false;
+          return HttpResponse.json(createAddressNeedsConfirmationResponse(), { status: 422 });
+        }
+
+        return HttpResponse.json(createAddressNeedsConfirmationResponse(), { status: 422 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await fillValidCheckoutForm();
+
+    expect(await screen.findByText('Confirm your shipping address')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Use suggested address' }));
+
+    await waitFor(() => {
+      expect(quoteBodies.some((body) => body.confirmedAddress === true)).toBe(true);
+    });
+
+    expect(screen.queryByText('Confirm your shipping address')).not.toBeInTheDocument();
+  });
+
   it('skips address confirmation when the backend suggested address matches after normalization', async () => {
     resetStores();
     const quoteBodies: Array<Record<string, unknown>> = [];
@@ -651,6 +698,92 @@ describe('CartCheckoutPanel', () => {
     await waitFor(() => {
       expect(quoteBodies.length).toBeGreaterThan(1);
     });
+    expect(quoteBodies.at(-1)).not.toHaveProperty('confirmedAddress');
+  });
+
+  it('shows a new backend suggested address after accepting a different suggestion', async () => {
+    resetStores();
+    const quoteBodies: Array<Record<string, unknown>> = [];
+
+    server.use(
+      http.post(QUOTE_URL, async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+
+        quoteBodies.push(body);
+
+        if (body.confirmedAddress === true) {
+          return HttpResponse.json(createAddressNeedsConfirmationResponse({
+            city: 'Ottawa',
+            line1: '99 Bank St',
+            postalCode: 'K1P 6B9',
+            province: 'ON',
+          }), { status: 422 });
+        }
+
+        return HttpResponse.json(createAddressNeedsConfirmationResponse(), { status: 422 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await fillValidCheckoutForm();
+
+    expect(await screen.findByText('Confirm your shipping address')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Use suggested address' }));
+
+    expect(await screen.findByText('99 Bank St')).toBeInTheDocument();
+    expect(screen.getByText('Ottawa, ON K1P 6B9')).toBeInTheDocument();
+    expect(quoteBodies.some((body) => body.confirmedAddress === true)).toBe(true);
+  });
+
+  it('clears the accepted suggested address marker when the user edits apartment or suite', async () => {
+    resetStores();
+    const quoteBodies: Array<Record<string, unknown>> = [];
+
+    server.use(
+      http.post(QUOTE_URL, async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+
+        quoteBodies.push(body);
+
+        if (body.confirmedAddress === true) {
+          return HttpResponse.json(createQuoteResponse());
+        }
+
+        return HttpResponse.json(createAddressNeedsConfirmationResponse(), { status: 422 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await fillValidCheckoutForm();
+
+    expect(await screen.findByText('Confirm your shipping address')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Use suggested address' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+    });
+
+    await userEvent.type(screen.getByLabelText('Apartment, suite, etc. (optional)'), 'Unit 4');
+
+    expect(await screen.findByText('Confirm your shipping address')).toBeInTheDocument();
     expect(quoteBodies.at(-1)).not.toHaveProperty('confirmedAddress');
   });
 

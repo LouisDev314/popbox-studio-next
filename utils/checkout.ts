@@ -79,21 +79,30 @@ function normalizeComparablePostalCode(value: string | null | undefined): string
   return trimRequired(value).toUpperCase().replace(/\s+/g, '');
 }
 
-export function shouldConfirmSuggestedAddress(
-  submittedAddress: Pick<
+type ComparableShippingAddress = Pick<
     CheckoutCustomerInput['shippingAddress'] | ShippingAddress,
     'city' | 'countryCode' | 'line1' | 'postalCode' | 'province'
-  > & { line2?: string | null },
-  suggestedAddress: SuggestedShippingAddress,
+  > & { line2?: string | null };
+
+export function areShippingAddressesEquivalent(
+  firstAddress: ComparableShippingAddress,
+  secondAddress: ComparableShippingAddress,
 ): boolean {
   return (
-    normalizeComparableText(submittedAddress.line1) !== normalizeComparableText(suggestedAddress.line1)
-    || normalizeComparableText(submittedAddress.line2) !== normalizeComparableText(suggestedAddress.line2)
-    || normalizeComparableText(submittedAddress.city) !== normalizeComparableText(suggestedAddress.city)
-    || normalizeComparableProvince(submittedAddress.province) !== normalizeComparableProvince(suggestedAddress.province)
-    || normalizeComparablePostalCode(submittedAddress.postalCode) !== normalizeComparablePostalCode(suggestedAddress.postalCode)
-    || normalizeCountryCode(submittedAddress.countryCode) !== normalizeCountryCode(suggestedAddress.countryCode)
+    normalizeComparableText(firstAddress.line1) === normalizeComparableText(secondAddress.line1)
+    && normalizeComparableText(firstAddress.line2) === normalizeComparableText(secondAddress.line2)
+    && normalizeComparableText(firstAddress.city) === normalizeComparableText(secondAddress.city)
+    && normalizeComparableProvince(firstAddress.province) === normalizeComparableProvince(secondAddress.province)
+    && normalizeComparablePostalCode(firstAddress.postalCode) === normalizeComparablePostalCode(secondAddress.postalCode)
+    && normalizeCountryCode(firstAddress.countryCode) === normalizeCountryCode(secondAddress.countryCode)
   );
+}
+
+export function shouldConfirmSuggestedAddress(
+  submittedAddress: ComparableShippingAddress,
+  suggestedAddress: SuggestedShippingAddress,
+): boolean {
+  return !areShippingAddressesEquivalent(submittedAddress, suggestedAddress);
 }
 
 const checkoutItemSchema = z.object({

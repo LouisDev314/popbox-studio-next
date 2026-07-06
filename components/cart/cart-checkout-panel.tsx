@@ -38,6 +38,7 @@ import {
   getCheckoutAddressError,
 } from '@/utils/api-errors';
 import {
+  areShippingAddressesEquivalent,
   buildCheckoutRequest,
   CANADIAN_PROVINCES,
   shouldConfirmSuggestedAddress,
@@ -398,6 +399,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   const clearCheckoutDialog = useCheckoutUiStore((state) => state.clearCheckoutDialog);
   const { checkoutDialog, checkoutErrorMessage, isCheckingOut, startCheckout } = useStartCheckout();
   const [addressConfirmation, setAddressConfirmation] = useState<TAddressConfirmationState>(null);
+  const [acceptedSuggestedAddress, setAcceptedSuggestedAddress] = useState<SuggestedShippingAddress | null>(null);
   const [confirmedAddressRequestKey, setConfirmedAddressRequestKey] = useState<string | null>(null);
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
   const [pendingConfirmedCheckoutKey, setPendingConfirmedCheckoutKey] = useState<string | null>(null);
@@ -460,13 +462,31 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     suggestedAddress: SuggestedShippingAddress,
     request: CheckoutQuoteRequest,
   ) => {
-    if (!shouldConfirmSuggestedAddress(request.shippingAddress, suggestedAddress)) {
+    const requestMatchesSuggestion = !shouldConfirmSuggestedAddress(request.shippingAddress, suggestedAddress);
+    const acceptedMatchesSuggestion = Boolean(
+      acceptedSuggestedAddress
+      && areShippingAddressesEquivalent(acceptedSuggestedAddress, suggestedAddress),
+    );
+    const currentAcceptedRequest = (
+      acceptedSuggestedAddress
+      && baseRequestResult.success
+      && areShippingAddressesEquivalent(baseRequestResult.data.shippingAddress, acceptedSuggestedAddress)
+    )
+      ? baseRequestResult.data
+      : null;
+    const requestToConfirm = requestMatchesSuggestion
+      ? request
+      : acceptedMatchesSuggestion && currentAcceptedRequest
+        ? currentAcceptedRequest
+        : null;
+
+    if (requestToConfirm) {
       const confirmedRequest = {
-        ...request,
+        ...requestToConfirm,
         confirmedAddress: true,
       };
 
-      setConfirmedAddressRequestKey(createUnconfirmedCheckoutRequestKey(request));
+      setConfirmedAddressRequestKey(createUnconfirmedCheckoutRequestKey(requestToConfirm));
       setPendingConfirmedCheckoutKey(
         source === 'session'
           ? createCheckoutRequestKey(confirmedRequest)
@@ -477,12 +497,18 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
       return;
     }
 
+    if (acceptedMatchesSuggestion) {
+      setAddressConfirmation(null);
+      setFormErrorMessage(null);
+      return;
+    }
+
     setAddressConfirmation({
       source,
       suggestedAddress,
     });
     setFormErrorMessage(null);
-  }, []);
+  }, [acceptedSuggestedAddress, baseRequestResult]);
 
   const { mutation: createCheckoutQuote } = useCustomizeMutation<
     CheckoutQuoteData,
@@ -606,6 +632,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
 
   function clearAddressConfirmationForManualEdit() {
     setAddressConfirmation(null);
+    setAcceptedSuggestedAddress(null);
     setConfirmedAddressRequestKey(null);
     setPendingConfirmedCheckoutKey(null);
   }
@@ -642,6 +669,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     }
 
     setConfirmedAddressRequestKey(createCheckoutRequestKey(nextBaseRequest.data));
+    setAcceptedSuggestedAddress(suggestedAddress);
     setPendingConfirmedCheckoutKey(
       addressConfirmation.source === 'session'
         ? createCheckoutRequestKey(nextConfirmedRequest.data)
@@ -855,6 +883,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
                         disabled={isCheckingOut}
                         aria-invalid={fieldState.invalid}
                         className={cn(fieldState.invalid && invalidControlClassName)}
+                        onChange={(event) => {
+                          clearAddressConfirmationForManualEdit();
+                          field.onChange(event.target.value);
+                        }}
                       />
                       {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                     </Field>

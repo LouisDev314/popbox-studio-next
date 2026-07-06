@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  areShippingAddressesEquivalent,
   buildCheckoutRequest,
   CANADIAN_PROVINCES,
   getPurchasedProductIdsFromOrder,
@@ -248,6 +249,25 @@ describe('buildCheckoutRequest', () => {
 });
 
 describe('shouldConfirmSuggestedAddress', () => {
+  it('treats normalized submitted and suggested addresses as equivalent', () => {
+    expect(areShippingAddressesEquivalent({
+      city: ' toronto ',
+      countryCode: 'CA',
+      fullName: 'Ada Lovelace',
+      line1: ' 123 Queen St. W ',
+      line2: '# 4',
+      postalCode: 'm5h2m9',
+      province: 'on',
+    }, {
+      city: 'Toronto',
+      countryCode: 'CA',
+      line1: '123 Queen St W',
+      line2: '4',
+      postalCode: 'M5H 2M9',
+      province: 'ON',
+    })).toBe(true);
+  });
+
   it('does not require confirmation for casing whitespace and postal-code spacing differences', () => {
     expect(shouldConfirmSuggestedAddress({
       city: ' toronto ',
