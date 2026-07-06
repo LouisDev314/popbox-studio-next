@@ -42,6 +42,24 @@ describe('normalizeGooglePlaceToShippingAddress', () => {
     });
   });
 
+  it('maps Google subpremise components to checkout address line 2', () => {
+    expect(normalizeGooglePlaceToShippingAddress({
+      addressComponents: [
+        { longText: '321', shortText: '321', types: ['street_number'] },
+        { longText: 'Granville Street', shortText: 'Granville St', types: ['route'] },
+        { longText: 'Unit 1204', shortText: '1204', types: ['subpremise'] },
+        { longText: 'Vancouver', shortText: 'Vancouver', types: ['locality'] },
+        { longText: 'British Columbia', shortText: 'BC', types: ['administrative_area_level_1'] },
+        { longText: 'V6C 1S4', shortText: 'V6C 1S4', types: ['postal_code'] },
+        { longText: 'Canada', shortText: 'CA', types: ['country'] },
+      ],
+      fallbackDescription: '321 Granville Street, Unit 1204, Vancouver, BC, Canada',
+    })).toMatchObject({
+      line1: '321 Granville Street',
+      line2: 'Unit 1204',
+    });
+  });
+
   it('falls back to postal town or administrative area level 3 when locality is missing', () => {
     expect(normalizeGooglePlaceToShippingAddress({
       addressComponents: [

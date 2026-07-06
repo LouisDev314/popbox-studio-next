@@ -33,6 +33,13 @@ export interface ShippingAddress {
   phone?: string | null;
 }
 
+export type SuggestedShippingAddress = Pick<
+  ShippingAddress,
+  'city' | 'countryCode' | 'line1' | 'postalCode' | 'province'
+> & {
+  line2?: string | null;
+};
+
 export interface ContactFields {
   email: string;
   firstName?: string | null;
@@ -45,6 +52,7 @@ export interface CheckoutRequestBody extends ContactFields {
   shippingAddress: ShippingAddress;
   billingAddress?: ShippingAddress | null;
   billingSameAsShipping?: boolean;
+  confirmedAddress?: boolean;
 }
 
 export type CheckoutQuoteRequest = CheckoutRequestBody;

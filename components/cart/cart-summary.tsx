@@ -43,6 +43,31 @@ function getTaxRows(quote: CheckoutQuoteData | null) {
   ].filter((row) => row.amountCents > 0 || row.ratePpm > 0);
 }
 
+function getTaxComponentLabel(row: {
+  label: string;
+  ratePpm: number;
+}): string {
+  if (row.ratePpm <= 0) {
+    return row.label;
+  }
+
+  return `${row.label} ${formatTaxRate(row.ratePpm)}`;
+}
+
+function getPrimaryTaxLabel(taxRows: ReturnType<typeof getTaxRows>): string {
+  if (taxRows.length !== 1) {
+    return 'Tax';
+  }
+
+  const [taxRow] = taxRows;
+
+  if (!taxRow?.label) {
+    return 'Tax';
+  }
+
+  return `Tax (${getTaxComponentLabel(taxRow)})`;
+}
+
 function CartSummaryHeader(props: {
   heading: string | null;
   isQuotePending?: boolean;
@@ -81,23 +106,22 @@ function BackendQuoteTotals(props: {
   }
 
   const taxRows = getTaxRows(props.quote);
+  const primaryTaxLabel = getPrimaryTaxLabel(taxRows);
+  const shouldShowBreakdownRows = taxRows.length > 1;
 
   return (
     <div className="space-y-2" data-testid="cart-summary-backend-totals">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">Tax</span>
+        <span className="text-muted-foreground">{primaryTaxLabel}</span>
         <span className="font-medium text-foreground">
           {formatPrice(props.quote.taxCents, props.currency)}
         </span>
       </div>
-      {taxRows.length > 0 ? (
-        <div className="space-y-2 rounded-xl bg-muted/35 px-3 py-2">
+      {shouldShowBreakdownRows ? (
+        <div className="space-y-1.5 px-3 py-1">
           {taxRows.map((row) => (
             <div key={row.label} className="flex items-center justify-between gap-3 text-xs">
-              <span className="text-muted-foreground">
-                <span>{row.label}</span>
-                <span className="ml-1">{formatTaxRate(row.ratePpm)}</span>
-              </span>
+              <span className="text-muted-foreground">{getTaxComponentLabel(row)}</span>
               <span className="font-medium text-foreground">
                 {formatPrice(row.amountCents, props.currency)}
               </span>

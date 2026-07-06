@@ -1,10 +1,18 @@
 import { AxiosError, AxiosHeaders } from 'axios';
 import { describe, expect, it } from 'vitest';
-import { getFriendlyErrorMessage } from '@/utils/api-errors';
+import { type IBaseApiResponse } from '@/interfaces/api-response';
+import {
+  getCheckoutAddressError,
+  getFriendlyErrorMessage,
+} from '@/utils/api-errors';
 
-function createAxiosError(data: unknown, status = 500, message = 'Request failed with status code 500') {
+function createAxiosError(
+  data: unknown,
+  status = 500,
+  message = 'Request failed with status code 500',
+): AxiosError<IBaseApiResponse<unknown>> {
   return new AxiosError(message, undefined, undefined, undefined, {
-    data,
+    data: data as IBaseApiResponse<unknown>,
     status,
     statusText: 'Server Error',
     headers: {},
@@ -49,5 +57,100 @@ describe('getFriendlyErrorMessage', () => {
     const error = new AxiosError('Network Error');
 
     expect(getFriendlyErrorMessage(error)).toBe('Network error. Please check your connection.');
+  });
+});
+
+describe('getCheckoutAddressError', () => {
+  it('extracts a suggested address from ADDRESS_NEEDS_CONFIRMATION', () => {
+    const error = createAxiosError({
+      code: 422,
+      errors: {
+        code: 'ADDRESS_NEEDS_CONFIRMATION',
+        message: 'Please confirm the corrected shipping address before checkout.',
+        suggestedAddress: {
+          line1: '123 Queen St W',
+          line2: '',
+          city: 'Toronto',
+          province: 'ON',
+          postalCode: 'M5H 2M9',
+          countryCode: 'CA',
+        },
+      },
+      message: 'Please confirm the corrected shipping address before checkout.',
+      success: false,
+    }, 422);
+
+    expect(getCheckoutAddressError(error)).toEqual({
+      code: 'ADDRESS_NEEDS_CONFIRMATION',
+      message: 'Please confirm the corrected shipping address before checkout.',
+      suggestedAddress: {
+        line1: '123 Queen St W',
+        line2: '',
+        city: 'Toronto',
+        province: 'ON',
+        postalCode: 'M5H 2M9',
+        countryCode: 'CA',
+      },
+    });
+  });
+
+  it.each([
+    [
+      'ADDRESS_INVALID',
+      'We could not validate this shipping address. Please check the street address, city, province, and postal code.',
+    ],
+    [
+      'ADDRESS_COUNTRY_UNSUPPORTED',
+      'PopBox Studio currently only ships within Canada.',
+    ],
+    [
+      'ADDRESS_VALIDATION_UNAVAILABLE',
+      'Address validation is temporarily unavailable. Please try again.',
+    ],
+    [
+      'ADDRESS_CONFIGURATION_ERROR',
+      'Checkout is temporarily unavailable. Please try again later.',
+    ],
+  ])('maps %s to checkout copy', (code, message) => {
+    const error = createAxiosError({
+      code: 422,
+      errors: {
+        code,
+        message: 'Raw backend message.',
+      },
+      message: 'Raw backend message.',
+      success: false,
+    }, 422);
+
+    expect(getCheckoutAddressError(error)).toEqual({
+      code,
+      message,
+      suggestedAddress: null,
+    });
+  });
+
+  it('falls back to retry copy when confirmation response is missing a usable suggested address', () => {
+    const error = createAxiosError({
+      code: 422,
+      errors: {
+        code: 'ADDRESS_NEEDS_CONFIRMATION',
+        message: 'Please confirm the corrected shipping address before checkout.',
+        suggestedAddress: {
+          line1: '123 Queen St W',
+          city: 'Toronto',
+          province: 'WA',
+          postalCode: 'M5H 2M9',
+          countryCode: 'US',
+        },
+      },
+      message: 'Please confirm the corrected shipping address before checkout.',
+      success: false,
+    }, 422);
+
+    expect(getCheckoutAddressError(error)).toEqual({
+      code: 'ADDRESS_VALIDATION_UNAVAILABLE',
+      message: 'Address validation is temporarily unavailable. Please try again.',
+      suggestedAddress: null,
+    });
   });
 });

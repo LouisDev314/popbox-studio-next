@@ -201,7 +201,7 @@ describe('CartDrawer', () => {
     renderWithProviders(<CartDrawerHarness onClose={onClose} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+    await userEvent.click(screen.getByRole('button', { name: 'View Cart' }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(push).toHaveBeenCalledWith('/cart');

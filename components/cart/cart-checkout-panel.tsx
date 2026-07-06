@@ -13,7 +13,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ErrorAlert } from '@/components/ui/error-alert';
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -30,13 +29,18 @@ import {
   type CheckoutQuoteData,
   type CheckoutQuoteRequest,
   type CheckoutSessionRequest,
+  type SuggestedShippingAddress,
 } from '@/interfaces/checkout';
 import { type IBaseApiResponse } from '@/interfaces/api-response';
 import { cn } from '@/lib/utils';
-import { getApiErrorDetails } from '@/utils/api-errors';
+import {
+  getApiErrorDetails,
+  getCheckoutAddressError,
+} from '@/utils/api-errors';
 import {
   buildCheckoutRequest,
   CANADIAN_PROVINCES,
+  shouldConfirmSuggestedAddress,
 } from '@/utils/checkout';
 import {
   normalizeGooglePlaceToShippingAddress,
@@ -60,10 +64,10 @@ interface IGoogleAutocompleteSuggestion {
 }
 
 interface IGoogleAutocompleteRequest {
-  includedPrimaryTypes: string[];
+  includedRegionCodes?: string[];
   input: string;
   language: 'en-CA';
-  locationRestriction: {
+  locationRestriction?: {
     east: number;
     north: number;
     south: number;
@@ -100,7 +104,6 @@ const CANADA_LOCATION_RESTRICTION = {
   south: 41,
   west: -141,
 };
-const GOOGLE_AUTOCOMPLETE_PRIMARY_TYPES = ['street_address', 'premise', 'subpremise'];
 let googlePlacesScriptPromise: Promise<void> | null = null;
 
 const checkoutFormSchema = z.object({
@@ -126,8 +129,19 @@ type TQuoteState =
   | { data: null; errorMessage: string; key: string | null; status: 'error' }
   | { data: null; errorMessage: null; key: string | null; status: 'idle' | 'pending' };
 
+type TAddressConfirmationState = {
+  source: 'quote' | 'session';
+  suggestedAddress: SuggestedShippingAddress;
+} | null;
+
 function createCheckoutRequestKey(data: CheckoutQuoteRequest): string {
   return JSON.stringify(data);
+}
+
+function createUnconfirmedCheckoutRequestKey(data: CheckoutQuoteRequest): string {
+  const { confirmedAddress: _confirmedAddress, ...unconfirmedData } = data;
+
+  return createCheckoutRequestKey(unconfirmedData);
 }
 
 function isCheckoutReady(params: {
@@ -208,6 +222,7 @@ function AddressAutocompleteInput(props: {
   };
   invalid: boolean;
   onAddressSelected: (values: Partial<CheckoutFormValues['shippingAddress']>) => void;
+  onManualEdit: () => void;
 }) {
   const apiKey = getPublicEnvConfig().googleMapsApiKey;
   const placesLibraryRef = useRef<IGooglePlacesLibrary | null>(null);
@@ -269,14 +284,22 @@ function AddressAutocompleteInput(props: {
 
     sessionTokenRef.current = sessionToken;
 
-    placesLibrary.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-      includedPrimaryTypes: GOOGLE_AUTOCOMPLETE_PRIMARY_TYPES,
+    const request: IGoogleAutocompleteRequest = {
+      includedRegionCodes: ['ca'],
       input,
       language: 'en-CA',
-      locationRestriction: CANADA_LOCATION_RESTRICTION,
       region: 'ca',
       sessionToken,
-    })
+    };
+
+    placesLibrary.AutocompleteSuggestion.fetchAutocompleteSuggestions(request)
+      .catch(() => placesLibrary.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input,
+        language: 'en-CA',
+        locationRestriction: CANADA_LOCATION_RESTRICTION,
+        region: 'ca',
+        sessionToken,
+      }))
       .then((response) => {
         if (isCancelled) {
           return;
@@ -334,7 +357,10 @@ function AddressAutocompleteInput(props: {
         aria-invalid={props.invalid}
         className={cn(props.invalid && invalidControlClassName)}
         onBlur={props.field.onBlur}
-        onChange={(event) => props.field.onChange(event.target.value)}
+        onChange={(event) => {
+          props.onManualEdit();
+          props.field.onChange(event.target.value);
+        }}
       />
       {visiblePredictions.length > 0 ? (
         <div className="absolute left-0 right-0 top-[calc(100%+0.25rem)] z-30 overflow-hidden rounded-xl border border-border bg-popover shadow-lg">
@@ -371,7 +397,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   const getCartSummary = useCartStore((state) => state.getCartSummary);
   const clearCheckoutDialog = useCheckoutUiStore((state) => state.clearCheckoutDialog);
   const { checkoutDialog, checkoutErrorMessage, isCheckingOut, startCheckout } = useStartCheckout();
+  const [addressConfirmation, setAddressConfirmation] = useState<TAddressConfirmationState>(null);
+  const [confirmedAddressRequestKey, setConfirmedAddressRequestKey] = useState<string | null>(null);
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
+  const [pendingConfirmedCheckoutKey, setPendingConfirmedCheckoutKey] = useState<string | null>(null);
   const [quoteState, setQuoteState] = useState<TQuoteState>({
     data: null,
     errorMessage: null,
@@ -398,7 +427,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   });
 
   const watchedValues = useWatch({ control: form.control });
-  const requestResult = useMemo(() => buildCheckoutRequest(items, {
+  const checkoutCustomerInput = useMemo(() => ({
     email: watchedValues.email ?? '',
     phone: watchedValues.phone ?? '',
     shippingAddress: {
@@ -411,10 +440,49 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
       postalCode: watchedValues.shippingAddress?.postalCode ?? '',
       province: watchedValues.shippingAddress?.province ?? '',
     },
-  }), [items, watchedValues]);
+  }), [watchedValues]);
+  const baseRequestResult = useMemo(
+    () => buildCheckoutRequest(items, checkoutCustomerInput),
+    [checkoutCustomerInput, items],
+  );
+  const baseRequestKey = baseRequestResult.success ? createCheckoutRequestKey(baseRequestResult.data) : null;
+  const requestResult = useMemo(
+    () => buildCheckoutRequest(items, checkoutCustomerInput, {
+      confirmedAddress: Boolean(baseRequestKey && confirmedAddressRequestKey === baseRequestKey),
+    }),
+    [baseRequestKey, checkoutCustomerInput, confirmedAddressRequestKey, items],
+  );
   const currentRequestKey = requestResult.success ? createCheckoutRequestKey(requestResult.data) : null;
   const debouncedRequestKey = useDebouncedValue(currentRequestKey, 400);
   const isQuoteCurrent = quoteState.key === currentRequestKey;
+  const handleAddressConfirmationRequired = useCallback((
+    source: 'quote' | 'session',
+    suggestedAddress: SuggestedShippingAddress,
+    request: CheckoutQuoteRequest,
+  ) => {
+    if (!shouldConfirmSuggestedAddress(request.shippingAddress, suggestedAddress)) {
+      const confirmedRequest = {
+        ...request,
+        confirmedAddress: true,
+      };
+
+      setConfirmedAddressRequestKey(createUnconfirmedCheckoutRequestKey(request));
+      setPendingConfirmedCheckoutKey(
+        source === 'session'
+          ? createCheckoutRequestKey(confirmedRequest)
+          : null,
+      );
+      setAddressConfirmation(null);
+      setFormErrorMessage(null);
+      return;
+    }
+
+    setAddressConfirmation({
+      source,
+      suggestedAddress,
+    });
+    setFormErrorMessage(null);
+  }, []);
 
   const { mutation: createCheckoutQuote } = useCustomizeMutation<
     CheckoutQuoteData,
@@ -463,8 +531,40 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
             key: debouncedRequestKey,
             status: 'success',
           });
+
+          if (
+            pendingConfirmedCheckoutKey === debouncedRequestKey
+            && request.confirmedAddress === true
+          ) {
+            setPendingConfirmedCheckoutKey(null);
+            startCheckout(request as CheckoutSessionRequest, {
+              onAddressConfirmationRequired: (suggestedAddress, sessionRequest) => {
+                handleAddressConfirmationRequired('session', suggestedAddress, sessionRequest);
+              },
+            });
+          }
         },
         onError: (error) => {
+          const checkoutAddressError = getCheckoutAddressError(error as AxiosError<IBaseApiResponse<unknown>>);
+
+          if (checkoutAddressError) {
+            if (
+              checkoutAddressError.code === 'ADDRESS_NEEDS_CONFIRMATION'
+              && checkoutAddressError.suggestedAddress
+            ) {
+              handleAddressConfirmationRequired('quote', checkoutAddressError.suggestedAddress, request);
+              return;
+            }
+
+            setQuoteState({
+              data: null,
+              errorMessage: checkoutAddressError.message,
+              key: debouncedRequestKey,
+              status: 'error',
+            });
+            return;
+          }
+
           setQuoteState({
             data: null,
             errorMessage: getApiErrorDetails(
@@ -482,9 +582,15 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
       isCancelled = true;
       window.clearTimeout(pendingTimeoutId);
     };
-  }, [createCheckoutQuote, debouncedRequestKey]);
+  }, [
+    createCheckoutQuote,
+    debouncedRequestKey,
+    handleAddressConfirmationRequired,
+    pendingConfirmedCheckoutKey,
+    startCheckout,
+  ]);
 
-  const canCheckout = isCheckoutReady({
+  const canCheckout = !addressConfirmation && isCheckoutReady({
     currentRequestKey,
     hasHydrated,
     invalidItemCount: invalidItems.length,
@@ -498,6 +604,66 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     || (isQuoteCurrent ? quoteState.errorMessage : null)
     || checkoutErrorMessage;
 
+  function clearAddressConfirmationForManualEdit() {
+    setAddressConfirmation(null);
+    setConfirmedAddressRequestKey(null);
+    setPendingConfirmedCheckoutKey(null);
+  }
+
+  function handleAcceptSuggestedAddress() {
+    if (!addressConfirmation) {
+      return;
+    }
+
+    const currentValues = form.getValues();
+    const suggestedAddress = addressConfirmation.suggestedAddress;
+    const nextCustomerInput = {
+      email: currentValues.email ?? '',
+      phone: currentValues.phone ?? '',
+      shippingAddress: {
+        city: suggestedAddress.city,
+        countryCode: suggestedAddress.countryCode,
+        fullName: currentValues.shippingAddress.fullName ?? '',
+        line1: suggestedAddress.line1,
+        line2: suggestedAddress.line2 ?? '',
+        phone: null,
+        postalCode: suggestedAddress.postalCode,
+        province: suggestedAddress.province,
+      },
+    };
+    const nextBaseRequest = buildCheckoutRequest(items, nextCustomerInput);
+    const nextConfirmedRequest = buildCheckoutRequest(items, nextCustomerInput, {
+      confirmedAddress: true,
+    });
+
+    if (!nextBaseRequest.success || !nextConfirmedRequest.success) {
+      setFormErrorMessage('Enter a valid Canadian shipping address and wait for the latest checkout quote.');
+      return;
+    }
+
+    setConfirmedAddressRequestKey(createCheckoutRequestKey(nextBaseRequest.data));
+    setPendingConfirmedCheckoutKey(
+      addressConfirmation.source === 'session'
+        ? createCheckoutRequestKey(nextConfirmedRequest.data)
+        : null,
+    );
+    setAddressConfirmation(null);
+    setFormErrorMessage(null);
+
+    form.setValue('shippingAddress.line1', suggestedAddress.line1, { shouldDirty: true, shouldValidate: true });
+    form.setValue('shippingAddress.line2', suggestedAddress.line2 ?? '', { shouldDirty: true, shouldValidate: true });
+    form.setValue('shippingAddress.city', suggestedAddress.city, { shouldDirty: true, shouldValidate: true });
+    form.setValue('shippingAddress.province', suggestedAddress.province, { shouldDirty: true, shouldValidate: true });
+    form.setValue('shippingAddress.postalCode', suggestedAddress.postalCode, { shouldDirty: true, shouldValidate: true });
+    form.setValue('shippingAddress.countryCode', suggestedAddress.countryCode, { shouldDirty: true, shouldValidate: true });
+  }
+
+  function handleEditSuggestedAddress() {
+    clearAddressConfirmationForManualEdit();
+    setFormErrorMessage(null);
+    form.setFocus('shippingAddress.line1');
+  }
+
   function handleSubmitCheckout() {
     if (!requestResult.success) {
       setFormErrorMessage(requestResult.message);
@@ -509,7 +675,11 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
       return;
     }
 
-    startCheckout(requestResult.data as CheckoutSessionRequest);
+    startCheckout(requestResult.data as CheckoutSessionRequest, {
+      onAddressConfirmationRequired: (suggestedAddress, request) => {
+        handleAddressConfirmationRequired('session', suggestedAddress, request);
+      },
+    });
   }
 
   const quote = quoteState.status === 'success' && isQuoteCurrent ? quoteState.data : null;
@@ -582,6 +752,36 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
               
               <h3 className="text-base font-semibold text-foreground">Shipping address</h3>
 
+              {addressConfirmation ? (
+                <div className="rounded-2xl border border-border bg-muted/30 p-4" role="status" aria-live="polite">
+                  <div className="space-y-2">
+                    <h4 className="text-base font-semibold text-foreground">Confirm your shipping address</h4>
+                    <div className="rounded-xl bg-background px-3 py-2 text-sm text-foreground">
+                      <p className="font-medium">{addressConfirmation.suggestedAddress.line1}</p>
+                      {addressConfirmation.suggestedAddress.line2 ? (
+                        <p>{addressConfirmation.suggestedAddress.line2}</p>
+                      ) : null}
+                      <p>
+                        {addressConfirmation.suggestedAddress.city}
+                        {', '}
+                        {addressConfirmation.suggestedAddress.province}
+                        {' '}
+                        {addressConfirmation.suggestedAddress.postalCode}
+                      </p>
+                      <p>Canada</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <Button type="button" onClick={handleAcceptSuggestedAddress}>
+                      Use suggested address
+                    </Button>
+                    <Button type="button" variant="outline" onClick={handleEditSuggestedAddress}>
+                      Edit address
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
               <FieldGroup>
                 <Controller
                   name="shippingAddress.fullName"
@@ -612,7 +812,16 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
                         disabled={isCheckingOut}
                         field={field}
                         invalid={fieldState.invalid}
+                        onManualEdit={clearAddressConfirmationForManualEdit}
                         onAddressSelected={(values) => {
+                          if (values.countryCode !== 'CA') {
+                            setFormErrorMessage('PopBox Studio currently only ships within Canada.');
+                            return;
+                          }
+
+                          clearAddressConfirmationForManualEdit();
+                          setFormErrorMessage(null);
+
                           if (values.line1) {
                             form.setValue('shippingAddress.line1', values.line1, { shouldDirty: true, shouldValidate: true });
                           }
@@ -625,7 +834,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
                           if (values.postalCode) {
                             form.setValue('shippingAddress.postalCode', values.postalCode, { shouldDirty: true, shouldValidate: true });
                           }
-                          form.setValue('shippingAddress.countryCode', 'CA', { shouldDirty: true, shouldValidate: true });
+                          form.setValue('shippingAddress.countryCode', values.countryCode, { shouldDirty: true, shouldValidate: true });
                         }}
                       />
                       {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
@@ -666,6 +875,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
                           disabled={isCheckingOut}
                           aria-invalid={fieldState.invalid}
                           className={cn(fieldState.invalid && invalidControlClassName)}
+                          onChange={(event) => {
+                            clearAddressConfirmationForManualEdit();
+                            field.onChange(event.target.value);
+                          }}
                         />
                         {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                       </Field>
@@ -689,7 +902,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
                             fieldState.invalid && 'border-destructive/80 focus:border-destructive focus:ring-destructive/20',
                           )}
                           onBlur={field.onBlur}
-                          onChange={(event) => field.onChange(event.target.value)}
+                          onChange={(event) => {
+                            clearAddressConfirmationForManualEdit();
+                            field.onChange(event.target.value);
+                          }}
                         >
                           <option value="">Choose</option>
                           {CANADIAN_PROVINCES.map((province) => (
@@ -716,6 +932,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
                           disabled={isCheckingOut}
                           aria-invalid={fieldState.invalid}
                           className={cn(fieldState.invalid && invalidControlClassName)}
+                          onChange={(event) => {
+                            clearAddressConfirmationForManualEdit();
+                            field.onChange(event.target.value);
+                          }}
                         />
                         {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                       </Field>
@@ -751,6 +971,8 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
             isQuotePending={isQuotePending}
           />
 
+          <ErrorAlert message={blockingMessage} />
+
           <CheckoutButton
             size="lg"
             className="h-12 w-full rounded-full text-base font-semibold"
@@ -758,8 +980,6 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
             disabled={!canCheckout}
             isPending={isCheckingOut}
           />
-
-          <ErrorAlert message={blockingMessage} />
         </div>
       </form>
 

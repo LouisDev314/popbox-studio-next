@@ -5,6 +5,7 @@ import {
   getPurchasedProductIdsFromOrder,
   getValidatedCheckoutUrl,
   isCanadianProvinceCode,
+  shouldConfirmSuggestedAddress,
 } from '@/utils/checkout';
 import type { IOrderDetail } from '@/interfaces/order';
 import {
@@ -136,6 +137,50 @@ describe('buildCheckoutRequest', () => {
     }
   });
 
+  it('omits confirmedAddress unless a backend suggested address was accepted', () => {
+    const result = buildCheckoutRequest([
+      createCartItem(),
+    ], {
+      email: 'customer@example.com',
+      shippingAddress: {
+        fullName: 'Ada Lovelace',
+        line1: '123 Maple Street',
+        city: 'Vancouver',
+        province: 'BC',
+        postalCode: 'V6B 1A1',
+        countryCode: 'CA',
+      },
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty('confirmedAddress');
+    }
+  });
+
+  it('includes confirmedAddress only when explicitly requested', () => {
+    const result = buildCheckoutRequest([
+      createCartItem(),
+    ], {
+      email: 'customer@example.com',
+      shippingAddress: {
+        fullName: 'Ada Lovelace',
+        line1: '123 Maple Street',
+        city: 'Vancouver',
+        province: 'BC',
+        postalCode: 'V6B 1A1',
+        countryCode: 'CA',
+      },
+    }, {
+      confirmedAddress: true,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.confirmedAddress).toBe(true);
+    }
+  });
+
   it('rejects invalid contact and Canadian shipping details before quoting', () => {
     const result = buildCheckoutRequest([
       createCartItem(),
@@ -199,5 +244,64 @@ describe('buildCheckoutRequest', () => {
     ]);
 
     expect(getPurchasedProductIdsFromOrder(order)).toEqual([VALID_PRODUCT_ID, otherProductId]);
+  });
+});
+
+describe('shouldConfirmSuggestedAddress', () => {
+  it('does not require confirmation for casing whitespace and postal-code spacing differences', () => {
+    expect(shouldConfirmSuggestedAddress({
+      city: ' toronto ',
+      countryCode: 'CA',
+      fullName: 'Ada Lovelace',
+      line1: ' 123   Queen St W ',
+      line2: '',
+      postalCode: 'm5h2m9',
+      province: 'on',
+    }, {
+      city: 'Toronto',
+      countryCode: 'CA',
+      line1: '123 Queen St W',
+      line2: null,
+      postalCode: 'M5H 2M9',
+      province: 'ON',
+    })).toBe(false);
+  });
+
+  it('requires confirmation when the suggested address meaningfully differs', () => {
+    expect(shouldConfirmSuggestedAddress({
+      city: 'Toronto',
+      countryCode: 'CA',
+      fullName: 'Ada Lovelace',
+      line1: '123 Queen St W',
+      line2: '',
+      postalCode: 'M5H 2M9',
+      province: 'ON',
+    }, {
+      city: 'Toronto',
+      countryCode: 'CA',
+      line1: '125 Queen St W',
+      line2: null,
+      postalCode: 'M5H 2M9',
+      province: 'ON',
+    })).toBe(true);
+  });
+
+  it('ignores harmless punctuation when comparing address lines', () => {
+    expect(shouldConfirmSuggestedAddress({
+      city: 'Vancouver',
+      countryCode: 'CA',
+      fullName: 'Ada Lovelace',
+      line1: '123 Maple St.',
+      line2: '# 4',
+      postalCode: 'V6B 1A1',
+      province: 'BC',
+    }, {
+      city: 'Vancouver',
+      countryCode: 'CA',
+      line1: '123 Maple St',
+      line2: '4',
+      postalCode: 'V6B1A1',
+      province: 'BC',
+    })).toBe(false);
   });
 });

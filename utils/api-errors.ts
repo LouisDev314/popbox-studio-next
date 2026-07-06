@@ -4,9 +4,117 @@ import {
   type IApiValidationErrors,
   type IBaseApiResponse,
 } from '@/interfaces/api-response';
+import {
+  type CanadianProvinceCode,
+  type SuggestedShippingAddress,
+} from '@/interfaces/checkout';
+import { isCanadianProvinceCode } from '@/utils/checkout';
+
+export type CheckoutAddressErrorCode =
+  | 'ADDRESS_CONFIGURATION_ERROR'
+  | 'ADDRESS_COUNTRY_UNSUPPORTED'
+  | 'ADDRESS_INVALID'
+  | 'ADDRESS_NEEDS_CONFIRMATION'
+  | 'ADDRESS_VALIDATION_UNAVAILABLE';
+
+interface ICheckoutAddressErrorDetails {
+  code: CheckoutAddressErrorCode;
+  message: string;
+  suggestedAddress: SuggestedShippingAddress | null;
+}
+
+const CHECKOUT_ADDRESS_ERROR_MESSAGES: Record<CheckoutAddressErrorCode, string> = {
+  ADDRESS_CONFIGURATION_ERROR: 'Checkout is temporarily unavailable. Please try again later.',
+  ADDRESS_COUNTRY_UNSUPPORTED: 'PopBox Studio currently only ships within Canada.',
+  ADDRESS_INVALID: 'We could not validate this shipping address. Please check the street address, city, province, and postal code.',
+  ADDRESS_NEEDS_CONFIRMATION: 'Please confirm the corrected shipping address before checkout.',
+  ADDRESS_VALIDATION_UNAVAILABLE: 'Address validation is temporarily unavailable. Please try again.',
+};
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getStringField(value: Record<string, unknown>, field: string): string {
+  const fieldValue = value[field];
+
+  return typeof fieldValue === 'string' ? fieldValue.trim() : '';
+}
+
+function isCheckoutAddressErrorCode(value: string): value is CheckoutAddressErrorCode {
+  return Object.prototype.hasOwnProperty.call(CHECKOUT_ADDRESS_ERROR_MESSAGES, value);
+}
+
+function parseSuggestedShippingAddress(value: unknown): SuggestedShippingAddress | null {
+  if (!isObject(value)) {
+    return null;
+  }
+
+  const line1 = getStringField(value, 'line1');
+  const line2 = getStringField(value, 'line2');
+  const city = getStringField(value, 'city');
+  const province = getStringField(value, 'province').toUpperCase();
+  const postalCode = getStringField(value, 'postalCode');
+  const countryCode = getStringField(value, 'countryCode').toUpperCase();
+
+  if (
+    !line1
+    || !city
+    || !postalCode
+    || countryCode !== 'CA'
+    || !isCanadianProvinceCode(province)
+  ) {
+    return null;
+  }
+
+  return {
+    city,
+    countryCode: 'CA',
+    line1,
+    line2,
+    postalCode,
+    province: province as CanadianProvinceCode,
+  };
+}
+
+export function getCheckoutAddressError(
+  error: AxiosError<IBaseApiResponse<unknown>>,
+): ICheckoutAddressErrorDetails | null {
+  const errors = error.response?.data?.errors;
+
+  if (!isObject(errors)) {
+    return null;
+  }
+
+  const code = getStringField(errors, 'code');
+
+  if (!isCheckoutAddressErrorCode(code)) {
+    return null;
+  }
+
+  if (code === 'ADDRESS_NEEDS_CONFIRMATION') {
+    const suggestedAddress = parseSuggestedShippingAddress(errors.suggestedAddress);
+
+    if (!suggestedAddress) {
+      return {
+        code: 'ADDRESS_VALIDATION_UNAVAILABLE',
+        message: CHECKOUT_ADDRESS_ERROR_MESSAGES.ADDRESS_VALIDATION_UNAVAILABLE,
+        suggestedAddress: null,
+      };
+    }
+
+    return {
+      code,
+      message: CHECKOUT_ADDRESS_ERROR_MESSAGES[code],
+      suggestedAddress,
+    };
+  }
+
+  return {
+    code,
+    message: CHECKOUT_ADDRESS_ERROR_MESSAGES[code],
+    suggestedAddress: null,
+  };
 }
 
 function collectValidationMessages(

@@ -8,6 +8,8 @@ import {
   type CheckoutCustomerInput,
   type CheckoutValidationResult,
   type CheckoutRequestBody,
+  type ShippingAddress,
+  type SuggestedShippingAddress,
 } from '@/interfaces/checkout';
 import { IOrderDetail, IOrderStatus } from '@/interfaces/order';
 
@@ -61,6 +63,39 @@ function normalizeCountryCode(value: string | null | undefined): string {
   return trimRequired(value).toUpperCase();
 }
 
+function normalizeComparableText(value: string | null | undefined): string {
+  return trimRequired(value)
+    .toLowerCase()
+    .replace(/[.,#]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeComparableProvince(value: string | null | undefined): string {
+  return trimRequired(value).toUpperCase();
+}
+
+function normalizeComparablePostalCode(value: string | null | undefined): string {
+  return trimRequired(value).toUpperCase().replace(/\s+/g, '');
+}
+
+export function shouldConfirmSuggestedAddress(
+  submittedAddress: Pick<
+    CheckoutCustomerInput['shippingAddress'] | ShippingAddress,
+    'city' | 'countryCode' | 'line1' | 'postalCode' | 'province'
+  > & { line2?: string | null },
+  suggestedAddress: SuggestedShippingAddress,
+): boolean {
+  return (
+    normalizeComparableText(submittedAddress.line1) !== normalizeComparableText(suggestedAddress.line1)
+    || normalizeComparableText(submittedAddress.line2) !== normalizeComparableText(suggestedAddress.line2)
+    || normalizeComparableText(submittedAddress.city) !== normalizeComparableText(suggestedAddress.city)
+    || normalizeComparableProvince(submittedAddress.province) !== normalizeComparableProvince(suggestedAddress.province)
+    || normalizeComparablePostalCode(submittedAddress.postalCode) !== normalizeComparablePostalCode(suggestedAddress.postalCode)
+    || normalizeCountryCode(submittedAddress.countryCode) !== normalizeCountryCode(suggestedAddress.countryCode)
+  );
+}
+
 const checkoutItemSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.coerce.number().int().min(1).max(20),
@@ -68,6 +103,7 @@ const checkoutItemSchema = z.object({
 
 const checkoutRequestSchema = z.object({
   billingSameAsShipping: z.literal(true),
+  confirmedAddress: z.literal(true).optional(),
   email: z.string().trim().min(1, 'Email is required.').email('Enter a valid email address.'),
   firstName: z.string().trim().min(1).max(120).nullable().optional(),
   lastName: z.string().trim().min(1).max(120).nullable().optional(),
@@ -114,6 +150,7 @@ export function getInvalidCartItemsCheckoutMessage(invalidItems: ICartInvalidIte
 export function buildCheckoutRequest(
   items: ICartItem[],
   customer: CheckoutCustomerInput,
+  options: { confirmedAddress?: boolean } = {},
 ): CheckoutValidationResult {
   const firstName = trimOptional(customer.firstName);
   const lastName = trimOptional(customer.lastName);
@@ -150,6 +187,10 @@ export function buildCheckoutRequest(
 
   if (phone) {
     payload.phone = phone;
+  }
+
+  if (options.confirmedAddress === true) {
+    payload.confirmedAddress = true;
   }
 
   const parsedPayload = checkoutRequestSchema.safeParse(payload);

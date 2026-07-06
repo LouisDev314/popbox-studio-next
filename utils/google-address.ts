@@ -4,7 +4,9 @@ import { isCanadianProvinceCode } from '@/utils/checkout';
 type NormalizedGoogleShippingAddress = Partial<Pick<
   ShippingAddress,
   'city' | 'countryCode' | 'line1' | 'postalCode' | 'province'
->>;
+>> & {
+  line2?: string;
+};
 
 export interface GoogleAddressComponent {
   long_name?: string;
@@ -38,6 +40,7 @@ export function normalizeGooglePlaceToShippingAddress(params: {
 }): NormalizedGoogleShippingAddress {
   const streetNumber = getAddressComponent(params.addressComponents, 'street_number');
   const route = getAddressComponent(params.addressComponents, 'route');
+  const subpremise = getAddressComponent(params.addressComponents, 'subpremise');
   const line1 = [streetNumber, route].filter(Boolean).join(' ') || params.fallbackDescription.trim();
   const city =
     getAddressComponent(params.addressComponents, 'locality')
@@ -50,6 +53,10 @@ export function normalizeGooglePlaceToShippingAddress(params: {
 
   if (line1) {
     normalizedAddress.line1 = line1;
+  }
+
+  if (subpremise) {
+    normalizedAddress.line2 = subpremise;
   }
 
   if (city) {

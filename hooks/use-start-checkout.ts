@@ -11,8 +11,13 @@ import { type IBaseApiResponse } from '@/interfaces/api-response';
 import {
   type CheckoutSessionData,
   type CheckoutSessionRequest,
+  type SuggestedShippingAddress,
 } from '@/interfaces/checkout';
-import { getApiErrorDetails, isTimeoutAxiosError } from '@/utils/api-errors';
+import {
+  getApiErrorDetails,
+  getCheckoutAddressError,
+  isTimeoutAxiosError,
+} from '@/utils/api-errors';
 import {
   getInvalidCartItemsCheckoutMessage,
   redirectToCheckout,
@@ -81,7 +86,15 @@ export function useStartCheckout() {
     mutationFn: ({ data, key }) => MutationConfigs.createCheckoutSession(data, key),
   });
 
-  const startCheckout = useCallback((data: CheckoutSessionRequest) => {
+  const startCheckout = useCallback((
+    data: CheckoutSessionRequest,
+    options: {
+      onAddressConfirmationRequired?: (
+        suggestedAddress: SuggestedShippingAddress,
+        request: CheckoutSessionRequest,
+      ) => void;
+    } = {},
+  ) => {
     if (invalidItems.length > 0) {
       useCheckoutUiStore.getState().setCheckoutError(
         getInvalidCartItemsCheckoutMessage(invalidItems),
@@ -117,6 +130,22 @@ export function useStartCheckout() {
           }
         },
         onError: (error) => {
+          const checkoutAddressError = getCheckoutAddressError(error as AxiosError<IBaseApiResponse<unknown>>);
+
+          if (checkoutAddressError) {
+            if (
+              checkoutAddressError.code === 'ADDRESS_NEEDS_CONFIRMATION'
+              && checkoutAddressError.suggestedAddress
+            ) {
+              useCheckoutUiStore.getState().endCheckout();
+              options.onAddressConfirmationRequired?.(checkoutAddressError.suggestedAddress, data);
+              return;
+            }
+
+            useCheckoutUiStore.getState().setCheckoutError(checkoutAddressError.message);
+            return;
+          }
+
           const checkoutDialog = getCheckoutDialogConfig(error);
 
           if (checkoutDialog) {

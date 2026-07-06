@@ -66,10 +66,11 @@ interface GoogleAddressComponent {
 }
 
 interface GooglePredictionRequest {
-  includedPrimaryTypes: string[];
+  includedPrimaryTypes?: string[];
+  includedRegionCodes?: string[];
   input: string;
   language: 'en-CA';
-  locationRestriction: {
+  locationRestriction?: {
     east: number;
     north: number;
     south: number;
@@ -205,6 +206,46 @@ function createQuoteResponse(overrides: Partial<{
   };
 }
 
+function createAddressNeedsConfirmationResponse(suggestedAddress: Partial<{
+  city: string;
+  countryCode: 'CA';
+  line1: string;
+  line2: string;
+  postalCode: string;
+  province: string;
+}> = {}) {
+  return {
+    code: 422,
+    errors: {
+      code: 'ADDRESS_NEEDS_CONFIRMATION',
+      message: 'Please confirm the corrected shipping address before checkout.',
+      suggestedAddress: {
+        line1: '123 Queen St W',
+        line2: '',
+        city: 'Toronto',
+        province: 'ON',
+        postalCode: 'M5H 2M9',
+        countryCode: 'CA',
+        ...suggestedAddress,
+      },
+    },
+    message: 'Please confirm the corrected shipping address before checkout.',
+    success: false,
+  };
+}
+
+function createAddressErrorResponse(code: string) {
+  return {
+    code: 422,
+    errors: {
+      code,
+      message: 'Raw backend address validation message.',
+    },
+    message: 'Raw backend address validation message.',
+    success: false,
+  };
+}
+
 async function fillValidCheckoutForm() {
   await userEvent.type(screen.getByLabelText('Email'), 'customer@example.com');
   await userEvent.type(screen.getByLabelText('Phone (optional)'), '+1 780 555 0100');
@@ -213,6 +254,16 @@ async function fillValidCheckoutForm() {
   await userEvent.type(screen.getByLabelText('City'), 'Vancouver');
   await userEvent.selectOptions(screen.getByLabelText('Province'), 'BC');
   await userEvent.type(screen.getByLabelText('Postal code'), 'V6B 1A1');
+}
+
+async function fillTorontoCheckoutForm() {
+  await userEvent.type(screen.getByLabelText('Email'), 'customer@example.com');
+  await userEvent.type(screen.getByLabelText('Phone (optional)'), '+1 780 555 0100');
+  await userEvent.type(screen.getByLabelText('Full name'), 'Ada Lovelace');
+  await userEvent.type(screen.getByLabelText('Street address'), '123 Queen St. W');
+  await userEvent.type(screen.getByLabelText('City'), 'toronto');
+  await userEvent.selectOptions(screen.getByLabelText('Province'), 'ON');
+  await userEvent.type(screen.getByLabelText('Postal code'), 'm5h2m9');
 }
 
 describe('CartCheckoutPanel', () => {
@@ -245,9 +296,13 @@ describe('CartCheckoutPanel', () => {
     resetStores();
     publicEnvMock.googleMapsApiKey = 'test-public-google-key';
     const googlePlaces = installMockGooglePlaces();
+    const quoteBodies: unknown[] = [];
 
     server.use(
-      http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+      http.post(QUOTE_URL, async ({ request }) => {
+        quoteBodies.push(await request.json());
+        return HttpResponse.json(createQuoteResponse());
+      }),
     );
 
     act(() => {
@@ -268,22 +323,13 @@ describe('CartCheckoutPanel', () => {
     expect(googlePlaces.importLibrary).toHaveBeenCalledWith('places');
     expect(googlePlaces.fetchAutocompleteSuggestions).toHaveBeenCalledWith(
       expect.objectContaining({
-        includedPrimaryTypes: ['street_address', 'premise', 'subpremise'],
+        includedRegionCodes: ['ca'],
         language: 'en-CA',
         region: 'ca',
         sessionToken: expect.anything(),
       }),
     );
-    expect(googlePlaces.fetchAutocompleteSuggestions).toHaveBeenCalledWith(
-      expect.objectContaining({
-        locationRestriction: expect.objectContaining({
-          east: -52,
-          north: 84,
-          south: 41,
-          west: -141,
-        }),
-      }),
-    );
+    expect(googlePlaces.fetchAutocompleteSuggestions.mock.calls[0]?.[0]).not.toHaveProperty('includedPrimaryTypes');
 
     await userEvent.click(screen.getByRole('button', {
       name: '123 Maple Street, Vancouver, BC, Canada',
@@ -298,10 +344,46 @@ describe('CartCheckoutPanel', () => {
     expect(screen.getByLabelText('Province')).toHaveValue('BC');
     expect(screen.getByLabelText('Postal code')).toHaveValue('V6B 1A1');
 
+    await userEvent.type(screen.getByLabelText('Email'), 'customer@example.com');
+    await userEvent.type(screen.getByLabelText('Phone (optional)'), '+1 780 555 0100');
+    await userEvent.type(screen.getByLabelText('Full name'), 'Ada Lovelace');
+
+    await waitFor(() => {
+      expect(quoteBodies.length).toBeGreaterThan(0);
+    });
+    expect(JSON.stringify(quoteBodies.at(-1))).not.toContain('addressComponents');
+    expect(JSON.stringify(quoteBodies.at(-1))).not.toContain('placePrediction');
+
     await userEvent.clear(screen.getByLabelText('Street address'));
     await userEvent.type(screen.getByLabelText('Street address'), '125 Maple Street');
 
     expect(screen.getByLabelText('Street address')).toHaveValue('125 Maple Street');
+  });
+
+  it('loads the Google Maps script once when autocomplete initializes without an existing library', async () => {
+    resetStores();
+    publicEnvMock.googleMapsApiKey = 'test-public-google-key';
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    const firstRender = renderWithProviders(<CartCheckoutPanel />);
+
+    await waitFor(() => {
+      expect(document.querySelectorAll('script[data-popbox-google-places="true"]')).toHaveLength(1);
+    });
+
+    firstRender.unmount();
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await waitFor(() => {
+      expect(document.querySelectorAll('script[data-popbox-google-places="true"]')).toHaveLength(1);
+    });
   });
 
   it('renders backend quote totals and tax breakdown without calculating totals on the client', async () => {
@@ -333,8 +415,8 @@ describe('CartCheckoutPanel', () => {
       expect(screen.getByText('$7.44')).toBeInTheDocument();
       expect(screen.getByText('$69.43')).toBeInTheDocument();
     });
-    expect(screen.getByText('GST')).toBeInTheDocument();
-    expect(screen.getByText('PST')).toBeInTheDocument();
+    expect(screen.getByText('GST 5%')).toBeInTheDocument();
+    expect(screen.getByText('PST 7%')).toBeInTheDocument();
     expect(screen.queryByText(/Backend quote/i)).not.toBeInTheDocument();
     expect(screen.getByTestId('cart-summary-backend-totals')).toBeInTheDocument();
     expect(requestBody).toMatchObject({
@@ -418,6 +500,258 @@ describe('CartCheckoutPanel', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('Invalid request body - checkout quote request');
     });
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeDisabled();
+  });
+
+  it('shows suggested address confirmation from quote and resubmits with confirmedAddress after acceptance', async () => {
+    resetStores();
+    const quoteBodies: Array<Record<string, unknown>> = [];
+
+    server.use(
+      http.post(QUOTE_URL, async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+
+        quoteBodies.push(body);
+
+        if (body.confirmedAddress === true) {
+          return HttpResponse.json(createQuoteResponse());
+        }
+
+        return HttpResponse.json(createAddressNeedsConfirmationResponse(), { status: 422 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await fillValidCheckoutForm();
+
+    expect(await screen.findByText('Confirm your shipping address')).toBeInTheDocument();
+    expect(screen.getByText('123 Queen St W')).toBeInTheDocument();
+    expect(screen.getByText('Toronto, ON M5H 2M9')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Use suggested address' }));
+
+    await waitFor(() => {
+      expect(quoteBodies.some((body) => body.confirmedAddress === true)).toBe(true);
+    });
+
+    const confirmedBody = quoteBodies.find((body) => body.confirmedAddress === true);
+
+    expect(confirmedBody).toMatchObject({
+      confirmedAddress: true,
+      phone: '+1 780 555 0100',
+      shippingAddress: {
+        city: 'Toronto',
+        countryCode: 'CA',
+        fullName: 'Ada Lovelace',
+        line1: '123 Queen St W',
+        line2: null,
+        postalCode: 'M5H 2M9',
+        province: 'ON',
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+    });
+  });
+
+  it('skips address confirmation when the backend suggested address matches after normalization', async () => {
+    resetStores();
+    const quoteBodies: Array<Record<string, unknown>> = [];
+
+    server.use(
+      http.post(QUOTE_URL, async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+
+        quoteBodies.push(body);
+
+        if (body.confirmedAddress === true) {
+          return HttpResponse.json(createQuoteResponse());
+        }
+
+        return HttpResponse.json(createAddressNeedsConfirmationResponse({
+          city: 'Toronto',
+          line1: '123 Queen St W',
+          postalCode: 'M5H 2M9',
+          province: 'ON',
+        }), { status: 422 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await fillTorontoCheckoutForm();
+
+    await waitFor(() => {
+      expect(quoteBodies.some((body) => body.confirmedAddress === true)).toBe(true);
+    });
+    expect(screen.queryByText('Confirm your shipping address')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Street address')).toHaveValue('123 Queen St. W');
+    expect(screen.getByLabelText('Postal code')).toHaveValue('m5h2m9');
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+    });
+  });
+
+  it('clears address confirmation when the user edits the address manually', async () => {
+    resetStores();
+    const quoteBodies: Array<Record<string, unknown>> = [];
+
+    server.use(
+      http.post(QUOTE_URL, async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+
+        quoteBodies.push(body);
+
+        if (quoteBodies.length === 1) {
+          return HttpResponse.json(createAddressNeedsConfirmationResponse(), { status: 422 });
+        }
+
+        return HttpResponse.json(createQuoteResponse());
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await fillValidCheckoutForm();
+
+    expect(await screen.findByText('Confirm your shipping address')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Edit address' }));
+    expect(screen.queryByText('Confirm your shipping address')).not.toBeInTheDocument();
+
+    await userEvent.clear(screen.getByLabelText('Street address'));
+    await userEvent.type(screen.getByLabelText('Street address'), '125 Maple Street');
+
+    await waitFor(() => {
+      expect(quoteBodies.length).toBeGreaterThan(1);
+    });
+    expect(quoteBodies.at(-1)).not.toHaveProperty('confirmedAddress');
+  });
+
+  it('does not redirect to Stripe when session requires address confirmation until the suggestion is accepted', async () => {
+    resetStores();
+    const sessionBodies: Array<Record<string, unknown>> = [];
+
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+      http.post(SESSION_URL, async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+
+        sessionBodies.push(body);
+
+        if (body.confirmedAddress === true) {
+          return HttpResponse.json(createCheckoutSessionResponse(), { status: 201 });
+        }
+
+        return HttpResponse.json(createAddressNeedsConfirmationResponse(), { status: 422 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await fillValidCheckoutForm();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    expect(await screen.findByText('Confirm your shipping address')).toBeInTheDocument();
+    expect(redirectToCheckout).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Use suggested address' }));
+
+    await waitFor(() => {
+      expect(redirectToCheckout).toHaveBeenCalledWith('https://checkout.stripe.com/pay/cs_test_123');
+    });
+    expect(sessionBodies.at(-1)).toMatchObject({
+      confirmedAddress: true,
+      phone: '+1 780 555 0100',
+      shippingAddress: {
+        city: 'Toronto',
+        countryCode: 'CA',
+        fullName: 'Ada Lovelace',
+        line1: '123 Queen St W',
+        postalCode: 'M5H 2M9',
+        province: 'ON',
+      },
+    });
+  });
+
+  it.each([
+    [
+      'ADDRESS_INVALID',
+      'We could not validate this shipping address. Please check the street address, city, province, and postal code.',
+    ],
+    [
+      'ADDRESS_COUNTRY_UNSUPPORTED',
+      'PopBox Studio currently only ships within Canada.',
+    ],
+    [
+      'ADDRESS_VALIDATION_UNAVAILABLE',
+      'Address validation is temporarily unavailable. Please try again.',
+    ],
+    [
+      'ADDRESS_CONFIGURATION_ERROR',
+      'Checkout is temporarily unavailable. Please try again later.',
+    ],
+  ])('shows friendly quote copy for %s', async (code, message) => {
+    resetStores();
+
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(createAddressErrorResponse(code), { status: 422 })),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await fillValidCheckoutForm();
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(message);
+    });
   });
 
   it('invalidates a successful quote when the cart changes', async () => {
