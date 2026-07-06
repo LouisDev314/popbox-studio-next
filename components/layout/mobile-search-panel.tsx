@@ -8,7 +8,6 @@ import { type IProductSuggestion } from '@/interfaces/product';
 import { formatPrice } from '@/lib/utils';
 
 interface IMobileSearchQuickLink {
-  description: string;
   href?: string;
   label: string;
   query?: string;
@@ -31,22 +30,18 @@ const MOBILE_SEARCH_QUICK_LINKS: IMobileSearchQuickLink[] = [
   {
     label: 'Shop all products',
     href: '/products',
-    description: 'Every active collectible in one place.',
   },
   {
     label: 'Ichiban Kuji',
     href: '/products?type=kuji',
-    description: 'A Japanese lottery where every ticket wins a random collectible prize.',
   },
   {
     label: 'One Piece',
     query: 'One Piece',
-    description: 'Top-hit anime with popular figures and merch.',
   },
   {
     label: 'Dragon Ball',
     query: 'Dragon Ball',
-    description: 'Original high-interest collector search.',
   },
 ];
 
@@ -107,23 +102,20 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
         <div className="max-h-[calc(100dvh-8rem)] overflow-y-auto px-4 py-4 md:px-8 mb-4">
           {!trimmedQuery ? (
             <div className="space-y-4">
-              <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground ml-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-2">
                 Quick Picks
               </p>
 
-              <div className="grid grid-cols-1 gap-3 mb-4">
+              <div className="space-y-2 mb-4">
                 {MOBILE_SEARCH_QUICK_LINKS.map((quickLink) => (
                   <button
                     key={quickLink.label}
                     type="button"
-                    className="group flex items-center justify-between rounded-3xl border border-border/70 bg-background/88 px-4 py-4 text-left shadow-[0_18px_40px_-34px_hsl(var(--foreground)/0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-muted/55 hover:shadow-[0_20px_44px_-30px_hsl(var(--foreground)/0.32)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
+                    className="flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left text-muted-foreground transition-colors duration-200 hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
                     onClick={() => handleQuickLinkSelect(quickLink)}
                   >
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{quickLink.label}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{quickLink.description}</p>
-                    </div>
-                    <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
+                    <span className="min-w-0 text-sm font-medium leading-snug break-words">{quickLink.label}</span>
+                    <ArrowUpRight className="h-4 w-4 shrink-0" />
                   </button>
                 ))}
               </div>
@@ -132,7 +124,7 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground ml-2">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground ml-2">
                   Suggestions
                   </p>
                 </div>
