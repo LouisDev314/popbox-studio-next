@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import CartPageClient from '@/app/(store)/cart/page-client';
 import { useCartStore } from '@/hooks/use-cart';
+import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { createCartItem } from '../fixtures';
 import { renderWithProviders, resetStores } from '../test-utils';
 
@@ -161,5 +162,31 @@ describe('CartPageClient', () => {
 
     expect(useCartStore.getState().items).toHaveLength(0);
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('keeps cart controls inert while checkout handoff is pending', async () => {
+    resetStores();
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+      useCheckoutUiStore.getState().beginCheckout();
+    });
+
+    const { container } = renderWithProviders(<CartPageClient />);
+    const removeButton = container.querySelector('article button[class*="text-destructive"]');
+    const lockedRegion = screen.getByTestId('cart-checkout-shell');
+    const overlay = screen.getByRole('status', { name: /Preparing secure checkout/i });
+
+    expect(overlay).toHaveClass('fixed', 'inset-0', 'pointer-events-auto');
+    expect(lockedRegion).toHaveAttribute('inert');
+    expect(removeButton).toBeDisabled();
+
+    await userEvent.click(removeButton as HTMLButtonElement);
+
+    expect(useCartStore.getState().items).toHaveLength(1);
   });
 });

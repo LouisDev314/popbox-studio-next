@@ -1221,4 +1221,55 @@ describe('CartCheckoutPanel', () => {
     expect(sessionBody).not.toHaveProperty('taxBreakdown');
     expect(sessionBody).not.toHaveProperty('contact');
   });
+
+  it('blocks the page while checkout session creation is pending and clears the lock after failure', async () => {
+    resetStores();
+    let rejectSession: ((reason?: unknown) => void) | null = null;
+
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+      http.post(SESSION_URL, async () => new Promise((_, reject) => {
+        rejectSession = reject;
+      })),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    const { unmount } = renderWithProviders(<CartCheckoutPanel />);
+
+    await fillValidCheckoutForm();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    const overlay = await screen.findByRole('status', { name: /Preparing secure checkout/i });
+
+    expect(overlay).toHaveTextContent('Your cart is reserved until we hand you off to the secure checkout page.');
+    expect(overlay).toHaveClass('fixed', 'inset-0', 'pointer-events-auto');
+    expect(screen.getByRole('button', { name: 'Processing...' })).toBeDisabled();
+    expect(document.body).toHaveStyle({ overflow: 'hidden' });
+
+    await act(async () => {
+      rejectSession?.(new Error('network down'));
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('status', { name: /Preparing secure checkout/i })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole('dialog', { name: 'Unable to start checkout' })).toHaveTextContent('Something went wrong. Please try again.');
+    expect(document.body).not.toHaveStyle({ overflow: 'hidden' });
+
+    unmount();
+
+    expect(document.body).not.toHaveStyle({ overflow: 'hidden' });
+  });
 });

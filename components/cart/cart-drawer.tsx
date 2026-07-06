@@ -92,16 +92,6 @@ export function CartDrawer(props: ICartDrawerProps) {
       }
       footer={hasHydrated && items.length > 0 ? (
         <div className="space-y-3">
-          <Button
-            variant="outline"
-            className="h-12 w-full rounded-full"
-            disabled={isCheckingOut}
-            onClick={() => {
-              onClose();
-            }}
-          >
-            Continue Shopping
-          </Button>
           <div className="mb-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-muted-foreground">Subtotal</span>
@@ -119,9 +109,13 @@ export function CartDrawer(props: ICartDrawerProps) {
               </p>
             ) : null}
           </div>
-          <p className="mb-6 text-xs leading-5 text-muted-foreground">
+          <p className="mb-4 text-xs leading-5 text-muted-foreground">
             {hasKujiItems ? 'Kuji items are random draw and final sale. ' : ''}
-            <Link href="/legal/shipping-returns" className="underline underline-offset-4 transition-colors hover:text-foreground">
+            <Link
+              href="/legal/shipping-returns"
+              className="underline underline-offset-4 transition-colors hover:text-foreground"
+              onClick={onClose}
+            >
               Shipping &amp; Returns
             </Link>
           </p>

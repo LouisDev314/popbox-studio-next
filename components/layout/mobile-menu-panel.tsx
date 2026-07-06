@@ -42,19 +42,18 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
                   href={item.href}
                   style={itemStyle}
                   className={cn(
-                    'group flex items-center justify-between rounded-[26px] border px-4 py-4 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    'flex items-center justify-between gap-3 rounded-2xl px-4 py-3 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                     props.isOpen ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0',
                     isActive
-                      ? 'border-primary/40 bg-accent text-primary'
-                      : 'border-border/70 bg-background hover:border-primary/30 hover:bg-muted',
+                      ? 'bg-accent text-primary'
+                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                   )}
                   onClick={props.onNavigate}
                 >
-                  <div className="min-w-0">
-                    <p className={cn('text-base font-semibold', isActive ? 'text-primary' : 'text-foreground')}>{item.label}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
-                  </div>
-                  <ArrowUpRight className={cn('h-4 w-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
+                  <span className="min-w-0 text-sm font-medium leading-snug break-words">
+                    {item.label}
+                  </span>
+                  <ArrowUpRight className="h-4 w-4 shrink-0" />
                 </Link>
               );
             })}

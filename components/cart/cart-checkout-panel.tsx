@@ -6,6 +6,7 @@ import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, us
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import MutationConfigs from '@/configs/api/mutation-config';
+import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-lock-overlay';
 import { CheckoutButton } from '@/components/cart/checkout-button';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -871,6 +872,8 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
           />
         </div>
       </form>
+
+      {isCheckingOut ? <CartInteractionLockOverlay /> : null}
 
       <Dialog
         open={checkoutDialog !== null}

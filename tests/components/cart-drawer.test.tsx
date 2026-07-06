@@ -3,6 +3,7 @@
 import { type ImgHTMLAttributes, useState } from 'react';
 import {
   act,
+  fireEvent,
   screen,
   waitFor,
 } from '@testing-library/react';
@@ -108,7 +109,7 @@ describe('CartDrawer', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it('closes the footer continue shopping action and restores focus without navigation', async () => {
+  it('closes the drawer close action and restores focus without navigation', async () => {
     act(() => {
       useCartStore.setState({
         hasHydrated: true,
@@ -123,7 +124,7 @@ describe('CartDrawer', () => {
     const triggerButton = screen.getByRole('button', { name: 'Open cart' });
     await userEvent.click(triggerButton);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Continue Shopping' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Close drawer' }));
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -168,6 +169,33 @@ describe('CartDrawer', () => {
 
     expect(screen.getByRole('link', { name: 'Shipping & Returns' })).toHaveAttribute('href', '/legal/shipping-returns');
     expect(screen.queryByText(/Kuji items are random draw and final sale/i)).not.toBeInTheDocument();
+  });
+
+  it('closes the drawer when the shipping and returns link is clicked', async () => {
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    const onClose = vi.fn();
+    renderWithProviders(<CartDrawerHarness onClose={onClose} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
+    const policyLink = screen.getByRole('link', { name: 'Shipping & Returns' });
+
+    expect(policyLink).toHaveAttribute('href', '/legal/shipping-returns');
+
+    policyLink.addEventListener('click', (event) => event.preventDefault());
+    fireEvent.click(policyLink);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(push).not.toHaveBeenCalled();
   });
 
   it('shows compact flat shipping progress in the drawer footer', async () => {

@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { ShoppingBag } from 'lucide-react';
-import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-lock-overlay';
 import { InvalidCartItems } from '@/components/cart/invalid-cart-items';
 import { CartPageItem } from '@/components/cart/cart-page-item';
 import { CartCheckoutPanel } from '@/components/cart/cart-checkout-panel';
@@ -56,6 +55,7 @@ export default function CartPageClient() {
     <div className="container mx-auto w-full px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
       <div className="relative" aria-busy={isCheckingOut}>
         <div
+          data-testid="cart-checkout-shell"
           className={isCheckingOut ? 'pointer-events-none select-none opacity-70 transition-opacity duration-200' : 'transition-opacity duration-200'}
           inert={isCheckingOut}
         >
@@ -108,7 +108,6 @@ export default function CartPageClient() {
           </CartCheckoutPanel>
         </div>
 
-        {isCheckingOut && <CartInteractionLockOverlay />}
       </div>
     </div>
   );
