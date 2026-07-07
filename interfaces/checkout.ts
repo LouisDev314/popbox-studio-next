@@ -48,6 +48,7 @@ export interface ContactFields {
 }
 
 export interface CheckoutRequestBody extends ContactFields {
+  customerNote?: string | null;
   items: CheckoutItem[];
   shippingAddress: ShippingAddress;
   billingAddress?: ShippingAddress | null;
@@ -93,6 +94,7 @@ export type CheckoutValidationResult =
   | { issues: string[]; message: string; success: false };
 
 export interface CheckoutCustomerInput extends ContactFields {
+  customerNote?: string | null;
   shippingAddress: {
     fullName: string;
     line1: string;

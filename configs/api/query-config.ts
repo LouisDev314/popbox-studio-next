@@ -7,7 +7,7 @@ import { buildAdminOrdersRequestParams, IAdminOrderListQueryParams } from '@/lib
 import { ICollection, ITag,
   IProductSuggestionResponse, IAdminProductDetail, IAdminProductListResponse, IKujiPrize,
 } from '@/interfaces/product';
-import { IOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
+import { IAdminOrderDetail, IGuestTicketView, IAdminOrderListResponse } from '@/interfaces/order';
 import { ICheckoutSuccess } from '@/interfaces/checkout';
 import { IFaqListResponse, IAdminFaqItem, IAdminFaqListResponse, IAdminLegalListResponse } from '@/interfaces/legal';
 import { IShippingSettings } from '@/interfaces/shipping';
@@ -68,7 +68,7 @@ const QueryConfigs = {
       params: buildAdminOrdersRequestParams(filters),
     }));
   },
-  fetchAdminOrder: async (adminOrderId: string): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
+  fetchAdminOrder: async (adminOrderId: string): Promise<AxiosResponse<IBaseApiResponse<IAdminOrderDetail>>> => {
     return httpClient.get(`/api/v1/admin/orders/${adminOrderId}`, await withAdminAuth());
   },
   fetchAdminCollections: async (): Promise<AxiosResponse<IBaseApiResponse<ICollection[]>>> => {

@@ -88,6 +88,10 @@ export interface IOrderDetail {
 
 export type IGuestOrderDetail = IOrderDetail;
 
+export interface IAdminOrderDetail extends IOrderDetail {
+  customerNote: string | null;
+}
+
 export interface IAdminOrderIdentity {
   id: string;
   publicId: string;
@@ -116,6 +120,7 @@ export interface IAdminOrderListItem {
   publicId: string;
   status: IOrderStatus;
   attention: IOrderAttention | null;
+  customerNote: string | null;
   includesLastOnePrize?: boolean;
   totalCents: number;
   currency: string;

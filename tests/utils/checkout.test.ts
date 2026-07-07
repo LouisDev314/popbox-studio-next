@@ -57,13 +57,12 @@ function createCheckoutOrderWithProductIds(productIds: string[]): IOrderDetail {
 
 describe('buildCheckoutRequest', () => {
   it('builds the exact backend checkout contract for valid cart and customer details', () => {
-    const result = buildCheckoutRequest([
-      createCartItem({ quantity: 2 }),
-    ], {
+    const customer = {
       email: ' customer@example.com ',
       firstName: ' Ada ',
       lastName: ' Lovelace ',
       phone: ' +1 780 555 0100 ',
+      customerNote: '  Please pack this away from heavy items.  ',
       shippingAddress: {
         fullName: ' Ada Lovelace ',
         line1: ' 123 Maple Street ',
@@ -74,11 +73,15 @@ describe('buildCheckoutRequest', () => {
         countryCode: 'ca',
         phone: '',
       },
-    });
+    };
+    const result = buildCheckoutRequest([
+      createCartItem({ quantity: 2 }),
+    ], customer);
 
     expect(result).toEqual({
       data: {
         billingSameAsShipping: true,
+        customerNote: 'Please pack this away from heavy items.',
         email: 'customer@example.com',
         firstName: 'Ada',
         items: [
@@ -110,6 +113,52 @@ describe('buildCheckoutRequest', () => {
       expect(result.data).not.toHaveProperty('totalCents');
       expect(result.data).not.toHaveProperty('taxBreakdown');
       expect(result.data).not.toHaveProperty('contact');
+    }
+  });
+
+  it('normalizes a whitespace-only customer note to null', () => {
+    const customer = {
+      email: 'customer@example.com',
+      customerNote: '     ',
+      shippingAddress: {
+        fullName: 'Ada Lovelace',
+        line1: '123 Maple Street',
+        city: 'Vancouver',
+        province: 'BC',
+        postalCode: 'V6B 1A1',
+        countryCode: 'CA',
+      },
+    };
+    const result = buildCheckoutRequest([
+      createCartItem(),
+    ], customer);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.customerNote).toBeNull();
+    }
+  });
+
+  it('rejects customer notes over 200 characters before quoting', () => {
+    const customer = {
+      email: 'customer@example.com',
+      customerNote: 'a'.repeat(201),
+      shippingAddress: {
+        fullName: 'Ada Lovelace',
+        line1: '123 Maple Street',
+        city: 'Vancouver',
+        province: 'BC',
+        postalCode: 'V6B 1A1',
+        countryCode: 'CA',
+      },
+    };
+    const result = buildCheckoutRequest([
+      createCartItem(),
+    ], customer);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.issues.join(' ')).toContain('200');
     }
   });
 

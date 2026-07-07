@@ -42,6 +42,7 @@ function createOrder(overrides: Partial<IAdminOrderListItem> = {}): IAdminOrderL
     publicId: 'PBX-1001',
     status: 'pending_payment',
     attention: null,
+    customerNote: null,
     totalCents: 1000,
     currency: 'CAD',
     placedAt: '2026-04-01T10:00:00.000Z',

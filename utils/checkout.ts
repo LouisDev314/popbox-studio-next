@@ -113,6 +113,7 @@ const checkoutItemSchema = z.object({
 const checkoutRequestSchema = z.object({
   billingSameAsShipping: z.literal(true),
   confirmedAddress: z.literal(true).optional(),
+  customerNote: z.string().trim().max(200, 'Customer note must be 200 characters or fewer.').nullable().optional(),
   email: z.string().trim().min(1, 'Email is required.').email('Enter a valid email address.'),
   firstName: z.string().trim().min(1).max(120).nullable().optional(),
   lastName: z.string().trim().min(1).max(120).nullable().optional(),
@@ -164,11 +165,13 @@ export function buildCheckoutRequest(
   const firstName = trimOptional(customer.firstName);
   const lastName = trimOptional(customer.lastName);
   const phone = trimOptional(customer.phone);
+  const customerNote = trimOptional(customer.customerNote);
   const shippingLine2 = trimOptional(customer.shippingAddress.line2);
   const shippingPhone = trimOptional(customer.shippingAddress.phone);
 
   const payload: CheckoutRequestBody = {
     billingSameAsShipping: true,
+    customerNote,
     email: trimRequired(customer.email),
     items: items.map((item) => ({
       productId: item.product.id,

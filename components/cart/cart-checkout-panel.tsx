@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AxiosError } from 'axios';
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { Controller, useForm, useWatch } from 'react-hook-form';
+import { type Control, Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import MutationConfigs from '@/configs/api/mutation-config';
 import { CheckoutHandoffOverlay } from '@/components/cart/checkout-handoff-overlay';
@@ -18,6 +18,7 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { useCartStore } from '@/hooks/use-cart';
@@ -31,6 +32,7 @@ import { useStartCheckout } from '@/hooks/use-start-checkout';
 import { type ICartSummary } from '@/interfaces/cart';
 import {
   type CheckoutQuoteData,
+  type CheckoutCustomerInput,
   type CheckoutQuoteRequest,
   type CheckoutSessionRequest,
   type SuggestedShippingAddress,
@@ -52,6 +54,7 @@ const invalidControlClassName =
   '!border-destructive/80 focus-visible:!border-destructive focus-visible:!ring-destructive/20';
 
 const checkoutFormSchema = z.object({
+  customerNote: z.string().trim().max(200, 'Order note must be 200 characters or fewer.').optional(),
   email: z.string().trim().min(1, 'Email is required.').email('Enter a valid email address.'),
   phone: z.string().trim().max(40, 'Phone must be 40 characters or fewer.').optional(),
   shippingAddress: z.object({
@@ -68,6 +71,10 @@ const checkoutFormSchema = z.object({
 });
 
 type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;
+
+type WatchedCheckoutFormValues = Partial<Omit<CheckoutFormValues, 'shippingAddress'>> & {
+  shippingAddress?: Partial<CheckoutFormValues['shippingAddress']>;
+};
 
 type TQuoteState =
   | { data: CheckoutQuoteData; errorMessage: null; key: string; status: 'success' }
@@ -87,6 +94,24 @@ function createUnconfirmedCheckoutRequestKey(data: CheckoutQuoteRequest): string
   const { confirmedAddress: _confirmedAddress, ...unconfirmedData } = data;
 
   return createCheckoutRequestKey(unconfirmedData);
+}
+
+function createCheckoutCustomerInput(values: WatchedCheckoutFormValues): CheckoutCustomerInput {
+  return {
+    customerNote: values.customerNote ?? '',
+    email: values.email ?? '',
+    phone: values.phone ?? '',
+    shippingAddress: {
+      city: values.shippingAddress?.city ?? '',
+      countryCode: 'CA',
+      fullName: values.shippingAddress?.fullName ?? '',
+      line1: values.shippingAddress?.line1 ?? '',
+      line2: values.shippingAddress?.line2 ?? '',
+      phone: null,
+      postalCode: values.shippingAddress?.postalCode ?? '',
+      province: values.shippingAddress?.province ?? '',
+    },
+  };
 }
 
 function isCheckoutReady(params: {
@@ -254,6 +279,85 @@ function CheckoutHandoffOverlayMount(props: { isActive: boolean }) {
   return <CheckoutHandoffOverlay />;
 }
 
+function CheckoutCustomerNoteField(props: {
+  control: Control<CheckoutFormValues>;
+  disabled: boolean;
+  noteLength: number;
+}) {
+  return (
+    <Controller
+      name="customerNote"
+      control={props.control}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid}>
+          <div className="flex items-center justify-between gap-3">
+            <FieldLabel htmlFor="checkout-customer-note">Order Note (Optional)</FieldLabel>
+            <span className="shrink-0 text-xs text-muted-foreground" aria-live="polite">
+              {props.noteLength}
+              {' / 200'}
+            </span>
+          </div>
+          <Textarea
+            {...field}
+            id="checkout-customer-note"
+            placeholder="Add any delivery or packing instructions..."
+            maxLength={200}
+            disabled={props.disabled}
+            aria-invalid={fieldState.invalid}
+            className={cn(
+              'min-h-24 resize-y',
+              fieldState.invalid && invalidControlClassName,
+            )}
+          />
+          {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+        </Field>
+      )}
+    />
+  );
+}
+
+function AddressConfirmationPrompt(props: {
+  confirmation: TAddressConfirmationState;
+  onAccept: () => void;
+  onEdit: () => void;
+}) {
+  if (!props.confirmation) {
+    return null;
+  }
+
+  const { suggestedAddress } = props.confirmation;
+
+  return (
+    <div className="rounded-2xl border border-border bg-muted/30 p-4" role="status" aria-live="polite">
+      <div className="space-y-2">
+        <h4 className="text-base font-semibold text-foreground">Confirm your shipping address</h4>
+        <div className="rounded-xl bg-background px-3 py-2 text-sm text-foreground">
+          <p className="font-medium">{suggestedAddress.line1}</p>
+          {suggestedAddress.line2 ? (
+            <p>{suggestedAddress.line2}</p>
+          ) : null}
+          <p>
+            {suggestedAddress.city}
+            {', '}
+            {suggestedAddress.province}
+            {' '}
+            {suggestedAddress.postalCode}
+          </p>
+          <p>Canada</p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <Button type="button" onClick={props.onAccept}>
+          Use suggested address
+        </Button>
+        <Button type="button" variant="outline" onClick={props.onEdit}>
+          Edit address
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   const invalidItems = useCartStore((state) => state.invalidItems);
   const items = useCartStore((state) => state.items);
@@ -275,6 +379,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
 
   const form = useForm<CheckoutFormValues>({
     defaultValues: {
+      customerNote: '',
       email: '',
       phone: '',
       shippingAddress: {
@@ -292,20 +397,11 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   });
 
   const watchedValues = useWatch({ control: form.control });
-  const checkoutCustomerInput = useMemo(() => ({
-    email: watchedValues.email ?? '',
-    phone: watchedValues.phone ?? '',
-    shippingAddress: {
-      city: watchedValues.shippingAddress?.city ?? '',
-      countryCode: 'CA',
-      fullName: watchedValues.shippingAddress?.fullName ?? '',
-      line1: watchedValues.shippingAddress?.line1 ?? '',
-      line2: watchedValues.shippingAddress?.line2 ?? '',
-      phone: null,
-      postalCode: watchedValues.shippingAddress?.postalCode ?? '',
-      province: watchedValues.shippingAddress?.province ?? '',
-    },
-  }), [watchedValues]);
+  const checkoutCustomerInput = useMemo(
+    () => createCheckoutCustomerInput(watchedValues),
+    [watchedValues],
+  );
+  const customerNoteLength = watchedValues.customerNote?.length ?? 0;
   const baseRequestResult = useMemo(
     () => buildCheckoutRequest(items, checkoutCustomerInput),
     [checkoutCustomerInput, items],
@@ -508,6 +604,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     const currentValues = form.getValues();
     const suggestedAddress = addressConfirmation.suggestedAddress;
     const nextCustomerInput = {
+      customerNote: currentValues.customerNote ?? '',
       email: currentValues.email ?? '',
       phone: currentValues.phone ?? '',
       shippingAddress: {
@@ -643,35 +740,11 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
               
               <h3 className="text-base font-semibold text-foreground">Shipping address</h3>
 
-              {addressConfirmation ? (
-                <div className="rounded-2xl border border-border bg-muted/30 p-4" role="status" aria-live="polite">
-                  <div className="space-y-2">
-                    <h4 className="text-base font-semibold text-foreground">Confirm your shipping address</h4>
-                    <div className="rounded-xl bg-background px-3 py-2 text-sm text-foreground">
-                      <p className="font-medium">{addressConfirmation.suggestedAddress.line1}</p>
-                      {addressConfirmation.suggestedAddress.line2 ? (
-                        <p>{addressConfirmation.suggestedAddress.line2}</p>
-                      ) : null}
-                      <p>
-                        {addressConfirmation.suggestedAddress.city}
-                        {', '}
-                        {addressConfirmation.suggestedAddress.province}
-                        {' '}
-                        {addressConfirmation.suggestedAddress.postalCode}
-                      </p>
-                      <p>Canada</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                    <Button type="button" onClick={handleAcceptSuggestedAddress}>
-                      Use suggested address
-                    </Button>
-                    <Button type="button" variant="outline" onClick={handleEditSuggestedAddress}>
-                      Edit address
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
+              <AddressConfirmationPrompt
+                confirmation={addressConfirmation}
+                onAccept={handleAcceptSuggestedAddress}
+                onEdit={handleEditSuggestedAddress}
+              />
 
               <FieldGroup>
                 <Controller
@@ -857,6 +930,12 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
                   )}
                 />
               </FieldGroup>
+
+              <CheckoutCustomerNoteField
+                control={form.control}
+                disabled={isCheckingOut}
+                noteLength={customerNoteLength}
+              />
             </div>
           </section>
         </div>

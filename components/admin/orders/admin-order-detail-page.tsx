@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
+  IAdminOrderDetail,
   IOrderDetail,
   IOrderStatus,
   IShipment,
@@ -354,7 +355,7 @@ function OrderAttentionSection({ order }: { order: IOrderDetail }) {
 function OrderSidebar({
   order,
 }: {
-  order: IOrderDetail;
+  order: IAdminOrderDetail;
 }) {
   const normalizedTrackingUrl = normalizeTrackingUrl(order.shipment?.trackingUrl);
 
@@ -368,6 +369,13 @@ function OrderSidebar({
         </p>
         {order.customer.phone && <p className="mt-0.5 text-sm text-muted-foreground">{order.customer.phone}</p>}
       </div>
+
+      {order.customerNote ? (
+        <div className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
+          <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Customer note</h2>
+          <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground">{order.customerNote}</p>
+        </div>
+      ) : null}
 
       <div className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Shipping Address</h2>
@@ -492,7 +500,7 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
   const [shipmentForm, setShipmentForm] = useState<IShipmentFormValues>(createShipmentForm(null));
   const [actionFeedback, setActionFeedback] = useState<OrderActionFeedback | null>(null);
 
-  const { data: fetchRes, isPending } = useCustomizeQuery<IOrderDetail>({
+  const { data: fetchRes, isPending } = useCustomizeQuery<IAdminOrderDetail>({
     queryKey: ['admin', 'orders', adminOrderId],
     queryFn: () => QueryConfigs.fetchAdminOrder(adminOrderId),
   });

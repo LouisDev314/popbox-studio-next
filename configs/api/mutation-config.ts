@@ -7,7 +7,7 @@ import {
   CheckoutSessionData,
   CheckoutSessionRequest,
 } from '@/interfaces/checkout';
-import { IOrderTicket, IGuestTicketView, IAdminOrderStatusUpdate, IAdminOrderShipmentUpdate, IOrderDetail } from '@/interfaces/order';
+import { IOrderTicket, IGuestTicketView, IAdminOrderStatusUpdate, IAdminOrderShipmentUpdate, IAdminOrderDetail } from '@/interfaces/order';
 import {
   IAdminProduct,
   IAdminProductImagePatch,
@@ -115,10 +115,10 @@ const MutationConfigs = {
   updateAdminTag: async ({ id, data }: { id: string; data: IAdminTagUpdateRequest }): Promise<AxiosResponse<IBaseApiResponse<ITag>>> => {
     return httpClient.patch(`/api/v1/admin/tags/${id}`, data, await withAdminAuth());
   },
-  updateAdminOrderStatus: async ({ adminOrderId, data }: { adminOrderId: string; data: IAdminOrderStatusUpdate }): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
+  updateAdminOrderStatus: async ({ adminOrderId, data }: { adminOrderId: string; data: IAdminOrderStatusUpdate }): Promise<AxiosResponse<IBaseApiResponse<IAdminOrderDetail>>> => {
     return httpClient.patch(`/api/v1/admin/orders/${adminOrderId}/status`, data, await withAdminAuth());
   },
-  updateAdminOrderShipment: async ({ adminOrderId, data }: { adminOrderId: string; data: IAdminOrderShipmentUpdate }): Promise<AxiosResponse<IBaseApiResponse<IOrderDetail>>> => {
+  updateAdminOrderShipment: async ({ adminOrderId, data }: { adminOrderId: string; data: IAdminOrderShipmentUpdate }): Promise<AxiosResponse<IBaseApiResponse<IAdminOrderDetail>>> => {
     return httpClient.patch(`/api/v1/admin/orders/${adminOrderId}/shipment`, data, await withAdminAuth());
   },
   resendAdminOrderConfirmation: async (adminOrderId: string): Promise<AxiosResponse<IBaseApiResponse<void>>> => {

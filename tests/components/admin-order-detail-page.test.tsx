@@ -23,12 +23,13 @@ function createResponse<T>(data: T): AxiosResponse<IBaseApiResponse<T>> {
   } as AxiosResponse<IBaseApiResponse<T>>;
 }
 
-function createOrder(overrides: Partial<IOrderDetail> = {}): IOrderDetail {
+function createOrder(overrides: Partial<IOrderDetail & { customerNote: string | null }> = {}): IOrderDetail & { customerNote: string | null } {
   return {
     id: 'order-1',
     publicId: 'PBX-1001',
     status: 'paid',
     attention: null,
+    customerNote: null,
     currency: 'CAD',
     subtotalCents: 4999,
     taxCents: 0,
@@ -115,5 +116,31 @@ describe('AdminOrderDetailPageClient', () => {
 
     await screen.findByRole('heading', { name: 'Order #PBX-1001' });
     expect(screen.queryByRole('heading', { name: 'Needs attention' })).not.toBeInTheDocument();
+  });
+
+  it('renders the backend-provided customer note when present', async () => {
+    vi.spyOn(QueryConfigs, 'fetchAdminOrder').mockResolvedValue(
+      createResponse(createOrder({
+        customerNote: 'Please pack this away from heavy items.',
+      })),
+    );
+
+    renderWithProviders(<AdminOrderDetailPageClient adminOrderId="order-1" />);
+
+    expect(await screen.findByRole('heading', { name: 'Customer note' })).toBeInTheDocument();
+    expect(screen.getByText('Please pack this away from heavy items.')).toBeInTheDocument();
+  });
+
+  it('omits the customer note section when no note exists', async () => {
+    vi.spyOn(QueryConfigs, 'fetchAdminOrder').mockResolvedValue(
+      createResponse(createOrder({
+        customerNote: null,
+      })),
+    );
+
+    renderWithProviders(<AdminOrderDetailPageClient adminOrderId="order-1" />);
+
+    await screen.findByRole('heading', { name: 'Order #PBX-1001' });
+    expect(screen.queryByRole('heading', { name: 'Customer note' })).not.toBeInTheDocument();
   });
 });

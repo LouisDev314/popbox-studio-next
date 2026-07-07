@@ -702,6 +702,80 @@ describe('CartCheckoutPanel', () => {
     expect(within(summaryColumn).getByTestId('cart-checkout-submit')).toBeInTheDocument();
   });
 
+  it('renders an optional order note field with a live 200 character counter', async () => {
+    resetStores();
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    const noteField = screen.getByLabelText('Order Note (Optional)');
+
+    expect(noteField).toHaveAttribute('placeholder', 'Add any delivery or packing instructions...');
+    expect(noteField).toHaveAttribute('maxLength', '200');
+    expect(screen.getByText('0 / 200')).toBeInTheDocument();
+
+    await userEvent.type(noteField, 'Please pack carefully.');
+
+    expect(screen.getByText('22 / 200')).toBeInTheDocument();
+  });
+
+  it('prevents typing more than 200 order note characters', async () => {
+    resetStores();
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    const noteField = screen.getByLabelText('Order Note (Optional)');
+
+    await userEvent.type(noteField, 'a'.repeat(205));
+
+    expect(noteField).toHaveValue('a'.repeat(200));
+    expect(screen.getByText('200 / 200')).toBeInTheDocument();
+  });
+
+  it('sends a trimmed order note with checkout quotes', async () => {
+    resetStores();
+    const quoteBodies: Array<Record<string, unknown>> = [];
+
+    server.use(
+      http.post(QUOTE_URL, async ({ request }) => {
+        quoteBodies.push(await request.json() as Record<string, unknown>);
+        return HttpResponse.json(createQuoteResponse());
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await userEvent.type(screen.getByLabelText('Order Note (Optional)'), '  Please pack away from heavy items.  ');
+    await fillValidCheckoutForm();
+
+    await waitFor(() => {
+      expect(quoteBodies.at(-1)?.customerNote).toBe('Please pack away from heavy items.');
+    });
+  });
+
   it('shows quote validation errors and keeps checkout disabled', async () => {
     resetStores();
 
@@ -1200,6 +1274,7 @@ describe('CartCheckoutPanel', () => {
     expect(idempotencyKey).toMatch(/^checkout-/);
     expect(sessionBody).toMatchObject({
       billingSameAsShipping: true,
+      customerNote: null,
       email: 'customer@example.com',
       items: [
         {
@@ -1220,6 +1295,80 @@ describe('CartCheckoutPanel', () => {
     expect(sessionBody).not.toHaveProperty('totalCents');
     expect(sessionBody).not.toHaveProperty('taxBreakdown');
     expect(sessionBody).not.toHaveProperty('contact');
+  });
+
+  it('sends a trimmed order note with checkout session requests', async () => {
+    resetStores();
+    let sessionBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+      http.post(SESSION_URL, async ({ request }) => {
+        sessionBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json(createCheckoutSessionResponse(), { status: 201 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await userEvent.type(screen.getByLabelText('Order Note (Optional)'), '  Ring the doorbell once.  ');
+    await fillValidCheckoutForm();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    await waitFor(() => {
+      expect(redirectToCheckout).toHaveBeenCalledWith('https://checkout.stripe.com/pay/cs_test_123');
+    });
+    expect(sessionBody?.customerNote).toBe('Ring the doorbell once.');
+  });
+
+  it('sends a whitespace-only order note as null without blocking checkout', async () => {
+    resetStores();
+    let sessionBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+      http.post(SESSION_URL, async ({ request }) => {
+        sessionBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json(createCheckoutSessionResponse(), { status: 201 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await userEvent.type(screen.getByLabelText('Order Note (Optional)'), '     ');
+    await fillValidCheckoutForm();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    await waitFor(() => {
+      expect(redirectToCheckout).toHaveBeenCalledWith('https://checkout.stripe.com/pay/cs_test_123');
+    });
+    expect(sessionBody?.customerNote).toBeNull();
   });
 
   it('blocks the page while checkout session creation is pending and clears the lock after failure', async () => {

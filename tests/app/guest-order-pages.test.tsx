@@ -121,6 +121,7 @@ describe('guest order pages', () => {
         lastName: 'Box',
         phone: null,
       },
+      customerNote: 'Customer note should stay admin-only.',
       currency: 'CAD',
       id: 'order-1',
       items: [
@@ -172,6 +173,7 @@ describe('guest order pages', () => {
     expect(screen.queryByText('Backend attention text must stay admin-only.')).not.toBeInTheDocument();
     expect(screen.queryByText('Do not show this to customers.')).not.toBeInTheDocument();
     expect(screen.queryByText('admin_only_attention')).not.toBeInTheDocument();
+    expect(screen.queryByText('Customer note should stay admin-only.')).not.toBeInTheDocument();
   });
 
   it('renders the initials fallback when a guest order item imageUrl is null', async () => {
