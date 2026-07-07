@@ -137,7 +137,7 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
                     <button
                       key={suggestion.id}
                       type="button"
-                      className="flex w-full items-center gap-3 rounded-3xl border border-border/70 bg-background/88 px-4 py-4 text-left shadow-[0_18px_40px_-34px_hsl(var(--foreground)/0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-muted/55 hover:shadow-[0_20px_44px_-30px_hsl(var(--foreground)/0.32)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
+                      className="flex w-full items-center gap-3 rounded-3xl border border-border/70 bg-background/88 px-2 py-2 text-left shadow-[0_18px_40px_-34px_hsl(var(--foreground)/0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:bg-muted/55 hover:shadow-[0_20px_44px_-30px_hsl(var(--foreground)/0.32)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
                       onClick={() => onSuggestionSelect(suggestion)}
                     >
                       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-muted/40">
@@ -167,7 +167,7 @@ export function MobileSearchPanel(props: IMobileSearchPanelProps) {
                     {isAutocompleteError ? 'Autocomplete is unavailable right now.' : 'No instant matches yet.'}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                  Continue with a full search to see matching storefront results for &quot;{trimmedQuery}&quot;.
+                  Continue with a full search to see matching results for &quot;{trimmedQuery}&quot;.
                   </p>
                 </div>
               ) : null}
