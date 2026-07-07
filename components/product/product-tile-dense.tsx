@@ -82,7 +82,7 @@ export function ProductTileDense(props: IProductTileDenseProps) {
         aria-label={wishlistLabel}
         aria-pressed={isWishlistActive}
         className={cn(
-          'cursor-pointer absolute right-2 top-2 z-10 flex size-8 xl:size-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:border-primary/30  hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ',
+          'cursor-pointer absolute right-2 top-2 z-10 flex size-8 xl:size-9 items-center justify-center rounded-full border border-white/70 bg-white/85 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:border-primary/30  hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ',
           isWishlistActive && 'border-primary/30 text-primary',
         )}
         onClick={handleWishlistClick}
