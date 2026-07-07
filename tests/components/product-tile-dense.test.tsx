@@ -2,10 +2,11 @@
 
 import { type ImgHTMLAttributes } from 'react';
 import { screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductTileDense } from '@/components/product/product-tile-dense';
 import { createProductCard } from '../fixtures';
-import { renderWithProviders } from '../test-utils';
+import { renderWithProviders, resetStores } from '../test-utils';
 
 vi.mock('next/image', () => ({
   default: ({
@@ -20,7 +21,11 @@ vi.mock('next/image', () => ({
 }));
 
 describe('ProductTileDense', () => {
-  it('renders the kuji badge for kuji storefront cards', () => {
+  beforeEach(() => {
+    resetStores();
+  });
+
+  it('renders a wishlist button instead of the kuji badge for kuji storefront cards', () => {
     renderWithProviders(
       <ProductTileDense
         product={createProductCard({
@@ -36,7 +41,41 @@ describe('ProductTileDense', () => {
       />,
     );
 
-    expect(screen.getByRole('img', { name: 'Kuji' })).not.toHaveAttribute('data-next-image');
+    expect(screen.queryByRole('img', { name: 'Kuji' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add to wishlist' })).toBeInTheDocument();
+  });
+
+  it('does not navigate to the product page when the wishlist button is clicked', async () => {
+    const user = userEvent.setup();
+    const product = createProductCard({
+      id: 'kuji-product',
+      name: 'Kuji Product',
+      slug: 'kuji-product',
+      productType: 'kuji',
+    });
+
+    renderWithProviders(<ProductTileDense product={product} />);
+
+    await user.click(screen.getByRole('button', { name: 'Add to wishlist' }));
+
+    expect(window.location.pathname).toBe('/');
+  });
+
+  it('updates the wishlist button label after toggling', async () => {
+    const user = userEvent.setup();
+    const product = createProductCard({
+      id: 'kuji-product',
+      name: 'Kuji Product',
+      slug: 'kuji-product',
+      productType: 'kuji',
+    });
+
+    renderWithProviders(<ProductTileDense product={product} />);
+
+    const addButton = screen.getByRole('button', { name: 'Add to wishlist' });
+    await user.click(addButton);
+
+    expect(screen.getByRole('button', { name: 'Remove from wishlist' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('does not render a ticket summary for non-kuji cards', () => {

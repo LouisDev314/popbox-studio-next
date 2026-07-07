@@ -181,9 +181,12 @@ describe('CartPageClient', () => {
     const lockedRegion = screen.getByTestId('cart-checkout-shell');
     const overlay = screen.getByRole('status', { name: /Preparing secure checkout/i });
 
-    expect(overlay).toHaveClass('fixed', 'inset-0', 'pointer-events-auto');
+    expect(overlay.parentElement).toBe(document.body);
+    expect(overlay).toHaveClass('fixed', 'inset-0', 'z-[2147483647]', 'pointer-events-auto');
     expect(lockedRegion).toHaveAttribute('inert');
     expect(removeButton).toBeDisabled();
+    expect(document.documentElement).toHaveStyle({ overflow: 'hidden' });
+    expect(document.body).toHaveStyle({ overflow: 'hidden' });
 
     await userEvent.click(removeButton as HTMLButtonElement);
 

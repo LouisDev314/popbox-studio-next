@@ -1260,8 +1260,10 @@ describe('CartCheckoutPanel', () => {
     const overlay = await screen.findByRole('status', { name: /Preparing secure checkout/i });
 
     expect(overlay).toHaveTextContent('Your cart is reserved until we hand you off to the secure checkout page.');
-    expect(overlay).toHaveClass('fixed', 'inset-0', 'pointer-events-auto');
+    expect(overlay.parentElement).toBe(document.body);
+    expect(overlay).toHaveClass('fixed', 'inset-0', 'z-[2147483647]', 'pointer-events-auto');
     expect(screen.getByRole('button', { name: 'Processing...' })).toBeDisabled();
+    expect(document.documentElement).toHaveStyle({ overflow: 'hidden' });
     expect(document.body).toHaveStyle({ overflow: 'hidden' });
 
     await act(async () => {
@@ -1272,10 +1274,12 @@ describe('CartCheckoutPanel', () => {
       expect(screen.queryByRole('status', { name: /Preparing secure checkout/i })).not.toBeInTheDocument();
     });
     expect(screen.getByRole('alert')).toHaveTextContent('Checkout validation failed.');
+    expect(document.documentElement).not.toHaveStyle({ overflow: 'hidden' });
     expect(document.body).not.toHaveStyle({ overflow: 'hidden' });
 
     unmount();
 
+    expect(document.documentElement).not.toHaveStyle({ overflow: 'hidden' });
     expect(document.body).not.toHaveStyle({ overflow: 'hidden' });
   });
 });

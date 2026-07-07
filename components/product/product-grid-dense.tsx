@@ -38,7 +38,7 @@ export function ProductGridDense(props: IProductGridDenseProps) {
   return (
     <div
       data-slot="product-grid-dense"
-      className={cn('grid grid-cols-3 gap-2 px-0.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5', className)}
+      className={cn('grid grid-cols-2 gap-2 px-0.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4', className)}
     >
       {products.map((product, index) => (
         <ProductTileDense
@@ -58,7 +58,7 @@ export function ProductGridDenseSkeleton(props: IProductGridDenseSkeletonProps) 
   return (
     <div
       data-slot="product-grid-dense-skeleton"
-      className={cn('grid grid-cols-3 gap-2 px-0.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5', className)}
+      className={cn('grid grid-cols-2 gap-2 px-0.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4', className)}
     >
       {Array.from({ length: count }).map((_, index) => (
         <div key={index} className="flex flex-col gap-1">

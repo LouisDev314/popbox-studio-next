@@ -6,7 +6,7 @@ import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, us
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import MutationConfigs from '@/configs/api/mutation-config';
-import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-lock-overlay';
+import { CheckoutHandoffOverlay } from '@/components/cart/checkout-handoff-overlay';
 import { CheckoutButton } from '@/components/cart/checkout-button';
 import { CartSummary } from '@/components/cart/cart-summary';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -246,12 +246,12 @@ interface ICartCheckoutPanelProps {
   summaryNote?: ReactNode;
 }
 
-function CheckoutHandoffOverlay(props: { isActive: boolean }) {
+function CheckoutHandoffOverlayMount(props: { isActive: boolean }) {
   if (!props.isActive) {
     return null;
   }
 
-  return <CartInteractionLockOverlay />;
+  return <CheckoutHandoffOverlay />;
 }
 
 export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
@@ -881,7 +881,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
         </div>
       </form>
 
-      <CheckoutHandoffOverlay isActive={isCheckingOut} />
+      <CheckoutHandoffOverlayMount isActive={isCheckingOut} />
 
       <Dialog
         open={checkoutDialog !== null}

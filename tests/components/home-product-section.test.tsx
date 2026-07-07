@@ -47,7 +47,7 @@ describe('HomeProductSection', () => {
 
     const featuredGrid = container.querySelector('[data-slot="product-grid-dense"]');
 
-    expect(featuredGrid).toHaveClass('grid', 'grid-cols-3', 'md:grid-cols-4', 'xl:grid-cols-5');
+    expect(featuredGrid).toHaveClass('grid', 'grid-cols-2', 'sm:grid-cols-3', 'lg:grid-cols-4');
     expect(featuredGrid).not.toHaveClass('overflow-x-auto');
   });
 
@@ -67,7 +67,7 @@ describe('HomeProductSection', () => {
     const denseGrid = container.querySelector('[data-slot="product-grid-dense"]');
 
     expect(denseGrid).toBeInTheDocument();
-    expect(denseGrid).toHaveClass('grid-cols-3', 'md:grid-cols-4', 'xl:grid-cols-5');
+    expect(denseGrid).toHaveClass('grid-cols-2', 'sm:grid-cols-3', 'lg:grid-cols-4');
   });
 
   it('keeps below-hero product section images out of priority loading', () => {
