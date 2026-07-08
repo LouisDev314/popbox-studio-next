@@ -75,6 +75,7 @@ export default function IchibanKujiPage() {
                   src="/what-is-ichiban-kuji.webp"
                   alt="Ichiban Kuji product lineup"
                   priority
+                  loading='eager'
                   className="h-full w-full"
                   imageClassName="object-cover"
                   sizes="(min-width: 1024px) 50vw, 100vw"

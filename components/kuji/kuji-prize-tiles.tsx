@@ -134,7 +134,7 @@ function KujiPrizeTileCard(props: IKujiPrizeTileCardProps) {
         {props.item.kujiProductName ? (
           <p className={cn(
             'text-muted-foreground',
-            props.compact ? 'line-clamp-2 text-xs leading-4' : 'text-sm leading-6',
+            props.compact ? 'line-clamp-2 text-xs leading-5' : 'text-sm leading-6',
           )}
           >
             {props.item.kujiProductName}

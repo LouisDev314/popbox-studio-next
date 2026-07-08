@@ -34,16 +34,16 @@ describe('HomeProductSection', () => {
     const { container } = renderWithProviders(
       <HomeProductSection
         title="Featured"
-        products={createProducts(8)}
-        limit={6}
+        products={createProducts(9)}
+        limit={8}
         className="mb-16 md:mb-20"
         headerClassName="mb-5 md:mb-6"
         viewAllHref="/collections/featured"
       />,
     );
 
-    expect(screen.getByText('Product 6')).toBeInTheDocument();
-    expect(screen.queryByText('Product 7')).not.toBeInTheDocument();
+    expect(screen.getByText('Product 8')).toBeInTheDocument();
+    expect(screen.queryByText('Product 9')).not.toBeInTheDocument();
 
     const featuredGrid = container.querySelector('[data-slot="product-grid-dense"]');
 

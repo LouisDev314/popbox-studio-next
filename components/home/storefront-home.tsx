@@ -32,7 +32,7 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
         <HomeProductSection
           title="Featured"
           products={featured}
-          limit={6}
+          limit={8}
           className="mb-16"
           headerClassName="mb-4 md:mb-6"
           viewAllHref="/collections/featured"

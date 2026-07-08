@@ -16,6 +16,7 @@ export function StorefrontKujiBanner() {
               className="h-full w-full"
               imageClassName="transition-transform duration-500 ease-out group-hover:scale-[1.01]"
               sizes="(min-width: 1024px) 896px, (min-width: 640px) 92vw, 100vw"
+              loading='eager'
             />
           </div>
         </Link>

@@ -67,7 +67,7 @@ export function ProductTileDense(props: IProductTileDenseProps) {
         </div>
 
         <div className="mt-2 px-0.5 flex flex-col gap-1">
-          <p className="line-clamp-2 text-sm leading-4 text-foreground">
+          <p className="line-clamp-2 text-sm leading-5 text-foreground">
             {product.name}
           </p>
 
