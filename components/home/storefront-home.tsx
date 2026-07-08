@@ -41,14 +41,14 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
         <HomeProductSection
           title="Trending Now"
           products={trendingNow}
-          limit={9}
+          limit={8}
           viewAllHref="/products?sort=trending"
         />
 
         <HomeProductSection
           title="Explore More"
           products={allProductsPreview}
-          limit={15}
+          limit={16}
           viewAllHref="/products"
         />
       </div>
