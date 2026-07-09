@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -14,6 +14,7 @@ let previousBodyOverflow = '';
 let previousHtmlOverflow = '';
 
 export function CheckoutHandoffOverlay(props: ICheckoutHandoffOverlayProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
   const title = props.title ?? 'Preparing secure checkout...';
   const message = props.message ?? 'Your cart is reserved until we hand you off to the secure checkout page.';
 
@@ -37,31 +38,44 @@ export function CheckoutHandoffOverlay(props: ICheckoutHandoffOverlayProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const overlay = overlayRef.current;
+
+    if (!overlay) {
+      return;
+    }
+
+    const blockScroll = (event: WheelEvent | TouchEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    const listenerOptions = { passive: false };
+
+    overlay.addEventListener('wheel', blockScroll, listenerOptions);
+    overlay.addEventListener('touchmove', blockScroll, listenerOptions);
+
+    return () => {
+      overlay.removeEventListener('wheel', blockScroll);
+      overlay.removeEventListener('touchmove', blockScroll);
+    };
+  }, []);
+
   if (typeof document === 'undefined') {
     return null;
   }
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[2147483647] flex touch-none items-center justify-center overscroll-contain bg-background/75 px-4 backdrop-blur-[2px] pointer-events-auto"
+      ref={overlayRef}
+      className="fixed inset-0 z-[2147483647] flex touch-none items-center justify-center overscroll-none bg-background/75 px-4 backdrop-blur-[2px] pointer-events-auto"
       role="status"
       aria-label={title}
       aria-live="polite"
       aria-atomic="true"
       onClick={(event) => {
-        event.preventDefault();
         event.stopPropagation();
       }}
       onPointerDown={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-      }}
-      onWheel={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-      }}
-      onTouchMove={(event) => {
-        event.preventDefault();
         event.stopPropagation();
       }}
     >
