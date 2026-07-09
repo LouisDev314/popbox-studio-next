@@ -5,7 +5,9 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
+import { useRouter } from 'next/navigation';
 import QueryConfigs from '@/configs/api/query-config';
 import { CheckoutSuccessSkeleton } from '@/components/store/storefront-page-skeletons';
 import { useCartStore } from '@/hooks/use-cart';
@@ -36,6 +38,71 @@ export function CheckoutSuccessChromeReady(props: { sessionId: string }) {
   }, [markCheckoutSuccessCleanupComplete, props.sessionId]);
 
   return null;
+}
+
+const CHECKOUT_FINALIZATION_RETRY_DELAY_MS = 1_500;
+const CHECKOUT_FINALIZATION_MAX_ATTEMPTS = 6;
+
+export function CheckoutSuccessFinalizing(props: { message: string; sessionId: string }) {
+  const router = useRouter();
+  const [isRetryExhausted, setIsRetryExhausted] = useState(false);
+
+  useEffect(() => {
+    let isCancelled = false;
+    let timeoutId: number | undefined;
+    let attempts = 0;
+
+    const pollForFinalizedOrder = async () => {
+      try {
+        const response = await QueryConfigs.fetchCheckoutSuccess(props.sessionId);
+        const successData = response.data.data;
+
+        if (!successData.pending && successData.order) {
+          router.refresh();
+          return;
+        }
+      } catch {
+        // A webhook may still be committing the order. Continue the bounded retry below.
+      }
+
+      attempts += 1;
+
+      if (isCancelled) {
+        return;
+      }
+
+      if (attempts >= CHECKOUT_FINALIZATION_MAX_ATTEMPTS) {
+        setIsRetryExhausted(true);
+        return;
+      }
+
+      timeoutId = window.setTimeout(pollForFinalizedOrder, CHECKOUT_FINALIZATION_RETRY_DELAY_MS);
+    };
+
+    void pollForFinalizedOrder();
+
+    return () => {
+      isCancelled = true;
+
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [props.sessionId, router]);
+
+  return (
+    <>
+      <h1 className="mb-4 text-3xl font-bold text-foreground">Finalizing your order…</h1>
+      <p className="max-w-xl text-muted-foreground">
+        {props.message}
+      </p>
+      {isRetryExhausted ? (
+        <p className="mt-4 max-w-xl text-sm text-muted-foreground">
+          Your order is taking a little longer than expected. You can safely refresh this page, or contact support if it persists.
+        </p>
+      ) : null}
+    </>
+  );
 }
 
 export function CheckoutSuccessEffects(props: ICheckoutSuccessEffectsProps) {

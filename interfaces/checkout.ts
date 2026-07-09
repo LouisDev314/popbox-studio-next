@@ -111,8 +111,19 @@ export type ICheckoutItem = CheckoutItem;
 export type ICheckoutRequest = CheckoutSessionRequest;
 export type ICheckoutSession = CheckoutSessionData;
 
-export interface ICheckoutSuccess {
+export interface ICheckoutSuccessPending {
+  pending: true;
+  retryable: true;
+  publicId: string;
+  status: IOrderDetail['status'];
+  message: string;
+}
+
+export interface ICheckoutSuccessComplete {
+  pending: false;
   publicId: string;
   needsAttention: boolean;
   order: IOrderDetail;
 }
+
+export type ICheckoutSuccess = ICheckoutSuccessPending | ICheckoutSuccessComplete;

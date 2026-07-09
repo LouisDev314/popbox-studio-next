@@ -6,6 +6,7 @@ import { getPublicCheckoutSuccess } from '@/lib/api/public-storefront';
 import {
   CheckoutSuccessChromeReady,
   CheckoutSuccessEffects,
+  CheckoutSuccessFinalizing,
 } from './checkout-success-effects';
 import { createPageMetadata } from '@/lib/seo';
 
@@ -22,6 +23,35 @@ function normalizeSessionId(sessionId: string | string[] | undefined) {
   }
 
   return sessionId ?? null;
+}
+
+function CheckoutSuccessRecoveryState(props: { sessionId: string }) {
+  return (
+    <div className="container mx-auto flex flex-col items-center px-4 py-32 text-center">
+      <CheckoutSuccessChromeReady sessionId={props.sessionId} />
+      <h1 className="mb-4 text-3xl font-bold text-foreground">Order Details Unavailable</h1>
+      <p className="mb-8 max-w-xl text-muted-foreground">
+        We received your payment, but could not load your order details.
+      </p>
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <Button asChild size="lg" className="rounded-full">
+          <Link href="/contact">Contact Support</Link>
+        </Button>
+        <Button asChild variant="outline" size="lg" className="rounded-full">
+          <Link href="/">Continue Shopping</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function CheckoutSuccessPendingState(props: { message: string; sessionId: string }) {
+  return (
+    <div className="container mx-auto flex flex-col items-center px-4 py-32 text-center">
+      <CheckoutSuccessChromeReady sessionId={props.sessionId} />
+      <CheckoutSuccessFinalizing message={props.message} sessionId={props.sessionId} />
+    </div>
+  );
 }
 
 export default async function CheckoutSuccessPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
@@ -48,23 +78,17 @@ export default async function CheckoutSuccessPage(props: { searchParams: Promise
     successData = null;
   }
 
-  if (!successData) {
-    return (
-      <div className="container mx-auto flex flex-col items-center px-4 py-32 text-center">
-        <CheckoutSuccessChromeReady sessionId={sessionId} />
-        <h1 className="mb-4 text-3xl font-bold text-destructive">Verification Error</h1>
-        <p className="mb-8 text-muted-foreground">
-          We could not verify your checkout completion. If you were charged, please contact support.
-        </p>
-        <Button asChild size="lg" className="rounded-full">
-          <Link href="/">Return to Home</Link>
-        </Button>
-      </div>
-    );
+  if (successData?.pending) {
+    return <CheckoutSuccessPendingState message={successData.message} sessionId={sessionId} />;
   }
 
-  const { order } = successData;
-  const hasKujiTickets = order.tickets && order.tickets.length > 0;
+  const order = successData?.order;
+
+  if (!order) {
+    return <CheckoutSuccessRecoveryState sessionId={sessionId} />;
+  }
+
+  const hasKujiTickets = Boolean(order?.tickets?.length);
   const publicOrderUrl = `/orders/${order.publicId}`;
   const publicTicketsUrl = `/orders/${order.publicId}/tickets`;
 

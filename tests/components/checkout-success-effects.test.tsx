@@ -2,7 +2,10 @@ import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CheckoutSuccessEffects } from '@/app/(store)/checkout/success/checkout-success-effects';
+import {
+  CheckoutSuccessEffects,
+  CheckoutSuccessFinalizing,
+} from '@/app/(store)/checkout/success/checkout-success-effects';
 import QueryConfigs from '@/configs/api/query-config';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
@@ -16,6 +19,16 @@ import {
   VALID_PRODUCT_ID,
 } from '../fixtures';
 import { renderWithProviders } from '../test-utils';
+
+const navigationMocks = vi.hoisted(() => ({
+  refresh: vi.fn(),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    refresh: navigationMocks.refresh,
+  }),
+}));
 
 const OTHER_PRODUCT_ID = '22222222-2222-4222-8222-222222222222';
 
@@ -44,6 +57,7 @@ function createOrder(
   items: IOrderDetail['items'] = [createOrderItem(VALID_PRODUCT_ID, 1)],
 ): IOrderDetail {
   return {
+    attention: null,
     billingAddress: null,
     cancelledAt: null,
     currency: 'CAD',
@@ -132,7 +146,52 @@ function CheckoutSuccessEffectsHarness(props: { initialOrder: IOrderDetail }) {
 
 describe('CheckoutSuccessEffects', () => {
   beforeEach(() => {
+    navigationMocks.refresh.mockReset();
     mockCheckoutSuccessAccess();
+  });
+
+  it('refreshes the server success page after a pending checkout finalizes', async () => {
+    vi.mocked(QueryConfigs.fetchCheckoutSuccess)
+      .mockResolvedValueOnce({
+        data: {
+          data: {
+            pending: true,
+            retryable: true,
+            publicId: 'pbs-ORDER',
+            status: 'pending_payment',
+            message: 'Your payment was received. We are preparing your order details now.',
+          },
+        },
+      } as Awaited<ReturnType<typeof QueryConfigs.fetchCheckoutSuccess>>)
+      .mockResolvedValueOnce({
+        data: {
+          data: {
+            pending: false,
+            needsAttention: false,
+            order: createOrder('paid'),
+            publicId: 'pbs-ORDER',
+          },
+        },
+      } as Awaited<ReturnType<typeof QueryConfigs.fetchCheckoutSuccess>>);
+    vi.useFakeTimers();
+
+    try {
+      renderWithProviders(
+        <CheckoutSuccessFinalizing
+          message="Your payment was received. We are preparing your order details now."
+          sessionId="cs_test_123"
+        />,
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1_500);
+      });
+
+      expect(QueryConfigs.fetchCheckoutSuccess).toHaveBeenCalledTimes(2);
+      expect(navigationMocks.refresh).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('keeps confirmation content hidden until local cart and wishlist cleanup completes', async () => {
