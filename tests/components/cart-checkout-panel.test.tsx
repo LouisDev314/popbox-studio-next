@@ -717,7 +717,7 @@ describe('CartCheckoutPanel', () => {
 
     const noteField = screen.getByLabelText('Order Note (Optional)');
 
-    expect(noteField).toHaveAttribute('placeholder', 'Add any delivery or packing instructions...');
+    expect(noteField).toHaveAttribute('placeholder', 'Add preferred prize variant. Subject to availability.');
     expect(noteField).toHaveAttribute('maxLength', '200');
     expect(screen.getByText('0 / 200')).toBeInTheDocument();
 
@@ -747,7 +747,7 @@ describe('CartCheckoutPanel', () => {
     expect(screen.getByText('200 / 200')).toBeInTheDocument();
   });
 
-  it('sends a trimmed order note with checkout quotes', async () => {
+  it('does not send order notes with checkout quotes or refetch quotes when notes change', async () => {
     resetStores();
     const quoteBodies: Array<Record<string, unknown>> = [];
 
@@ -768,12 +768,57 @@ describe('CartCheckoutPanel', () => {
 
     renderWithProviders(<CartCheckoutPanel />);
 
-    await userEvent.type(screen.getByLabelText('Order Note (Optional)'), '  Please pack away from heavy items.  ');
     await fillValidCheckoutForm();
 
     await waitFor(() => {
-      expect(quoteBodies.at(-1)?.customerNote).toBe('Please pack away from heavy items.');
+      expect(screen.getByText('$69.43')).toBeInTheDocument();
     });
+
+    const quoteCountAfterFreshQuote = quoteBodies.length;
+    expect(quoteBodies.at(-1)).not.toHaveProperty('customerNote');
+
+    await userEvent.type(screen.getByLabelText('Order Note (Optional)'), '  Please pack away from heavy items.  ');
+
+    expect(quoteBodies).toHaveLength(quoteCountAfterFreshQuote);
+    expect(screen.getByText('$69.43')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+  });
+
+  it('keeps the order summary out of recalculating state when only the order note changes', async () => {
+    resetStores();
+    const quoteBodies: Array<Record<string, unknown>> = [];
+
+    server.use(
+      http.post(QUOTE_URL, async ({ request }) => {
+        quoteBodies.push(await request.json() as Record<string, unknown>);
+        return HttpResponse.json(createQuoteResponse());
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await fillValidCheckoutForm();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+    });
+
+    const quoteCountAfterFreshQuote = quoteBodies.length;
+
+    await userEvent.type(screen.getByLabelText('Order Note (Optional)'), 'Leave near the lobby.');
+
+    expect(quoteBodies).toHaveLength(quoteCountAfterFreshQuote);
+    expect(screen.getByText('$69.43')).toBeInTheDocument();
+    expect(screen.queryByText('$61.99')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
   });
 
   it('shows quote validation errors and keeps checkout disabled', async () => {

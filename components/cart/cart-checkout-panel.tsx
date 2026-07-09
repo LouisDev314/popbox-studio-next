@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AxiosError } from 'axios';
-import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Control, Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -87,7 +87,9 @@ type TAddressConfirmationState = {
 } | null;
 
 function createCheckoutRequestKey(data: CheckoutQuoteRequest): string {
-  return JSON.stringify(data);
+  const { customerNote: _customerNote, ...quoteRelevantData } = data;
+
+  return JSON.stringify(quoteRelevantData);
 }
 
 function createUnconfirmedCheckoutRequestKey(data: CheckoutQuoteRequest): string {
@@ -99,6 +101,23 @@ function createUnconfirmedCheckoutRequestKey(data: CheckoutQuoteRequest): string
 function createCheckoutCustomerInput(values: WatchedCheckoutFormValues): CheckoutCustomerInput {
   return {
     customerNote: values.customerNote ?? '',
+    email: values.email ?? '',
+    phone: values.phone ?? '',
+    shippingAddress: {
+      city: values.shippingAddress?.city ?? '',
+      countryCode: 'CA',
+      fullName: values.shippingAddress?.fullName ?? '',
+      line1: values.shippingAddress?.line1 ?? '',
+      line2: values.shippingAddress?.line2 ?? '',
+      phone: null,
+      postalCode: values.shippingAddress?.postalCode ?? '',
+      province: values.shippingAddress?.province ?? '',
+    },
+  };
+}
+
+function createCheckoutQuoteCustomerInput(values: WatchedCheckoutFormValues): CheckoutCustomerInput {
+  return {
     email: values.email ?? '',
     phone: values.phone ?? '',
     shippingAddress: {
@@ -300,7 +319,7 @@ function CheckoutCustomerNoteField(props: {
           <Textarea
             {...field}
             id="checkout-customer-note"
-            placeholder="Add any delivery or packing instructions..."
+            placeholder="Add preferred prize variant. Subject to availability."
             maxLength={200}
             disabled={props.disabled}
             aria-invalid={fieldState.invalid}
@@ -397,25 +416,97 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   });
 
   const watchedValues = useWatch({ control: form.control });
+  const watchedShippingAddress = watchedValues.shippingAddress;
+  const watchedCustomerNote = watchedValues.customerNote ?? '';
+  const watchedEmail = watchedValues.email ?? '';
+  const watchedPhone = watchedValues.phone ?? '';
+  const watchedShippingCity = watchedShippingAddress?.city ?? '';
+  const watchedShippingFullName = watchedShippingAddress?.fullName ?? '';
+  const watchedShippingLine1 = watchedShippingAddress?.line1 ?? '';
+  const watchedShippingLine2 = watchedShippingAddress?.line2 ?? '';
+  const watchedShippingPostalCode = watchedShippingAddress?.postalCode ?? '';
+  const watchedShippingProvince = watchedShippingAddress?.province;
   const checkoutCustomerInput = useMemo(
-    () => createCheckoutCustomerInput(watchedValues),
-    [watchedValues],
+    () => createCheckoutCustomerInput({
+      customerNote: watchedCustomerNote,
+      email: watchedEmail,
+      phone: watchedPhone,
+      shippingAddress: {
+        city: watchedShippingCity,
+        countryCode: 'CA',
+        fullName: watchedShippingFullName,
+        line1: watchedShippingLine1,
+        line2: watchedShippingLine2,
+        postalCode: watchedShippingPostalCode,
+        province: watchedShippingProvince,
+      },
+    }),
+    [
+      watchedCustomerNote,
+      watchedEmail,
+      watchedPhone,
+      watchedShippingCity,
+      watchedShippingFullName,
+      watchedShippingLine1,
+      watchedShippingLine2,
+      watchedShippingPostalCode,
+      watchedShippingProvince,
+    ],
   );
-  const customerNoteLength = watchedValues.customerNote?.length ?? 0;
+  const quoteCustomerInput = useMemo(
+    () => createCheckoutQuoteCustomerInput({
+      email: watchedEmail,
+      phone: watchedPhone,
+      shippingAddress: {
+        city: watchedShippingCity,
+        countryCode: 'CA',
+        fullName: watchedShippingFullName,
+        line1: watchedShippingLine1,
+        line2: watchedShippingLine2,
+        postalCode: watchedShippingPostalCode,
+        province: watchedShippingProvince,
+      },
+    }),
+    [
+      watchedEmail,
+      watchedPhone,
+      watchedShippingCity,
+      watchedShippingFullName,
+      watchedShippingLine1,
+      watchedShippingLine2,
+      watchedShippingPostalCode,
+      watchedShippingProvince,
+    ],
+  );
+  const customerNoteLength = watchedCustomerNote.length;
   const baseRequestResult = useMemo(
-    () => buildCheckoutRequest(items, checkoutCustomerInput),
-    [checkoutCustomerInput, items],
+    () => buildCheckoutRequest(items, quoteCustomerInput, {
+      includeCustomerNote: false,
+    }),
+    [items, quoteCustomerInput],
   );
   const baseRequestKey = baseRequestResult.success ? createCheckoutRequestKey(baseRequestResult.data) : null;
   const requestResult = useMemo(
+    () => buildCheckoutRequest(items, quoteCustomerInput, {
+      confirmedAddress: Boolean(baseRequestKey && confirmedAddressRequestKey === baseRequestKey),
+      includeCustomerNote: false,
+    }),
+    [baseRequestKey, confirmedAddressRequestKey, items, quoteCustomerInput],
+  );
+  const sessionRequestResult = useMemo(
     () => buildCheckoutRequest(items, checkoutCustomerInput, {
       confirmedAddress: Boolean(baseRequestKey && confirmedAddressRequestKey === baseRequestKey),
     }),
     [baseRequestKey, checkoutCustomerInput, confirmedAddressRequestKey, items],
   );
+  const sessionRequestResultRef = useRef(sessionRequestResult);
   const currentRequestKey = requestResult.success ? createCheckoutRequestKey(requestResult.data) : null;
   const debouncedRequestKey = useDebouncedValue(currentRequestKey, 400);
   const isQuoteCurrent = quoteState.key === currentRequestKey;
+
+  useEffect(() => {
+    sessionRequestResultRef.current = sessionRequestResult;
+  }, [sessionRequestResult]);
   const handleAddressConfirmationRequired = useCallback((
     source: 'quote' | 'session',
     suggestedAddress: SuggestedShippingAddress,
@@ -520,9 +611,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
           if (
             pendingConfirmedCheckoutKey === debouncedRequestKey
             && request.confirmedAddress === true
+            && sessionRequestResultRef.current.success
           ) {
             setPendingConfirmedCheckoutKey(null);
-            startCheckout(request as CheckoutSessionRequest, {
+            startCheckout(sessionRequestResultRef.current.data as CheckoutSessionRequest, {
               onAddressConfirmationRequired: (suggestedAddress, sessionRequest) => {
                 handleAddressConfirmationRequired('session', suggestedAddress, sessionRequest);
               },
@@ -582,7 +674,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     isCheckingOut,
     itemCount: items.length,
     quoteState,
-    requestIsValid: requestResult.success,
+    requestIsValid: requestResult.success && sessionRequestResult.success,
   });
   const blockingMessage =
     formErrorMessage
@@ -618,9 +710,12 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
         province: suggestedAddress.province,
       },
     };
-    const nextBaseRequest = buildCheckoutRequest(items, nextCustomerInput);
+    const nextBaseRequest = buildCheckoutRequest(items, nextCustomerInput, {
+      includeCustomerNote: false,
+    });
     const nextConfirmedRequest = buildCheckoutRequest(items, nextCustomerInput, {
       confirmedAddress: true,
+      includeCustomerNote: false,
     });
 
     if (!nextBaseRequest.success || !nextConfirmedRequest.success) {
@@ -653,8 +748,8 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   }
 
   function handleSubmitCheckout() {
-    if (!requestResult.success) {
-      setFormErrorMessage(requestResult.message);
+    if (!sessionRequestResult.success) {
+      setFormErrorMessage(sessionRequestResult.message);
       return;
     }
 
@@ -663,7 +758,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
       return;
     }
 
-    startCheckout(requestResult.data as CheckoutSessionRequest, {
+    startCheckout(sessionRequestResult.data as CheckoutSessionRequest, {
       onAddressConfirmationRequired: (suggestedAddress, request) => {
         handleAddressConfirmationRequired('session', suggestedAddress, request);
       },

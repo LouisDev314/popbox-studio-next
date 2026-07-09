@@ -160,18 +160,16 @@ export function getInvalidCartItemsCheckoutMessage(invalidItems: ICartInvalidIte
 export function buildCheckoutRequest(
   items: ICartItem[],
   customer: CheckoutCustomerInput,
-  options: { confirmedAddress?: boolean } = {},
+  options: { confirmedAddress?: boolean; includeCustomerNote?: boolean } = {},
 ): CheckoutValidationResult {
   const firstName = trimOptional(customer.firstName);
   const lastName = trimOptional(customer.lastName);
   const phone = trimOptional(customer.phone);
-  const customerNote = trimOptional(customer.customerNote);
   const shippingLine2 = trimOptional(customer.shippingAddress.line2);
   const shippingPhone = trimOptional(customer.shippingAddress.phone);
 
   const payload: CheckoutRequestBody = {
     billingSameAsShipping: true,
-    customerNote,
     email: trimRequired(customer.email),
     items: items.map((item) => ({
       productId: item.product.id,
@@ -188,6 +186,10 @@ export function buildCheckoutRequest(
       province: normalizeProvinceCode(customer.shippingAddress.province) as CanadianProvinceCode,
     },
   };
+
+  if (options.includeCustomerNote !== false) {
+    payload.customerNote = trimOptional(customer.customerNote);
+  }
 
   if (firstName) {
     payload.firstName = firstName;

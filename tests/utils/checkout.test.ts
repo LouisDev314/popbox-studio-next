@@ -139,7 +139,7 @@ describe('buildCheckoutRequest', () => {
     }
   });
 
-  it('rejects customer notes over 200 characters before quoting', () => {
+  it('rejects customer notes over 200 characters for checkout sessions', () => {
     const customer = {
       email: 'customer@example.com',
       customerNote: 'a'.repeat(201),
@@ -159,6 +159,30 @@ describe('buildCheckoutRequest', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.issues.join(' ')).toContain('200');
+    }
+  });
+
+  it('omits customer notes from quote payloads', () => {
+    const result = buildCheckoutRequest([
+      createCartItem(),
+    ], {
+      email: 'customer@example.com',
+      customerNote: 'a'.repeat(201),
+      shippingAddress: {
+        fullName: 'Ada Lovelace',
+        line1: '123 Maple Street',
+        city: 'Vancouver',
+        province: 'BC',
+        postalCode: 'V6B 1A1',
+        countryCode: 'CA',
+      },
+    }, {
+      includeCustomerNote: false,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty('customerNote');
     }
   });
 
