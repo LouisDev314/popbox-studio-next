@@ -117,6 +117,18 @@ export function getCheckoutAddressError(
   };
 }
 
+export function getCheckoutQuoteErrorMessage(
+  error: AxiosError<IBaseApiResponse<unknown>>,
+): string {
+  const checkoutAddressError = getCheckoutAddressError(error);
+
+  if (checkoutAddressError) {
+    return checkoutAddressError.message;
+  }
+
+  return 'We couldn’t estimate tax for this address. Review your shipping details and try again.';
+}
+
 function collectValidationMessages(
   value: IApiValidationErrors | undefined,
   path = '',

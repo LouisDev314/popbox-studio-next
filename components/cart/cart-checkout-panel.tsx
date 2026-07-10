@@ -40,8 +40,8 @@ import {
 import { type IBaseApiResponse } from '@/interfaces/api-response';
 import { cn } from '@/lib/utils';
 import {
-  getApiErrorDetails,
   getCheckoutAddressError,
+  getCheckoutQuoteErrorMessage,
 } from '@/utils/api-errors';
 import {
   areShippingAddressesEquivalent,
@@ -377,6 +377,7 @@ function AddressConfirmationPrompt(props: {
   );
 }
 
+// eslint-disable-next-line complexity -- Checkout coordinates quote, confirmation, and Stripe handoff states in one form boundary.
 export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   const invalidItems = useCartStore((state) => state.invalidItems);
   const items = useCartStore((state) => state.items);
@@ -388,7 +389,9 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   const [acceptedSuggestedAddress, setAcceptedSuggestedAddress] = useState<SuggestedShippingAddress | null>(null);
   const [confirmedAddressRequestKey, setConfirmedAddressRequestKey] = useState<string | null>(null);
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
+  const [hasCheckoutSessionSucceeded, setHasCheckoutSessionSucceeded] = useState(false);
   const [pendingConfirmedCheckoutKey, setPendingConfirmedCheckoutKey] = useState<string | null>(null);
+  const checkoutSessionSucceededRef = useRef(false);
   const [quoteState, setQuoteState] = useState<TQuoteState>({
     data: null,
     errorMessage: null,
@@ -567,6 +570,14 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     mutationFn: MutationConfigs.createCheckoutQuote,
   });
 
+  const handleCheckoutSessionSuccess = useCallback(() => {
+    checkoutSessionSucceededRef.current = true;
+    setHasCheckoutSessionSucceeded(true);
+    setFormErrorMessage(null);
+    setAddressConfirmation(null);
+    setPendingConfirmedCheckoutKey(null);
+  }, []);
+
   useEffect(() => {
     if (!debouncedRequestKey) {
       return;
@@ -589,6 +600,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
 
       createCheckoutQuote(request, {
         onSuccess: (response) => {
+          if (checkoutSessionSucceededRef.current) {
+            return;
+          }
+
           const data = response.data.data;
 
           if (!data) {
@@ -618,10 +633,15 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
               onAddressConfirmationRequired: (suggestedAddress, sessionRequest) => {
                 handleAddressConfirmationRequired('session', suggestedAddress, sessionRequest);
               },
+              onSessionSuccess: handleCheckoutSessionSuccess,
             });
           }
         },
         onError: (error) => {
+          if (checkoutSessionSucceededRef.current) {
+            return;
+          }
+
           const checkoutAddressError = getCheckoutAddressError(error as AxiosError<IBaseApiResponse<unknown>>);
 
           if (checkoutAddressError) {
@@ -644,10 +664,9 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
 
           setQuoteState({
             data: null,
-            errorMessage: getApiErrorDetails(
+            errorMessage: getCheckoutQuoteErrorMessage(
               error as AxiosError<IBaseApiResponse<unknown>>,
-              'We couldn’t calculate checkout totals right now. Please review your shipping details.',
-            ).message,
+            ),
             key: debouncedRequestKey,
             status: 'error',
           });
@@ -663,6 +682,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     createCheckoutQuote,
     debouncedRequestKey,
     handleAddressConfirmationRequired,
+    handleCheckoutSessionSuccess,
     pendingConfirmedCheckoutKey,
     startCheckout,
   ]);
@@ -676,12 +696,15 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     quoteState,
     requestIsValid: requestResult.success && sessionRequestResult.success,
   });
-  const blockingMessage =
-    formErrorMessage
-    || (isQuoteCurrent ? quoteState.errorMessage : null)
-    || checkoutErrorMessage;
+  const blockingMessage = hasCheckoutSessionSucceeded
+    ? checkoutErrorMessage
+    : formErrorMessage
+      || (isQuoteCurrent ? quoteState.errorMessage : null)
+      || checkoutErrorMessage;
 
   function clearAddressConfirmationForManualEdit() {
+    checkoutSessionSucceededRef.current = false;
+    setHasCheckoutSessionSucceeded(false);
     setAddressConfirmation(null);
     setAcceptedSuggestedAddress(null);
     setConfirmedAddressRequestKey(null);
@@ -758,10 +781,14 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
       return;
     }
 
+    checkoutSessionSucceededRef.current = false;
+    setHasCheckoutSessionSucceeded(false);
+
     startCheckout(sessionRequestResult.data as CheckoutSessionRequest, {
       onAddressConfirmationRequired: (suggestedAddress, request) => {
         handleAddressConfirmationRequired('session', suggestedAddress, request);
       },
+      onSessionSuccess: handleCheckoutSessionSuccess,
     });
   }
 
@@ -775,7 +802,9 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
         className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,40rem)_22rem] lg:items-start xl:grid-cols-[minmax(0,42rem)_23rem]"
         data-testid="cart-checkout-layout"
         noValidate
-        onSubmit={form.handleSubmit(handleSubmitCheckout)}
+        onSubmit={(event) => {
+          void form.handleSubmit(handleSubmitCheckout)(event);
+        }}
       >
         <div className="space-y-6">
           {props.children}

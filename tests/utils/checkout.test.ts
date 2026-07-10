@@ -295,6 +295,9 @@ describe('buildCheckoutRequest', () => {
     expect(getValidatedCheckoutUrl('https://checkout.stripe.com/c/pay/cs_test_456')).toBe(
       'https://checkout.stripe.com/c/pay/cs_test_456',
     );
+    expect(getValidatedCheckoutUrl('https://checkout.stripe.com/session/cs_test_future')).toBe(
+      'https://checkout.stripe.com/session/cs_test_future',
+    );
   });
 
   it('rejects invalid or non-https checkout URLs', () => {
@@ -305,6 +308,9 @@ describe('buildCheckoutRequest', () => {
       'payment link was invalid',
     );
     expect(() => getValidatedCheckoutUrl('not-a-url')).toThrow(
+      'payment link was invalid',
+    );
+    expect(() => getValidatedCheckoutUrl(undefined)).toThrow(
       'payment link was invalid',
     );
   });

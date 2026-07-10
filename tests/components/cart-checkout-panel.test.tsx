@@ -33,7 +33,7 @@ vi.mock('@/utils/checkout', async () => {
 
 import { CartCheckoutPanel } from '@/components/cart/cart-checkout-panel';
 import { useCartStore } from '@/hooks/use-cart';
-import { redirectToCheckout } from '@/utils/checkout';
+import { getValidatedCheckoutUrl, redirectToCheckout } from '@/utils/checkout';
 import { server } from '../msw/server';
 import {
   createCartItem,
@@ -291,6 +291,7 @@ describe('CartCheckoutPanel', () => {
 
     server.use(
       http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+      http.post(SESSION_URL, async () => HttpResponse.json(createCheckoutSessionResponse(), { status: 201 })),
     );
 
     act(() => {
@@ -309,6 +310,12 @@ describe('CartCheckoutPanel', () => {
       expect(screen.getByText('$69.43')).toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    await waitFor(() => {
+      expect(redirectToCheckout).toHaveBeenCalledWith('https://checkout.stripe.com/pay/cs_test_123');
+    });
   });
 
   it('keeps manual address entry usable when the Google Maps script fails', async () => {
@@ -317,6 +324,7 @@ describe('CartCheckoutPanel', () => {
 
     server.use(
       http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+      http.post(SESSION_URL, async () => HttpResponse.json(createCheckoutSessionResponse(), { status: 201 })),
     );
 
     act(() => {
@@ -345,6 +353,12 @@ describe('CartCheckoutPanel', () => {
       expect(screen.getByText('$69.43')).toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    await waitFor(() => {
+      expect(redirectToCheckout).toHaveBeenCalledWith('https://checkout.stripe.com/pay/cs_test_123');
+    });
   });
 
   it('keeps manual address entry usable when Google loads without importLibrary', async () => {
@@ -848,9 +862,41 @@ describe('CartCheckoutPanel', () => {
     await fillValidCheckoutForm();
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Invalid request body - checkout quote request');
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'We couldn’t estimate tax for this address. Review your shipping details and try again.',
+      );
     });
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeDisabled();
+  });
+
+  it('shows address and tax copy for an ADDRESS_INVALID quote 400, never payment-link copy', async () => {
+    resetStores();
+
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(
+        createAddressErrorResponse('ADDRESS_INVALID'),
+        { status: 400 },
+      )),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await fillValidCheckoutForm();
+
+    const alert = await screen.findByRole('alert');
+
+    expect(alert).toHaveTextContent(
+      'We could not validate this shipping address. Please check the street address, city, province, and postal code.',
+    );
+    expect(alert).not.toHaveTextContent('payment link');
   });
 
   it('shows suggested address confirmation from quote and resubmits with confirmedAddress after acceptance', async () => {
@@ -1340,6 +1386,111 @@ describe('CartCheckoutPanel', () => {
     expect(sessionBody).not.toHaveProperty('totalCents');
     expect(sessionBody).not.toHaveProperty('taxBreakdown');
     expect(sessionBody).not.toHaveProperty('contact');
+  });
+
+  it('clears and suppresses a quote error when checkout session creation succeeds', async () => {
+    resetStores();
+    let quoteCount = 0;
+    let completeSession: (() => void) | null = null;
+
+    server.use(
+      http.post(QUOTE_URL, async () => {
+        quoteCount += 1;
+
+        if (quoteCount === 1) {
+          return HttpResponse.json(createQuoteResponse());
+        }
+
+        return HttpResponse.json(createAddressErrorResponse('ADDRESS_INVALID'), { status: 400 });
+      }),
+      http.post(SESSION_URL, async () => new Promise((resolve) => {
+        completeSession = () => {
+          resolve(HttpResponse.json(createCheckoutSessionResponse(), { status: 201 }));
+        };
+      })),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+    await fillValidCheckoutForm();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    act(() => {
+      const currentItem = useCartStore.getState().items[0];
+
+      useCartStore.setState({
+        items: currentItem ? [{ ...currentItem, quantity: 2 }] : [],
+      });
+    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'We could not validate this shipping address.',
+    );
+
+    await act(async () => {
+      completeSession?.();
+    });
+
+    await waitFor(() => {
+      expect(redirectToCheckout).toHaveBeenCalledWith('https://checkout.stripe.com/pay/cs_test_123');
+    });
+    expect(screen.queryByText(/We could not validate this shipping address/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['a missing URL', undefined],
+    ['an invalid URL', 'https://example.com/not-stripe'],
+  ])('shows payment-link copy only when a successful session response contains %s', async (_label, checkoutUrl) => {
+    resetStores();
+    vi.mocked(redirectToCheckout).mockImplementationOnce((url) => {
+      getValidatedCheckoutUrl(url);
+    });
+
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+      http.post(SESSION_URL, async () => {
+        const response = createCheckoutSessionResponse();
+
+        return HttpResponse.json({
+          ...response,
+          data: {
+            ...response.data,
+            checkoutUrl,
+          },
+        }, { status: 201 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+    await fillValidCheckoutForm();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'We couldn’t start checkout because the payment link was invalid. Please try again.',
+    );
   });
 
   it('sends a trimmed order note with checkout session requests', async () => {

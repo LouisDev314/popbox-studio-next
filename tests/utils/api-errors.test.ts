@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { type IBaseApiResponse } from '@/interfaces/api-response';
 import {
   getCheckoutAddressError,
+  getCheckoutQuoteErrorMessage,
   getFriendlyErrorMessage,
 } from '@/utils/api-errors';
 
@@ -152,5 +153,29 @@ describe('getCheckoutAddressError', () => {
       message: 'Address validation is temporarily unavailable. Please try again.',
       suggestedAddress: null,
     });
+  });
+});
+
+describe('getCheckoutQuoteErrorMessage', () => {
+  it('uses quote-specific copy for non-address quote failures', () => {
+    const error = createAxiosError({
+      code: 400,
+      errors: {
+        code: 'CHECKOUT_QUOTE_INVALID',
+        fieldErrors: {
+          properties: {
+            shippingAddress: {
+              errors: ['Invalid shipping address'],
+            },
+          },
+        },
+      },
+      message: 'We couldn’t start checkout because the payment link was invalid.',
+      success: false,
+    }, 400);
+
+    expect(getCheckoutQuoteErrorMessage(error)).toBe(
+      'We couldn’t estimate tax for this address. Review your shipping details and try again.',
+    );
   });
 });

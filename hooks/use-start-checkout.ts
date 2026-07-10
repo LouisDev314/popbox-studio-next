@@ -93,6 +93,7 @@ export function useStartCheckout() {
         suggestedAddress: SuggestedShippingAddress,
         request: CheckoutSessionRequest,
       ) => void;
+      onSessionSuccess?: () => void;
     } = {},
   ) => {
     if (invalidItems.length > 0) {
@@ -110,14 +111,16 @@ export function useStartCheckout() {
       { data, key: `checkout-${uuidv4()}` },
       {
         onSuccess: (response) => {
-          const checkoutUrl = response.data.data?.checkoutUrl;
-
-          if (!checkoutUrl) {
+          if (response.status !== HttpStatusCode.Created) {
             useCheckoutUiStore.getState().setCheckoutError(
               'We couldn’t start checkout right now. Please try again.',
             );
             return;
           }
+
+          const checkoutUrl = response.data.data?.checkoutUrl;
+
+          options.onSessionSuccess?.();
 
           try {
             redirectToCheckout(checkoutUrl);
