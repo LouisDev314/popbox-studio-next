@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { AxiosError, HttpStatusCode } from 'axios';
-import { AlertTriangle, ArrowLeft, Mail, Package, Truck, XCircle } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Mail, Package, RefreshCw, Truck, XCircle } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -15,9 +15,11 @@ import { formatPrice } from '@/lib/utils';
 import { getAdminPrizeTierLabel } from '@/lib/kuji-prize-codes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   IAdminOrderDetail,
+  IAdminPaymentRecoveryError,
+  IAdminPaymentRecoveryResponse,
   IOrderDetail,
   IOrderStatus,
   IShipment,
@@ -102,6 +104,31 @@ function getAdminOrderActionSuccessMessage(
   return response.message?.trim() || fallbackMessage;
 }
 
+function getPaymentRecoveryErrorMessage(error: AxiosError<IBaseApiResponse>): string {
+  const responseMessage = error.response?.data?.message?.trim();
+  const errorDetails = error.response?.data?.errors as IAdminPaymentRecoveryError | undefined;
+
+  if (responseMessage) return responseMessage;
+  if (errorDetails?.code === 'ORDER_RECOVERY_IN_PROGRESS') {
+    return 'This order is already being reconciled. Please retry shortly.';
+  }
+
+  return 'Payment reconciliation failed. The order was not changed.';
+}
+
+function getPaymentRecoverySuccessFeedback(result: IAdminPaymentRecoveryResponse): OrderActionFeedback {
+  switch (result.email.status) {
+    case 'sent':
+      return { type: 'success', message: 'Payment reconciled successfully. Confirmation email sent.' };
+    case 'already_sent':
+      return { type: 'success', message: 'Payment reconciled successfully. Confirmation email was already sent.' };
+    case 'skipped':
+      return { type: 'info', message: 'Payment reconciled successfully. Confirmation email was skipped.' };
+    case 'failed':
+      return { type: 'error', message: 'Payment reconciled successfully, but the confirmation email failed to send.' };
+  }
+}
+
 function OrderActionFeedbackBanner({ feedback }: { feedback: OrderActionFeedback }) {
   return (
     <div
@@ -124,9 +151,11 @@ interface IOrderActionButtonsProps {
   isStatusUpdating: boolean;
   isShipmentUpdating: boolean;
   isResendingConfirmation: boolean;
+  isRecoveringPayment: boolean;
   onUpdateStatus: (newStatus: IOrderStatus) => void;
   onOpenShipment: () => void;
   onResendConfirmation: () => void;
+  onOpenPaymentRecovery: () => void;
 }
 
 function OrderActionButtons({
@@ -134,9 +163,11 @@ function OrderActionButtons({
   isStatusUpdating,
   isShipmentUpdating,
   isResendingConfirmation,
+  isRecoveringPayment,
   onUpdateStatus,
   onOpenShipment,
   onResendConfirmation,
+  onOpenPaymentRecovery,
 }: IOrderActionButtonsProps) {
   const shipmentActionMode: ShipmentActionMode | null = order.status === 'packed'
     ? 'ship'
@@ -160,7 +191,20 @@ function OrderActionButtons({
         </Button>
       )}
 
-      {(order.status === 'paid' || order.status === 'paid_needs_attention') && (
+      {order.status === 'paid_needs_attention' ? (
+        <Button
+          type="button"
+          onClick={onOpenPaymentRecovery}
+          disabled={isRecoveringPayment}
+          size="sm"
+          className="w-full justify-center gap-1.5 rounded-lg px-4 sm:w-auto"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRecoveringPayment ? 'animate-spin' : ''}`} />
+          {isRecoveringPayment ? 'Reconciling...' : 'Reconcile payment'}
+        </Button>
+      ) : null}
+
+      {order.status === 'paid' && (
         <Button
           type="button"
           onClick={() => onUpdateStatus('packed')}
@@ -202,6 +246,36 @@ function OrderActionButtons({
         </Button>
       ) : null}
     </div>
+  );
+}
+
+interface IPaymentRecoveryDialogProps {
+  isOpen: boolean;
+  isPending: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}
+
+function PaymentRecoveryDialog({ isOpen, isPending, onOpenChange, onConfirm }: IPaymentRecoveryDialogProps) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="rounded-2xl border-border/50 bg-card p-4 sm:max-w-md sm:p-6">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-foreground">Reconcile payment?</DialogTitle>
+        </DialogHeader>
+        <DialogDescription className="text-sm leading-6 text-muted-foreground">
+          This verifies the payment with Stripe and completes any missing order finalization. Continue only after reviewing the attention details.
+        </DialogDescription>
+        <DialogFooter className="mt-6 flex-col-reverse gap-2 border-t border-border/20 pt-4 sm:flex-row">
+          <Button type="button" variant="secondary" disabled={isPending} onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="button" disabled={isPending} onClick={onConfirm}>
+            {isPending ? 'Reconciling...' : 'Confirm reconciliation'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -497,6 +571,7 @@ function ShipmentDialog({
 export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrderId: string }) {
   const queryClient = useQueryClient();
   const [isShipmentDialogOpen, setIsShipmentDialogOpen] = useState(false);
+  const [isPaymentRecoveryDialogOpen, setIsPaymentRecoveryDialogOpen] = useState(false);
   const [shipmentForm, setShipmentForm] = useState<IShipmentFormValues>(createShipmentForm(null));
   const [actionFeedback, setActionFeedback] = useState<OrderActionFeedback | null>(null);
 
@@ -589,6 +664,19 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
     },
   });
 
+  const { mutation: recoverPayment, isPending: isRecoveringPayment } = useCustomizeMutation<IAdminPaymentRecoveryResponse, string>({
+    mutationFn: MutationConfigs.recoverAdminOrderPayment,
+    onSuccess: async (response) => {
+      setIsPaymentRecoveryDialogOpen(false);
+      setActionFeedback(getPaymentRecoverySuccessFeedback(response.data.data));
+      await refreshOrderQueries();
+    },
+    onError: (error) => {
+      setIsPaymentRecoveryDialogOpen(false);
+      setActionFeedback({ type: 'error', message: getPaymentRecoveryErrorMessage(error) });
+    },
+  });
+
   if (isPending) return <div className="p-12 text-center text-muted-foreground">Loading order details...</div>;
   if (!order) return <div className="p-12 text-center text-red-500">Failed to load order.</div>;
 
@@ -644,6 +732,12 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
     resendConfirmation(nextAdminOrderId);
   };
 
+  const handleRecoverPayment = () => {
+    setActionFeedback(null);
+    const nextAdminOrderId = resolveAdminOrderId();
+    if (nextAdminOrderId) recoverPayment(nextAdminOrderId);
+  };
+
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -666,9 +760,11 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
             isStatusUpdating={isStatusUpdating}
             isShipmentUpdating={isShipmentUpdating}
             isResendingConfirmation={isResendingConfirmation}
+            isRecoveringPayment={isRecoveringPayment}
             onUpdateStatus={handleUpdateStatus}
             onOpenShipment={handleOpenShipment}
             onResendConfirmation={handleResendConfirmation}
+            onOpenPaymentRecovery={() => setIsPaymentRecoveryDialogOpen(true)}
           />
           {actionFeedback ? <OrderActionFeedbackBanner feedback={actionFeedback} /> : null}
         </div>
@@ -700,6 +796,13 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
         onOpenChange={setIsShipmentDialogOpen}
         onShipmentFormChange={setShipmentForm}
         onSubmit={handleShipmentSubmit}
+      />
+
+      <PaymentRecoveryDialog
+        isOpen={isPaymentRecoveryDialogOpen}
+        isPending={isRecoveringPayment}
+        onOpenChange={setIsPaymentRecoveryDialogOpen}
+        onConfirm={handleRecoverPayment}
       />
 
     </div>

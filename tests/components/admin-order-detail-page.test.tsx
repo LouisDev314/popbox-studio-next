@@ -1,10 +1,12 @@
-import { screen } from '@testing-library/react';
-import type { AxiosResponse } from 'axios';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { AxiosError, type AxiosResponse } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminOrderDetailPageClient from '@/components/admin/orders/admin-order-detail-page';
 import QueryConfigs from '@/configs/api/query-config';
+import MutationConfigs from '@/configs/api/mutation-config';
 import type { IBaseApiResponse } from '@/interfaces/api-response';
-import type { IOrderDetail } from '@/interfaces/order';
+import type { IAdminPaymentRecoveryResponse, IOrderDetail } from '@/interfaces/order';
 import { renderWithProviders } from '../test-utils';
 
 function createResponse<T>(data: T): AxiosResponse<IBaseApiResponse<T>> {
@@ -77,6 +79,38 @@ function createOrder(overrides: Partial<IOrderDetail & { customerNote: string | 
   };
 }
 
+function createAttentionOrder() {
+  return createOrder({
+    status: 'paid_needs_attention',
+    attention: {
+      reasonCode: 'payment_amount_mismatch',
+      message: 'Payment needs authoritative reconciliation.',
+      actionHint: 'Review this warning before reconciling the payment.',
+      createdAt: '2026-04-01T10:30:00.000Z',
+    },
+  });
+}
+
+function createRecoveryResponse(emailStatus: IAdminPaymentRecoveryResponse['email']['status']) {
+  return createResponse<IAdminPaymentRecoveryResponse>({
+    order: { id: 'order-1', publicId: 'PBX-1001', status: 'paid' },
+    reconciliation: {
+      expectedBeforeDiscountCents: 4999,
+      discountCents: 0,
+      expectedAfterDiscountCents: 4999,
+      stripeAmountTotalCents: 4999,
+      stripeAmountReceivedCents: 4999,
+    },
+    finalization: {
+      paymentUpdated: true,
+      reservationsConverted: true,
+      inventoryUpdated: true,
+      ticketsCreated: 0,
+    },
+    email: { status: emailStatus },
+  });
+}
+
 describe('AdminOrderDetailPageClient', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -116,6 +150,87 @@ describe('AdminOrderDetailPageClient', () => {
 
     await screen.findByRole('heading', { name: 'Order #PBX-1001' });
     expect(screen.queryByRole('heading', { name: 'Needs attention' })).not.toBeInTheDocument();
+  });
+
+  it('shows payment reconciliation only for paid_needs_attention orders', async () => {
+    vi.spyOn(QueryConfigs, 'fetchAdminOrder').mockResolvedValue(createResponse(createAttentionOrder()));
+    const { unmount } = renderWithProviders(<AdminOrderDetailPageClient adminOrderId="order-1" />);
+
+    expect(await screen.findByRole('button', { name: 'Reconcile payment' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mark Packed' })).not.toBeInTheDocument();
+
+    unmount();
+    vi.mocked(QueryConfigs.fetchAdminOrder).mockResolvedValue(createResponse(createOrder({ status: 'paid' })));
+    renderWithProviders(<AdminOrderDetailPageClient adminOrderId="order-1" />);
+    await screen.findByRole('heading', { name: 'Order #PBX-1001' });
+    expect(screen.queryByRole('button', { name: 'Reconcile payment' })).not.toBeInTheDocument();
+  });
+
+  it('requires confirmation before reconciling and disables actions while pending', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(QueryConfigs, 'fetchAdminOrder').mockResolvedValue(createResponse(createAttentionOrder()));
+    let resolveRecovery!: (value: AxiosResponse<IBaseApiResponse<IAdminPaymentRecoveryResponse>>) => void;
+    const recoveryPromise = new Promise<AxiosResponse<IBaseApiResponse<IAdminPaymentRecoveryResponse>>>((resolve) => {
+      resolveRecovery = resolve;
+    });
+    const recoverySpy = vi.spyOn(MutationConfigs, 'recoverAdminOrderPayment').mockReturnValue(recoveryPromise);
+    renderWithProviders(<AdminOrderDetailPageClient adminOrderId="order-1" />);
+
+    await user.click(await screen.findByRole('button', { name: 'Reconcile payment' }));
+    expect(recoverySpy).not.toHaveBeenCalled();
+    expect(screen.getByText('Review this warning before reconciling the payment.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Confirm reconciliation' }));
+    expect(recoverySpy).toHaveBeenCalledWith('order-1', expect.any(Object));
+    expect(screen.getByRole('button', { name: 'Reconciling...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+
+    resolveRecovery(createRecoveryResponse('sent'));
+    expect(await screen.findByText('Payment reconciled successfully. Confirmation email sent.')).toBeInTheDocument();
+  });
+
+  it('shows backend reconciliation failures without refreshing the order', async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.spyOn(QueryConfigs, 'fetchAdminOrder').mockResolvedValue(createResponse(createAttentionOrder()));
+    vi.spyOn(MutationConfigs, 'recoverAdminOrderPayment').mockRejectedValue(new AxiosError(
+      'Conflict',
+      'ERR_BAD_REQUEST',
+      undefined,
+      undefined,
+      { ...createResponse(null), status: 409, data: { ...createResponse(null).data, message: 'Stripe payment amount does not match the order.', errors: { code: 'PAYMENT_AMOUNT_MISMATCH' } } },
+    ));
+    renderWithProviders(<AdminOrderDetailPageClient adminOrderId="order-1" />);
+
+    await user.click(await screen.findByRole('button', { name: 'Reconcile payment' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm reconciliation' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Stripe payment amount does not match the order.');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a committed recovery when confirmation email delivery fails', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(QueryConfigs, 'fetchAdminOrder').mockResolvedValue(createResponse(createAttentionOrder()));
+    vi.spyOn(MutationConfigs, 'recoverAdminOrderPayment').mockResolvedValue(createRecoveryResponse('failed'));
+    renderWithProviders(<AdminOrderDetailPageClient adminOrderId="order-1" />);
+
+    await user.click(await screen.findByRole('button', { name: 'Reconcile payment' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm reconciliation' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Payment reconciled successfully, but the confirmation email failed to send.');
+  });
+
+  it('refreshes the order detail query after successful recovery', async () => {
+    const user = userEvent.setup();
+    const fetchSpy = vi.spyOn(QueryConfigs, 'fetchAdminOrder').mockResolvedValue(createResponse(createAttentionOrder()));
+    vi.spyOn(MutationConfigs, 'recoverAdminOrderPayment').mockResolvedValue(createRecoveryResponse('already_sent'));
+    renderWithProviders(<AdminOrderDetailPageClient adminOrderId="order-1" />);
+
+    await user.click(await screen.findByRole('button', { name: 'Reconcile payment' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm reconciliation' }));
+
+    expect(await screen.findByText('Payment reconciled successfully. Confirmation email was already sent.')).toBeInTheDocument();
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
   });
 
   it('renders the backend-provided customer note when present', async () => {

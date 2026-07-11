@@ -145,3 +145,42 @@ export interface IAdminOrderShipmentUpdate {
   shippedAt?: string | null;
   deliveredAt?: string | null;
 }
+
+export type IAdminPaymentRecoveryErrorCode =
+  | 'ORDER_NOT_FOUND'
+  | 'ORDER_NOT_RECOVERABLE'
+  | 'ORDER_RECOVERY_IN_PROGRESS'
+  | 'STRIPE_SESSION_NOT_FOUND'
+  | 'STRIPE_PAYMENT_NOT_PAID'
+  | 'STRIPE_PAYMENT_REFUNDED'
+  | 'STRIPE_ORDER_METADATA_MISMATCH'
+  | 'PAYMENT_AMOUNT_MISMATCH'
+  | 'ORDER_FINALIZATION_FAILED';
+
+export interface IAdminPaymentRecoveryResponse {
+  order: {
+    id: string;
+    publicId: string;
+    status: 'paid';
+  };
+  reconciliation: {
+    expectedBeforeDiscountCents: number;
+    discountCents: number;
+    expectedAfterDiscountCents: number;
+    stripeAmountTotalCents: number;
+    stripeAmountReceivedCents: number;
+  };
+  finalization: {
+    paymentUpdated: boolean;
+    reservationsConverted: boolean;
+    inventoryUpdated: boolean;
+    ticketsCreated: number;
+  };
+  email: {
+    status: 'sent' | 'already_sent' | 'skipped' | 'failed';
+  };
+}
+
+export interface IAdminPaymentRecoveryError {
+  code: IAdminPaymentRecoveryErrorCode;
+}

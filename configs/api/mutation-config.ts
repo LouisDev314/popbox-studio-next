@@ -7,7 +7,7 @@ import {
   CheckoutSessionData,
   CheckoutSessionRequest,
 } from '@/interfaces/checkout';
-import { IOrderTicket, IGuestTicketView, IAdminOrderStatusUpdate, IAdminOrderShipmentUpdate, IAdminOrderDetail } from '@/interfaces/order';
+import { IOrderTicket, IGuestTicketView, IAdminOrderStatusUpdate, IAdminOrderShipmentUpdate, IAdminOrderDetail, IAdminPaymentRecoveryResponse } from '@/interfaces/order';
 import {
   IAdminProduct,
   IAdminProductImagePatch,
@@ -123,6 +123,9 @@ const MutationConfigs = {
   },
   resendAdminOrderConfirmation: async (adminOrderId: string): Promise<AxiosResponse<IBaseApiResponse<void>>> => {
     return httpClient.post(`/api/v1/admin/orders/${adminOrderId}/resend-confirmation`, undefined, await withAdminAuth());
+  },
+  recoverAdminOrderPayment: async (adminOrderId: string): Promise<AxiosResponse<IBaseApiResponse<IAdminPaymentRecoveryResponse>>> => {
+    return httpClient.post(`/api/v1/admin/orders/${adminOrderId}/recover-payment`, undefined, await withAdminAuth());
   },
   createAdminLegalDoc: async (data: IAdminLegalCreate): Promise<AxiosResponse<IBaseApiResponse<IAdminLegalDocument>>> => {
     return httpClient.post('/api/v1/admin/legal', data, await withAdminAuth());
