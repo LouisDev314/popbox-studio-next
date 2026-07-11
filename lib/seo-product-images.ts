@@ -4,11 +4,13 @@ import type { IProductImage } from '@/interfaces/product';
 type TSeoProductImage = Pick<IProductImage, 'sortOrder' | 'storageKey' | 'url'>;
 
 type TSeoImageConfig = {
+  siteUrl?: string;
   storageBucket?: string;
   supabaseUrl?: string;
 };
 
 const PRODUCT_STORAGE_PREFIX = 'products/';
+const PRODUCT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function getStableHttpsUrl(value: string | null | undefined): string | null {
   const candidate = value?.trim();
@@ -36,7 +38,35 @@ function getStableHttpsUrl(value: string | null | undefined): string | null {
   }
 }
 
-function getValidatedStorageKey(value: string | null | undefined): string | null {
+function getStableSiteUrl(value: string | null | undefined): string | null {
+  const candidate = value?.trim();
+
+  if (!candidate) {
+    return null;
+  }
+
+  try {
+    const url = new URL(candidate);
+    const isLocalHttp = url.protocol === 'http:'
+      && (url.hostname === 'localhost' || url.hostname === '127.0.0.1');
+
+    if (
+      (url.protocol !== 'https:' && !isLocalHttp)
+      || url.username
+      || url.password
+      || url.search
+      || url.hash
+    ) {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+export function validateProductImageStorageKey(value: string | null | undefined): string | null {
   const candidate = value?.trim().replace(/^\/+/, '');
 
   if (
@@ -61,6 +91,7 @@ function getValidatedStorageKey(value: string | null | undefined): string | null
 
   if (
     segments.length < 3
+    || !PRODUCT_ID_PATTERN.test(segments[1] ?? '')
     || segments.some((segment) => !segment || segment === '.' || segment === '..')
   ) {
     return null;
@@ -73,7 +104,7 @@ export function buildSupabaseProductImageUrl(
   storageKey: string | null | undefined,
   config: TSeoImageConfig = {},
 ): string | null {
-  const validatedStorageKey = getValidatedStorageKey(storageKey);
+  const validatedStorageKey = validateProductImageStorageKey(storageKey);
 
   if (!validatedStorageKey) {
     return null;
@@ -91,6 +122,26 @@ export function buildSupabaseProductImageUrl(
     `/storage/v1/object/public/${encodeURIComponent(storageBucket)}/${validatedStorageKey}`,
     supabaseUrl,
   ).toString();
+}
+
+export function buildSeoProductImageUrl(
+  storageKey: string | null | undefined,
+  config: TSeoImageConfig = {},
+): string | null {
+  const validatedStorageKey = validateProductImageStorageKey(storageKey);
+
+  if (!validatedStorageKey) {
+    return null;
+  }
+
+  const publicConfig = getPublicEnvConfig();
+  const siteUrl = getStableSiteUrl(config.siteUrl ?? publicConfig.siteUrl);
+
+  if (!siteUrl) {
+    return null;
+  }
+
+  return new URL(`/media/product-images/${validatedStorageKey}`, siteUrl).toString();
 }
 
 export function resolveSeoProductImages(
@@ -120,9 +171,7 @@ export function resolveSeoProductImages(
         return [];
       }
 
-      const directUrl = getStableHttpsUrl(image.url);
-      const resolvedUrl = directUrl
-        ?? buildSupabaseProductImageUrl(image.storageKey, config);
+      const resolvedUrl = buildSeoProductImageUrl(image.storageKey, config);
 
       return resolvedUrl ? [resolvedUrl] : [];
     });

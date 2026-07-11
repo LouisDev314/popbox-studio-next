@@ -24,7 +24,10 @@ import {
   createPageMetadata,
   truncateMetaDescription,
 } from '@/lib/seo';
-import { resolvePrimarySeoProductImage } from '@/lib/seo-product-images';
+import {
+  buildSeoProductImageUrl,
+  resolvePrimarySeoProductImage,
+} from '@/lib/seo-product-images';
 import {
   Accordion,
   AccordionContent,
@@ -67,6 +70,9 @@ export async function generateMetadata(
   try {
     const product = await getPublicProductBySlug(params.slug);
     const primaryImage = resolvePrimarySeoProductImage(product.images);
+    const primaryImageRecord = product.images.find(
+      (image) => buildSeoProductImageUrl(image.storageKey) === primaryImage,
+    );
 
     return createPageMetadata({
       title: product.name,
@@ -76,7 +82,7 @@ export async function generateMetadata(
         ? [
           {
             url: primaryImage,
-            alt: product.images.find((image) => image.url === primaryImage)?.altText || product.name,
+            alt: primaryImageRecord?.altText || product.name,
           },
         ]
         : undefined,

@@ -54,6 +54,7 @@ export function createProductCard(
     name: overrides.name ?? 'Ichiban Figure',
     slug: overrides.slug ?? 'ichiban-figure',
     description: overrides.description ?? 'Premium collectible figure',
+    updatedAt: overrides.updatedAt ?? '2026-04-02T10:00:00.000Z',
     productType: overrides.productType ?? 'standard',
     status: overrides.status ?? 'active',
     priceCents: overrides.priceCents ?? 4999,

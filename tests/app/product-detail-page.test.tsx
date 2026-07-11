@@ -4,9 +4,11 @@ import ProductDetailPage, { generateMetadata } from '@/app/(store)/products/[slu
 import { getPublicProductBySlug } from '@/lib/api/public-storefront';
 import type { IProduct } from '@/interfaces/product';
 
+const PRODUCT_ID = '11111111-1111-4111-8111-111111111111';
+
 vi.mock('@/lib/api/public-storefront', () => ({
   getPublicProductBySlug: vi.fn(async (): Promise<IProduct> => ({
-    id: 'product-1',
+    id: PRODUCT_ID,
     name: 'Ichiban Figure',
     slug: 'ichiban-figure',
     description: 'Premium collectible figure',
@@ -22,14 +24,14 @@ vi.mock('@/lib/api/public-storefront', () => ({
     images: [
       {
         id: 'image-1',
-        storageKey: 'products/figure.jpg',
+        storageKey: `products/${PRODUCT_ID}/figure.jpg`,
         altText: 'Ichiban Figure',
         sortOrder: 2,
         url: 'https://example.com/products/figure.jpg',
       },
       {
         id: 'image-2',
-        storageKey: 'products/front.jpg',
+        storageKey: `products/${PRODUCT_ID}/front.jpg`,
         altText: 'Ichiban Figure front',
         sortOrder: 0,
         url: 'https://example.com/products/front.jpg',
@@ -80,7 +82,7 @@ describe('ProductDetailPage', () => {
     expect(metadata.openGraph?.images).toEqual([
       {
         alt: 'Ichiban Figure front',
-        url: 'https://example.com/products/front.jpg',
+        url: `http://localhost:3001/media/product-images/products/${PRODUCT_ID}/front.jpg`,
       },
     ]);
     expect(metadata.twitter?.images).toEqual(metadata.openGraph?.images);
@@ -117,8 +119,8 @@ describe('ProductDetailPage', () => {
 
     expect(productJsonLd['@type']).toBe('Product');
     expect(productJsonLd.image).toEqual([
-      'https://example.com/products/front.jpg',
-      'https://example.com/products/figure.jpg',
+      `http://localhost:3001/media/product-images/products/${PRODUCT_ID}/front.jpg`,
+      `http://localhost:3001/media/product-images/products/${PRODUCT_ID}/figure.jpg`,
     ]);
     expect(seller).toEqual({
       '@type': 'Organization',

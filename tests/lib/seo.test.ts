@@ -9,9 +9,11 @@ import {
 } from '@/lib/seo';
 import { createProductCard } from '@/tests/fixtures';
 
+const PRODUCT_ID = '11111111-1111-4111-8111-111111111111';
+
 function createProduct(overrides: Partial<IProduct> = {}): IProduct {
   return {
-    id: 'product-1',
+    id: PRODUCT_ID,
     name: 'Ichiban Figure',
     slug: 'ichiban-figure',
     description: 'Premium collectible figure',
@@ -26,14 +28,14 @@ function createProduct(overrides: Partial<IProduct> = {}): IProduct {
     images: [
       {
         id: 'image-1',
-        storageKey: 'products/figure.jpg',
+        storageKey: `products/${PRODUCT_ID}/figure.jpg`,
         altText: 'Ichiban Figure',
         sortOrder: 1,
         url: 'https://example.com/products/figure.jpg',
       },
       {
         id: 'image-2',
-        storageKey: 'products/front.jpg',
+        storageKey: `products/${PRODUCT_ID}/front.jpg`,
         altText: 'Ichiban Figure front',
         sortOrder: 0,
         url: 'https://example.com/products/front.jpg',
@@ -167,8 +169,8 @@ describe('JSON-LD helpers', () => {
       sku: 'PB-001',
       url: 'http://localhost:3001/products/ichiban-figure',
       image: [
-        'https://example.com/products/front.jpg',
-        'https://example.com/products/figure.jpg',
+        `http://localhost:3001/media/product-images/products/${PRODUCT_ID}/front.jpg`,
+        `http://localhost:3001/media/product-images/products/${PRODUCT_ID}/figure.jpg`,
       ],
     });
     expect(offers).toMatchObject({

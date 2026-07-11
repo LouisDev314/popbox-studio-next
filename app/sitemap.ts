@@ -9,9 +9,6 @@ export const revalidate = 3600;
 
 const PRODUCTS_SITEMAP_PAGE_LIMIT = 50;
 const SITEMAP_TIMEOUT_MS = 5000;
-type SitemapProduct = Awaited<ReturnType<typeof getPublicProductsPage>>['items'][number] & {
-  updatedAt?: string;
-};
 
 function createSitemapEntry(
   path: string,
@@ -42,62 +39,49 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
 }
 
 function getStaticEntries(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
-
   return [
     createSitemapEntry('/', {
       changeFrequency: 'daily',
-      lastModified,
       priority: 1,
     }),
     createSitemapEntry('/products', {
       changeFrequency: 'daily',
-      lastModified,
       priority: 0.9,
     }),
     createSitemapEntry('/products?type=kuji', {
       changeFrequency: 'daily',
-      lastModified,
       priority: 0.85,
     }),
     createSitemapEntry('/products?type=standard', {
       changeFrequency: 'daily',
-      lastModified,
       priority: 0.85,
     }),
     createSitemapEntry('/about', {
       changeFrequency: 'monthly',
-      lastModified,
       priority: 0.7,
     }),
     createSitemapEntry('/ichiban-kuji', {
       changeFrequency: 'monthly',
-      lastModified,
       priority: 0.72,
     }),
     createSitemapEntry('/contact', {
       changeFrequency: 'monthly',
-      lastModified,
       priority: 0.7,
     }),
     createSitemapEntry('/faq', {
       changeFrequency: 'weekly',
-      lastModified,
       priority: 0.65,
     }),
     createSitemapEntry('/legal/shipping-returns', {
       changeFrequency: 'monthly',
-      lastModified,
       priority: 0.55,
     }),
     createSitemapEntry('/legal/terms', {
       changeFrequency: 'monthly',
-      lastModified,
       priority: 0.45,
     }),
     createSitemapEntry('/legal/privacy', {
       changeFrequency: 'monthly',
-      lastModified,
       priority: 0.45,
     }),
   ];
@@ -148,14 +132,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     try {
       const page = await withTimeout(getPublicProductsPage({ cursor }), SITEMAP_TIMEOUT_MS);
 
-      for (const product of page.items as SitemapProduct[]) {
+      for (const product of page.items) {
         if (product.status !== 'active') {
           continue;
         }
 
+        const lastModified = parseLastModified(product.updatedAt);
         const entry = createSitemapEntry(`/products/${product.slug}`, {
           changeFrequency: 'weekly',
-          lastModified: parseLastModified(product.updatedAt),
+          ...(lastModified ? { lastModified } : {}),
           priority: 0.8,
         });
 

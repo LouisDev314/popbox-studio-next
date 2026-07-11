@@ -7,6 +7,12 @@ import {
 } from '@/lib/api/public-storefront';
 import { createProductCard } from '@/tests/fixtures';
 
+vi.mock('@/configs/public-env', () => ({
+  default: () => ({
+    siteUrl: 'https://www.popboxstudio.com',
+  }),
+}));
+
 vi.mock('@/lib/api/public-storefront', () => ({
   getPublicCollections: vi.fn(),
   getPublicProductsPage: vi.fn(),
@@ -14,12 +20,8 @@ vi.mock('@/lib/api/public-storefront', () => ({
 
 function createSitemapProduct(
   overrides: Parameters<typeof createProductCard>[0] = {},
-  updatedAt?: string,
 ): IProductListPage['items'][number] {
-  return {
-    ...createProductCard(overrides),
-    ...(updatedAt ? { updatedAt } : {}),
-  } as IProductListPage['items'][number];
+  return createProductCard(overrides);
 }
 
 describe('sitemap', () => {
@@ -44,32 +46,55 @@ describe('sitemap', () => {
     ]);
     vi.mocked(getPublicProductsPage).mockResolvedValue({
       items: [
-        createSitemapProduct({}, '2026-04-02T10:00:00.000Z'),
+        createSitemapProduct({
+          updatedAt: '2026-04-02T10:00:00.000Z',
+        }),
         createSitemapProduct({
           id: 'product-2',
+          name: 'Second Figure',
+          slug: 'second-figure',
+          updatedAt: '2026-04-03T11:30:00.000Z',
+        }),
+        createSitemapProduct({
+          id: 'product-3',
           name: 'Archived Figure',
           slug: 'archived-figure',
           status: 'archived',
-        },
-        '2026-04-03T10:00:00.000Z',
-        ),
-        createSitemapProduct({}, '2026-04-02T10:00:00.000Z'),
+          updatedAt: '2026-04-04T10:00:00.000Z',
+        }),
+        createSitemapProduct({
+          id: 'product-4',
+          name: 'Draft Figure',
+          slug: 'draft-figure',
+          status: 'draft',
+          updatedAt: '2026-04-05T10:00:00.000Z',
+        }),
+        createSitemapProduct({
+          updatedAt: '2026-04-02T10:00:00.000Z',
+        }),
       ],
       nextCursor: null,
     });
 
     const entries = await sitemap();
     const urls = entries.map((entry) => entry.url);
-    const productEntry = entries.find((entry) => entry.url === 'http://localhost:3001/products/ichiban-figure');
+    const productEntry = entries.find((entry) => entry.url === 'https://www.popboxstudio.com/products/ichiban-figure');
+    const secondProductEntry = entries.find((entry) => entry.url === 'https://www.popboxstudio.com/products/second-figure');
+    const staticEntry = entries.find((entry) => entry.url === 'https://www.popboxstudio.com/');
+    const collectionEntry = entries.find((entry) => entry.url === 'https://www.popboxstudio.com/collections/featured');
 
-    expect(urls).toContain('http://localhost:3001/');
-    expect(urls).toContain('http://localhost:3001/products');
-    expect(urls).toContain('http://localhost:3001/products?type=kuji');
-    expect(urls).toContain('http://localhost:3001/collections/featured');
-    expect(urls).not.toContain('http://localhost:3001/collections/draft');
-    expect(urls).not.toContain('http://localhost:3001/products/archived-figure');
-    expect(urls.filter((url) => url === 'http://localhost:3001/products/ichiban-figure')).toHaveLength(1);
+    expect(urls).toContain('https://www.popboxstudio.com/');
+    expect(urls).toContain('https://www.popboxstudio.com/products');
+    expect(urls).toContain('https://www.popboxstudio.com/products?type=kuji');
+    expect(urls).toContain('https://www.popboxstudio.com/collections/featured');
+    expect(urls).not.toContain('https://www.popboxstudio.com/collections/draft');
+    expect(urls).not.toContain('https://www.popboxstudio.com/products/archived-figure');
+    expect(urls).not.toContain('https://www.popboxstudio.com/products/draft-figure');
+    expect(urls.filter((url) => url === 'https://www.popboxstudio.com/products/ichiban-figure')).toHaveLength(1);
     expect(productEntry?.lastModified).toEqual(new Date('2026-04-02T10:00:00.000Z'));
+    expect(secondProductEntry?.lastModified).toEqual(new Date('2026-04-03T11:30:00.000Z'));
+    expect(staticEntry).not.toHaveProperty('lastModified');
+    expect(collectionEntry).not.toHaveProperty('lastModified');
   });
 
   it('still includes products when collections fail', async () => {
@@ -80,15 +105,37 @@ describe('sitemap', () => {
           id: 'product-3',
           name: 'Fallback Figure',
           slug: 'fallback-figure',
-        },
-        '2026-04-04T10:00:00.000Z',
-        ),
+          updatedAt: '2026-04-04T10:00:00.000Z',
+        }),
       ],
       nextCursor: null,
     });
 
     const entries = await sitemap();
 
-    expect(entries.map((entry) => entry.url)).toContain('http://localhost:3001/products/fallback-figure');
+    expect(entries.map((entry) => entry.url)).toContain('https://www.popboxstudio.com/products/fallback-figure');
+  });
+
+  it('keeps an active product with an invalid timestamp without emitting lastModified', async () => {
+    vi.mocked(getPublicCollections).mockResolvedValue([]);
+    vi.mocked(getPublicProductsPage).mockResolvedValue({
+      items: [
+        createSitemapProduct({
+          id: 'product-invalid-date',
+          name: 'Invalid Date Figure',
+          slug: 'invalid-date-figure',
+          updatedAt: 'not-a-date',
+        }),
+      ],
+      nextCursor: null,
+    });
+
+    const entries = await sitemap();
+    const productEntry = entries.find(
+      (entry) => entry.url === 'https://www.popboxstudio.com/products/invalid-date-figure',
+    );
+
+    expect(productEntry).toBeDefined();
+    expect(productEntry).not.toHaveProperty('lastModified');
   });
 });

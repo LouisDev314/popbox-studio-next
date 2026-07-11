@@ -1,6 +1,6 @@
 import { type IKujiPrize, type IProductCard } from '@/interfaces/product';
 
-export interface ICartProduct extends IProductCard {
+export interface ICartProduct extends Omit<IProductCard, 'updatedAt'> {
   kujiPrizes?: IKujiPrize[];
 }
 

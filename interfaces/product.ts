@@ -78,6 +78,7 @@ export interface IProductCard {
   name: string;
   slug: string;
   description: string | null;
+  updatedAt: string;
   productType: 'standard' | 'kuji';
   status: 'draft' | 'active' | 'archived';
   priceCents: number;
