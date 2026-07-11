@@ -6,7 +6,7 @@ import {
   getFirstParamValue,
   parseProductTypeParam,
 } from '@/lib/storefront-product-filters';
-import { getProductCoverImage, getSortedProductImages } from '@/utils/product-images';
+import { resolveSeoProductImages } from '@/lib/seo-product-images';
 import { getProductInventoryState } from '@/utils/product-stock';
 
 export const BRAND_NAME = 'PopBox Studio';
@@ -266,14 +266,18 @@ function buildOfferShippingDetailsJsonLd(
 export function buildProductJsonLd(
   product: IProduct,
   options: TProductJsonLdOptions,
-): JsonLdObject {
+): JsonLdObject | null {
   const canonicalUrl = buildAbsoluteUrl(options.canonicalPath);
-  const productImages = getSortedProductImages(product)
-    .map((image) => image.url)
-    .filter((url) => url.trim().length > 0);
+  const productImages = resolveSeoProductImages(product.images);
+
+  if (productImages.length === 0) {
+    return null;
+  }
+
   const shippingDetails = buildOfferShippingDetailsJsonLd(options.shippingSettings);
   const offerAvailability = getProductOfferAvailability(product);
   const productDescription = product.description?.trim() || product.name;
+  const sku = product.sku?.trim();
 
   return {
     '@context': 'https://schema.org',
@@ -283,9 +287,9 @@ export function buildProductJsonLd(
     url: canonicalUrl,
     image: productImages,
     category: product.productType === 'kuji' ? 'Ichiban Kuji' : 'Anime merchandise',
-    ...(product.sku
+    ...(sku
       ? {
-        sku: product.sku,
+        sku,
       }
       : {}),
     offers: {
@@ -321,25 +325,11 @@ export function buildProductItemListJsonLd(
     '@type': 'ItemList',
     url: buildAbsoluteUrl(path),
     numberOfItems: products.length,
-    itemListElement: products.map((product, index) => {
-      const coverImage = getProductCoverImage(product);
-
-      return {
-        '@type': 'ListItem',
-        position: index + 1,
-        url: buildAbsoluteUrl(`/products/${product.slug}`),
-        item: {
-          '@type': 'Product',
-          name: product.name,
-          url: buildAbsoluteUrl(`/products/${product.slug}`),
-          ...(coverImage?.url
-            ? {
-              image: coverImage.url,
-            }
-            : {}),
-        },
-      };
-    }),
+    itemListElement: products.map((product, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: buildAbsoluteUrl(`/products/${product.slug}`),
+    })),
   };
 }
 

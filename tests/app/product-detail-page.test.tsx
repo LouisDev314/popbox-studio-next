@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import ProductDetailPage from '@/app/(store)/products/[slug]/page';
+import ProductDetailPage, { generateMetadata } from '@/app/(store)/products/[slug]/page';
+import { getPublicProductBySlug } from '@/lib/api/public-storefront';
 import type { IProduct } from '@/interfaces/product';
 
 vi.mock('@/lib/api/public-storefront', () => ({
@@ -71,6 +72,20 @@ vi.mock('@/components/product/product-recommendations', () => ({
 }));
 
 describe('ProductDetailPage', () => {
+  it('uses the canonical SEO image for both Open Graph and Twitter metadata', async () => {
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ slug: 'ichiban-figure' }),
+    });
+
+    expect(metadata.openGraph?.images).toEqual([
+      {
+        alt: 'Ichiban Figure front',
+        url: 'https://example.com/products/front.jpg',
+      },
+    ]);
+    expect(metadata.twitter?.images).toEqual(metadata.openGraph?.images);
+  });
+
   it('renders all product collections as collection links', async () => {
     render(
       await ProductDetailPage({
@@ -123,5 +138,48 @@ describe('ProductDetailPage', () => {
     expect(productJsonLd).not.toHaveProperty('review');
     expect(productJsonLd).not.toHaveProperty('aggregateRating');
     expect(productJsonLd).not.toHaveProperty('gtin');
+  });
+
+  it('retains breadcrumbs but omits Product JSON-LD when no valid image exists', async () => {
+    vi.mocked(getPublicProductBySlug).mockResolvedValueOnce({
+      id: 'product-without-image',
+      name: 'Image Pending',
+      slug: 'image-pending',
+      description: null,
+      productType: 'standard',
+      status: 'active',
+      priceCents: 2500,
+      currency: 'CAD',
+      sku: null,
+      collections: [],
+      images: [],
+      inventory: {
+        onHand: 1,
+        reserved: 0,
+        available: 1,
+        lowStockThreshold: 0,
+      },
+      tags: [],
+      kujiPrizes: [],
+      createdAt: '2026-04-01T10:00:00.000Z',
+      updatedAt: '2026-04-01T10:00:00.000Z',
+    });
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const { container } = render(
+      await ProductDetailPage({
+        params: Promise.resolve({ slug: 'image-pending' }),
+      }),
+    );
+    const jsonLdScript = container.querySelector('script[type="application/ld+json"]');
+    const jsonLd = JSON.parse(jsonLdScript?.textContent ?? '[]') as Record<string, unknown>[];
+
+    expect(jsonLd.map((entry) => entry['@type'])).toEqual(['BreadcrumbList']);
+    expect(warning).toHaveBeenCalledWith(
+      '[seo] Product structured data omitted because no valid image is available.',
+      { productId: 'product-without-image', slug: 'image-pending' },
+    );
+
+    warning.mockRestore();
   });
 });

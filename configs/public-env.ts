@@ -56,6 +56,7 @@ const publicEnvConfig = {
   stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   supabasePublicKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLIC_KEY || '',
+  supabaseStorageBucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET?.trim() || 'product-images',
   googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
   isSiteOpen: process.env.NEXT_PUBLIC_IS_SITE_OPEN !== 'false',
 };

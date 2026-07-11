@@ -153,6 +153,10 @@ describe('JSON-LD helpers', () => {
         freeShippingThresholdCents: 10000,
       },
     });
+
+    expect(jsonLd).not.toBeNull();
+    if (!jsonLd) throw new Error('Expected Product JSON-LD.');
+
     const offers = jsonLd.offers as Record<string, unknown>;
     const seller = offers.seller as Record<string, unknown>;
     const shippingDetails = offers.shippingDetails as Record<string, unknown>;
@@ -191,6 +195,35 @@ describe('JSON-LD helpers', () => {
     expect(jsonLd).not.toHaveProperty('review');
     expect(jsonLd).not.toHaveProperty('aggregateRating');
     expect(jsonLd).not.toHaveProperty('gtin');
+  });
+
+  it('omits Product JSON-LD when no real image can be resolved', () => {
+    expect(buildProductJsonLd(createProduct({ images: [] }), {
+      canonicalPath: '/products/ichiban-figure',
+    })).toBeNull();
+  });
+
+  it('omits blank SKUs and keeps Kuji availability tied to real inventory', () => {
+    const jsonLd = buildProductJsonLd(createProduct({
+      productType: 'kuji',
+      sku: '   ',
+      inventory: {
+        onHand: 0,
+        reserved: 0,
+        available: 0,
+        lowStockThreshold: 0,
+      },
+    }), {
+      canonicalPath: '/products/ichiban-figure',
+    });
+
+    expect(jsonLd).not.toBeNull();
+    expect(jsonLd).not.toHaveProperty('sku');
+    expect(jsonLd?.offers).toMatchObject({
+      availability: 'https://schema.org/OutOfStock',
+      price: '49.99',
+      priceCurrency: 'CAD',
+    });
   });
 
   it('builds BreadcrumbList JSON-LD with absolute canonical item urls', () => {
@@ -243,5 +276,8 @@ describe('JSON-LD helpers', () => {
         },
       ],
     });
+    const itemListElement = jsonLd.itemListElement as Array<Record<string, unknown>>;
+
+    expect(itemListElement.every((item) => !('item' in item))).toBe(true);
   });
 });

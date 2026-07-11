@@ -174,6 +174,7 @@ Use `.env.local` locally. `.env.example` shows the required public configuration
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLIC_KEY` | Supabase anon/public key |
+| `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET` | Public product-image bucket; defaults to `product-images` |
 | `NEXT_PUBLIC_IS_SITE_OPEN` | Set to `false` for maintenance-style storefront gating |
 
 On Vercel, `VERCEL_PROJECT_PRODUCTION_URL` or `VERCEL_URL` can back `NEXT_PUBLIC_SITE_URL` when it is not explicitly set.

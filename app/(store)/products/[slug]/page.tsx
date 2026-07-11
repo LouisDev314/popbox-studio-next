@@ -24,7 +24,7 @@ import {
   createPageMetadata,
   truncateMetaDescription,
 } from '@/lib/seo';
-import { getProductCoverImage } from '@/utils/product-images';
+import { resolvePrimarySeoProductImage } from '@/lib/seo-product-images';
 import {
   Accordion,
   AccordionContent,
@@ -66,17 +66,17 @@ export async function generateMetadata(
 
   try {
     const product = await getPublicProductBySlug(params.slug);
-    const primaryImage = getProductCoverImage(product);
+    const primaryImage = resolvePrimarySeoProductImage(product.images);
 
     return createPageMetadata({
       title: product.name,
       description: getProductMetadataDescription(product),
       path,
-      openGraphImages: primaryImage?.url
+      openGraphImages: primaryImage
         ? [
           {
-            url: primaryImage.url,
-            alt: primaryImage.altText || product.name,
+            url: primaryImage,
+            alt: product.images.find((image) => image.url === primaryImage)?.altText || product.name,
           },
         ]
         : undefined,
@@ -126,17 +126,26 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
   const productPath = `/products/${product.slug}`;
   const productDescription = product.description?.trim() || 'No description available.';
   const shippingSettings = await getPublicShippingSettings().catch(() => null);
-  const productJsonLd = [
-    buildBreadcrumbListJsonLd([
-      { name: 'Home', path: '/' },
-      { name: 'Products', path: '/products' },
-      { name: product.name, path: productPath },
-    ]),
-    buildProductJsonLd(product, {
-      canonicalPath: productPath,
-      shippingSettings,
-    }),
-  ];
+  const breadcrumbJsonLd = buildBreadcrumbListJsonLd([
+    { name: 'Home', path: '/' },
+    { name: 'Products', path: '/products' },
+    { name: product.name, path: productPath },
+  ]);
+  const productStructuredData = buildProductJsonLd(product, {
+    canonicalPath: productPath,
+    shippingSettings,
+  });
+
+  if (!productStructuredData) {
+    console.warn('[seo] Product structured data omitted because no valid image is available.', {
+      productId: product.id,
+      slug: product.slug,
+    });
+  }
+
+  const productJsonLd = productStructuredData
+    ? [breadcrumbJsonLd, productStructuredData]
+    : [breadcrumbJsonLd];
 
   const accordionItems = [
     {
