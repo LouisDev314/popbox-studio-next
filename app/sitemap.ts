@@ -5,7 +5,7 @@ import {
 } from '@/lib/api/public-storefront';
 import { buildAbsoluteUrl } from '@/lib/seo';
 
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 const PRODUCTS_SITEMAP_PAGE_LIMIT = 50;
 const SITEMAP_TIMEOUT_MS = 5000;

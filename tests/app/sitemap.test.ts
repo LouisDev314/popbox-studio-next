@@ -47,7 +47,8 @@ describe('sitemap', () => {
     vi.mocked(getPublicProductsPage).mockResolvedValue({
       items: [
         createSitemapProduct({
-          updatedAt: '2026-04-02T10:00:00.000Z',
+          slug: 'kuji-cardcaptor-sakura-25th-anniversary',
+          updatedAt: '2026-07-10T01:41:45.871Z',
         }),
         createSitemapProduct({
           id: 'product-2',
@@ -70,7 +71,8 @@ describe('sitemap', () => {
           updatedAt: '2026-04-05T10:00:00.000Z',
         }),
         createSitemapProduct({
-          updatedAt: '2026-04-02T10:00:00.000Z',
+          slug: 'kuji-cardcaptor-sakura-25th-anniversary',
+          updatedAt: '2026-07-10T01:41:45.871Z',
         }),
       ],
       nextCursor: null,
@@ -78,7 +80,9 @@ describe('sitemap', () => {
 
     const entries = await sitemap();
     const urls = entries.map((entry) => entry.url);
-    const productEntry = entries.find((entry) => entry.url === 'https://www.popboxstudio.com/products/ichiban-figure');
+    const productEntry = entries.find(
+      (entry) => entry.url === 'https://www.popboxstudio.com/products/kuji-cardcaptor-sakura-25th-anniversary',
+    );
     const secondProductEntry = entries.find((entry) => entry.url === 'https://www.popboxstudio.com/products/second-figure');
     const staticEntry = entries.find((entry) => entry.url === 'https://www.popboxstudio.com/');
     const collectionEntry = entries.find((entry) => entry.url === 'https://www.popboxstudio.com/collections/featured');
@@ -90,8 +94,12 @@ describe('sitemap', () => {
     expect(urls).not.toContain('https://www.popboxstudio.com/collections/draft');
     expect(urls).not.toContain('https://www.popboxstudio.com/products/archived-figure');
     expect(urls).not.toContain('https://www.popboxstudio.com/products/draft-figure');
-    expect(urls.filter((url) => url === 'https://www.popboxstudio.com/products/ichiban-figure')).toHaveLength(1);
-    expect(productEntry?.lastModified).toEqual(new Date('2026-04-02T10:00:00.000Z'));
+    expect(
+      urls.filter(
+        (url) => url === 'https://www.popboxstudio.com/products/kuji-cardcaptor-sakura-25th-anniversary',
+      ),
+    ).toHaveLength(1);
+    expect(productEntry?.lastModified).toEqual(new Date('2026-07-10T01:41:45.871Z'));
     expect(secondProductEntry?.lastModified).toEqual(new Date('2026-04-03T11:30:00.000Z'));
     expect(staticEntry).not.toHaveProperty('lastModified');
     expect(collectionEntry).not.toHaveProperty('lastModified');
