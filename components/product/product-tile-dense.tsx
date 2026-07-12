@@ -7,7 +7,11 @@ import { StorefrontImage } from '@/components/ui/storefront-image';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import type { IProductCard } from '@/interfaces/product';
 import { cn, formatPrice } from '@/lib/utils';
-import { getProductCoverImage, getSortedProductImages } from '@/utils/product-images';
+import {
+  getProductCoverImage,
+  getProductImageAltText,
+  getSortedProductImages,
+} from '@/utils/product-images';
 import { getProductInventoryState } from '@/utils/product-stock';
 import { mapProductToWishlistItem } from '@/utils/wishlist';
 
@@ -52,7 +56,7 @@ export function ProductTileDense(props: IProductTileDenseProps) {
           <StorefrontImage
             src={coverImage?.url}
             fallbackSrc={fallbackImage?.url}
-            alt={coverImage?.altText ?? product.name}
+            alt={getProductImageAltText(product.name, coverImage?.altText)}
             label={product.name}
             priority={priority}
             sizes={sizes}

@@ -7,6 +7,7 @@ import {
   parseProductTypeParam,
 } from '@/lib/storefront-product-filters';
 import { resolveSeoProductImages } from '@/lib/seo-product-images';
+import { TagType } from '@/lib/tag-types';
 import { getProductInventoryState } from '@/utils/product-stock';
 
 export const BRAND_NAME = 'PopBox Studio';
@@ -278,6 +279,7 @@ export function buildProductJsonLd(
   const offerAvailability = getProductOfferAvailability(product);
   const productDescription = product.description?.trim() || product.name;
   const sku = product.sku?.trim();
+  const brandName = product.tags.find((tag) => tag.tagType === TagType.BRAND)?.name.trim();
 
   return {
     '@context': 'https://schema.org',
@@ -287,6 +289,14 @@ export function buildProductJsonLd(
     url: canonicalUrl,
     image: productImages,
     category: product.productType === 'kuji' ? 'Ichiban Kuji' : 'Anime merchandise',
+    ...(brandName
+      ? {
+        brand: {
+          '@type': 'Brand',
+          name: brandName,
+        },
+      }
+      : {}),
     ...(sku
       ? {
         sku,

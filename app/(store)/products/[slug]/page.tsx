@@ -28,6 +28,7 @@ import {
   buildSeoProductImageUrl,
   resolvePrimarySeoProductImage,
 } from '@/lib/seo-product-images';
+import { getProductImageAltText } from '@/utils/product-images';
 import {
   Accordion,
   AccordionContent,
@@ -82,7 +83,7 @@ export async function generateMetadata(
         ? [
           {
             url: primaryImage,
-            alt: primaryImageRecord?.altText || product.name,
+            alt: getProductImageAltText(product.name, primaryImageRecord?.altText),
           },
         ]
         : undefined,

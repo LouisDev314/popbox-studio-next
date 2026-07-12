@@ -93,7 +93,7 @@ describe('ProductActions', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(useCartStore.getState().items).toHaveLength(1);
     expect(flyProductImageToTargetMock).toHaveBeenCalledWith(expect.objectContaining({
-      imageAlt: 'Ichiban Figure',
+      imageAlt: 'Ichiban Figure product image',
       imageUrl: 'https://example.com/products/figure-1.jpg',
       sourceElement: expect.any(HTMLButtonElement),
       target: 'cart',
@@ -114,7 +114,7 @@ describe('ProductActions', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     expect(useWishlistStore.getState().items).toHaveLength(1);
     expect(flyProductImageToTargetMock).toHaveBeenCalledWith(expect.objectContaining({
-      imageAlt: 'Ichiban Figure',
+      imageAlt: 'Ichiban Figure product image',
       imageUrl: 'https://example.com/products/figure-1.jpg',
       sourceElement: expect.any(HTMLButtonElement),
       target: 'wishlist',

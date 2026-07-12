@@ -5,7 +5,11 @@
 import { useState } from 'react';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type IProduct } from '@/interfaces/product';
-import { getProductCoverImageIndex, getSortedProductImages } from '@/utils/product-images';
+import {
+  getProductCoverImageIndex,
+  getProductImageAltText,
+  getSortedProductImages,
+} from '@/utils/product-images';
 
 interface IProductGalleryProps {
   product: IProduct;
@@ -22,7 +26,7 @@ export function ProductGallery(props: IProductGalleryProps) {
       <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-border/50 bg-muted/20">
         <StorefrontImage
           src={activeImageData?.url}
-          alt={activeImageData?.altText || props.product.name}
+          alt={getProductImageAltText(props.product.name, activeImageData?.altText)}
           label={props.product.name}
           priority={props.priority}
           sizes="(max-width: 1024px) 100vw, 50vw"
@@ -61,7 +65,7 @@ export function ProductGallery(props: IProductGalleryProps) {
             >
               <StorefrontImage
                 src={img.url}
-                alt={img.altText || `${props.product.name} thumbnail ${idx + 1}`}
+                alt={getProductImageAltText(props.product.name, img.altText)}
                 label={props.product.name}
                 sizes="(max-width: 640px) 80px, 96px"
               />

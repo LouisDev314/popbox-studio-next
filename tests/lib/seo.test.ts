@@ -205,6 +205,28 @@ describe('JSON-LD helpers', () => {
     })).toBeNull();
   });
 
+  it('uses the first Brand tag and omits blank brand names', () => {
+    const jsonLd = buildProductJsonLd(createProduct({
+      tags: [
+        { id: 'series-1', name: 'One Piece', slug: 'one-piece', tagType: 'series' },
+        { id: 'brand-1', name: ' Bandai Spirits ', slug: 'bandai-spirits', tagType: 'brand' },
+        { id: 'brand-2', name: 'Banpresto', slug: 'banpresto', tagType: 'brand' },
+      ],
+    }), {
+      canonicalPath: '/products/ichiban-figure',
+    });
+
+    expect(jsonLd?.brand).toEqual({
+      '@type': 'Brand',
+      name: 'Bandai Spirits',
+    });
+    expect(buildProductJsonLd(createProduct({
+      tags: [{ id: 'brand-1', name: '   ', slug: 'blank', tagType: 'brand' }],
+    }), {
+      canonicalPath: '/products/ichiban-figure',
+    })).not.toHaveProperty('brand');
+  });
+
   it('omits blank SKUs and keeps Kuji availability tied to real inventory', () => {
     const jsonLd = buildProductJsonLd(createProduct({
       productType: 'kuji',

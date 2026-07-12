@@ -12,7 +12,7 @@ import { type IProduct } from '@/interfaces/product';
 import { shareProduct } from '@/lib/share-product';
 import { flyProductImageToTarget } from '@/lib/ui/fly-to-target';
 import { cn } from '@/lib/utils';
-import { getProductCoverImage } from '@/utils/product-images';
+import { getProductCoverImage, getProductImageAltText } from '@/utils/product-images';
 import { mapProductToWishlistItem } from '@/utils/wishlist';
 import {
   getProductSellableQuantity,
@@ -241,7 +241,7 @@ export function ProductActions(props: IProductActionsProps) {
   const fireProductFlyAnimation = (target: 'cart' | 'wishlist', sourceElement: Element) => {
     try {
       flyProductImageToTarget({
-        imageAlt: flyImage?.altText ?? props.product.name,
+        imageAlt: getProductImageAltText(props.product.name, flyImage?.altText),
         imageUrl: flyImage?.url,
         sourceElement,
         target,

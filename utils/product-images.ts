@@ -54,3 +54,10 @@ export function getProductCoverImage(product: ProductWithImages): IProductImage 
 
   return coverImage;
 }
+
+export function getProductImageAltText(
+  productName: string,
+  altText: string | null | undefined,
+): string {
+  return altText?.trim() || `${productName.trim()} product image`;
+}

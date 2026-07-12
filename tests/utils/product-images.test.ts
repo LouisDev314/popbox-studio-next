@@ -1,8 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { getProductCoverImage, getSortedProductImages } from '@/utils/product-images';
+import {
+  getProductCoverImage,
+  getProductImageAltText,
+  getSortedProductImages,
+} from '@/utils/product-images';
 import { createProductCard } from '../fixtures';
 
 describe('product image helpers', () => {
+  it('uses provided alt text or a descriptive product-name fallback', () => {
+    expect(getProductImageAltText('Kuji Cardcaptor Sakura: 25th Anniversary', null))
+      .toBe('Kuji Cardcaptor Sakura: 25th Anniversary product image');
+    expect(getProductImageAltText('Ichiban Figure', ' Front view ')).toBe('Front view');
+    expect(getProductImageAltText('Ichiban Figure', '   ')).toBe('Ichiban Figure product image');
+  });
+
   it('sorts product images by sortOrder without mutating the source images', () => {
     const product = createProductCard({
       images: [
