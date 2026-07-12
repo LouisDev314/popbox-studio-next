@@ -32,6 +32,15 @@ if (shouldEnableSentryBuild && !hasRequiredSentryBuildEnv) {
 
 const nextConfig: NextConfig = {
   htmlLimitedBots: /.*/,
+  async redirects() {
+    return [
+      {
+        source: '/home',
+        destination: '/',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return {
       beforeFiles: [

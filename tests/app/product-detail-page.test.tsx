@@ -1,10 +1,23 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ProductDetailPage, { generateMetadata } from '@/app/(store)/products/[slug]/page';
-import { getPublicProductBySlug } from '@/lib/api/public-storefront';
+import ProductDetailLayout from '@/app/(store)/products/[slug]/layout';
+import {
+  getPublicProductBySlug,
+  isPublicApiNotFoundError,
+} from '@/lib/api/public-storefront';
 import type { IProduct } from '@/interfaces/product';
 
 const PRODUCT_ID = '11111111-1111-4111-8111-111111111111';
+const navigationMocks = vi.hoisted(() => ({
+  notFound: vi.fn(() => {
+    throw new Error('NEXT_NOT_FOUND');
+  }),
+}));
+
+vi.mock('next/navigation', () => ({
+  notFound: navigationMocks.notFound,
+}));
 
 vi.mock('@/lib/api/public-storefront', () => ({
   getPublicProductBySlug: vi.fn(async (): Promise<IProduct> => ({
@@ -74,6 +87,35 @@ vi.mock('@/components/product/product-recommendations', () => ({
 }));
 
 describe('ProductDetailPage', () => {
+  beforeEach(() => {
+    navigationMocks.notFound.mockClear();
+    vi.mocked(isPublicApiNotFoundError).mockReset();
+    vi.mocked(isPublicApiNotFoundError).mockReturnValue(false);
+  });
+
+  it('terminates metadata resolution for missing products before the page can stream', async () => {
+    vi.mocked(getPublicProductBySlug).mockRejectedValueOnce(new Error('Product not found'));
+    vi.mocked(isPublicApiNotFoundError).mockReturnValueOnce(true);
+
+    await expect(generateMetadata({
+      params: Promise.resolve({ slug: 'missing-product' }),
+    })).rejects.toThrow('NEXT_NOT_FOUND');
+
+    expect(navigationMocks.notFound).toHaveBeenCalledOnce();
+  });
+
+  it('terminates the detail layout before its loading boundary for missing products', async () => {
+    vi.mocked(getPublicProductBySlug).mockRejectedValueOnce(new Error('Product not found'));
+    vi.mocked(isPublicApiNotFoundError).mockReturnValueOnce(true);
+
+    await expect(ProductDetailLayout({
+      children: <div>Product content</div>,
+      params: Promise.resolve({ slug: 'missing-product' }),
+    })).rejects.toThrow('NEXT_NOT_FOUND');
+
+    expect(navigationMocks.notFound).toHaveBeenCalledOnce();
+  });
+
   it('uses the canonical SEO image for both Open Graph and Twitter metadata', async () => {
     const metadata = await generateMetadata({
       params: Promise.resolve({ slug: 'ichiban-figure' }),

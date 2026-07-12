@@ -33,29 +33,10 @@ export async function generateMetadata(props: CollectionSlugPageProps): Promise<
   const params = await props.params;
   const searchParams = await props.searchParams;
   const seoState = getCollectionListingSeoState(params.slug, searchParams);
+  let collections: Awaited<ReturnType<typeof getPublicCollections>>;
 
   try {
-    const collections = await getPublicCollections();
-    const collection = collections.find((item) => item.slug === params.slug && item.isActive);
-
-    if (!collection) {
-      return createPageMetadata({
-        title: 'Collection not found',
-        description: 'The requested collection could not be found.',
-        path: seoState.canonicalPath,
-        noIndex: true,
-      });
-    }
-
-    return createPageMetadata({
-      title: collection.name,
-      description: truncateMetaDescription(
-        collection.description || `Browse products in the ${collection.name} collection at PopBox Studio.`,
-        165,
-      ),
-      path: seoState.canonicalPath,
-      noIndex: !seoState.shouldIndex,
-    });
+    collections = await getPublicCollections();
   } catch {
     return createPageMetadata({
       title: 'Collections',
@@ -64,6 +45,22 @@ export async function generateMetadata(props: CollectionSlugPageProps): Promise<
       noIndex: true,
     });
   }
+
+  const collection = collections.find((item) => item.slug === params.slug && item.isActive);
+
+  if (!collection) {
+    notFound();
+  }
+
+  return createPageMetadata({
+    title: collection.name,
+    description: truncateMetaDescription(
+      collection.description || `Browse products in the ${collection.name} collection at PopBox Studio.`,
+      165,
+    ),
+    path: seoState.canonicalPath,
+    noIndex: !seoState.shouldIndex,
+  });
 }
 
 export default async function CollectionSlugPage(props: CollectionSlugPageProps) {

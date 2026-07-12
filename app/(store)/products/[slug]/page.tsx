@@ -67,35 +67,43 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const params = await props.params;
   const path = `/products/${encodeURIComponent(params.slug)}`;
+  let product: IProduct | null = null;
 
   try {
-    const product = await getPublicProductBySlug(params.slug);
-    const primaryImage = resolvePrimarySeoProductImage(product.images);
-    const primaryImageRecord = product.images.find(
-      (image) => buildSeoProductImageUrl(image.storageKey) === primaryImage,
-    );
-
-    return createPageMetadata({
-      title: product.name,
-      description: getProductMetadataDescription(product),
-      path,
-      openGraphImages: primaryImage
-        ? [
-          {
-            url: primaryImage,
-            alt: getProductImageAltText(product.name, primaryImageRecord?.altText),
-          },
-        ]
-        : undefined,
-    });
-  } catch {
-    return createPageMetadata({
-      title: 'Product unavailable',
-      description: 'The requested product is temporarily unavailable.',
-      path,
-      noIndex: true,
-    });
+    product = await getPublicProductBySlug(params.slug);
+  } catch (error) {
+    if (!isPublicApiNotFoundError(error)) {
+      return createPageMetadata({
+        title: 'Product unavailable',
+        description: 'The requested product is temporarily unavailable.',
+        path,
+        noIndex: true,
+      });
+    }
   }
+
+  if (!product) {
+    notFound();
+  }
+
+  const primaryImage = resolvePrimarySeoProductImage(product.images);
+  const primaryImageRecord = product.images.find(
+    (image) => buildSeoProductImageUrl(image.storageKey) === primaryImage,
+  );
+
+  return createPageMetadata({
+    title: product.name,
+    description: getProductMetadataDescription(product),
+    path,
+    openGraphImages: primaryImage
+      ? [
+        {
+          url: primaryImage,
+          alt: getProductImageAltText(product.name, primaryImageRecord?.altText),
+        },
+      ]
+      : undefined,
+  });
 }
 
 function ProductUnavailableState() {

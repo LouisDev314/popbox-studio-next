@@ -16,7 +16,12 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
   return (
     <div className="w-full">
       {hasFeatured ? (
-        <StorefrontFeaturedCarouselClient featuredProducts={featured} />
+        <>
+          <h1 className="sr-only">
+            PopBox Studio anime merchandise and Ichiban Kuji
+          </h1>
+          <StorefrontFeaturedCarouselClient featuredProducts={featured} />
+        </>
       ) : (
         <StorefrontHero
           title="Discover Premium Collectibles"

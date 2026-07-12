@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import ProductsPageClient from './products-page-client';
+import ProductsPageClient from '../products-page-client';
 import type { ITag } from '@/interfaces/product';
 import { getPublicProductsPage, getPublicTags } from '@/lib/api/public-storefront';
 import {
