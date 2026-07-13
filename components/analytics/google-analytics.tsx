@@ -8,6 +8,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { Button } from '@/components/ui/button';
 import {
+  deactivateGoogleAnalytics,
   initializeGoogleAnalytics,
   trackPageView,
 } from '@/lib/analytics';
@@ -54,7 +55,28 @@ function GoogleAnalyticsPageViews(props: IGoogleAnalyticsProps) {
     trackPageView(pathname);
   }, [pathname, props.debugMode, props.measurementId, searchParams]);
 
+  useEffect(() => () => deactivateGoogleAnalytics(), []);
+
   return null;
+}
+
+function useAnalyticsConsent(): TAnalyticsConsent {
+  return useSyncExternalStore(
+    subscribeToConsent,
+    readConsent,
+    () => null,
+  );
+}
+
+export function OperationalAnalytics() {
+  const consent = useAnalyticsConsent();
+
+  return consent === 'accepted' ? (
+    <>
+      <Analytics />
+      <SpeedInsights />
+    </>
+  ) : null;
 }
 
 function AnalyticsConsentBanner(props: { onConsent: (consent: Exclude<TAnalyticsConsent, null>) => void }) {
@@ -93,11 +115,7 @@ function AnalyticsConsentBanner(props: { onConsent: (consent: Exclude<TAnalytics
 }
 
 export function GoogleAnalytics(props: IGoogleAnalyticsProps) {
-  const consent = useSyncExternalStore(
-    subscribeToConsent,
-    readConsent,
-    () => null,
-  );
+  const consent = useAnalyticsConsent();
 
   const updateConsent = (nextConsent: Exclude<TAnalyticsConsent, null>) => {
     try {
@@ -114,8 +132,6 @@ export function GoogleAnalytics(props: IGoogleAnalyticsProps) {
       {consent === null ? <AnalyticsConsentBanner onConsent={updateConsent} /> : null}
       {consent === 'accepted' ? (
         <>
-          <Analytics />
-          <SpeedInsights />
           <Script
             id="popbox-google-analytics"
             src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(props.measurementId)}`}

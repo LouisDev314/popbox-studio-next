@@ -25,6 +25,7 @@ function getEventCount(eventName: string) {
 describe('ecommerce analytics trackers', () => {
   beforeEach(() => {
     window.__popboxGaReady = true;
+    window.__popboxGaStorefrontActive = true;
     window.gtag = vi.fn();
   });
 

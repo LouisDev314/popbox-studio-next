@@ -3,7 +3,7 @@ import { type ReactNode } from 'react';
 import './globals.css';
 import { AppProviders } from '@/components/app-providers';
 import getPublicEnvConfig from '@/configs/public-env';
-import { GoogleAnalytics } from '@/components/analytics/google-analytics';
+import { OperationalAnalytics } from '@/components/analytics/google-analytics';
 import {
   BRAND_NAME,
   DEFAULT_OG_IMAGE_PATH,
@@ -58,10 +58,7 @@ export default function RootLayout(props: Readonly<IRootLayoutProps>) {
           {props.children}
         </AppProviders>
         {publicEnv.isGoogleAnalyticsEnabled ? (
-          <GoogleAnalytics
-            debugMode={publicEnv.gaDebugMode}
-            measurementId={publicEnv.gaMeasurementId}
-          />
+          <OperationalAnalytics />
         ) : null}
       </body>
     </html>

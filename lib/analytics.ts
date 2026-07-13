@@ -17,6 +17,7 @@ declare global {
   interface Window {
     __popboxGaInitialized?: boolean;
     __popboxGaReady?: boolean;
+    __popboxGaStorefrontActive?: boolean;
     dataLayer?: unknown[];
     gtag?: Gtag;
   }
@@ -148,7 +149,12 @@ function mapCartItems(items: ICartItem[]): IGaItem[] {
 }
 
 function getGtag(): Gtag | null {
-  if (typeof window === 'undefined' || !window.__popboxGaReady || typeof window.gtag !== 'function') {
+  if (
+    typeof window === 'undefined'
+    || !window.__popboxGaReady
+    || !window.__popboxGaStorefrontActive
+    || typeof window.gtag !== 'function'
+  ) {
     return null;
   }
 
@@ -171,7 +177,18 @@ function sendEvent(eventName: string, params: Record<string, unknown>): boolean 
 }
 
 export function initializeGoogleAnalytics(measurementId: string, debugMode: boolean): void {
-  if (typeof window === 'undefined' || window.__popboxGaInitialized) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const wasReady = window.__popboxGaReady === true;
+  window.__popboxGaStorefrontActive = true;
+  window.__popboxGaReady = true;
+
+  if (window.__popboxGaInitialized) {
+    if (!wasReady) {
+      window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
+    }
     return;
   }
 
@@ -192,8 +209,19 @@ export function initializeGoogleAnalytics(measurementId: string, debugMode: bool
   window.dispatchEvent(new Event(ANALYTICS_READY_EVENT));
 }
 
+export function deactivateGoogleAnalytics(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.__popboxGaStorefrontActive = false;
+  window.__popboxGaReady = false;
+}
+
 export function isAnalyticsReady(): boolean {
-  return typeof window !== 'undefined' && window.__popboxGaReady === true;
+  return typeof window !== 'undefined'
+    && window.__popboxGaReady === true
+    && window.__popboxGaStorefrontActive === true;
 }
 
 export function trackPageView(pathname: string): boolean {

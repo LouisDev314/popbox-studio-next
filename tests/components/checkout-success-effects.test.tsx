@@ -152,11 +152,13 @@ describe('CheckoutSuccessEffects', () => {
     resetAnalyticsStateForTests();
     window.localStorage.removeItem('popbox_ga_purchase_ids');
     delete window.__popboxGaReady;
+    delete window.__popboxGaStorefrontActive;
     delete window.gtag;
   });
 
   it('fires one purchase only after a pending order becomes finalized and does not resend after remount', async () => {
     window.__popboxGaReady = true;
+    window.__popboxGaStorefrontActive = true;
     window.gtag = vi.fn();
     act(() => {
       useCartStore.getState().setHasHydrated(true);

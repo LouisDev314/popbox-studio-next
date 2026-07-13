@@ -1,6 +1,17 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { GoogleAnalytics } from '@/components/analytics/google-analytics';
+import {
+  GoogleAnalytics,
+  OperationalAnalytics,
+} from '@/components/analytics/google-analytics';
+
+vi.mock('@vercel/analytics/next', () => ({
+  Analytics: () => <div data-testid="vercel-analytics" />,
+}));
+
+vi.mock('@vercel/speed-insights/next', () => ({
+  SpeedInsights: () => <div data-testid="speed-insights" />,
+}));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/checkout/success',
@@ -16,6 +27,7 @@ describe('GoogleAnalytics', () => {
     window.localStorage.clear();
     delete window.__popboxGaInitialized;
     delete window.__popboxGaReady;
+    delete window.__popboxGaStorefrontActive;
     delete window.gtag;
     window.dataLayer = [];
   });
@@ -46,5 +58,33 @@ describe('GoogleAnalytics', () => {
       page_path: '/checkout/success',
     });
     expect(JSON.stringify(pageView)).not.toContain('private-stripe-session');
+  });
+
+  it('deactivates GA4 when the storefront analytics lifecycle unmounts', () => {
+    window.localStorage.setItem('popbox_analytics_consent', 'accepted');
+    const { unmount } = render(
+      <GoogleAnalytics debugMode={false} measurementId="G-N3TZG44VCT" />,
+    );
+
+    expect(window.__popboxGaStorefrontActive).toBe(true);
+    unmount();
+
+    expect(window.__popboxGaStorefrontActive).toBe(false);
+    expect(window.__popboxGaReady).toBe(false);
+  });
+
+  it('keeps operational monitoring consent-aware without rendering another banner', () => {
+    const { rerender } = render(<OperationalAnalytics />);
+
+    expect(screen.queryByTestId('vercel-analytics')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('speed-insights')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    window.localStorage.setItem('popbox_analytics_consent', 'accepted');
+    fireEvent(window, new Event('popbox:analytics-consent'));
+    rerender(<OperationalAnalytics />);
+
+    expect(screen.getByTestId('vercel-analytics')).toBeInTheDocument();
+    expect(screen.getByTestId('speed-insights')).toBeInTheDocument();
   });
 });

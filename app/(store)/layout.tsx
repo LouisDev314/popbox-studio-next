@@ -5,23 +5,21 @@ import getPublicEnvConfig from '@/configs/public-env';
 import { StorefrontAlertProvider } from '@/components/storefront/storefront-alert-provider';
 import { Toaster } from '@/components/ui/sonner'
 import { ProductPageScrollReset } from '@/components/product/product-page-scroll-reset';
+import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 
 interface IStoreLayoutProps {
   children: ReactNode;
 }
 
 export default function StoreLayout(props: IStoreLayoutProps) {
-  if (!getPublicEnvConfig().isSiteOpen) {
-    return (
-      <main>
-        <div className="flex min-h-screen items-center justify-center text-xl">
-        🚧 Coming Soon
-        </div>
-      </main>
-    );
-  }
-
-  return (
+  const publicEnv = getPublicEnvConfig();
+  const storefront = !publicEnv.isSiteOpen ? (
+    <main>
+      <div className="flex min-h-screen items-center justify-center text-xl">
+      🚧 Coming Soon
+      </div>
+    </main>
+  ) : (
     <StorefrontAlertProvider>
       <ProductPageScrollReset />
       <Suspense fallback={<div aria-hidden="true" className="h-16" />}>
@@ -33,5 +31,17 @@ export default function StoreLayout(props: IStoreLayoutProps) {
       </main>
       <StoreFooter />
     </StorefrontAlertProvider>
+  );
+
+  return (
+    <>
+      {storefront}
+      {publicEnv.isGoogleAnalyticsEnabled ? (
+        <GoogleAnalytics
+          debugMode={publicEnv.gaDebugMode}
+          measurementId={publicEnv.gaMeasurementId}
+        />
+      ) : null}
+    </>
   );
 }

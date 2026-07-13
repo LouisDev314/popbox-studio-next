@@ -2,14 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IOrderDetail } from '@/interfaces/order';
 import {
   centsToCad,
+  deactivateGoogleAnalytics,
   initializeGoogleAnalytics,
   mapProductToGaItem,
   resetAnalyticsStateForTests,
+  trackAddToCart,
+  trackPageView,
   trackPurchaseOnce,
   trackSearch,
   trackViewItemList,
 } from '@/lib/analytics';
-import { createProductCard } from '@/tests/fixtures';
+import { createCartProduct, createProductCard } from '@/tests/fixtures';
 
 function createOrder(overrides: Partial<IOrderDetail> = {}): IOrderDetail {
   return {
@@ -64,6 +67,7 @@ describe('GA4 analytics helpers', () => {
     window.localStorage.clear();
     delete window.__popboxGaInitialized;
     window.__popboxGaReady = true;
+    window.__popboxGaStorefrontActive = true;
     window.dataLayer = [];
     window.gtag = vi.fn();
     resetAnalyticsStateForTests();
@@ -144,6 +148,15 @@ describe('GA4 analytics helpers', () => {
         send_page_view: false,
       }),
     ]);
+  });
+
+  it('blocks admin page views and ecommerce events after the storefront layout deactivates GA4', () => {
+    initializeGoogleAnalytics('G-N3TZG44VCT', false);
+    deactivateGoogleAnalytics();
+
+    expect(trackPageView('/admin')).toBe(false);
+    expect(trackAddToCart(createCartProduct(), 1)).toBe(false);
+    expect(getEventCalls()).toHaveLength(0);
   });
 
   it('does not record pending, incomplete, or paid-needs-attention orders as purchases', () => {

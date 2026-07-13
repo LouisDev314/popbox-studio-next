@@ -21,6 +21,7 @@ async function importFreshCartStore() {
 describe('useCartStore', () => {
   it('fires add_to_cart only after the cart confirms a successful add', async () => {
     window.__popboxGaReady = true;
+    window.__popboxGaStorefrontActive = true;
     window.gtag = vi.fn();
     const useCartStore = await importFreshCartStore();
 
@@ -37,6 +38,7 @@ describe('useCartStore', () => {
     }));
 
     delete window.__popboxGaReady;
+    delete window.__popboxGaStorefrontActive;
     delete window.gtag;
   });
 
