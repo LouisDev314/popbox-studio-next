@@ -43,6 +43,8 @@ interface IProductsPageClientProps {
 
 interface IProductsResultsProps {
   isInitialError: boolean;
+  listId: string;
+  listName: string;
   products: IProductListPage['items'];
 }
 
@@ -81,6 +83,22 @@ function resolveProductsPageTitle(props: Pick<IProductsPageClientProps, 'heading
   }
 }
 
+function resolveProductsListId(props: Pick<IProductsPageClientProps, 'initialCollection' | 'initialType'>) {
+  if (props.initialCollection) {
+    return `collection_${props.initialCollection}`;
+  }
+
+  if (props.initialType === 'kuji') {
+    return 'catalog_kuji';
+  }
+
+  if (props.initialType === 'standard') {
+    return 'catalog_standard';
+  }
+
+  return 'catalog_all_products';
+}
+
 function ProductsResults(props: IProductsResultsProps) {
   if (props.isInitialError) {
     return (
@@ -99,7 +117,11 @@ function ProductsResults(props: IProductsResultsProps) {
   }
 
   return (
-    <ProductGridDense products={props.products} priorityCount={3} />
+    <ProductGridDense
+      products={props.products}
+      priorityCount={3}
+      list={{ id: props.listId, name: props.listName }}
+    />
   );
 }
 
@@ -125,6 +147,8 @@ function ProductsListingSection(props: IProductsListingSectionProps) {
       ) : (
         <ProductsResults
           isInitialError={props.isInitialError}
+          listId={props.listId}
+          listName={props.listName}
           products={props.products}
         />
       )}
@@ -389,6 +413,7 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
   const selectedSortLabel =
     PRODUCT_SORT_ITEMS.find((item) => item.value === props.initialSort)?.label ?? 'Featured';
   const pageTitle = resolveProductsPageTitle(props);
+  const listId = resolveProductsListId(props);
   const toolbarControlClassName =
     'h-11 rounded-full border-border/70 bg-background/95 px-4 text-sm font-medium text-foreground shadow-[0_10px_30px_-20px_rgba(15,23,42,0.35)]';
 
@@ -462,6 +487,8 @@ export default function ProductsPageClient(props: IProductsPageClientProps) {
           hasPreviousPage={hasPreviousPage}
           isInitialError={isInitialError}
           isRoutePending={isRoutePending}
+          listId={listId}
+          listName={pageTitle}
           nextCursor={nextCursor}
           onNextPage={handleNextPage}
           onPreviousPage={handlePreviousPage}

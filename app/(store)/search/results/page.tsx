@@ -73,7 +73,11 @@ export default async function SearchResultsPage(props: SearchResultsPageProps) {
           <p className="text-lg text-muted-foreground">No matching products found.</p>
         </div>
       ) : (
-        <ProductGridDense products={products} priorityCount={6} />
+        <ProductGridDense
+          products={products}
+          priorityCount={6}
+          list={{ id: 'search_results', name: 'Search results' }}
+        />
       )}
     </div>
   );

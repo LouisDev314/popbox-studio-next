@@ -2,6 +2,7 @@ import { ProductCarousel, ProductCarouselSkeleton } from '@/components/product/p
 import { ProductTileDense } from '@/components/product/product-tile-dense';
 import { type IProduct, type IProductCard } from '@/interfaces/product';
 import { getPublicProductRecommendations } from '@/lib/api/public-storefront';
+import { ProductListViewTracker } from '@/components/analytics/ecommerce-trackers';
 
 const RELATED_PRODUCTS_LIMIT = 4;
 
@@ -58,10 +59,16 @@ export async function ProductRecommendations(props: IProductRecommendationsProps
         getItemKey={(product) => product.id}
         renderItem={(product) => (
           <ProductTileDense
+            index={relatedProducts.findIndex((item) => item.id === product.id)}
+            list={{ id: 'product_recommendations', name: 'You might also like' }}
             product={product}
             sizes="(max-width: 640px) 46vw, (max-width: 768px) 31vw, (max-width: 1200px) 23vw, 15vw"
           />
         )}
+      />
+      <ProductListViewTracker
+        list={{ id: 'product_recommendations', name: 'You might also like' }}
+        products={relatedProducts}
       />
     </section>
   );

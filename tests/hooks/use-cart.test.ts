@@ -19,6 +19,27 @@ async function importFreshCartStore() {
 }
 
 describe('useCartStore', () => {
+  it('fires add_to_cart only after the cart confirms a successful add', async () => {
+    window.__popboxGaReady = true;
+    window.gtag = vi.fn();
+    const useCartStore = await importFreshCartStore();
+
+    const failedResult = useCartStore.getState().addItem(createCartProduct({ id: 'legacy-figure' }));
+    const successfulResult = useCartStore.getState().addItem(createCartProduct(), 2);
+
+    expect(failedResult.success).toBe(false);
+    expect(successfulResult.success).toBe(true);
+    expect(window.gtag).toHaveBeenCalledTimes(1);
+    expect(window.gtag).toHaveBeenCalledWith('event', 'add_to_cart', expect.objectContaining({
+      currency: 'CAD',
+      value: 99.98,
+      items: [expect.objectContaining({ quantity: 2 })],
+    }));
+
+    delete window.__popboxGaReady;
+    delete window.gtag;
+  });
+
   it('stores the backend UUID when adding an item', async () => {
     const useCartStore = await importFreshCartStore();
     const result = useCartStore.getState().addItem(createCartProduct(), 2);

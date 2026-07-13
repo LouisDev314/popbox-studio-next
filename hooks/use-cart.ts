@@ -23,6 +23,7 @@ import {
   getRemainingQuantityMessage,
   MAX_IN_CART_MESSAGE,
 } from '@/utils/product-stock';
+import { trackAddToCart, trackRemoveFromCart } from '@/lib/analytics';
 
 export interface ICartActionResult {
   message: string | null;
@@ -167,6 +168,10 @@ export const useCartStore = create<ICartStore>()(
           };
         });
 
+        if (result.success) {
+          trackAddToCart(parsedProduct.data, normalizedQuantity);
+        }
+
         return result;
       },
 
@@ -175,11 +180,17 @@ export const useCartStore = create<ICartStore>()(
           return;
         }
 
+        const removedItem = get().items.find((item) => item.id === cartItemId);
+
         clearCheckoutError();
 
         set((state) => ({
           items: state.items.filter((item) => item.id !== cartItemId),
         }));
+
+        if (removedItem && !get().items.some((item) => item.id === cartItemId)) {
+          trackRemoveFromCart([removedItem]);
+        }
       },
 
       removeInvalidItem: (cartItemId) => {
@@ -213,6 +224,7 @@ export const useCartStore = create<ICartStore>()(
           return CHECKOUT_LOCKED_ACTION_RESULT;
         }
 
+        const previousItem = get().items.find((item) => item.id === cartItemId);
         const normalizedQuantity = normalizeQuantity(quantity);
         let result: ICartActionResult = { message: null, success: true };
 
@@ -238,6 +250,18 @@ export const useCartStore = create<ICartStore>()(
           }),
         }));
 
+        const updatedItem = get().items.find((item) => item.id === cartItemId);
+
+        if (result.success && previousItem && updatedItem) {
+          const quantityDelta = updatedItem.quantity - previousItem.quantity;
+
+          if (quantityDelta > 0) {
+            trackAddToCart(updatedItem.product, quantityDelta);
+          } else if (quantityDelta < 0) {
+            trackRemoveFromCart([{ ...previousItem, quantity: Math.abs(quantityDelta) }]);
+          }
+        }
+
         return result;
       },
 
@@ -246,9 +270,15 @@ export const useCartStore = create<ICartStore>()(
           return;
         }
 
+        const removedItems = get().items;
+
         clearCheckoutError();
 
         set({ items: [], invalidItems: [] });
+
+        if (removedItems.length > 0) {
+          trackRemoveFromCart(removedItems);
+        }
       },
 
       getCartSummary: () => {

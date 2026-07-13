@@ -1,5 +1,5 @@
 import { act, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StoreHeaderClient } from '@/components/layout/store-header-client';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
@@ -11,6 +11,17 @@ const navigationMock = vi.hoisted(() => ({
   push: vi.fn(),
 }));
 
+const analyticsMock = vi.hoisted(() => ({
+  trackSearch: vi.fn(),
+}));
+
+const mobileSearchMock = vi.hoisted(() => ({
+  props: null as null | {
+    onSearchQueryChange: (value: string) => void;
+    onSearchSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  },
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => navigationMock.pathname,
   useRouter: () => ({
@@ -18,6 +29,8 @@ vi.mock('next/navigation', () => ({
   }),
   useSearchParams: () => navigationMock.searchParams,
 }));
+
+vi.mock('@/lib/analytics', () => analyticsMock);
 
 vi.mock('@/components/layout/store-banner', () => ({
   StorefrontBanner: () => null,
@@ -47,7 +60,10 @@ vi.mock('@/components/layout/mobile-menu-panel', () => ({
 }));
 
 vi.mock('@/components/layout/mobile-search-panel', () => ({
-  MobileSearchPanel: () => null,
+  MobileSearchPanel: (props: NonNullable<typeof mobileSearchMock.props>) => {
+    mobileSearchMock.props = props;
+    return null;
+  },
 }));
 
 vi.mock('@/components/cart/cart-drawer', () => ({
@@ -68,6 +84,8 @@ describe('StoreHeaderClient', () => {
     navigationMock.pathname = '/';
     navigationMock.searchParams = new URLSearchParams();
     navigationMock.push.mockClear();
+    analyticsMock.trackSearch.mockClear();
+    mobileSearchMock.props = null;
   });
 
   it('hides the storefront nav on checkout success until local cleanup completes for the session', () => {
@@ -116,5 +134,22 @@ describe('StoreHeaderClient', () => {
       'whitespace-nowrap',
       'sm:inline-block',
     );
+  });
+
+  it('tracks searches submitted through the global search panel', () => {
+    renderWithProviders(<StoreHeaderClient collectionNavItems={[]} />);
+
+    act(() => {
+      mobileSearchMock.props?.onSearchQueryChange(' kuji ');
+    });
+
+    const preventDefault = vi.fn();
+    act(() => {
+      mobileSearchMock.props?.onSearchSubmit({ preventDefault } as FormEvent<HTMLFormElement>);
+    });
+
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(analyticsMock.trackSearch).toHaveBeenCalledWith('kuji');
+    expect(navigationMock.push).toHaveBeenCalledWith('/search/results?q=kuji');
   });
 });

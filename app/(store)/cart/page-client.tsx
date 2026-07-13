@@ -11,6 +11,7 @@ import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { formatPrice } from '@/lib/utils';
 import { getProductCartLimitMessage, getProductSellableQuantity } from '@/utils/product-stock';
+import { CartViewTracker } from '@/components/analytics/ecommerce-trackers';
 
 export default function CartPageClient() {
   const invalidItems = useCartStore((state) => state.invalidItems);
@@ -53,6 +54,7 @@ export default function CartPageClient() {
 
   return (
     <div className="container mx-auto w-full px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+      <CartViewTracker items={items} />
       <div className="relative" aria-busy={isCheckingOut}>
         <div
           data-testid="cart-checkout-shell"

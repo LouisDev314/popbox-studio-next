@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { trackSearch } from '@/lib/analytics';
 
 export default function SearchPageClient() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function SearchPageClient() {
   const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     if (trimmedQuery) {
+      trackSearch(trimmedQuery);
       startTransition(() => {
         router.push(`/search/results?q=${encodeURIComponent(trimmedQuery)}`);
       });

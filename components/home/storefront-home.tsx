@@ -35,6 +35,7 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
 
       <div className="container mx-auto w-full px-4 pt-0 md:px-6 lg:px-8">
         <HomeProductSection
+          listId="home_featured"
           title="Featured"
           products={featured}
           limit={8}
@@ -44,6 +45,7 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
         />
 
         <HomeProductSection
+          listId="home_trending"
           title="Trending Now"
           products={trendingNow}
           limit={8}
@@ -51,6 +53,7 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
         />
 
         <HomeProductSection
+          listId="home_explore_more"
           title="Explore More"
           products={allProductsPreview}
           limit={16}

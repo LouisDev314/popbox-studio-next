@@ -15,6 +15,8 @@ import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import type { IOrderDetail } from '@/interfaces/order';
 import { getPurchasedProductIdsFromOrder, isFinalizedCheckoutOrder } from '@/utils/checkout';
+import { useAnalyticsReady } from '@/components/analytics/ecommerce-trackers';
+import { trackPurchaseOnce } from '@/lib/analytics';
 
 interface ICheckoutSuccessEffectsProps {
   children?: ReactNode;
@@ -106,6 +108,7 @@ export function CheckoutSuccessFinalizing(props: { message: string; sessionId: s
 }
 
 export function CheckoutSuccessEffects(props: ICheckoutSuccessEffectsProps) {
+  const isAnalyticsReady = useAnalyticsReady();
   const purchasedProductIds = useMemo(() => getPurchasedProductIdsFromOrder(props.order), [props.order]);
   const purchasedProductIdSet = useMemo(() => new Set(purchasedProductIds), [purchasedProductIds]);
   const isFinalizedOrder = isFinalizedCheckoutOrder(props.order);
@@ -126,6 +129,17 @@ export function CheckoutSuccessEffects(props: ICheckoutSuccessEffectsProps) {
 
   const hasRequestedAccess = useRef(false);
   const hasCleanedUp = useRef(false);
+  const hasTrackedPurchase = useRef(false);
+
+  useEffect(() => {
+    if (!isAnalyticsReady || hasTrackedPurchase.current) {
+      return;
+    }
+
+    if (trackPurchaseOnce(props.order)) {
+      hasTrackedPurchase.current = true;
+    }
+  }, [isAnalyticsReady, props.order]);
 
   useEffect(() => {
     if (hasRequestedAccess.current) {

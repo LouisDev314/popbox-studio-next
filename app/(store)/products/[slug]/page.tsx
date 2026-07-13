@@ -35,6 +35,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { ProductViewTracker } from '@/components/analytics/ecommerce-trackers';
 
 type ProductDetailPageProps = {
   params: Promise<{ slug: string }>;
@@ -180,6 +181,7 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
 
   return (
     <div className="container mx-auto px-4 pt-8 pb-12 sm:px-6 md:pb-16 md:pt-12 lg:px-8">
+      <ProductViewTracker product={product} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}

@@ -9,6 +9,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const publicEnvMock = vi.hoisted(() => ({
   googleMapsApiKey: '',
 }));
+const analyticsMocks = vi.hoisted(() => ({
+  trackAddToCart: vi.fn(),
+  trackBeginCheckout: vi.fn(),
+  trackRemoveFromCart: vi.fn(),
+}));
+
+vi.mock('@/lib/analytics', () => analyticsMocks);
 
 vi.mock('@/configs/public-env', () => ({
   default: () => ({
@@ -181,6 +188,9 @@ function installMockGooglePlaces(): MockGooglePlaces {
 }
 
 afterEach(() => {
+  analyticsMocks.trackAddToCart.mockClear();
+  analyticsMocks.trackBeginCheckout.mockClear();
+  analyticsMocks.trackRemoveFromCart.mockClear();
   publicEnvMock.googleMapsApiKey = '';
   delete (window as Window & { google?: unknown }).google;
   document
@@ -316,6 +326,8 @@ describe('CartCheckoutPanel', () => {
     await waitFor(() => {
       expect(redirectToCheckout).toHaveBeenCalledWith('https://checkout.stripe.com/pay/cs_test_123');
     });
+    expect(analyticsMocks.trackBeginCheckout).toHaveBeenCalledOnce();
+    expect(analyticsMocks.trackBeginCheckout).toHaveBeenCalledWith(useCartStore.getState().items);
   });
 
   it('keeps manual address entry usable when the Google Maps script fails', async () => {
@@ -867,6 +879,7 @@ describe('CartCheckoutPanel', () => {
       );
     });
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeDisabled();
+    expect(analyticsMocks.trackBeginCheckout).not.toHaveBeenCalled();
   });
 
   it('shows address and tax copy for an ADDRESS_INVALID quote 400, never payment-link copy', async () => {

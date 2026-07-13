@@ -14,10 +14,13 @@ import {
 } from '@/utils/product-images';
 import { getProductInventoryState } from '@/utils/product-stock';
 import { mapProductToWishlistItem } from '@/utils/wishlist';
+import { type IAnalyticsListContext, trackSelectItem } from '@/lib/analytics';
 
 const DENSE_PRODUCT_IMAGE_SIZES = '(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw';
 
 interface IProductTileDenseProps {
+  index?: number;
+  list?: IAnalyticsListContext;
   product: IProductCard;
   priority?: boolean;
   sizes?: string;
@@ -51,6 +54,11 @@ export function ProductTileDense(props: IProductTileDenseProps) {
         data-testid="product-card"
         data-product-slug={product.slug}
         data-product-type={product.productType}
+        onClick={() => {
+          if (props.list && props.index !== undefined) {
+            trackSelectItem(product, props.list, props.index);
+          }
+        }}
       >
         <div className="relative aspect-square overflow-hidden rounded-xl">
           <StorefrontImage

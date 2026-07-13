@@ -2,9 +2,8 @@ import type { Metadata } from 'next';
 import { type ReactNode } from 'react';
 import './globals.css';
 import { AppProviders } from '@/components/app-providers';
-import { Analytics } from '@vercel/analytics/next';
 import getPublicEnvConfig from '@/configs/public-env';
-import { SpeedInsights } from '@vercel/speed-insights/next';
+import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 import {
   BRAND_NAME,
   DEFAULT_OG_IMAGE_PATH,
@@ -50,14 +49,20 @@ interface IRootLayoutProps {
 }
 
 export default function RootLayout(props: Readonly<IRootLayoutProps>) {
+  const publicEnv = getPublicEnvConfig();
+
   return (
     <html lang="en-CA" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col antialiased">
         <AppProviders>
           {props.children}
         </AppProviders>
-        <Analytics />
-        <SpeedInsights />
+        {publicEnv.isGoogleAnalyticsEnabled ? (
+          <GoogleAnalytics
+            debugMode={publicEnv.gaDebugMode}
+            measurementId={publicEnv.gaMeasurementId}
+          />
+        ) : null}
       </body>
     </html>
   );

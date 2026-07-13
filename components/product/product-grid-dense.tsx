@@ -2,6 +2,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { IProductCard } from '@/interfaces/product';
 import { cn } from '@/lib/utils';
 import { DENSE_PRODUCT_IMAGE_SIZES, ProductTileDense } from './product-tile-dense';
+import { ProductListViewTracker } from '@/components/analytics/ecommerce-trackers';
+import type { IAnalyticsListContext } from '@/lib/analytics';
 
 const DEFAULT_PRIORITY_COUNT = 6;
 
@@ -10,6 +12,7 @@ interface IProductGridDenseProps {
   className?: string;
   priorityCount?: number;
   emptyMessage?: string;
+  list?: IAnalyticsListContext;
   sizes?: string;
 }
 
@@ -36,19 +39,24 @@ export function ProductGridDense(props: IProductGridDenseProps) {
   }
 
   return (
-    <div
-      data-slot="product-grid-dense"
-      className={cn('grid grid-cols-2 gap-2 px-0.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4', className)}
-    >
-      {products.map((product, index) => (
-        <ProductTileDense
-          key={product.id}
-          product={product}
-          priority={index < priorityCount}
-          sizes={sizes}
-        />
-      ))}
-    </div>
+    <>
+      {props.list ? <ProductListViewTracker list={props.list} products={products} /> : null}
+      <div
+        data-slot="product-grid-dense"
+        className={cn('grid grid-cols-2 gap-2 px-0.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4', className)}
+      >
+        {products.map((product, index) => (
+          <ProductTileDense
+            key={product.id}
+            index={index}
+            list={props.list}
+            product={product}
+            priority={index < priorityCount}
+            sizes={sizes}
+          />
+        ))}
+      </div>
+    </>
   );
 }
 

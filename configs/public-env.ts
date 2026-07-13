@@ -50,6 +50,23 @@ export function resolveSiteUrl(env: NodeJS.ProcessEnv = process.env): string {
   return 'http://localhost:3001';
 }
 
+export function resolveGaMeasurementId(env: NodeJS.ProcessEnv = process.env): string {
+  const measurementId = env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() ?? '';
+
+  return /^G-[A-Z0-9]+$/.test(measurementId) ? measurementId : '';
+}
+
+export function resolveGaDebugMode(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.NEXT_PUBLIC_GA_DEBUG === 'true';
+}
+
+export function shouldEnableGoogleAnalytics(env: NodeJS.ProcessEnv = process.env): boolean {
+  return Boolean(
+    resolveGaMeasurementId(env)
+    && (env.NODE_ENV === 'production' || resolveGaDebugMode(env)),
+  );
+}
+
 const publicEnvConfig = {
   apiBaseUrl: resolveApiBaseUrl(),
   siteUrl: resolveSiteUrl(),
@@ -58,6 +75,9 @@ const publicEnvConfig = {
   supabasePublicKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLIC_KEY || '',
   supabaseStorageBucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET?.trim() || 'product-images',
   googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+  gaMeasurementId: resolveGaMeasurementId(),
+  gaDebugMode: resolveGaDebugMode(),
+  isGoogleAnalyticsEnabled: shouldEnableGoogleAnalytics(),
   isSiteOpen: process.env.NEXT_PUBLIC_IS_SITE_OPEN !== 'false',
 };
 

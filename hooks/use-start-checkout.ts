@@ -20,8 +20,10 @@ import {
 } from '@/utils/api-errors';
 import {
   getInvalidCartItemsCheckoutMessage,
+  getValidatedCheckoutUrl,
   redirectToCheckout,
 } from '@/utils/checkout';
+import { trackBeginCheckout } from '@/lib/analytics';
 
 function getCheckoutRequestErrorMessage(
   error: AxiosError,
@@ -123,6 +125,8 @@ export function useStartCheckout() {
           options.onSessionSuccess?.();
 
           try {
+            getValidatedCheckoutUrl(checkoutUrl);
+            trackBeginCheckout(useCartStore.getState().items);
             redirectToCheckout(checkoutUrl);
           } catch (error) {
             useCheckoutUiStore.getState().setCheckoutError(

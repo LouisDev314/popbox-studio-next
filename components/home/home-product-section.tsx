@@ -4,6 +4,7 @@ import { IProductCard } from '@/interfaces/product';
 import { cn } from '@/lib/utils';
 
 interface IHomeProductSectionProps {
+  listId?: string;
   title: string;
   products: IProductCard[];
   viewAllHref: string;
@@ -31,7 +32,11 @@ export function HomeProductSection(props: IHomeProductSectionProps) {
         </Link>
       </div>
 
-      <ProductGridDense products={previewProducts} priorityCount={0} />
+      <ProductGridDense
+        products={previewProducts}
+        priorityCount={0}
+        list={{ id: props.listId ?? 'home_products', name: props.title }}
+      />
     </section>
   );
 }

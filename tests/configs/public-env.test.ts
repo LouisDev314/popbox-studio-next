@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { resolveSiteUrl } from '@/configs/public-env';
+import {
+  resolveGaMeasurementId,
+  resolveSiteUrl,
+  shouldEnableGoogleAnalytics,
+} from '@/configs/public-env';
 
 function createEnv(overrides: Partial<NodeJS.ProcessEnv>): NodeJS.ProcessEnv {
   return {
@@ -32,5 +36,28 @@ describe('resolveSiteUrl', () => {
 
   it('falls back to localhost for local development and local builds', () => {
     expect(resolveSiteUrl(createEnv({}))).toBe('http://localhost:3001');
+  });
+});
+
+describe('Google Analytics public environment', () => {
+  it('accepts valid GA4 measurement ids and disables malformed ids', () => {
+    expect(resolveGaMeasurementId(createEnv({ NEXT_PUBLIC_GA_MEASUREMENT_ID: 'G-N3TZG44VCT' })))
+      .toBe('G-N3TZG44VCT');
+    expect(resolveGaMeasurementId(createEnv({ NEXT_PUBLIC_GA_MEASUREMENT_ID: 'UA-private' })))
+      .toBe('');
+  });
+
+  it('does not load GA in local or test environments unless deliberate debug mode is enabled', () => {
+    expect(shouldEnableGoogleAnalytics(createEnv({
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: 'G-N3TZG44VCT',
+    }))).toBe(false);
+    expect(shouldEnableGoogleAnalytics(createEnv({
+      NEXT_PUBLIC_GA_DEBUG: 'true',
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: 'G-N3TZG44VCT',
+    }))).toBe(true);
+    expect(shouldEnableGoogleAnalytics({
+      NODE_ENV: 'production',
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: 'G-N3TZG44VCT',
+    })).toBe(true);
   });
 });

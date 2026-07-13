@@ -13,6 +13,7 @@ import { useWishlistStore } from '@/hooks/use-wishlist';
 import type { IOrderDetail, IOrderStatus } from '@/interfaces/order';
 import { CART_STORAGE_KEY } from '@/utils/cart-storage';
 import { WISHLIST_STORAGE_KEY } from '@/utils/wishlist';
+import { resetAnalyticsStateForTests } from '@/lib/analytics';
 import {
   createCartItem,
   createWishlistItem,
@@ -148,6 +149,39 @@ describe('CheckoutSuccessEffects', () => {
   beforeEach(() => {
     navigationMocks.refresh.mockReset();
     mockCheckoutSuccessAccess();
+    resetAnalyticsStateForTests();
+    window.localStorage.removeItem('popbox_ga_purchase_ids');
+    delete window.__popboxGaReady;
+    delete window.gtag;
+  });
+
+  it('fires one purchase only after a pending order becomes finalized and does not resend after remount', async () => {
+    window.__popboxGaReady = true;
+    window.gtag = vi.fn();
+    act(() => {
+      useCartStore.getState().setHasHydrated(true);
+      useWishlistStore.getState().setHasHydrated(true);
+    });
+
+    const { rerender, unmount } = renderWithProviders(
+      <CheckoutSuccessEffects sessionId="cs_test_123" order={createOrder('pending_payment')} />,
+    );
+
+    expect(window.gtag).not.toHaveBeenCalledWith('event', 'purchase', expect.anything());
+
+    rerender(<CheckoutSuccessEffects sessionId="cs_test_123" order={createOrder('paid')} />);
+
+    await waitFor(() => {
+      expect(window.gtag).toHaveBeenCalledWith('event', 'purchase', expect.anything());
+    });
+    expect(vi.mocked(window.gtag).mock.calls.filter((call) => call[1] === 'purchase')).toHaveLength(1);
+
+    rerender(<CheckoutSuccessEffects sessionId="cs_test_123" order={createOrder('paid')} />);
+    unmount();
+    resetAnalyticsStateForTests();
+    renderWithProviders(<CheckoutSuccessEffects sessionId="cs_test_123" order={createOrder('paid')} />);
+
+    expect(vi.mocked(window.gtag).mock.calls.filter((call) => call[1] === 'purchase')).toHaveLength(1);
   });
 
   it('refreshes the server success page after a pending checkout finalizes', async () => {

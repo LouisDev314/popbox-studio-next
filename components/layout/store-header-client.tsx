@@ -33,6 +33,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useMobileNavbarVisibility } from '@/hooks/use-mobile-navbar-visibility';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import { type IProductSuggestion, IProductSuggestionResponse } from '@/interfaces/product';
+import { trackSearch } from '@/lib/analytics';
 import { formatQuantity } from '@/lib/format-quantity';
 import { FLY_TARGET_REQUEST_EVENT } from '@/lib/ui/fly-to-target';
 import { cn } from '@/lib/utils';
@@ -298,6 +299,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
       return;
     }
 
+    trackSearch(trimmedQuery);
     navigateWithMobileClose(`/search/results?q=${encodeURIComponent(trimmedQuery)}`);
   };
 
