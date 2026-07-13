@@ -65,7 +65,7 @@ function AnalyticsConsentBanner(props: { onConsent: (consent: Exclude<TAnalytics
       aria-label="Analytics cookie preferences"
     >
       <p className="text-sm leading-6 text-foreground">
-        We use optional analytics to understand how our website is used and to improve its performance and user experience. Analytics data is limited to non-sensitive usage information and does not include your checkout contact information, shipping address, payment details, or other personally identifiable information.
+        We use optional analytics to improve our website and shopping experience. No personal information will be collected.
         {' '}
         <Link href="/legal/privacy" className="underline underline-offset-4">
           Privacy policy
@@ -85,7 +85,7 @@ function AnalyticsConsentBanner(props: { onConsent: (consent: Exclude<TAnalytics
           className="h-10 rounded-full px-5"
           onClick={() => props.onConsent('accepted')}
         >
-          Accept analytics
+          Accept
         </Button>
       </div>
     </div>

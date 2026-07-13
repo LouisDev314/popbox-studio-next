@@ -28,7 +28,7 @@ describe('GoogleAnalytics', () => {
     expect(screen.getByRole('dialog', { name: 'Analytics cookie preferences' })).toBeInTheDocument();
     expect(container.querySelectorAll('[data-script-id="popbox-google-analytics"]')).toHaveLength(0);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Accept analytics' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
     rerender(<GoogleAnalytics debugMode={false} measurementId="G-N3TZG44VCT" />);
 
     expect(container.querySelectorAll('[data-script-id="popbox-google-analytics"]')).toHaveLength(1);
