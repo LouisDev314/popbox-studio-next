@@ -4,7 +4,6 @@ import { Suspense, type ReactNode } from 'react';
 import getPublicEnvConfig from '@/configs/public-env';
 import { StorefrontAlertProvider } from '@/components/storefront/storefront-alert-provider';
 import { Toaster } from '@/components/ui/sonner'
-import { ProductPageScrollReset } from '@/components/product/product-page-scroll-reset';
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 
 interface IStoreLayoutProps {
@@ -21,7 +20,6 @@ export default function StoreLayout(props: IStoreLayoutProps) {
     </main>
   ) : (
     <StorefrontAlertProvider>
-      <ProductPageScrollReset />
       <Suspense fallback={<div aria-hidden="true" className="h-16" />}>
         <StoreHeader />
       </Suspense>
