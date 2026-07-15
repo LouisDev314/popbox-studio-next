@@ -24,8 +24,8 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
         </>
       ) : (
         <StorefrontHero
-          title="Discover Premium Collectibles"
-          subtitle="Your exclusive source for Ichiban Kuji and authentic anime figures."
+          title="Discover Anime Merchandise"
+          subtitle="Your exclusive source for Ichiban Kuji and authentic anime merchandise."
           ctaText="Shop Now"
           ctaLink="/products"
         />

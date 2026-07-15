@@ -13,7 +13,7 @@ import { getProductInventoryState } from '@/utils/product-stock';
 export const BRAND_NAME = 'PopBox Studio';
 export const DEFAULT_OG_IMAGE_PATH = '/opengraph-image';
 export const DEFAULT_SITE_DESCRIPTION =
-  'PopBox Studio is a premium anime store in Canada for collectors shopping anime figures, collectibles, plushies, cards, gifts, and Ichiban Kuji online.';
+  'PopBox Studio is a Canadian anime shop specializing in Ichiban Kuji, anime merchandise, and anime collectibles. We ship authentic anime products to customers across all provinces and territories in Canada.';
 export const SITE_LOCALE = 'en_CA';
 export const SITE_LANGUAGE = 'en-CA';
 

@@ -40,13 +40,13 @@ export const MOBILE_PRIMARY_NAV_ITEMS = [
     key: 'trending',
     label: 'Trending',
     href: TRENDING_NAV_HREF,
-    description: 'Browse the backend-ranked products trending across the storefront right now.',
+    description: 'Browse the products trending across the storefront right now.',
   },
   {
     key: 'kuji',
     label: 'Ichiban Kuji',
     href: '/products?type=kuji',
-    description: 'Premium lottery-style prizes and ticket-based launches.',
+    description: 'Authentic Ichiban Kuji sets with guaranteed exclusive prizes.',
   },
   {
     key: 'standard',

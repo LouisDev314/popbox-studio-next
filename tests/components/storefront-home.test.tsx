@@ -51,7 +51,7 @@ describe('StorefrontHome', () => {
 
     expect(screen.getByRole('heading', {
       level: 1,
-      name: 'Discover Premium Collectibles',
+      name: 'Discover Anime Merchandise',
     })).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });

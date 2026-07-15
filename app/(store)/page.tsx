@@ -14,7 +14,7 @@ import {
 export const revalidate = 300;
 
 const HOME_PAGE_DESCRIPTION = truncateMetaDescription(
-  'Shop PopBox Studio for anime merchandise, anime collectibles, figures, plushies, cards, gifts, and Ichiban Kuji online from a premium collector-focused anime store in Canada.',
+  'Shop PopBox Studio for anime merchandise, collectibles, figures, plushies, cards, gifts, and Ichiban Kuji online from an anime store in Canada.',
   165,
 );
 
