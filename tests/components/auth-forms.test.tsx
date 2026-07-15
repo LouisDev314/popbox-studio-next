@@ -117,7 +117,7 @@ describe('customer auth forms', () => {
     render(<SignInForm next="/account" />);
     const email = screen.getByLabelText('Email');
     const password = screen.getByLabelText('Password');
-    const submit = screen.getByRole('button', { name: 'Sign In' });
+    const submit = screen.getByRole('button', { name: 'Login' });
 
     await user.type(password, 'abc1');
     fireEvent.blur(password);
@@ -143,7 +143,7 @@ describe('customer auth forms', () => {
     await user.clear(password);
     await user.type(password, 'valid123');
     await waitFor(() => expect(screen.queryByText('Password must be at least 8 characters.')).not.toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Sign In' }));
+    await user.click(screen.getByRole('button', { name: 'Login' }));
 
     await waitFor(() => expect(authMocks.signInWithPassword).toHaveBeenCalledWith({
       email: 'customer@example.com',
@@ -163,7 +163,7 @@ describe('customer auth forms', () => {
     fireEvent.blur(screen.getByLabelText('Email'));
     await user.type(screen.getByLabelText('Password'), 'valid123');
     fireEvent.blur(screen.getByLabelText('Password'));
-    await user.click(screen.getByRole('button', { name: 'Sign In' }));
+    await user.click(screen.getByRole('button', { name: 'Login' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('We could not sign you in right now. Please try again.');
     expect(screen.queryByText('sensitive raw Supabase detail')).not.toBeInTheDocument();
@@ -180,7 +180,7 @@ describe('customer auth forms', () => {
     const minimum = within(checklist).getByText('At least 8 characters').closest('li');
     const letter = within(checklist).getByText('Contains a letter').closest('li');
     const number = within(checklist).getByText('Contains a number').closest('li');
-    expect(minimum).toHaveAttribute('data-state', 'neutral');
+    expect(minimum).toHaveAttribute('data-state', 'unmet');
 
     await user.type(passwordInputs[0], 'abcdefgh');
     expect(minimum).toHaveAttribute('data-state', 'met');

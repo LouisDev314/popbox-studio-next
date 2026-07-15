@@ -7,5 +7,5 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
   const { next: requestedNext, reset } = await searchParams;
   const next = validateInternalNext(requestedNext);
   await redirectAuthenticatedAccountUser(next);
-  return <AuthSplitLayout title="Sign In"><SignInForm next={next} showResetSuccess={reset === 'success'} /></AuthSplitLayout>;
+  return <AuthSplitLayout title="Login to your account"><SignInForm next={next} showResetSuccess={reset === 'success'} /></AuthSplitLayout>;
 }

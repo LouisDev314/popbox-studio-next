@@ -165,7 +165,7 @@ export function SignInForm({ next, showResetSuccess = false }: { next: string; s
           />
         </FieldGroup>
         <FieldError id="sign-in-form-error" errors={[form.formState.errors.root]} />
-        <AuthSubmitButton isPending={form.formState.isSubmitting}>Sign In</AuthSubmitButton>
+        <AuthSubmitButton isPending={form.formState.isSubmitting}>Login</AuthSubmitButton>
       </form>
       <p className="text-center text-sm text-muted-foreground">
         New to PopBox Studio?{' '}
@@ -185,9 +185,6 @@ export function SignUpForm({ next }: { next: string }) {
     shouldFocusError: true,
   });
   const password = useWatch({ control: form.control, name: 'password' }) ?? '';
-  const hasPasswordInteraction = Boolean(
-    form.formState.dirtyFields.password || form.formState.touchedFields.password,
-  );
 
   const handleSubmit = async (values: CredentialsAuthFormValues) => {
     form.clearErrors('root');
@@ -274,7 +271,6 @@ export function SignUpForm({ next }: { next: string }) {
                   {fieldState.invalid ? <FieldError id="sign-up-password-error" errors={[fieldState.error]} /> : null}
                   <PasswordRequirements
                     id="sign-up-password-requirements"
-                    hasInteracted={hasPasswordInteraction}
                     password={password}
                   />
                 </Field>
@@ -390,7 +386,12 @@ export function ForgotPasswordForm() {
       <div className="space-y-6 text-center">
         <CheckCircle2 className="mx-auto h-12 w-12 text-primary" />
         <p className="text-sm leading-6 text-muted-foreground">If an account is eligible, a password reset link will arrive shortly.</p>
-        <Button asChild size="lg" className="w-full rounded-full"><Link href="/account/sign-in">Back to Sign In</Link></Button>
+        <Link
+          href="/account/sign-in"
+          className="block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Back to Sign In
+        </Link>
       </div>
     );
   }
@@ -421,7 +422,12 @@ export function ForgotPasswordForm() {
         )}
       />
       <AuthSubmitButton isPending={form.formState.isSubmitting}>Send Reset Link</AuthSubmitButton>
-      <Button asChild variant="ghost" className="w-full rounded-full"><Link href="/account/sign-in">Back to Sign In</Link></Button>
+      <Link
+        href="/account/sign-in"
+        className="block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        Back to Sign In
+      </Link>
     </form>
   );
 }
@@ -438,9 +444,6 @@ export function ResetPasswordForm() {
     shouldFocusError: true,
   });
   const password = useWatch({ control: form.control, name: 'password' }) ?? '';
-  const hasPasswordInteraction = Boolean(
-    form.formState.dirtyFields.password || form.formState.touchedFields.password,
-  );
 
   useEffect(() => {
     void createClient().auth.getSession().then(({ data, error: sessionError }) => {
@@ -465,7 +468,15 @@ export function ResetPasswordForm() {
   };
 
   if (isChecking) {
-    return <div className="flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite"><Spinner />Checking reset link…</div>;
+    return (
+      <div
+        className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
+        aria-live="polite"
+      >
+        <Spinner />
+        Checking reset link…
+      </div>
+    );
   }
 
   if (!hasRecoverySession) {
@@ -506,7 +517,6 @@ export function ResetPasswordForm() {
               {fieldState.invalid ? <FieldError id="reset-password-error" errors={[fieldState.error]} /> : null}
               <PasswordRequirements
                 id="reset-password-requirements"
-                hasInteracted={hasPasswordInteraction}
                 password={password}
               />
             </Field>
@@ -576,7 +586,12 @@ export function AuthCallbackClient() {
       <div className="space-y-6 text-center">
         <FieldError>{error}</FieldError>
         <Button asChild size="lg" className="w-full"><Link href="/account/sign-in">Try Again</Link></Button>
-        <Button asChild variant="ghost" className="w-full rounded-full"><Link href="/account/sign-in">Back to Sign In</Link></Button>
+        <Link
+          href="/account/sign-in"
+          className="block w-full text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Back to Sign In
+        </Link>
       </div>
     );
   }
