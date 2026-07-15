@@ -1,4 +1,5 @@
 import { screen, waitFor } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AccountHeaderAction } from '@/components/layout/account-header-action';
 import { CustomerAuthProvider } from '@/components/auth/customer-auth-provider';
@@ -6,6 +7,7 @@ import { MobileMenuPanel } from '@/components/layout/mobile-menu-panel';
 import { renderWithProviders } from '../test-utils';
 
 const authMocks = vi.hoisted(() => ({
+  getUser: vi.fn(),
   getSession: vi.fn(),
   onAuthStateChange: vi.fn(),
   signOut: vi.fn(),
@@ -36,6 +38,7 @@ vi.mock('@/utils/api-errors', () => ({
 describe('storefront and admin identity separation', () => {
   beforeEach(() => {
     authMocks.getSession.mockReset();
+    authMocks.getUser.mockReset();
     authMocks.onAuthStateChange.mockReset();
     authMocks.signOut.mockReset();
     accountMocks.fetchAccountProfile.mockReset();
@@ -48,10 +51,28 @@ describe('storefront and admin identity separation', () => {
       },
       error: null,
     });
+    authMocks.getUser.mockResolvedValue({
+      data: {
+        user: {
+          email_confirmed_at: '2026-07-15T00:00:00Z',
+          identities: [{ provider: 'email' }],
+        },
+      },
+      error: null,
+    });
     authMocks.onAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe: vi.fn() } },
     });
     accountMocks.fetchAccountProfile.mockRejectedValue(new Error('CUSTOMER_ACCOUNT_REQUIRED'));
+  });
+
+  it('keeps the account trigger in its loading shape during server rendering', () => {
+    const html = renderToString(
+      <AccountHeaderAction isMenuOpen={false} onMenuOpenChange={vi.fn()} />,
+    );
+
+    expect(html).toContain('aria-label="Checking account status"');
+    expect(html).not.toContain('aria-label="Sign in or create an account"');
   });
 
   it('treats an admin Supabase session as signed out in desktop and mobile storefront UI', async () => {

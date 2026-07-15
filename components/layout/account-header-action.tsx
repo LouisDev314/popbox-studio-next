@@ -1,5 +1,6 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { CircleUserRound } from 'lucide-react';
@@ -22,11 +23,24 @@ interface IAccountHeaderActionProps {
   onMenuOpenChange: (isOpen: boolean) => void;
 }
 
+function subscribeToHydration() {
+  return () => undefined;
+}
+
+function useHasHydrated() {
+  return useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
+}
+
 export function AccountHeaderAction(props: IAccountHeaderActionProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
   const auth = useCustomerAuth();
+  const hasHydrated = useHasHydrated();
   const query = searchParams.toString();
   const currentPath = validateInternalNext(`${pathname}${query ? `?${query}` : ''}`, '/');
   const requestedNext = searchParams.get('next');
@@ -34,7 +48,7 @@ export function AccountHeaderAction(props: IAccountHeaderActionProps) {
     ? validateInternalNext(requestedNext, '/')
     : currentPath;
 
-  if (auth.status === 'resolving') {
+  if (!hasHydrated || auth.status === 'resolving') {
     return (
       <button
         id={ACCOUNT_HEADER_ACTION_ID}

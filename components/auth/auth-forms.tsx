@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, Mail } from 'lucide-react';
@@ -22,9 +23,13 @@ import {
   emailAuthFormSchema,
   getCustomerAuthErrorMessage,
   passwordAuthFormSchema,
+  SIGN_IN_AVAILABILITY_ERROR_MESSAGE,
+  SIGN_IN_CREDENTIAL_ERROR_MESSAGE,
+  signInCredentialsAuthFormSchema,
   type CredentialsAuthFormValues,
   type EmailAuthFormValues,
   type PasswordAuthFormValues,
+  type SignInCredentialsAuthFormValues,
 } from '@/lib/auth/form-validation';
 import { validateInternalNext } from '@/lib/auth/redirects';
 import { createClient } from '@/lib/supabase/client';
@@ -33,6 +38,11 @@ import { getAccountApiErrorCode } from '@/utils/api-errors';
 const PENDING_SIGNUP_KEY = 'popbox:pending-signup';
 const RESEND_COOLDOWN_KEY = 'popbox:signup-resend-at';
 const PASSWORD_RECOVERY_KEY = 'popbox:password-recovery';
+
+function clearPendingConfirmationState() {
+  window.sessionStorage.removeItem(PENDING_SIGNUP_KEY);
+  window.localStorage.removeItem(RESEND_COOLDOWN_KEY);
+}
 
 interface IPendingSignup {
   email: string;
@@ -58,15 +68,13 @@ function AuthSubmitButton({ children, isPending }: { children: string; isPending
 
 export function SignInForm({ next, showResetSuccess = false }: { next: string; showResetSuccess?: boolean }) {
   const router = useRouter();
-  const form = useForm<CredentialsAuthFormValues>({
+  const form = useForm<SignInCredentialsAuthFormValues>({
     defaultValues: { email: '', password: '' },
-    mode: 'onBlur',
-    reValidateMode: 'onChange',
-    resolver: zodResolver(credentialsAuthFormSchema),
+    resolver: zodResolver(signInCredentialsAuthFormSchema),
     shouldFocusError: true,
   });
 
-  const handleSubmit = async (values: CredentialsAuthFormValues) => {
+  const handleSubmit = async (values: SignInCredentialsAuthFormValues) => {
     form.clearErrors('root');
     const supabase = createClient();
     const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -84,14 +92,23 @@ export function SignInForm({ next, showResetSuccess = false }: { next: string; s
       router.replace(validateInternalNext(next));
       router.refresh();
     } catch (accountError) {
-      if (getAccountApiErrorCode(accountError) === 'CUSTOMER_ACCOUNT_REQUIRED') {
+      const accountErrorCode = getAccountApiErrorCode(accountError);
+      if (
+        accountErrorCode === 'CUSTOMER_ACCOUNT_REQUIRED'
+        || accountErrorCode === 'EMAIL_NOT_VERIFIED'
+        || accountErrorCode === 'ACCOUNT_OWNERSHIP_CONFLICT'
+      ) {
         await supabase.auth.signOut({ scope: 'local' });
-        form.setError('root', { message: 'This sign-in is not available for customer accounts.' });
+        form.setError('root', { message: SIGN_IN_CREDENTIAL_ERROR_MESSAGE });
         return;
       }
 
-      form.setError('root', { message: 'We could not open your account right now. Please try again.' });
+      form.setError('root', { message: SIGN_IN_AVAILABILITY_ERROR_MESSAGE });
     }
+  };
+
+  const handleInvalidSubmit = () => {
+    form.setError('root', { message: SIGN_IN_CREDENTIAL_ERROR_MESSAGE });
   };
 
   const handleGoogleError = (message: string) => {
@@ -111,36 +128,29 @@ export function SignInForm({ next, showResetSuccess = false }: { next: string; s
       ) : null}
       <GoogleAuthButton next={next} onError={handleGoogleError} />
       <AuthFormDivider />
-      <form className="space-y-5" noValidate onSubmit={form.handleSubmit(handleSubmit)}>
+      <form className="space-y-5" noValidate onSubmit={form.handleSubmit(handleSubmit, handleInvalidSubmit)}>
         <FieldGroup>
           <Controller
             name="email"
             control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
+            render={({ field }) => (
+              <Field>
                 <FieldLabel htmlFor="sign-in-email">Email</FieldLabel>
                 <Input
                   {...field}
                   id="sign-in-email"
                   type="email"
                   autoComplete="email"
-                  aria-invalid={fieldState.invalid}
-                  aria-describedby={fieldState.invalid ? 'sign-in-email-error' : undefined}
-                  className={fieldState.invalid ? invalidControlClassName : undefined}
-                  onChange={(event) => {
-                    field.onChange(event);
-                    if (fieldState.invalid) queueMicrotask(() => void form.trigger('email'));
-                  }}
+                  aria-invalid={undefined}
                 />
-                {fieldState.invalid ? <FieldError id="sign-in-email-error" errors={[fieldState.error]} /> : null}
               </Field>
             )}
           />
           <Controller
             name="password"
             control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
+            render={({ field }) => (
+              <Field>
                 <div className="flex items-center justify-between gap-3">
                   <FieldLabel htmlFor="sign-in-password">Password</FieldLabel>
                   <Link href={`/account/forgot-password?next=${encodeURIComponent(next)}`} className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
@@ -151,15 +161,8 @@ export function SignInForm({ next, showResetSuccess = false }: { next: string; s
                   {...field}
                   id="sign-in-password"
                   autoComplete="current-password"
-                  aria-invalid={fieldState.invalid}
-                  aria-describedby={fieldState.invalid ? 'sign-in-password-error' : undefined}
-                  className={fieldState.invalid ? invalidControlClassName : undefined}
-                  onChange={(event) => {
-                    field.onChange(event);
-                    if (fieldState.invalid) queueMicrotask(() => void form.trigger('password'));
-                  }}
+                  aria-invalid={undefined}
                 />
-                {fieldState.invalid ? <FieldError id="sign-in-password-error" errors={[fieldState.error]} /> : null}
               </Field>
             )}
           />
@@ -290,6 +293,9 @@ export function SignUpForm({ next }: { next: string }) {
 }
 
 export function CheckEmailState({ next }: { next: string }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const reconciliationRef = useRef<Promise<void> | null>(null);
   const [pending, setPending] = useState<IPendingSignup | null>(null);
   const [message, setMessage] = useState('');
   const [isPending, setIsPending] = useState(false);
@@ -312,6 +318,59 @@ export function CheckEmailState({ next }: { next: string }) {
 
     return () => window.clearTimeout(timeoutId);
   }, []);
+
+  useEffect(() => {
+    const reconcileVerifiedCustomer = () => {
+      if (reconciliationRef.current) {
+        return reconciliationRef.current;
+      }
+
+      reconciliationRef.current = (async () => {
+        const supabase = createClient();
+        const userResult = await supabase.auth.getUser();
+        const user = userResult.data.user;
+
+        if (userResult.error || !user?.email_confirmed_at) {
+          return;
+        }
+
+        const refreshed = await supabase.auth.refreshSession();
+        if (refreshed.error || !refreshed.data.session?.user.email_confirmed_at) {
+          return;
+        }
+
+        try {
+          await queryClient.invalidateQueries({ queryKey: ['account'] });
+          await QueryConfigs.fetchAccountProfile();
+        } catch {
+          return;
+        }
+
+        clearPendingConfirmationState();
+        router.refresh();
+        router.replace(validateInternalNext(next));
+      })().finally(() => {
+        reconciliationRef.current = null;
+      });
+
+      return reconciliationRef.current;
+    };
+
+    void reconcileVerifiedCustomer();
+    const handleFocus = () => void reconcileVerifiedCustomer();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void reconcileVerifiedCustomer();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [next, queryClient, router]);
 
   useEffect(() => {
     const updateCooldown = () => {
@@ -531,6 +590,7 @@ export function ResetPasswordForm() {
 
 export function AuthCallbackClient() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -545,7 +605,19 @@ export function AuthCallbackClient() {
 
       const supabase = createClient();
       const exchange = await supabase.auth.exchangeCodeForSession(code);
-      if (exchange.error || !exchange.data.user) {
+      if (exchange.error || !exchange.data.session || !exchange.data.user) {
+        setError('We could not complete sign-in. Please try again.');
+        return;
+      }
+
+      const refreshed = await supabase.auth.refreshSession(exchange.data.session);
+      if (refreshed.error || !refreshed.data.session) {
+        setError('We could not complete sign-in. Please try again.');
+        return;
+      }
+
+      const verifiedUserResult = await supabase.auth.getUser();
+      if (verifiedUserResult.error || !verifiedUserResult.data.user) {
         setError('We could not complete sign-in. Please try again.');
         return;
       }
@@ -557,8 +629,12 @@ export function AuthCallbackClient() {
       }
 
       try {
+        await queryClient.invalidateQueries({ queryKey: ['account'] });
         const profileResponse = await QueryConfigs.fetchAccountProfile();
-        const patch = buildMissingGoogleNamePatch(profileResponse.data.data, getGoogleProfileName(exchange.data.user));
+        const patch = buildMissingGoogleNamePatch(
+          profileResponse.data.data,
+          getGoogleProfileName(verifiedUserResult.data.user),
+        );
         if (Object.keys(patch).length > 0) {
           try {
             await MutationConfigs.patchAccountProfile(patch);
@@ -566,8 +642,9 @@ export function AuthCallbackClient() {
             // A successful login is not blocked by optional profile synchronization.
           }
         }
-        router.replace(next);
+        clearPendingConfirmationState();
         router.refresh();
+        router.replace(next);
       } catch (accountError) {
         if (getAccountApiErrorCode(accountError) === 'CUSTOMER_ACCOUNT_REQUIRED') {
           await supabase.auth.signOut({ scope: 'local' });
@@ -579,7 +656,7 @@ export function AuthCallbackClient() {
     };
 
     void run();
-  }, [router]);
+  }, [queryClient, router]);
 
   if (error) {
     return (

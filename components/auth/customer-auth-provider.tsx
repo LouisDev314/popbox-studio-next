@@ -59,38 +59,41 @@ function classifyProviderError(error: unknown): CustomerAuthStatus {
 export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const mountedRef = useRef(true);
+  const refreshGenerationRef = useRef(0);
   const [status, setStatus] = useState<CustomerAuthStatus>('resolving');
   const [profile, setProfile] = useState<IAccountProfile | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
 
   const refresh = useCallback(async () => {
+    const refreshGeneration = ++refreshGenerationRef.current;
     const supabase = createClient();
-    const sessionResult = await supabase.auth.getSession();
-    const session = sessionResult.data.session;
+    const userResult = await supabase.auth.getUser();
+    const user = userResult.data.user;
 
-    if (!mountedRef.current) {
+    if (!mountedRef.current || refreshGeneration !== refreshGenerationRef.current) {
       return;
     }
 
-    if (sessionResult.error || !session) {
+    if (userResult.error || !user?.email_confirmed_at) {
       setProfile(null);
       setProviders([]);
       setStatus('signedOut');
       return;
     }
 
-    setProviders([...new Set((session.user.identities ?? []).map((identity) => identity.provider))]);
+    setProviders([...new Set((user.identities ?? []).map((identity) => identity.provider))]);
 
     try {
+      await queryClient.invalidateQueries({ queryKey: ['account'] });
       const response = await QueryConfigs.fetchAccountProfile();
-      if (!mountedRef.current) {
+      if (!mountedRef.current || refreshGeneration !== refreshGenerationRef.current) {
         return;
       }
 
       setProfile(response.data.data);
       setStatus('customer');
     } catch (error) {
-      if (!mountedRef.current) {
+      if (!mountedRef.current || refreshGeneration !== refreshGenerationRef.current) {
         return;
       }
 
@@ -98,7 +101,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       setProviders([]);
       setStatus(classifyProviderError(error));
     }
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -113,6 +116,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mountedRef.current = false;
+      refreshGenerationRef.current += 1;
       window.clearTimeout(initialRefreshTimeout);
       authListener.subscription.unsubscribe();
     };

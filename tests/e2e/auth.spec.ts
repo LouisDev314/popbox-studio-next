@@ -1,5 +1,21 @@
 import { test, expect } from './fixtures/mock-services';
 
+test('account header hydrates into the signed-out control without console errors', async ({ page }, testInfo) => {
+  const consoleErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+
+  await page.goto('/');
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Open menu' }).click();
+    await expect(page.getByRole('link', { name: 'Sign In / Create Account' })).toBeVisible();
+  } else {
+    await expect(page.getByRole('link', { name: 'Sign in or create an account' })).toBeVisible();
+  }
+  expect(consoleErrors).toEqual([]);
+});
+
 test('sign-in keeps Google first and exposes accessible password visibility', async ({ page }) => {
   await page.goto('/account/sign-in');
   await expect(page.getByRole('heading', { name: 'Login to your account' })).toBeVisible();
@@ -18,17 +34,54 @@ test('sign-in keeps Google first and exposes accessible password visibility', as
   await expect(password).toHaveAttribute('type', 'text');
 });
 
-test('auth validation appears after blur without native browser validation', async ({ page }) => {
+test('sign-in uses only generic submitted validation without native browser validation', async ({ page }) => {
   await page.goto('/account/sign-in');
   const form = page.locator('form[novalidate]');
   const email = page.getByLabel('Email');
+  const password = page.getByLabel('Password');
   await expect(form).toHaveAttribute('novalidate', '');
   await expect(email).not.toHaveAttribute('required', '');
   await email.focus();
   await email.blur();
-  await expect(page.getByText('Email is required.')).toBeVisible();
-  await email.fill('customer@example.com');
   await expect(page.getByText('Email is required.')).toHaveCount(0);
+  await email.fill('not-an-email');
+  await password.fill('x');
+  await password.blur();
+  await expect(page.getByText('Enter a valid email address.')).toHaveCount(0);
+  await expect(page.getByText(/Password must/)).toHaveCount(0);
+  await page.getByRole('button', { name: 'Login' }).click();
+  await expect(page.getByRole('alert')).toHaveText('Incorrect email or password.');
+
+  await email.fill('');
+  await password.fill('');
+  await page.getByRole('button', { name: 'Login' }).click();
+  await expect(page.getByRole('alert')).toHaveText('Incorrect email or password.');
+  await expect(page.getByText('Email is required.')).toHaveCount(0);
+  await expect(page.getByText('Password is required.')).toHaveCount(0);
+});
+
+test('all normal credential failures have one private error and raw provider text stays hidden', async ({ page }) => {
+  for (const [email, password] of [
+    ['unknown@example.com', 'wrong'],
+    ['confirmed@example.com', 'wrong'],
+    ['unconfirmed@example.com', 'valid123'],
+  ]) {
+    await page.goto('/account/sign-in');
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button', { name: 'Login' }).click();
+    await expect(page.getByRole('alert')).toHaveText('Incorrect email or password.');
+    await expect(page.getByText(/Invalid login credentials|Email not confirmed|User not found/)).toHaveCount(0);
+  }
+});
+
+test('clear service failures use the availability message', async ({ page }) => {
+  await page.goto('/account/sign-in');
+  await page.getByLabel('Email').fill('service@example.com');
+  await page.getByLabel('Password').fill('x');
+  await page.getByRole('button', { name: 'Login' }).click();
+  await expect(page.getByRole('alert')).toHaveText('Unable to sign in right now. Please try again.');
+  await expect(page.getByText('raw upstream outage detail')).toHaveCount(0);
 });
 
 test('sign-up has one password input and a live password checklist', async ({ page }) => {
@@ -62,4 +115,47 @@ test('callback shows a safe error without reflecting query values', async ({ pag
   await page.goto('/auth/callback?error_description=secret-provider-detail');
   await expect(page.getByText('This sign-in link is invalid or expired.')).toBeVisible();
   await expect(page.getByText('secret-provider-detail')).toHaveCount(0);
+});
+
+test('signup confirmation callback reconciles the customer and restores the protected next route', async ({ page, authMock }) => {
+  const consoleErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  authMock.reset();
+
+  await page.goto('/account/sign-up?next=%2Faccount%2Forders');
+  await page.getByLabel('Email').fill('confirmed@example.com');
+  await page.getByLabel('Password').fill('valid123');
+  await page.getByRole('button', { name: 'Sign up' }).click();
+
+  await expect(page).toHaveURL(/\/account\/check-email\?next=%2Faccount%2Forders$/);
+  await expect(page.getByText('Open the email to activate your account.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Check Your Email' })).toBeVisible();
+
+  await page.goto('/auth/callback?code=confirmed-code&next=%2Faccount%2Forders');
+  await expect(page).toHaveURL(/\/account\/orders$/);
+  await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
+  await expect(page.getByText('Open the email to activate your account.')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Open account menu' })).toBeVisible();
+  expect(authMock.profileRequests).toBeGreaterThanOrEqual(2);
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open account menu' })).toBeVisible();
+  await page.getByRole('button', { name: 'Open search' }).click();
+  await expect(page.getByRole('dialog', { name: 'Search PopBox Studio products' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  expect(consoleErrors).toEqual([]);
+});
+
+test('a successful callback cannot restore an external next destination', async ({ page }) => {
+  await page.goto('/account/sign-up');
+  await page.getByLabel('Email').fill('confirmed@example.com');
+  await page.getByLabel('Password').fill('valid123');
+  await page.getByRole('button', { name: 'Sign up' }).click();
+  await page.goto('/auth/callback?code=confirmed-code&next=https%3A%2F%2Fevil.example');
+
+  await expect(page).toHaveURL(/\/account$/);
+  expect(new URL(page.url()).origin).toBe('http://localhost:3001');
 });

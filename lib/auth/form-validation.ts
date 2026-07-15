@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+export const SIGN_IN_CREDENTIAL_ERROR_MESSAGE = 'Incorrect email or password.';
+export const SIGN_IN_AVAILABILITY_ERROR_MESSAGE = 'Unable to sign in right now. Please try again.';
+
 export const emailSchema = z
   .string()
   .trim()
@@ -26,9 +29,15 @@ export const credentialsAuthFormSchema = z.object({
   password: passwordSchema,
 });
 
+export const signInCredentialsAuthFormSchema = z.object({
+  email: z.string().trim().min(1),
+  password: z.string().min(1),
+});
+
 export type EmailAuthFormValues = z.infer<typeof emailAuthFormSchema>;
 export type PasswordAuthFormValues = z.infer<typeof passwordAuthFormSchema>;
 export type CredentialsAuthFormValues = z.infer<typeof credentialsAuthFormSchema>;
+export type SignInCredentialsAuthFormValues = z.infer<typeof signInCredentialsAuthFormSchema>;
 
 export interface IPasswordRequirements {
   hasLetter: boolean;
@@ -64,6 +73,25 @@ function getAuthErrorDetails(error: unknown) {
 export function getCustomerAuthErrorMessage(error: unknown, context: AuthErrorContext): string {
   const { code, message, status } = getAuthErrorDetails(error);
 
+  if (context === 'signIn') {
+    const name = error && typeof error === 'object' && 'name' in error
+      && typeof error.name === 'string'
+      ? error.name.toLowerCase()
+      : '';
+    const isOperationalFailure = Boolean(
+      (status !== null && status >= 500)
+      || name === 'authretryablefetcherror'
+      || code.includes('request_timeout')
+      || code.includes('network_error')
+      || message.includes('failed to fetch')
+      || message.includes('network request failed'),
+    );
+
+    return isOperationalFailure
+      ? SIGN_IN_AVAILABILITY_ERROR_MESSAGE
+      : SIGN_IN_CREDENTIAL_ERROR_MESSAGE;
+  }
+
   if (status === 429 || code.includes('rate_limit') || message.includes('rate limit')) {
     return 'Too many attempts. Please wait a moment and try again.';
   }
@@ -83,17 +111,6 @@ export function getCustomerAuthErrorMessage(error: unknown, context: AuthErrorCo
 
   if (code === 'weak_password' || message.includes('weak password')) {
     return 'Choose a password that meets all listed requirements.';
-  }
-
-  if (
-    context === 'signIn'
-    && (code === 'invalid_credentials' || message.includes('invalid login credentials'))
-  ) {
-    return 'Email or password is incorrect.';
-  }
-
-  if (context === 'signIn') {
-    return 'We could not sign you in right now. Please try again.';
   }
 
   if (context === 'signUp') {

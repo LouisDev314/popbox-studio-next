@@ -4,6 +4,7 @@ import {
   getCustomerAuthErrorMessage,
   getPasswordRequirements,
   passwordAuthFormSchema,
+  signInCredentialsAuthFormSchema,
 } from '@/lib/auth/form-validation';
 
 describe('customer auth validation', () => {
@@ -17,6 +18,11 @@ describe('customer auth validation', () => {
   it('has no confirm-password field or matching-password validation', () => {
     expect(credentialsAuthFormSchema.keyof().options).toEqual(['email', 'password']);
     expect(passwordAuthFormSchema.keyof().options).toEqual(['password']);
+  });
+
+  it('keeps sign-in validation to non-empty values only', () => {
+    expect(signInCredentialsAuthFormSchema.safeParse({ email: '', password: '' }).success).toBe(false);
+    expect(signInCredentialsAuthFormSchema.safeParse({ email: 'not-an-email', password: 'x' }).success).toBe(true);
   });
 
   it('reports password checklist requirements independently', () => {
@@ -40,8 +46,10 @@ describe('customer auth validation', () => {
 
 describe('customer-safe Supabase errors', () => {
   it.each([
-    [{ code: 'invalid_credentials', message: 'raw credentials detail' }, 'signIn', 'Email or password is incorrect.'],
-    [{ code: 'email_not_confirmed', message: 'raw confirmation detail' }, 'signIn', 'Confirm your email before signing in.'],
+    [{ code: 'invalid_credentials', message: 'raw credentials detail' }, 'signIn', 'Incorrect email or password.'],
+    [{ code: 'email_not_confirmed', message: 'raw confirmation detail' }, 'signIn', 'Incorrect email or password.'],
+    [{ code: 'user_banned', message: 'raw disabled detail', status: 403 }, 'signIn', 'Incorrect email or password.'],
+    [{ code: 'unexpected_failure', message: 'raw service detail', status: 503 }, 'signIn', 'Unable to sign in right now. Please try again.'],
     [{ code: 'user_already_exists', message: 'raw duplicate detail' }, 'signUp', 'An account with this email already exists. Try signing in instead.'],
     [{ code: 'over_request_rate_limit', message: 'raw rate detail', status: 429 }, 'signUp', 'Too many attempts. Please wait a moment and try again.'],
     [{ code: 'unexpected', message: 'sensitive provider detail', status: 503 }, 'passwordUpdate', 'We could not update your password. Request a new reset link and try again.'],
