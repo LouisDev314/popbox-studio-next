@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, Mail } from 'lucide-react';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { AuthFormDivider } from '@/components/auth/auth-form-divider';
 import { GoogleAuthButton } from '@/components/auth/google-auth-button';
 import { PasswordInput } from '@/components/auth/password-input';
+import { PasswordRequirements } from '@/components/auth/password-requirements';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -14,6 +17,15 @@ import { Spinner } from '@/components/ui/spinner';
 import MutationConfigs from '@/configs/api/mutation-config';
 import QueryConfigs from '@/configs/api/query-config';
 import { buildMissingGoogleNamePatch, getGoogleProfileName } from '@/lib/auth/google-profile';
+import {
+  credentialsAuthFormSchema,
+  emailAuthFormSchema,
+  getCustomerAuthErrorMessage,
+  passwordAuthFormSchema,
+  type CredentialsAuthFormValues,
+  type EmailAuthFormValues,
+  type PasswordAuthFormValues,
+} from '@/lib/auth/form-validation';
 import { validateInternalNext } from '@/lib/auth/redirects';
 import { createClient } from '@/lib/supabase/client';
 import { getAccountApiErrorCode } from '@/utils/api-errors';
@@ -32,6 +44,9 @@ function buildCallbackUrl(next: string) {
   return `${window.location.origin}/auth/callback?next=${encodeURIComponent(validateInternalNext(next))}`;
 }
 
+const invalidControlClassName =
+  '!border-destructive/80 focus-visible:!border-destructive focus-visible:!ring-destructive/20';
+
 function AuthSubmitButton({ children, isPending }: { children: string; isPending: boolean }) {
   return (
     <Button type="submit" size="lg" className="w-full" disabled={isPending}>
@@ -43,20 +58,24 @@ function AuthSubmitButton({ children, isPending }: { children: string; isPending
 
 export function SignInForm({ next, showResetSuccess = false }: { next: string; showResetSuccess?: boolean }) {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isPending, setIsPending] = useState(false);
+  const form = useForm<CredentialsAuthFormValues>({
+    defaultValues: { email: '', password: '' },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+    resolver: zodResolver(credentialsAuthFormSchema),
+    shouldFocusError: true,
+  });
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError('');
-    setIsPending(true);
-    const { error: signInError } = await createClient().auth.signInWithPassword({ email: email.trim(), password });
+  const handleSubmit = async (values: CredentialsAuthFormValues) => {
+    form.clearErrors('root');
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: values.email.trim(),
+      password: values.password,
+    });
 
     if (signInError) {
-      setError('Email or password is incorrect.');
-      setIsPending(false);
+      form.setError('root', { message: getCustomerAuthErrorMessage(signInError, 'signIn') });
       return;
     }
 
@@ -66,13 +85,20 @@ export function SignInForm({ next, showResetSuccess = false }: { next: string; s
       router.refresh();
     } catch (accountError) {
       if (getAccountApiErrorCode(accountError) === 'CUSTOMER_ACCOUNT_REQUIRED') {
-        router.replace('/admin');
-        router.refresh();
+        await supabase.auth.signOut({ scope: 'local' });
+        form.setError('root', { message: 'This sign-in is not available for customer accounts.' });
         return;
       }
 
-      setError('We could not open your account right now. Please try again.');
-      setIsPending(false);
+      form.setError('root', { message: 'We could not open your account right now. Please try again.' });
+    }
+  };
+
+  const handleGoogleError = (message: string) => {
+    if (message) {
+      form.setError('root', { message });
+    } else {
+      form.clearErrors('root');
     }
   };
 
@@ -83,26 +109,63 @@ export function SignInForm({ next, showResetSuccess = false }: { next: string; s
           Your password has been updated. Sign in with your new password.
         </p>
       ) : null}
-      <GoogleAuthButton next={next} onError={setError} />
+      <GoogleAuthButton next={next} onError={handleGoogleError} />
       <AuthFormDivider />
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="space-y-5" noValidate onSubmit={form.handleSubmit(handleSubmit)}>
         <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="sign-in-email">Email</FieldLabel>
-            <Input id="sign-in-email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
-          </Field>
-          <Field>
-            <div className="flex items-center justify-between gap-3">
-              <FieldLabel htmlFor="sign-in-password">Password</FieldLabel>
-              <Link href={`/account/forgot-password?next=${encodeURIComponent(next)}`} className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-                Forgot password?
-              </Link>
-            </div>
-            <PasswordInput id="sign-in-password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
-          </Field>
+          <Controller
+            name="email"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="sign-in-email">Email</FieldLabel>
+                <Input
+                  {...field}
+                  id="sign-in-email"
+                  type="email"
+                  autoComplete="email"
+                  aria-invalid={fieldState.invalid}
+                  aria-describedby={fieldState.invalid ? 'sign-in-email-error' : undefined}
+                  className={fieldState.invalid ? invalidControlClassName : undefined}
+                  onChange={(event) => {
+                    field.onChange(event);
+                    if (fieldState.invalid) queueMicrotask(() => void form.trigger('email'));
+                  }}
+                />
+                {fieldState.invalid ? <FieldError id="sign-in-email-error" errors={[fieldState.error]} /> : null}
+              </Field>
+            )}
+          />
+          <Controller
+            name="password"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <div className="flex items-center justify-between gap-3">
+                  <FieldLabel htmlFor="sign-in-password">Password</FieldLabel>
+                  <Link href={`/account/forgot-password?next=${encodeURIComponent(next)}`} className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                    Forgot password?
+                  </Link>
+                </div>
+                <PasswordInput
+                  {...field}
+                  id="sign-in-password"
+                  autoComplete="current-password"
+                  aria-invalid={fieldState.invalid}
+                  aria-describedby={fieldState.invalid ? 'sign-in-password-error' : undefined}
+                  className={fieldState.invalid ? invalidControlClassName : undefined}
+                  onChange={(event) => {
+                    field.onChange(event);
+                    if (fieldState.invalid) queueMicrotask(() => void form.trigger('password'));
+                  }}
+                />
+                {fieldState.invalid ? <FieldError id="sign-in-password-error" errors={[fieldState.error]} /> : null}
+              </Field>
+            )}
+          />
         </FieldGroup>
-        <FieldError>{error}</FieldError>
-        <AuthSubmitButton isPending={isPending}>Sign In</AuthSubmitButton>
+        <FieldError id="sign-in-form-error" errors={[form.formState.errors.root]} />
+        <AuthSubmitButton isPending={form.formState.isSubmitting}>Sign In</AuthSubmitButton>
       </form>
       <p className="text-center text-sm text-muted-foreground">
         New to PopBox Studio?{' '}
@@ -114,61 +177,113 @@ export function SignInForm({ next, showResetSuccess = false }: { next: string; s
 
 export function SignUpForm({ next }: { next: string }) {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmation, setConfirmation] = useState('');
-  const [error, setError] = useState('');
-  const [isPending, setIsPending] = useState(false);
+  const form = useForm<CredentialsAuthFormValues>({
+    defaultValues: { email: '', password: '' },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+    resolver: zodResolver(credentialsAuthFormSchema),
+    shouldFocusError: true,
+  });
+  const password = useWatch({ control: form.control, name: 'password' }) ?? '';
+  const hasPasswordInteraction = Boolean(
+    form.formState.dirtyFields.password || form.formState.touchedFields.password,
+  );
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError('');
-
-    if (password !== confirmation) {
-      setError('Passwords must match.');
-      return;
-    }
-
-    setIsPending(true);
+  const handleSubmit = async (values: CredentialsAuthFormValues) => {
+    form.clearErrors('root');
     const safeNext = validateInternalNext(next);
     const { error: signUpError } = await createClient().auth.signUp({
-      email: email.trim(),
-      password,
+      email: values.email.trim(),
+      password: values.password,
       options: { emailRedirectTo: buildCallbackUrl(safeNext) },
     });
 
     if (signUpError) {
-      setError(signUpError.message || 'We could not create your account. Please try again.');
-      setIsPending(false);
+      form.setError('root', { message: getCustomerAuthErrorMessage(signUpError, 'signUp') });
       return;
     }
 
-    const pending: IPendingSignup = { email: email.trim(), next: safeNext, createdAt: Date.now() };
+    // The timestamp is captured only after a successful user-triggered submission.
+    // eslint-disable-next-line react-hooks/purity
+    const pending: IPendingSignup = { email: values.email.trim(), next: safeNext, createdAt: Date.now() };
     window.sessionStorage.setItem(PENDING_SIGNUP_KEY, JSON.stringify(pending));
     router.push(`/account/check-email?next=${encodeURIComponent(safeNext)}`);
   };
 
+  const handleGoogleError = (message: string) => {
+    if (message) {
+      form.setError('root', { message });
+    } else {
+      form.clearErrors('root');
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <GoogleAuthButton next={next} onError={setError} />
+      <GoogleAuthButton next={next} onError={handleGoogleError} />
       <AuthFormDivider />
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="space-y-5" noValidate onSubmit={form.handleSubmit(handleSubmit)}>
         <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="sign-up-email">Email</FieldLabel>
-            <Input id="sign-up-email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="sign-up-password">Password</FieldLabel>
-            <PasswordInput id="sign-up-password" autoComplete="new-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="sign-up-confirmation">Confirm Password</FieldLabel>
-            <PasswordInput id="sign-up-confirmation" autoComplete="new-password" required value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
-          </Field>
+          <Controller
+            name="email"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="sign-up-email">Email</FieldLabel>
+                <Input
+                  {...field}
+                  id="sign-up-email"
+                  type="email"
+                  autoComplete="email"
+                  aria-invalid={fieldState.invalid}
+                  aria-describedby={fieldState.invalid ? 'sign-up-email-error' : undefined}
+                  className={fieldState.invalid ? invalidControlClassName : undefined}
+                  onChange={(event) => {
+                    field.onChange(event);
+                    if (fieldState.invalid) queueMicrotask(() => void form.trigger('email'));
+                  }}
+                />
+                {fieldState.invalid ? <FieldError id="sign-up-email-error" errors={[fieldState.error]} /> : null}
+              </Field>
+            )}
+          />
+          <Controller
+            name="password"
+            control={form.control}
+            render={({ field, fieldState }) => {
+              const describedBy = [
+                fieldState.invalid ? 'sign-up-password-error' : null,
+                'sign-up-password-requirements',
+              ].filter(Boolean).join(' ');
+
+              return (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="sign-up-password">Password</FieldLabel>
+                  <PasswordInput
+                    {...field}
+                    id="sign-up-password"
+                    autoComplete="new-password"
+                    aria-invalid={fieldState.invalid}
+                    aria-describedby={describedBy}
+                    className={fieldState.invalid ? invalidControlClassName : undefined}
+                    onChange={(event) => {
+                      field.onChange(event);
+                      if (fieldState.invalid) queueMicrotask(() => void form.trigger('password'));
+                    }}
+                  />
+                  {fieldState.invalid ? <FieldError id="sign-up-password-error" errors={[fieldState.error]} /> : null}
+                  <PasswordRequirements
+                    id="sign-up-password-requirements"
+                    hasInteracted={hasPasswordInteraction}
+                    password={password}
+                  />
+                </Field>
+              );
+            }}
+          />
         </FieldGroup>
-        <FieldError>{error}</FieldError>
-        <AuthSubmitButton isPending={isPending}>Sign up</AuthSubmitButton>
+        <FieldError id="sign-up-form-error" errors={[form.formState.errors.root]} />
+        <AuthSubmitButton isPending={form.formState.isSubmitting}>Sign up</AuthSubmitButton>
       </form>
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
@@ -254,17 +369,19 @@ export function CheckEmailState({ next }: { next: string }) {
 }
 
 export function ForgotPasswordForm() {
-  const [email, setEmail] = useState('');
-  const [isPending, setIsPending] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const form = useForm<EmailAuthFormValues>({
+    defaultValues: { email: '' },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+    resolver: zodResolver(emailAuthFormSchema),
+    shouldFocusError: true,
+  });
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsPending(true);
-    await createClient().auth.resetPasswordForEmail(email.trim(), {
+  const handleSubmit = async (values: EmailAuthFormValues) => {
+    await createClient().auth.resetPasswordForEmail(values.email.trim(), {
       redirectTo: buildCallbackUrl('/account/reset-password'),
     });
-    setIsPending(false);
     setIsComplete(true);
   };
 
@@ -273,31 +390,57 @@ export function ForgotPasswordForm() {
       <div className="space-y-6 text-center">
         <CheckCircle2 className="mx-auto h-12 w-12 text-primary" />
         <p className="text-sm leading-6 text-muted-foreground">If an account is eligible, a password reset link will arrive shortly.</p>
-        <Button asChild size="lg" className="w-full"><Link href="/account/sign-in">Back to Sign In</Link></Button>
+        <Button asChild size="lg" className="w-full rounded-full"><Link href="/account/sign-in">Back to Sign In</Link></Button>
       </div>
     );
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
-      <Field>
-        <FieldLabel htmlFor="forgot-email">Email</FieldLabel>
-        <Input id="forgot-email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
-      </Field>
-      <AuthSubmitButton isPending={isPending}>Send Reset Link</AuthSubmitButton>
-      <Button asChild variant="ghost" className="w-full"><Link href="/account/sign-in">Back to Sign In</Link></Button>
+    <form className="space-y-5" noValidate onSubmit={form.handleSubmit(handleSubmit)}>
+      <Controller
+        name="email"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor="forgot-email">Email</FieldLabel>
+            <Input
+              {...field}
+              id="forgot-email"
+              type="email"
+              autoComplete="email"
+              aria-invalid={fieldState.invalid}
+              aria-describedby={fieldState.invalid ? 'forgot-email-error' : undefined}
+              className={fieldState.invalid ? invalidControlClassName : undefined}
+              onChange={(event) => {
+                field.onChange(event);
+                if (fieldState.invalid) queueMicrotask(() => void form.trigger('email'));
+              }}
+            />
+            {fieldState.invalid ? <FieldError id="forgot-email-error" errors={[fieldState.error]} /> : null}
+          </Field>
+        )}
+      />
+      <AuthSubmitButton isPending={form.formState.isSubmitting}>Send Reset Link</AuthSubmitButton>
+      <Button asChild variant="ghost" className="w-full rounded-full"><Link href="/account/sign-in">Back to Sign In</Link></Button>
     </form>
   );
 }
 
 export function ResetPasswordForm() {
   const router = useRouter();
-  const [password, setPassword] = useState('');
-  const [confirmation, setConfirmation] = useState('');
   const [isChecking, setIsChecking] = useState(true);
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
-  const [isPending, setIsPending] = useState(false);
-  const [error, setError] = useState('');
+  const form = useForm<PasswordAuthFormValues>({
+    defaultValues: { password: '' },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+    resolver: zodResolver(passwordAuthFormSchema),
+    shouldFocusError: true,
+  });
+  const password = useWatch({ control: form.control, name: 'password' }) ?? '';
+  const hasPasswordInteraction = Boolean(
+    form.formState.dirtyFields.password || form.formState.touchedFields.password,
+  );
 
   useEffect(() => {
     void createClient().auth.getSession().then(({ data, error: sessionError }) => {
@@ -307,19 +450,11 @@ export function ResetPasswordForm() {
     });
   }, []);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError('');
-    if (password !== confirmation) {
-      setError('Passwords must match.');
-      return;
-    }
-
-    setIsPending(true);
-    const { error: updateError } = await createClient().auth.updateUser({ password });
+  const handleSubmit = async (values: PasswordAuthFormValues) => {
+    form.clearErrors('root');
+    const { error: updateError } = await createClient().auth.updateUser({ password: values.password });
     if (updateError) {
-      setError(updateError.message || 'This reset link is invalid or expired.');
-      setIsPending(false);
+      form.setError('root', { message: getCustomerAuthErrorMessage(updateError, 'passwordUpdate') });
       return;
     }
 
@@ -343,13 +478,43 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
-      <FieldGroup>
-        <Field><FieldLabel htmlFor="reset-password">New Password</FieldLabel><PasswordInput id="reset-password" autoComplete="new-password" required value={password} onChange={(event) => setPassword(event.target.value)} /></Field>
-        <Field><FieldLabel htmlFor="reset-confirmation">Confirm Password</FieldLabel><PasswordInput id="reset-confirmation" autoComplete="new-password" required value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></Field>
-      </FieldGroup>
-      <FieldError>{error}</FieldError>
-      <AuthSubmitButton isPending={isPending}>Update Password</AuthSubmitButton>
+    <form className="space-y-5" noValidate onSubmit={form.handleSubmit(handleSubmit)}>
+      <Controller
+        name="password"
+        control={form.control}
+        render={({ field, fieldState }) => {
+          const describedBy = [
+            fieldState.invalid ? 'reset-password-error' : null,
+            'reset-password-requirements',
+          ].filter(Boolean).join(' ');
+
+          return (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="reset-password">New Password</FieldLabel>
+              <PasswordInput
+                {...field}
+                id="reset-password"
+                autoComplete="new-password"
+                aria-invalid={fieldState.invalid}
+                aria-describedby={describedBy}
+                className={fieldState.invalid ? invalidControlClassName : undefined}
+                onChange={(event) => {
+                  field.onChange(event);
+                  if (fieldState.invalid) queueMicrotask(() => void form.trigger('password'));
+                }}
+              />
+              {fieldState.invalid ? <FieldError id="reset-password-error" errors={[fieldState.error]} /> : null}
+              <PasswordRequirements
+                id="reset-password-requirements"
+                hasInteracted={hasPasswordInteraction}
+                password={password}
+              />
+            </Field>
+          );
+        }}
+      />
+      <FieldError id="reset-password-form-error" errors={[form.formState.errors.root]} />
+      <AuthSubmitButton isPending={form.formState.isSubmitting}>Update Password</AuthSubmitButton>
     </form>
   );
 }
@@ -395,8 +560,8 @@ export function AuthCallbackClient() {
         router.refresh();
       } catch (accountError) {
         if (getAccountApiErrorCode(accountError) === 'CUSTOMER_ACCOUNT_REQUIRED') {
-          router.replace('/admin');
-          router.refresh();
+          await supabase.auth.signOut({ scope: 'local' });
+          setError('This sign-in is not available for customer accounts.');
           return;
         }
         setError('We could not open your account right now. Please try again.');
@@ -411,7 +576,7 @@ export function AuthCallbackClient() {
       <div className="space-y-6 text-center">
         <FieldError>{error}</FieldError>
         <Button asChild size="lg" className="w-full"><Link href="/account/sign-in">Try Again</Link></Button>
-        <Button asChild variant="ghost" className="w-full"><Link href="/account/sign-in">Back to Sign In</Link></Button>
+        <Button asChild variant="ghost" className="w-full rounded-full"><Link href="/account/sign-in">Back to Sign In</Link></Button>
       </div>
     );
   }

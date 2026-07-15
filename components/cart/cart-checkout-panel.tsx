@@ -414,8 +414,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   });
   const authMode = auth.status === 'customer' ? 'customer' : 'guest';
   const isAuthResolved = auth.status === 'signedOut'
-    || auth.status === 'customer'
-    || auth.status === 'nonCustomer';
+    || auth.status === 'customer';
   const authBlockingMessage = auth.status === 'conflict'
     ? 'We could not safely link this sign-in to your customer account. Open Account Help or sign out before checking out.'
     : auth.status === 'unavailable'

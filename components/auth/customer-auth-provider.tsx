@@ -21,7 +21,6 @@ export type CustomerAuthStatus =
   | 'resolving'
   | 'signedOut'
   | 'customer'
-  | 'nonCustomer'
   | 'conflict'
   | 'unavailable';
 
@@ -49,7 +48,7 @@ function classifyProviderError(error: unknown): CustomerAuthStatus {
   const code = getAccountApiErrorCode(error);
 
   if (code === 'CUSTOMER_ACCOUNT_REQUIRED' || code === 'EMAIL_NOT_VERIFIED') {
-    return 'nonCustomer';
+    return 'signedOut';
   }
 
   if (code === 'ACCOUNT_OWNERSHIP_CONFLICT') {
@@ -99,6 +98,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       }
 
       setProfile(null);
+      setProviders([]);
       setStatus(classifyProviderError(error));
     }
   }, []);

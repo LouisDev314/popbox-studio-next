@@ -66,19 +66,6 @@ export function AccountHeaderAction() {
     );
   }
 
-  if (auth.status === 'nonCustomer') {
-    return (
-      <Link
-        id={ACCOUNT_HEADER_ACTION_ID}
-        href="/admin"
-        aria-label="Open admin dashboard"
-        className={triggerClassName}
-      >
-        <CircleUserRound className="h-5 w-5" />
-      </Link>
-    );
-  }
-
   const handleSignOut = async () => {
     await auth.signOut();
     router.refresh();

@@ -28,7 +28,7 @@ export function GoogleAuthButton({ next, onError }: { next: string; onError: (me
   return (
     <Button type="button" variant="outline" size="lg" className="w-full" disabled={isPending} onClick={handleGoogleAuth}>
       {isPending ? <Spinner className="mr-2" /> : null}
-      Sign up with Google
+      Continue with Google
     </Button>
   );
 }

@@ -161,24 +161,6 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
                 </button>
               </div>
             ) : null}
-            {auth.status === 'nonCustomer' ? (
-              <div className="space-y-1">
-                <Link
-                  href="/admin"
-                  className="flex rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                  onClick={props.onNavigate}
-                >
-                  Admin Dashboard
-                </Link>
-                <button
-                  type="button"
-                  className="flex w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-destructive hover:bg-destructive/5"
-                  onClick={handleSignOut}
-                >
-                  Sign Out
-                </button>
-              </div>
-            ) : null}
           </div>
         </div>
       </nav>

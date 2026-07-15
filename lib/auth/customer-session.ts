@@ -11,7 +11,6 @@ import { getAccountApiErrorCode } from '@/utils/api-errors';
 export type ServerCustomerAccess =
   | { status: 'signedOut' }
   | { status: 'customer'; accessToken: string; profile: IAccountProfile }
-  | { status: 'nonCustomer' }
   | { status: 'conflict' }
   | { status: 'unavailable' };
 
@@ -39,8 +38,8 @@ export const getServerCustomerAccess = cache(async (): Promise<ServerCustomerAcc
   } catch (error) {
     const code = getAccountApiErrorCode(error);
 
-    if (code === 'CUSTOMER_ACCOUNT_REQUIRED') {
-      return { status: 'nonCustomer' };
+    if (code === 'CUSTOMER_ACCOUNT_REQUIRED' || code === 'EMAIL_NOT_VERIFIED') {
+      return { status: 'signedOut' };
     }
 
     if (code === 'ACCOUNT_OWNERSHIP_CONFLICT') {
@@ -58,10 +57,6 @@ export async function requireCustomerAccess(currentPath: string) {
     redirect(buildSignInHref(validateInternalNext(currentPath)));
   }
 
-  if (access.status === 'nonCustomer') {
-    redirect('/admin');
-  }
-
   return access;
 }
 
@@ -70,9 +65,5 @@ export async function redirectAuthenticatedAccountUser(next: string | null | und
 
   if (access.status === 'customer') {
     redirect(validateInternalNext(next));
-  }
-
-  if (access.status === 'nonCustomer') {
-    redirect('/admin');
   }
 }
