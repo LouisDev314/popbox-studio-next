@@ -885,9 +885,6 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
           <section className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm" aria-label="Checkout details">
             <div className="space-y-1.5">
               <h2 className="text-2xl font-semibold tracking-tight text-foreground">Checkout details</h2>
-              <p className="text-sm leading-6 text-muted-foreground">
-                We ship within Canada only.
-              </p>
               {auth.status === 'signedOut' ? (
                 <p className="text-sm text-muted-foreground">
                   <Link href="/account/sign-in?next=%2Fcart" className="font-medium text-foreground underline underline-offset-4 hover:text-primary">
@@ -943,6 +940,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
               </FieldGroup>
               
               <h3 className="text-base font-semibold text-foreground">Shipping address</h3>
+
+              <p className="text-sm leading-6 text-muted-foreground">
+                We ship within Canada only.
+              </p>
 
               <AddressConfirmationPrompt
                 confirmation={addressConfirmation}
