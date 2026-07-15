@@ -67,12 +67,35 @@ export function shouldEnableGoogleAnalytics(env: NodeJS.ProcessEnv = process.env
   );
 }
 
+export interface ISupabasePublicConfig {
+  publishableKey: string;
+  url: string;
+}
+
+export function resolveSupabasePublicConfig(env: NodeJS.ProcessEnv = process.env): ISupabasePublicConfig {
+  const url = env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const publishableKey = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+
+  if (!url) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is required for authentication.');
+  }
+
+  if (!publishableKey) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is required for authentication.');
+  }
+
+  return {
+    publishableKey,
+    url: normalizeRequiredUrl(url, 'NEXT_PUBLIC_SUPABASE_URL'),
+  };
+}
+
 const publicEnvConfig = {
   apiBaseUrl: resolveApiBaseUrl(),
   siteUrl: resolveSiteUrl(),
   stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  supabasePublicKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLIC_KEY || '',
+  supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
   supabaseStorageBucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET?.trim() || 'product-images',
   googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
   gaMeasurementId: resolveGaMeasurementId(),

@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AxiosError } from 'axios';
+import Link from 'next/link';
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Control, Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
@@ -20,6 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { useCustomerAuth } from '@/components/auth/customer-auth-provider';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
@@ -41,6 +43,7 @@ import { type IBaseApiResponse } from '@/interfaces/api-response';
 import { cn } from '@/lib/utils';
 import {
   getCheckoutAddressError,
+  getApiErrorCode,
   getCheckoutQuoteErrorMessage,
 } from '@/utils/api-errors';
 import {
@@ -86,22 +89,27 @@ type TAddressConfirmationState = {
   suggestedAddress: SuggestedShippingAddress;
 } | null;
 
-function createCheckoutRequestKey(data: CheckoutQuoteRequest): string {
+function createCheckoutRequestKey(data: CheckoutQuoteRequest, authMode: 'customer' | 'guest' = 'guest'): string {
   const { customerNote: _customerNote, ...quoteRelevantData } = data;
 
-  return JSON.stringify(quoteRelevantData);
+  return JSON.stringify({ authMode, request: quoteRelevantData });
 }
 
-function createUnconfirmedCheckoutRequestKey(data: CheckoutQuoteRequest): string {
+function createUnconfirmedCheckoutRequestKey(data: CheckoutQuoteRequest, authMode: 'customer' | 'guest' = 'guest'): string {
   const { confirmedAddress: _confirmedAddress, ...unconfirmedData } = data;
 
-  return createCheckoutRequestKey(unconfirmedData);
+  return createCheckoutRequestKey(unconfirmedData, authMode);
 }
 
-function createCheckoutCustomerInput(values: WatchedCheckoutFormValues): CheckoutCustomerInput {
+function createCheckoutCustomerInput(
+  values: WatchedCheckoutFormValues,
+  account?: { firstName: string | null; lastName: string | null },
+): CheckoutCustomerInput {
   return {
     customerNote: values.customerNote ?? '',
     email: values.email ?? '',
+    firstName: account?.firstName ?? null,
+    lastName: account?.lastName ?? null,
     phone: values.phone ?? '',
     shippingAddress: {
       city: values.shippingAddress?.city ?? '',
@@ -116,9 +124,14 @@ function createCheckoutCustomerInput(values: WatchedCheckoutFormValues): Checkou
   };
 }
 
-function createCheckoutQuoteCustomerInput(values: WatchedCheckoutFormValues): CheckoutCustomerInput {
+function createCheckoutQuoteCustomerInput(
+  values: WatchedCheckoutFormValues,
+  account?: { firstName: string | null; lastName: string | null },
+): CheckoutCustomerInput {
   return {
     email: values.email ?? '',
+    firstName: account?.firstName ?? null,
+    lastName: account?.lastName ?? null,
     phone: values.phone ?? '',
     shippingAddress: {
       city: values.shippingAddress?.city ?? '',
@@ -379,6 +392,7 @@ function AddressConfirmationPrompt(props: {
 
 // eslint-disable-next-line complexity -- Checkout coordinates quote, confirmation, and Stripe handoff states in one form boundary.
 export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
+  const auth = useCustomerAuth();
   const invalidItems = useCartStore((state) => state.invalidItems);
   const items = useCartStore((state) => state.items);
   const hasHydrated = useCartStore((state) => state.hasHydrated);
@@ -398,6 +412,19 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     key: null,
     status: 'idle',
   });
+  const authMode = auth.status === 'customer' ? 'customer' : 'guest';
+  const isAuthResolved = auth.status === 'signedOut'
+    || auth.status === 'customer'
+    || auth.status === 'nonCustomer';
+  const authBlockingMessage = auth.status === 'conflict'
+    ? 'We could not safely link this sign-in to your customer account. Open Account Help or sign out before checking out.'
+    : auth.status === 'unavailable'
+      ? 'We could not verify your signed-in account for checkout. Try again or sign out before continuing as a guest.'
+      : null;
+  const accountNames = useMemo(() => auth.status === 'customer' ? {
+    firstName: auth.profile?.firstName ?? null,
+    lastName: auth.profile?.lastName ?? null,
+  } : undefined, [auth.profile?.firstName, auth.profile?.lastName, auth.status]);
 
   const form = useForm<CheckoutFormValues>({
     defaultValues: {
@@ -443,7 +470,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
         postalCode: watchedShippingPostalCode,
         province: watchedShippingProvince,
       },
-    }),
+    }, accountNames),
     [
       watchedCustomerNote,
       watchedEmail,
@@ -454,6 +481,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
       watchedShippingLine2,
       watchedShippingPostalCode,
       watchedShippingProvince,
+      accountNames,
     ],
   );
   const quoteCustomerInput = useMemo(
@@ -469,7 +497,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
         postalCode: watchedShippingPostalCode,
         province: watchedShippingProvince,
       },
-    }),
+    }, accountNames),
     [
       watchedEmail,
       watchedPhone,
@@ -479,6 +507,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
       watchedShippingLine2,
       watchedShippingPostalCode,
       watchedShippingProvince,
+      accountNames,
     ],
   );
   const customerNoteLength = watchedCustomerNote.length;
@@ -488,7 +517,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     }),
     [items, quoteCustomerInput],
   );
-  const baseRequestKey = baseRequestResult.success ? createCheckoutRequestKey(baseRequestResult.data) : null;
+  const baseRequestKey = baseRequestResult.success ? createCheckoutRequestKey(baseRequestResult.data, authMode) : null;
   const requestResult = useMemo(
     () => buildCheckoutRequest(items, quoteCustomerInput, {
       confirmedAddress: Boolean(baseRequestKey && confirmedAddressRequestKey === baseRequestKey),
@@ -503,13 +532,32 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     [baseRequestKey, checkoutCustomerInput, confirmedAddressRequestKey, items],
   );
   const sessionRequestResultRef = useRef(sessionRequestResult);
-  const currentRequestKey = requestResult.success ? createCheckoutRequestKey(requestResult.data) : null;
+  const currentRequestKey = requestResult.success ? createCheckoutRequestKey(requestResult.data, authMode) : null;
   const debouncedRequestKey = useDebouncedValue(currentRequestKey, 400);
   const isQuoteCurrent = quoteState.key === currentRequestKey;
 
   useEffect(() => {
     sessionRequestResultRef.current = sessionRequestResult;
   }, [sessionRequestResult]);
+
+  useEffect(() => {
+    if (auth.status !== 'customer' || !auth.email) {
+      return;
+    }
+
+    form.setValue('email', auth.email, { shouldDirty: false, shouldValidate: true });
+
+    if (!form.getFieldState('phone').isDirty && !form.getValues('phone') && auth.profile?.phone) {
+      form.setValue('phone', auth.profile.phone, { shouldDirty: false, shouldValidate: true });
+    }
+
+    if (!form.getFieldState('shippingAddress.fullName').isDirty && !form.getValues('shippingAddress.fullName')) {
+      const fullName = [auth.profile?.firstName, auth.profile?.lastName].filter(Boolean).join(' ');
+      if (fullName) {
+        form.setValue('shippingAddress.fullName', fullName, { shouldDirty: false, shouldValidate: true });
+      }
+    }
+  }, [auth.email, auth.profile, auth.status, form]);
   const handleAddressConfirmationRequired = useCallback((
     source: 'quote' | 'session',
     suggestedAddress: SuggestedShippingAddress,
@@ -539,10 +587,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
         confirmedAddress: true,
       };
 
-      setConfirmedAddressRequestKey(createUnconfirmedCheckoutRequestKey(requestToConfirm));
+      setConfirmedAddressRequestKey(createUnconfirmedCheckoutRequestKey(requestToConfirm, authMode));
       setPendingConfirmedCheckoutKey(
         source === 'session'
-          ? createCheckoutRequestKey(confirmedRequest)
+          ? createCheckoutRequestKey(confirmedRequest, authMode)
           : null,
       );
       setAddressConfirmation(null);
@@ -561,13 +609,15 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
       suggestedAddress,
     });
     setFormErrorMessage(null);
-  }, [acceptedSuggestedAddress, baseRequestResult]);
+  }, [acceptedSuggestedAddress, authMode, baseRequestResult]);
 
   const { mutation: createCheckoutQuote } = useCustomizeMutation<
     CheckoutQuoteData,
     CheckoutQuoteRequest
   >({
-    mutationFn: MutationConfigs.createCheckoutQuote,
+    mutationFn: (data) => auth.status === 'customer'
+      ? MutationConfigs.createAuthenticatedCheckoutQuote(data)
+      : MutationConfigs.createCheckoutQuote(data),
   });
 
   const handleCheckoutSessionSuccess = useCallback(() => {
@@ -579,11 +629,11 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   }, []);
 
   useEffect(() => {
-    if (!debouncedRequestKey) {
+    if (!debouncedRequestKey || !isAuthResolved) {
       return;
     }
 
-    const request = JSON.parse(debouncedRequestKey) as CheckoutQuoteRequest;
+    const request = (JSON.parse(debouncedRequestKey) as { request: CheckoutQuoteRequest }).request;
     let isCancelled = false;
     const pendingTimeoutId = window.setTimeout(() => {
       if (isCancelled) {
@@ -634,11 +684,26 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
                 handleAddressConfirmationRequired('session', suggestedAddress, sessionRequest);
               },
               onSessionSuccess: handleCheckoutSessionSuccess,
+              onAuthEmailMismatch: () => {
+                setFormErrorMessage('Checkout must use the verified email for this signed-in account. Refresh your session or sign in again.');
+                form.setFocus('email');
+              },
             });
           }
         },
         onError: (error) => {
           if (checkoutSessionSucceededRef.current) {
+            return;
+          }
+
+          if (getApiErrorCode(error) === 'AUTH_CHECKOUT_EMAIL_MISMATCH') {
+            setQuoteState({
+              data: null,
+              errorMessage: 'Checkout must use the verified email for this signed-in account. Refresh your session or sign in again.',
+              key: debouncedRequestKey,
+              status: 'error',
+            });
+            form.setFocus('email');
             return;
           }
 
@@ -683,11 +748,13 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     debouncedRequestKey,
     handleAddressConfirmationRequired,
     handleCheckoutSessionSuccess,
+    isAuthResolved,
+    form,
     pendingConfirmedCheckoutKey,
     startCheckout,
   ]);
 
-  const canCheckout = !addressConfirmation && isCheckoutReady({
+  const canCheckout = isAuthResolved && !addressConfirmation && isCheckoutReady({
     currentRequestKey,
     hasHydrated,
     invalidItemCount: invalidItems.length,
@@ -700,6 +767,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     ? checkoutErrorMessage
     : formErrorMessage
       || (isQuoteCurrent ? quoteState.errorMessage : null)
+      || authBlockingMessage
       || checkoutErrorMessage;
 
   function clearAddressConfirmationForManualEdit() {
@@ -721,6 +789,8 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     const nextCustomerInput = {
       customerNote: currentValues.customerNote ?? '',
       email: currentValues.email ?? '',
+      firstName: accountNames?.firstName ?? null,
+      lastName: accountNames?.lastName ?? null,
       phone: currentValues.phone ?? '',
       shippingAddress: {
         city: suggestedAddress.city,
@@ -746,11 +816,11 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
       return;
     }
 
-    setConfirmedAddressRequestKey(createCheckoutRequestKey(nextBaseRequest.data));
+    setConfirmedAddressRequestKey(createCheckoutRequestKey(nextBaseRequest.data, authMode));
     setAcceptedSuggestedAddress(suggestedAddress);
     setPendingConfirmedCheckoutKey(
       addressConfirmation.source === 'session'
-        ? createCheckoutRequestKey(nextConfirmedRequest.data)
+        ? createCheckoutRequestKey(nextConfirmedRequest.data, authMode)
         : null,
     );
     setAddressConfirmation(null);
@@ -789,6 +859,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
         handleAddressConfirmationRequired('session', suggestedAddress, request);
       },
       onSessionSuccess: handleCheckoutSessionSuccess,
+      onAuthEmailMismatch: () => {
+        setFormErrorMessage('Checkout must use the verified email for this signed-in account. Refresh your session or sign in again.');
+        form.setFocus('email');
+      },
     });
   }
 
@@ -815,6 +889,13 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
               <p className="text-sm leading-6 text-muted-foreground">
                 We ship within Canada only.
               </p>
+              {auth.status === 'signedOut' ? (
+                <p className="text-sm text-muted-foreground">
+                  <Link href="/account/sign-in?next=%2Fcart" className="font-medium text-foreground underline underline-offset-4 hover:text-primary">
+                    Sign in for order history
+                  </Link>
+                </p>
+              ) : null}
             </div>
 
             <div className="mt-6 space-y-6">
@@ -831,7 +912,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
                           id="checkout-email"
                           type="email"
                           autoComplete="email"
-                          disabled={isCheckingOut}
+                          disabled={isCheckingOut || auth.status === 'customer'}
                           aria-invalid={fieldState.invalid}
                           className={cn(fieldState.invalid && invalidControlClassName)}
                         />

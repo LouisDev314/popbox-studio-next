@@ -24,7 +24,7 @@ vi.mock('@/configs/public-env', () => ({
     isSiteOpen: true,
     siteUrl: 'http://localhost:3001',
     stripePublishableKey: '',
-    supabasePublicKey: '',
+    supabasePublishableKey: '',
     supabaseUrl: '',
   }),
 }));

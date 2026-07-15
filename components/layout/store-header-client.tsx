@@ -37,6 +37,7 @@ import { trackSearch } from '@/lib/analytics';
 import { formatQuantity } from '@/lib/format-quantity';
 import { FLY_TARGET_REQUEST_EVENT } from '@/lib/ui/fly-to-target';
 import { cn } from '@/lib/utils';
+import { AccountHeaderAction } from '@/components/layout/account-header-action';
 
 type TMobilePanel = 'menu' | 'search' | null;
 
@@ -126,6 +127,8 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
           </span>
         ) : null}
       </button>
+
+      <AccountHeaderAction />
 
       <button
         id={MOBILE_MENU_BUTTON_ID}

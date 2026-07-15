@@ -12,6 +12,13 @@ import { ICheckoutSuccess } from '@/interfaces/checkout';
 import { IFaqListResponse, IAdminFaqItem, IAdminFaqListResponse, IAdminLegalListResponse } from '@/interfaces/legal';
 import { IShippingSettings } from '@/interfaces/shipping';
 import { IStoreBannerSettings } from '@/interfaces/settings';
+import type {
+  IAccountOrderListPage,
+  IAccountProfile,
+  ICustomerOrderDetail,
+  IKujiHistoryPage,
+} from '@/interfaces/account';
+import { customerGet } from '@/lib/api/customer-client';
 
 function normalizeAdminFaqItems(
   payload: IAdminFaqItem[] | IFaqListResponse<IAdminFaqItem> | null | undefined,
@@ -50,6 +57,18 @@ const QueryConfigs = {
   },
   fetchGuestTickets: (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
     return httpClient.get(`/api/v1/orders/${id}/tickets`);
+  },
+  fetchAccountProfile: (): Promise<AxiosResponse<IBaseApiResponse<IAccountProfile>>> => {
+    return customerGet('/api/v1/account/profile');
+  },
+  fetchAccountOrders: (cursor?: string): Promise<AxiosResponse<IBaseApiResponse<IAccountOrderListPage>>> => {
+    return customerGet('/api/v1/account/orders', { params: { cursor, limit: 20 } });
+  },
+  fetchAccountOrder: (publicId: string): Promise<AxiosResponse<IBaseApiResponse<ICustomerOrderDetail>>> => {
+    return customerGet(`/api/v1/account/orders/${encodeURIComponent(publicId)}`);
+  },
+  fetchAccountKujiHistory: (cursor?: string): Promise<AxiosResponse<IBaseApiResponse<IKujiHistoryPage>>> => {
+    return customerGet('/api/v1/account/kuji-history', { params: { cursor, limit: 20 } });
   },
   fetchAdminProducts: async (
     filters: Partial<IAdminProductListQueryParams> = {},

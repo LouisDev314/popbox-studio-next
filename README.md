@@ -38,7 +38,7 @@ variables.
 | Server/client data | Axios, TanStack Query, centralized query/mutation configs |
 | Client state | Zustand persisted cart and wishlist stores |
 | Forms/validation | React Hook Form, Zod, local validation helpers |
-| Auth/admin | Supabase client session handling, Bearer auth headers for admin API calls |
+| Auth | Supabase SSR sessions, customer/admin classification, and Bearer-authenticated backend APIs |
 | Payments | Stripe Checkout handoff through backend API responses |
 | Observability | Sentry, Vercel Analytics, Vercel Speed Insights |
 | Testing | Vitest, Testing Library, MSW |
@@ -173,11 +173,15 @@ Use `.env.local` locally. `.env.example` shows the required public configuration
 | `NEXT_PUBLIC_SITE_URL` | Canonical site URL for metadata and absolute URLs |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLIC_KEY` | Supabase anon/public key |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key used by browser and SSR auth clients |
 | `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET` | Public product-image bucket; defaults to `product-images` |
 | `NEXT_PUBLIC_IS_SITE_OPEN` | Set to `false` for maintenance-style storefront gating |
 
 On Vercel, `VERCEL_PROJECT_PRODUCTION_URL` or `VERCEL_URL` can back `NEXT_PUBLIC_SITE_URL` when it is not explicitly set.
+
+Customer authentication also requires Supabase email confirmation, password recovery, and (when enabled) the Google
+provider. Allowlist `http://localhost:3001/auth/callback` plus the production `/auth/callback` URL in Supabase Auth.
+Configure a production SMTP provider before relying on confirmation and recovery email volume.
 
 ---
 

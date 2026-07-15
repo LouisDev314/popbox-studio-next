@@ -5,6 +5,7 @@ import getPublicEnvConfig from '@/configs/public-env';
 import { StorefrontAlertProvider } from '@/components/storefront/storefront-alert-provider';
 import { Toaster } from '@/components/ui/sonner'
 import { GoogleAnalytics } from '@/components/analytics/google-analytics';
+import { CustomerAuthProvider } from '@/components/auth/customer-auth-provider';
 
 interface IStoreLayoutProps {
   children: ReactNode;
@@ -19,16 +20,18 @@ export default function StoreLayout(props: IStoreLayoutProps) {
       </div>
     </main>
   ) : (
-    <StorefrontAlertProvider>
-      <Suspense fallback={<div aria-hidden="true" className="h-16" />}>
-        <StoreHeader />
-      </Suspense>
-      <Toaster />
-      <main className="flex-1 w-full flex flex-col">
-        {props.children}
-      </main>
-      <StoreFooter />
-    </StorefrontAlertProvider>
+    <CustomerAuthProvider>
+      <StorefrontAlertProvider>
+        <Suspense fallback={<div aria-hidden="true" className="h-16" />}>
+          <StoreHeader />
+        </Suspense>
+        <Toaster />
+        <main className="flex-1 w-full flex flex-col">
+          {props.children}
+        </main>
+        <StoreFooter />
+      </StorefrontAlertProvider>
+    </CustomerAuthProvider>
   );
 
   return (

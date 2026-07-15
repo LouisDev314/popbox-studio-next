@@ -5,6 +5,8 @@ import {
   getCheckoutAddressError,
   getCheckoutQuoteErrorMessage,
   getFriendlyErrorMessage,
+  getAccountApiErrorCode,
+  getApiErrorCode,
 } from '@/utils/api-errors';
 
 function createAxiosError(
@@ -58,6 +60,22 @@ describe('getFriendlyErrorMessage', () => {
     const error = new AxiosError('Network Error');
 
     expect(getFriendlyErrorMessage(error)).toBe('Network error. Please check your connection.');
+  });
+});
+
+describe('API error codes', () => {
+  it('reads and classifies stable backend account codes', () => {
+    const error = createAxiosError({
+      code: 401,
+      data: null,
+      errors: { code: 'AUTH_TOKEN_INVALID' },
+      message: 'Unauthorized',
+      status: 'error',
+      success: false,
+    }, 401);
+
+    expect(getApiErrorCode(error)).toBe('AUTH_TOKEN_INVALID');
+    expect(getAccountApiErrorCode(error)).toBe('AUTH_TOKEN_INVALID');
   });
 });
 

@@ -25,6 +25,9 @@ vi.mock('@/components/ui/sonner', () => ({ Toaster: () => null }));
 vi.mock('@/components/storefront/storefront-alert-provider', () => ({
   StorefrontAlertProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
+vi.mock('@/components/auth/customer-auth-provider', () => ({
+  CustomerAuthProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
 vi.mock('@/components/admin/admin-auth-provider', () => ({
   AdminAuthProvider: ({ children }: { children: React.ReactNode }) => children,
 }));

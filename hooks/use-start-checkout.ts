@@ -15,6 +15,7 @@ import {
 } from '@/interfaces/checkout';
 import {
   getApiErrorDetails,
+  getApiErrorCode,
   getCheckoutAddressError,
   isTimeoutAxiosError,
 } from '@/utils/api-errors';
@@ -24,6 +25,7 @@ import {
   redirectToCheckout,
 } from '@/utils/checkout';
 import { trackBeginCheckout } from '@/lib/analytics';
+import { useCustomerAuth } from '@/components/auth/customer-auth-provider';
 
 function getCheckoutRequestErrorMessage(
   error: AxiosError,
@@ -76,6 +78,7 @@ function getCheckoutDialogConfig(error: AxiosError) {
 }
 
 export function useStartCheckout() {
+  const auth = useCustomerAuth();
   const invalidItems = useCartStore((state) => state.invalidItems);
   const checkoutErrorMessage = useCheckoutUiStore((state) => state.checkoutErrorMessage);
   const checkoutDialog = useCheckoutUiStore((state) => state.checkoutDialog);
@@ -85,7 +88,9 @@ export function useStartCheckout() {
     CheckoutSessionData,
     { data: CheckoutSessionRequest; key: string }
   >({
-    mutationFn: ({ data, key }) => MutationConfigs.createCheckoutSession(data, key),
+    mutationFn: ({ data, key }) => auth.status === 'customer'
+      ? MutationConfigs.createAuthenticatedCheckoutSession(data, key)
+      : MutationConfigs.createCheckoutSession(data, key),
   });
 
   const startCheckout = useCallback((
@@ -96,6 +101,7 @@ export function useStartCheckout() {
         request: CheckoutSessionRequest,
       ) => void;
       onSessionSuccess?: () => void;
+      onAuthEmailMismatch?: () => void;
     } = {},
   ) => {
     if (invalidItems.length > 0) {
@@ -137,6 +143,12 @@ export function useStartCheckout() {
           }
         },
         onError: (error) => {
+          if (getApiErrorCode(error) === 'AUTH_CHECKOUT_EMAIL_MISMATCH') {
+            useCheckoutUiStore.getState().endCheckout();
+            options.onAuthEmailMismatch?.();
+            return;
+          }
+
           const checkoutAddressError = getCheckoutAddressError(error as AxiosError<IBaseApiResponse<unknown>>);
 
           if (checkoutAddressError) {

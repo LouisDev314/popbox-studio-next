@@ -4,7 +4,15 @@ const REDACTED_VALUE = '[REDACTED]';
 const BROWSER_EXTENSION_OBJECT_NOT_FOUND_PATTERN =
   /^Non-Error promise rejection captured with value: Object Not Found Matching Id:\d+, MethodName:update, ParamCount:4$/;
 
-const SENSITIVE_QUERY_KEYS = new Set(['token', 'session_id', 'checkout_session_id']);
+const SENSITIVE_QUERY_KEYS = new Set([
+  'token',
+  'session_id',
+  'checkout_session_id',
+  'code',
+  'error',
+  'error_code',
+  'error_description',
+]);
 const SENSITIVE_HEADER_KEYS = new Set(['authorization', 'cookie', 'set-cookie']);
 const URL_SCHEME_PATTERN = /^[a-zA-Z][a-zA-Z\d+\-.]*:/;
 

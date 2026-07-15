@@ -4,6 +4,10 @@ import { type CSSProperties } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { ArrowUpRight } from 'lucide-react';
+import { useCustomerAuth } from '@/components/auth/customer-auth-provider';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { buildSignInHref, validateInternalNext } from '@/lib/auth/redirects';
 import {
   FEATURED_NAV_HREF,
   getActiveTopLevelNavKey,
@@ -22,8 +26,17 @@ interface IMobileMenuPanelProps {
 export function MobileMenuPanel(props: IMobileMenuPanelProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const auth = useCustomerAuth();
   const activeTopLevelNavKey = getActiveTopLevelNavKey(pathname, searchParams);
   const collectionMenuItems = props.collectionNavItems.filter((item) => item.href !== FEATURED_NAV_HREF);
+  const query = searchParams.toString();
+  const currentPath = validateInternalNext(`${pathname}${query ? `?${query}` : ''}`, '/');
+
+  const handleSignOut = async () => {
+    await auth.signOut();
+    props.onNavigate();
+    window.location.reload();
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden border border-border/70 bg-background shadow-sm">
@@ -97,6 +110,76 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
               </div>
             </div>
           ) : null}
+
+          <div className="space-y-2 border-t border-border/60 pt-4">
+            <p className="ml-2 text-xs uppercase tracking-wider text-muted-foreground">Account</p>
+            {auth.status === 'resolving' ? (
+              <div className="space-y-2 px-2" aria-busy="true" aria-label="Checking account status">
+                <Skeleton className="h-11 w-full rounded-full" />
+                <Skeleton className="h-11 w-4/5 rounded-full" />
+              </div>
+            ) : null}
+            {auth.status === 'signedOut' ? (
+              <Button asChild className="w-full">
+                <Link href={buildSignInHref(currentPath)} onClick={props.onNavigate}>
+                  Sign In / Create Account
+                </Link>
+              </Button>
+            ) : null}
+            {auth.status === 'conflict' || auth.status === 'unavailable' ? (
+              <div className="space-y-2">
+                <Button asChild className="w-full">
+                  <Link href="/account" onClick={props.onNavigate}>Account Help</Link>
+                </Button>
+                <Button type="button" variant="ghost" className="w-full text-destructive" onClick={handleSignOut}>
+                  Sign Out
+                </Button>
+              </div>
+            ) : null}
+            {auth.status === 'customer' ? (
+              <div className="space-y-1">
+                {[
+                  ['/account/orders', 'My Orders'],
+                  ['/account/kuji', 'Kuji History'],
+                  ['/account', 'Profile'],
+                ].map(([href, label]) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="flex rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={props.onNavigate}
+                  >
+                    {label}
+                  </Link>
+                ))}
+                <button
+                  type="button"
+                  className="flex w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-destructive hover:bg-destructive/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  onClick={handleSignOut}
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : null}
+            {auth.status === 'nonCustomer' ? (
+              <div className="space-y-1">
+                <Link
+                  href="/admin"
+                  className="flex rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  onClick={props.onNavigate}
+                >
+                  Admin Dashboard
+                </Link>
+                <button
+                  type="button"
+                  className="flex w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-destructive hover:bg-destructive/5"
+                  onClick={handleSignOut}
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </nav>
     </div>

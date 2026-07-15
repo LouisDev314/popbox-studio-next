@@ -1,4 +1,4 @@
-import { AxiosError, HttpStatusCode } from 'axios';
+import axios, { AxiosError, HttpStatusCode } from 'axios';
 import {
   type IApiErrorDetails,
   type IApiValidationErrors,
@@ -33,6 +33,47 @@ const CHECKOUT_ADDRESS_ERROR_MESSAGES: Record<CheckoutAddressErrorCode, string> 
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+export type AccountApiErrorCode =
+  | 'ACCOUNT_BOOTSTRAP_UNAVAILABLE'
+  | 'ACCOUNT_OWNERSHIP_CONFLICT'
+  | 'AUTH_CHECKOUT_EMAIL_MISMATCH'
+  | 'AUTH_REQUIRED'
+  | 'AUTH_TOKEN_INVALID'
+  | 'AUTH_VERIFIER_UNAVAILABLE'
+  | 'CUSTOMER_ACCOUNT_REQUIRED'
+  | 'EMAIL_NOT_VERIFIED';
+
+const ACCOUNT_API_ERROR_CODES = new Set<AccountApiErrorCode>([
+  'ACCOUNT_BOOTSTRAP_UNAVAILABLE',
+  'ACCOUNT_OWNERSHIP_CONFLICT',
+  'AUTH_CHECKOUT_EMAIL_MISMATCH',
+  'AUTH_REQUIRED',
+  'AUTH_TOKEN_INVALID',
+  'AUTH_VERIFIER_UNAVAILABLE',
+  'CUSTOMER_ACCOUNT_REQUIRED',
+  'EMAIL_NOT_VERIFIED',
+]);
+
+export function getApiErrorCode(error: unknown): string | null {
+  if (!axios.isAxiosError(error)) {
+    return null;
+  }
+
+  const responseData = error.response?.data;
+  if (!isBaseApiResponse(responseData) || !isObject(responseData.errors)) {
+    return null;
+  }
+
+  return getStringField(responseData.errors, 'code') || null;
+}
+
+export function getAccountApiErrorCode(error: unknown): AccountApiErrorCode | null {
+  const code = getApiErrorCode(error);
+  return code && ACCOUNT_API_ERROR_CODES.has(code as AccountApiErrorCode)
+    ? code as AccountApiErrorCode
+    : null;
 }
 
 function getStringField(value: Record<string, unknown>, field: string): string {

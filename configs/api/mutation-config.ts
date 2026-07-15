@@ -38,6 +38,11 @@ import { withAdminAuth } from '@/lib/api/admin-client';
 import { IContactRequestBody } from '@/interfaces/contact';
 import { IShippingSettings, IUpdateShippingSettingsPayload } from '@/interfaces/shipping';
 import { IStoreBannerSettings, IUpdateStoreBannerSettingsPayload } from '@/interfaces/settings';
+import type {
+  IAccountProfile,
+  IAccountProfilePatch,
+} from '@/interfaces/account';
+import { customerPatch, customerPost } from '@/lib/api/customer-client';
 
 const MutationConfigs = {
   createCheckoutQuote: (
@@ -55,6 +60,19 @@ const MutationConfigs = {
       },
     });
   },
+  createAuthenticatedCheckoutQuote: (
+    data: CheckoutQuoteRequest,
+  ): Promise<AxiosResponse<IBaseApiResponse<CheckoutQuoteData>>> => {
+    return customerPost('/api/v1/checkout/quote', data);
+  },
+  createAuthenticatedCheckoutSession: (
+    data: CheckoutSessionRequest,
+    idempotencyKey: string,
+  ): Promise<AxiosResponse<IBaseApiResponse<CheckoutSessionData>>> => {
+    return customerPost('/api/v1/checkout/session', data, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+  },
   revealTicket: ({
     publicId,
     ticketId,
@@ -66,6 +84,25 @@ const MutationConfigs = {
   },
   revealAllTickets: async (publicId: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
     return httpClient.post(`/api/v1/orders/${publicId}/tickets/reveal-all`);
+  },
+  patchAccountProfile: (
+    data: IAccountProfilePatch,
+  ): Promise<AxiosResponse<IBaseApiResponse<IAccountProfile>>> => {
+    return customerPatch('/api/v1/account/profile', data);
+  },
+  revealAccountTicket: ({
+    publicId,
+    ticketId,
+  }: {
+    publicId: string;
+    ticketId: string;
+  }): Promise<AxiosResponse<IBaseApiResponse<IOrderTicket>>> => {
+    return customerPost(`/api/v1/account/orders/${encodeURIComponent(publicId)}/tickets/${encodeURIComponent(ticketId)}/reveal`);
+  },
+  revealAllAccountTickets: (
+    publicId: string,
+  ): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
+    return customerPost(`/api/v1/account/orders/${encodeURIComponent(publicId)}/tickets/reveal-all`);
   },
   patchAdminProductStatus: async ({
     productId,
