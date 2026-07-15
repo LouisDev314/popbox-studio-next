@@ -7,5 +7,5 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
   const { next: requestedNext } = await searchParams;
   const next = validateInternalNext(requestedNext);
   await redirectAuthenticatedAccountUser(next);
-  return <AuthSplitLayout title="Create an Account"><SignUpForm next={next} /></AuthSplitLayout>;
+  return <AuthSplitLayout title="Create your account"><SignUpForm next={next} /></AuthSplitLayout>;
 }

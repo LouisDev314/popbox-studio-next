@@ -3,7 +3,7 @@ import { test, expect } from './fixtures/mock-services';
 test('sign-in keeps Google first and exposes accessible password visibility', async ({ page }) => {
   await page.goto('/account/sign-in');
   await expect(page.getByRole('heading', { name: 'Sign In' })).toBeVisible();
-  const googleButton = page.getByRole('button', { name: 'Continue with Google' });
+  const googleButton = page.getByRole('button', { name: 'Sign up with Google' });
   await expect(googleButton).toBeVisible();
   const password = page.locator('#sign-in-password');
   const googleBox = await googleButton.boundingBox();

@@ -17,7 +17,7 @@ export function AuthSplitLayout({ children, title }: { children: ReactNode; titl
       </div>
       <div className="flex items-start px-4 py-12 sm:px-6 sm:py-16 lg:items-center lg:px-12 xl:px-16">
         <div className="mx-auto w-full max-w-md">
-          <h1 className="mb-8 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{title}</h1>
+          <h1 className="mb-8 text-3xl font-semibold tracking-tight text-foreground text-center sm:text-4xl">{title}</h1>
           {children}
         </div>
       </div>

@@ -168,11 +168,11 @@ export function SignUpForm({ next }: { next: string }) {
           </Field>
         </FieldGroup>
         <FieldError>{error}</FieldError>
-        <AuthSubmitButton isPending={isPending}>Create Account</AuthSubmitButton>
+        <AuthSubmitButton isPending={isPending}>Sign up</AuthSubmitButton>
       </form>
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
-        <Link href={`/account/sign-in?next=${encodeURIComponent(next)}`} className="font-medium text-foreground underline-offset-4 hover:underline">Sign in</Link>
+        <Link href={`/account/sign-in?next=${encodeURIComponent(next)}`} className="font-medium text-foreground underline-offset-4 hover:underline">Log in</Link>
       </p>
     </div>
   );
