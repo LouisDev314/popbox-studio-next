@@ -52,8 +52,10 @@ const FLY_TARGET_HEADER_REVEAL_MS = 900;
 interface IStoreHeaderActionsProps {
   hasCartHydrated: boolean;
   hasWishlistHydrated: boolean;
+  isAccountMenuOpen: boolean;
   isMenuOpen: boolean;
   isSearchOpen: boolean;
+  onAccountMenuOpenChange: (isOpen: boolean) => void;
   onCartOpen: () => void;
   onMenuToggle: () => void;
   onSearchToggle: () => void;
@@ -128,7 +130,10 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
         ) : null}
       </button>
 
-      <AccountHeaderAction />
+      <AccountHeaderAction
+        isMenuOpen={props.isAccountMenuOpen}
+        onMenuOpenChange={props.onAccountMenuOpenChange}
+      />
 
       <button
         id={MOBILE_MENU_BUTTON_ID}
@@ -175,7 +180,9 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
   const checkoutSuccessCleanupSessionId = useCheckoutUiStore((state) => state.checkoutSuccessCleanupSessionId);
 
   const [activeMobilePanel, setActiveMobilePanel] = useState<TMobilePanel>(null);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCollectionsMenuOpen, setIsCollectionsMenuOpen] = useState(false);
   const [isFlyTargetHeaderVisible, setIsFlyTargetHeaderVisible] = useState(false);
   const [hasStoreBanner, setHasStoreBanner] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
@@ -222,6 +229,28 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
   }));
   const isCollectionsActive = activeTopLevelNavKey === 'collections';
   const collectionMenuItems = props.collectionNavItems.filter((item) => item.href !== FEATURED_NAV_HREF);
+  const routeKey = `${pathname}?${searchParams.toString()}`;
+
+  useEffect(() => {
+    let isCurrentRoute = true;
+
+    queueMicrotask(() => {
+      if (!isCurrentRoute) {
+        return;
+      }
+
+      setActiveMobilePanel(null);
+      setIsAccountMenuOpen(false);
+      setIsCartOpen(false);
+      setIsCollectionsMenuOpen(false);
+      setIsWishlistOpen(false);
+      setSearchQuery('');
+    });
+
+    return () => {
+      isCurrentRoute = false;
+    };
+  }, [routeKey]);
 
   useEffect(() => {
     if (!isSearchOpen) {
@@ -377,7 +406,11 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
                   </Link>
                 ))}
                 {collectionMenuItems.length > 0 ? (
-                  <DropdownMenu defaultTriggerId={COLLECTIONS_MENU_TRIGGER_ID}>
+                  <DropdownMenu
+                    defaultTriggerId={COLLECTIONS_MENU_TRIGGER_ID}
+                    open={isCollectionsMenuOpen}
+                    onOpenChange={setIsCollectionsMenuOpen}
+                  >
                     <DropdownMenuTrigger
                       id={COLLECTIONS_MENU_TRIGGER_ID}
                       aria-current={isCollectionsActive ? 'page' : undefined}
@@ -419,8 +452,10 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
             <StoreHeaderActions
               hasCartHydrated={hasCartHydrated}
               hasWishlistHydrated={hasWishlistHydrated}
+              isAccountMenuOpen={isAccountMenuOpen}
               isMenuOpen={isMenuOpen}
               isSearchOpen={isSearchOpen}
+              onAccountMenuOpenChange={setIsAccountMenuOpen}
               onCartOpen={handleCartOpen}
               onMenuToggle={() => handleMobilePanelToggle('menu')}
               onSearchToggle={() => handleMobilePanelToggle('search')}

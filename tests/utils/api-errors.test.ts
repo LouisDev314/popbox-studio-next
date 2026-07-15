@@ -116,7 +116,7 @@ describe('getCheckoutAddressError', () => {
   it.each([
     [
       'ADDRESS_INVALID',
-      'We could not validate this shipping address. Please check the street address, city, province, and postal code.',
+      'We could not validate this shipping address or product. Please check the street address, city, province and postal code, or the product availability.',
     ],
     [
       'ADDRESS_COUNTRY_UNSUPPORTED',

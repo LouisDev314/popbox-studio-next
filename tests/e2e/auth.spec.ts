@@ -2,7 +2,7 @@ import { test, expect } from './fixtures/mock-services';
 
 test('sign-in keeps Google first and exposes accessible password visibility', async ({ page }) => {
   await page.goto('/account/sign-in');
-  await expect(page.getByRole('heading', { name: 'Sign In' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Login to your account' })).toBeVisible();
   const googleButton = page.getByRole('button', { name: 'Continue with Google' });
   await expect(googleButton).toBeVisible();
   await expect(page.getByText('or', { exact: true })).toBeVisible();
@@ -39,7 +39,7 @@ test('sign-up has one password input and a live password checklist', async ({ pa
   const minimum = checklist.getByText('At least 8 characters').locator('..');
   const letter = checklist.getByText('Contains a letter').locator('..');
   const number = checklist.getByText('Contains a number').locator('..');
-  await expect(minimum).toHaveAttribute('data-state', 'neutral');
+  await expect(minimum).toHaveAttribute('data-state', 'unmet');
   const password = page.locator('#sign-up-password');
   await password.fill('abcdefgh');
   await expect(minimum).toHaveAttribute('data-state', 'met');

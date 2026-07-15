@@ -26,7 +26,7 @@ interface ICheckoutAddressErrorDetails {
 const CHECKOUT_ADDRESS_ERROR_MESSAGES: Record<CheckoutAddressErrorCode, string> = {
   ADDRESS_CONFIGURATION_ERROR: 'Checkout is temporarily unavailable. Please try again later.',
   ADDRESS_COUNTRY_UNSUPPORTED: 'PopBox Studio currently only ships within Canada.',
-  ADDRESS_INVALID: 'We could not validate this shipping address. Please check the street address, city, province, and postal code.',
+  ADDRESS_INVALID: 'We could not validate this shipping address or product. Please check the street address, city, province and postal code, or the product availability.',
   ADDRESS_NEEDS_CONFIRMATION: 'Please confirm the corrected shipping address before checkout.',
   ADDRESS_VALIDATION_UNAVAILABLE: 'Address validation is temporarily unavailable. Please try again.',
 };

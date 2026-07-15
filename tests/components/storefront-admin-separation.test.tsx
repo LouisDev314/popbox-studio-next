@@ -57,7 +57,7 @@ describe('storefront and admin identity separation', () => {
   it('treats an admin Supabase session as signed out in desktop and mobile storefront UI', async () => {
     renderWithProviders(
       <CustomerAuthProvider>
-        <AccountHeaderAction />
+        <AccountHeaderAction isMenuOpen={false} onMenuOpenChange={vi.fn()} />
         <MobileMenuPanel collectionNavItems={[]} isOpen={true} onNavigate={vi.fn()} />
       </CustomerAuthProvider>,
     );

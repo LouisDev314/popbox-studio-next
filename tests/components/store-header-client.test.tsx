@@ -1,5 +1,12 @@
-import { act, screen } from '@testing-library/react';
-import type { FormEvent, ReactNode } from 'react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import {
+  createRef,
+  forwardRef,
+  useImperativeHandle,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StoreHeaderClient } from '@/components/layout/store-header-client';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
@@ -41,13 +48,16 @@ vi.mock('@/components/layout/mobile-nav-overlay', () => ({
     ariaLabel,
     children,
     containerClassName,
+    isOpen,
   }: {
     ariaLabel: string;
     children: ReactNode;
     containerClassName?: string;
+    isOpen: boolean;
   }) => (
     <div
       className={containerClassName}
+      data-open={isOpen}
       data-testid={ariaLabel === 'Store navigation menu' ? 'store-menu-overlay' : 'store-search-overlay'}
     >
       {children}
@@ -67,16 +77,30 @@ vi.mock('@/components/layout/mobile-search-panel', () => ({
 }));
 
 vi.mock('@/components/cart/cart-drawer', () => ({
-  CartDrawer: () => null,
+  CartDrawer: ({ isOpen }: { isOpen: boolean }) => <div data-testid="cart-drawer" data-open={isOpen} />,
 }));
 
 vi.mock('@/components/wishlist/wishlist-drawer', () => ({
-  WishlistDrawer: () => null,
+  WishlistDrawer: ({ isOpen }: { isOpen: boolean }) => <div data-testid="wishlist-drawer" data-open={isOpen} />,
 }));
 
 vi.mock('@/hooks/use-mobile-navbar-visibility', () => ({
   useMobileNavbarVisibility: () => true,
 }));
+
+interface IStoreHeaderHarnessHandle {
+  rerenderForRouteChange: () => void;
+}
+
+const StoreHeaderHarness = forwardRef<IStoreHeaderHarnessHandle>(function StoreHeaderHarness(_, ref) {
+  const [, setVersion] = useState(0);
+
+  useImperativeHandle(ref, () => ({
+    rerenderForRouteChange: () => setVersion((version) => version + 1),
+  }), []);
+
+  return <StoreHeaderClient collectionNavItems={[]} />;
+});
 
 describe('StoreHeaderClient', () => {
   beforeEach(() => {
@@ -151,5 +175,32 @@ describe('StoreHeaderClient', () => {
     expect(preventDefault).toHaveBeenCalledOnce();
     expect(analyticsMock.trackSearch).toHaveBeenCalledWith('kuji');
     expect(navigationMock.push).toHaveBeenCalledWith('/search/results?q=kuji');
+  });
+
+  it('closes every header overlay when the route changes', async () => {
+    const harnessRef = createRef<IStoreHeaderHarnessHandle>();
+    renderWithProviders(<StoreHeaderHarness ref={harnessRef} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open search' }));
+    expect(screen.getByTestId('store-search-overlay')).toHaveAttribute('data-open', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open wishlist' }));
+    expect(screen.getByTestId('wishlist-drawer')).toHaveAttribute('data-open', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open cart' }));
+    expect(screen.getByTestId('cart-drawer')).toHaveAttribute('data-open', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }));
+    expect(screen.getByTestId('store-menu-overlay')).toHaveAttribute('data-open', 'true');
+
+    navigationMock.pathname = '/products';
+    act(() => harnessRef.current?.rerenderForRouteChange());
+
+    await waitFor(() => {
+      expect(screen.getByTestId('store-search-overlay')).toHaveAttribute('data-open', 'false');
+      expect(screen.getByTestId('wishlist-drawer')).toHaveAttribute('data-open', 'false');
+      expect(screen.getByTestId('cart-drawer')).toHaveAttribute('data-open', 'false');
+      expect(screen.getByTestId('store-menu-overlay')).toHaveAttribute('data-open', 'false');
+    });
   });
 });

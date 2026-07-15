@@ -907,7 +907,7 @@ describe('CartCheckoutPanel', () => {
     const alert = await screen.findByRole('alert');
 
     expect(alert).toHaveTextContent(
-      'We could not validate this shipping address. Please check the street address, city, province, and postal code.',
+      'We could not validate this shipping address or product. Please check the street address, city, province and postal code, or the product availability.',
     );
     expect(alert).not.toHaveTextContent('payment link');
   });
@@ -1259,7 +1259,7 @@ describe('CartCheckoutPanel', () => {
   it.each([
     [
       'ADDRESS_INVALID',
-      'We could not validate this shipping address. Please check the street address, city, province, and postal code.',
+      'We could not validate this shipping address or product. Please check the street address, city, province and postal code, or the product availability.',
     ],
     [
       'ADDRESS_COUNTRY_UNSUPPORTED',
@@ -1448,7 +1448,7 @@ describe('CartCheckoutPanel', () => {
     });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'We could not validate this shipping address.',
+      'We could not validate this shipping address or product.',
     );
 
     await act(async () => {
@@ -1458,7 +1458,7 @@ describe('CartCheckoutPanel', () => {
     await waitFor(() => {
       expect(redirectToCheckout).toHaveBeenCalledWith('https://checkout.stripe.com/pay/cs_test_123');
     });
-    expect(screen.queryByText(/We could not validate this shipping address/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/We could not validate this shipping address or product/)).not.toBeInTheDocument();
   });
 
   it.each([

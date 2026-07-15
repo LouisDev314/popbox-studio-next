@@ -8,7 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -34,7 +33,6 @@ interface ICustomerAuthValue {
 }
 
 const CustomerAuthContext = createContext<ICustomerAuthValue | null>(null);
-const subscribeToHydration = () => () => undefined;
 const FALLBACK_CUSTOMER_AUTH: ICustomerAuthValue = {
   status: 'signedOut',
   email: null,
@@ -61,7 +59,6 @@ function classifyProviderError(error: unknown): CustomerAuthStatus {
 export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const mountedRef = useRef(true);
-  const hasHydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const [status, setStatus] = useState<CustomerAuthStatus>('resolving');
   const [profile, setProfile] = useState<IAccountProfile | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
@@ -130,13 +127,13 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const value = useMemo<ICustomerAuthValue>(() => ({
-    status: hasHydrated ? status : 'resolving',
+    status,
     email: profile?.account.email ?? null,
     profile: profile?.profile ?? null,
     providers,
     refresh,
     signOut,
-  }), [hasHydrated, profile, providers, refresh, signOut, status]);
+  }), [profile, providers, refresh, signOut, status]);
 
   return (
     <CustomerAuthContext.Provider value={value}>

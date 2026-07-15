@@ -17,13 +17,22 @@ export const ACCOUNT_HEADER_ACTION_ID = 'store-account-trigger';
 
 const triggerClassName = 'hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-transparent bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 xl:inline-flex';
 
-export function AccountHeaderAction() {
+interface IAccountHeaderActionProps {
+  isMenuOpen: boolean;
+  onMenuOpenChange: (isOpen: boolean) => void;
+}
+
+export function AccountHeaderAction(props: IAccountHeaderActionProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
   const auth = useCustomerAuth();
   const query = searchParams.toString();
   const currentPath = validateInternalNext(`${pathname}${query ? `?${query}` : ''}`, '/');
+  const requestedNext = searchParams.get('next');
+  const signInNext = pathname.startsWith('/account/') && requestedNext
+    ? validateInternalNext(requestedNext, '/')
+    : currentPath;
 
   if (auth.status === 'resolving') {
     return (
@@ -44,7 +53,7 @@ export function AccountHeaderAction() {
     return (
       <Link
         id={ACCOUNT_HEADER_ACTION_ID}
-        href={buildSignInHref(currentPath)}
+        href={buildSignInHref(signInNext)}
         aria-label="Sign in or create an account"
         className={triggerClassName}
       >
@@ -73,7 +82,11 @@ export function AccountHeaderAction() {
   };
 
   return (
-    <DropdownMenu defaultTriggerId={ACCOUNT_HEADER_ACTION_ID}>
+    <DropdownMenu
+      defaultTriggerId={ACCOUNT_HEADER_ACTION_ID}
+      open={props.isMenuOpen}
+      onOpenChange={props.onMenuOpenChange}
+    >
       <DropdownMenuTrigger
         id={ACCOUNT_HEADER_ACTION_ID}
         aria-label="Open account menu"
