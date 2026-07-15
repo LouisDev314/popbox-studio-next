@@ -9,24 +9,25 @@ const accountItems = [
   { href: '/account', label: 'Profile' },
   { href: '/account/orders', label: 'Orders' },
   { href: '/account/kuji', label: 'Kuji History' },
-];
+] as const;
 
-function getActiveHref(pathname: string) {
-  if (pathname.startsWith('/account/orders')) return '/account/orders';
-  if (pathname.startsWith('/account/kuji')) return '/account/kuji';
-  return '/account';
+export function getAccountNavigationItem(pathname: string) {
+  if (pathname === '/account/orders' || pathname.startsWith('/account/orders/')) return accountItems[1];
+  if (pathname === '/account/kuji' || pathname.startsWith('/account/kuji/')) return accountItems[2];
+  return accountItems[0];
 }
 
 export function AccountNavigation() {
   const pathname = usePathname();
   const router = useRouter();
-  const activeHref = getActiveHref(pathname);
+  const activeItem = getAccountNavigationItem(pathname);
+  const activeHref = activeItem.href;
 
   return (
     <>
       <div className="mb-8 lg:hidden">
         <Select value={activeHref} onValueChange={(value) => value && router.push(value)}>
-          <SelectTrigger className="h-11 w-full"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-11 w-full"><SelectValue>{activeItem.label}</SelectValue></SelectTrigger>
           <SelectContent align="start" className="w-full">
             {accountItems.map((item) => <SelectItem key={item.href} value={item.href}>{item.label}</SelectItem>)}
           </SelectContent>

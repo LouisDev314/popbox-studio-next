@@ -11,6 +11,8 @@ const BLOCKED_PREFIXES = [
   '/account/forgot-password',
 ];
 
+export const REQUEST_PATH_HEADER = 'x-popbox-request-path';
+
 export function validateInternalNext(value: string | null | undefined, fallback = '/account'): string {
   const candidate = value?.trim();
 
