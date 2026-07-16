@@ -113,7 +113,7 @@ export function ProfileForm({ initialProfile }: { initialProfile: IAccountProfil
         <h2 className="text-lg font-semibold">Security</h2>
         <div className="mt-5 flex flex-wrap gap-3">
           <Button type="button" variant="outline" disabled={isSendingReset} onClick={sendPasswordReset}>{isSendingReset ? <Spinner className="mr-2" /> : null}Change Password</Button>
-          <Button type="button" variant="ghost" onClick={signOut}>Sign Out</Button>
+          <Button type="button" variant="ghost" className='rounded-full' onClick={signOut}>Sign Out</Button>
         </div>
       </section>
     </div>

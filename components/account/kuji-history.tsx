@@ -49,7 +49,7 @@ export function KujiHistory({ initialPage }: { initialPage: IKujiHistoryPage }) 
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {group.tickets.map((ticket) => (
-              <div key={ticket.id} className="rounded-xl border border-border/70 px-4 py-3 text-sm"><p className="font-medium">Ticket {ticket.ticketNumber}</p>{ticket.voidedAt ? <p className="mt-1 text-muted-foreground">Voided{ticket.voidReason ? ` — ${ticket.voidReason}` : ''}</p> : ticket.revealedAt && ticket.prize ? <p className="mt-1 text-muted-foreground">{ticket.prize.prizeCode} · {ticket.prize.name}</p> : <Link href={`/account/orders/${encodeURIComponent(group.orderPublicId)}#tickets`} className="mt-1 inline-flex font-medium text-primary underline-offset-4 hover:underline">Unrevealed — view tickets</Link>}</div>
+              <div key={ticket.id} className="rounded-xl border border-border/70 px-4 py-3 text-sm"><p className="font-medium">Ticket</p>{ticket.voidedAt ? <p className="mt-1 text-muted-foreground">Voided{ticket.voidReason ? ` — ${ticket.voidReason}` : ''}</p> : ticket.revealedAt && ticket.prize ? <p className="mt-1 text-muted-foreground">Prize {ticket.prize.prizeCode} · {ticket.prize.name}</p> : <Link href={`/account/orders/${encodeURIComponent(group.orderPublicId)}#tickets`} className="mt-1 inline-flex font-medium text-primary underline-offset-4 hover:underline">Unrevealed — view tickets</Link>}</div>
             ))}
           </div>
         </section>
