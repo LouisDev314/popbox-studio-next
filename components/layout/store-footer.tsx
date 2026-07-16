@@ -16,6 +16,7 @@ export function StoreFooter() {
                 PopBox <span className="text-foreground">Studio</span>
               </div>
             </div>
+            <p>About PopBox Studio</p>
             <p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">
               PopBox Studio is a Canadian anime collectibles store specializing in authentic Ichiban Kuji, anime merchandise, figures, plushies, and limited-edition collectibles.
             </p>

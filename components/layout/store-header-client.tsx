@@ -90,7 +90,7 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
         aria-expanded={props.isSearchOpen}
         aria-label={props.isSearchOpen ? 'Close search' : 'Open search'}
         className={cn(
-          'rounded-full border border-transparent p-2 text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          'cursor-pointer rounded-full border border-transparent p-2 text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
           props.isSearchOpen ? 'bg-accent text-foreground' : 'bg-background',
         )}
         onClick={props.onSearchToggle}
@@ -102,7 +102,7 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
         id={WISHLIST_BUTTON_ID}
         type="button"
         data-fly-target="wishlist"
-        className="relative rounded-full border border-transparent bg-background p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="cursor-pointer relative rounded-full border border-transparent bg-background p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={props.onWishlistOpen}
       >
         <span className="sr-only">Open wishlist</span>
@@ -118,7 +118,7 @@ function StoreHeaderActions(props: IStoreHeaderActionsProps) {
         id={MOBILE_CART_BUTTON_ID}
         type="button"
         data-fly-target="cart"
-        className="relative rounded-full border border-transparent bg-background p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="cursor-pointer relative rounded-full border border-transparent bg-background p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={props.onCartOpen}
       >
         <span className="sr-only">Open cart</span>
