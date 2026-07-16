@@ -1,6 +1,5 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { CircleUserRound } from 'lucide-react';
@@ -13,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { buildSignInHref, validateInternalNext } from '@/lib/auth/redirects';
+import { useHasHydrated } from '@/hooks/use-has-hydrated';
 
 export const ACCOUNT_HEADER_ACTION_ID = 'store-account-trigger';
 
@@ -21,18 +21,6 @@ const triggerClassName = 'hidden h-10 w-10 shrink-0 items-center justify-center 
 interface IAccountHeaderActionProps {
   isMenuOpen: boolean;
   onMenuOpenChange: (isOpen: boolean) => void;
-}
-
-function subscribeToHydration() {
-  return () => undefined;
-}
-
-function useHasHydrated() {
-  return useSyncExternalStore(
-    subscribeToHydration,
-    () => true,
-    () => false,
-  );
 }
 
 export function AccountHeaderAction(props: IAccountHeaderActionProps) {

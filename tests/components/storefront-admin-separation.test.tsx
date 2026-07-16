@@ -75,6 +75,15 @@ describe('storefront and admin identity separation', () => {
     expect(html).not.toContain('aria-label="Sign in or create an account"');
   });
 
+  it('keeps the delayed mobile account menu in its loading shape during server rendering', () => {
+    const html = renderToString(
+      <MobileMenuPanel collectionNavItems={[]} isOpen={false} onNavigate={vi.fn()} />,
+    );
+
+    expect(html).toContain('aria-label="Checking account status"');
+    expect(html).not.toContain('Sign In / Create Account');
+  });
+
   it('treats an admin Supabase session as signed out in desktop and mobile storefront UI', async () => {
     renderWithProviders(
       <CustomerAuthProvider>

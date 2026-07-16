@@ -16,6 +16,7 @@ import {
   isStoreNavItemActive,
 } from '@/components/layout/store-navigation';
 import { cn } from '@/lib/utils';
+import { useHasHydrated } from '@/hooks/use-has-hydrated';
 
 interface IMobileMenuPanelProps {
   collectionNavItems: IStoreCollectionNavItem[];
@@ -27,6 +28,7 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const auth = useCustomerAuth();
+  const hasHydrated = useHasHydrated();
   const activeTopLevelNavKey = getActiveTopLevelNavKey(pathname, searchParams);
   const collectionMenuItems = props.collectionNavItems.filter((item) => item.href !== FEATURED_NAV_HREF);
   const query = searchParams.toString();
@@ -113,20 +115,20 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
 
           <div className="space-y-2 border-t border-border/60 pt-4">
             <p className="ml-2 text-xs uppercase tracking-wider text-muted-foreground">Account</p>
-            {auth.status === 'resolving' ? (
+            {!hasHydrated || auth.status === 'resolving' ? (
               <div className="space-y-2 px-2" aria-busy="true" aria-label="Checking account status">
                 <Skeleton className="h-11 w-full rounded-full" />
                 <Skeleton className="h-11 w-4/5 rounded-full" />
               </div>
             ) : null}
-            {auth.status === 'signedOut' ? (
+            {hasHydrated && auth.status === 'signedOut' ? (
               <Button asChild className="w-full">
                 <Link href={buildSignInHref(currentPath)} onClick={props.onNavigate}>
                   Sign In / Create Account
                 </Link>
               </Button>
             ) : null}
-            {auth.status === 'conflict' || auth.status === 'unavailable' ? (
+            {hasHydrated && (auth.status === 'conflict' || auth.status === 'unavailable') ? (
               <div className="space-y-2">
                 <Button asChild className="w-full">
                   <Link href="/account" onClick={props.onNavigate}>Account Help</Link>
@@ -136,7 +138,7 @@ export function MobileMenuPanel(props: IMobileMenuPanelProps) {
                 </Button>
               </div>
             ) : null}
-            {auth.status === 'customer' ? (
+            {hasHydrated && auth.status === 'customer' ? (
               <div className="space-y-1">
                 {[
                   ['/account/orders', 'My Orders'],

@@ -86,6 +86,7 @@ function apiData(data: unknown) {
 }
 
 function createRequestHandler(state: IAuthMockState) {
+  // eslint-disable-next-line complexity -- One local HTTP boundary keeps the auth journey fixture deterministic and easy to reset.
   return async function handleRequest(request: IncomingMessage, response: ServerResponse) {
     if (request.method === 'OPTIONS') {
       response.writeHead(204, {
@@ -98,104 +99,104 @@ function createRequestHandler(state: IAuthMockState) {
       return;
     }
 
-  const requestUrl = new URL(request.url ?? '/', 'http://127.0.0.1:4010');
-  const pathname = requestUrl.pathname;
+    const requestUrl = new URL(request.url ?? '/', 'http://127.0.0.1:4010');
+    const pathname = requestUrl.pathname;
 
-  if (pathname === '/auth/v1/signup' && request.method === 'POST') {
-    sendJson(response, {
-      user: { ...customerUser, email_confirmed_at: null, confirmed_at: null },
-      session: null,
-    });
-    return;
-  }
+    if (pathname === '/auth/v1/signup' && request.method === 'POST') {
+      sendJson(response, {
+        user: { ...customerUser, email_confirmed_at: null, confirmed_at: null },
+        session: null,
+      });
+      return;
+    }
 
-  if (pathname === '/auth/v1/token' && request.method === 'POST') {
-    const grantType = requestUrl.searchParams.get('grant_type');
-    const body = await readJson(request);
+    if (pathname === '/auth/v1/token' && request.method === 'POST') {
+      const grantType = requestUrl.searchParams.get('grant_type');
+      const body = await readJson(request);
 
-    if (grantType === 'password') {
-      const email = typeof body.email === 'string' ? body.email : '';
-      if (email === 'service@example.com') {
-        sendJson(response, { code: 'unexpected_failure', message: 'raw upstream outage detail' }, 503);
+      if (grantType === 'password') {
+        const email = typeof body.email === 'string' ? body.email : '';
+        if (email === 'service@example.com') {
+          sendJson(response, { code: 'unexpected_failure', message: 'raw upstream outage detail' }, 503);
+          return;
+        }
+
+        const error = email === 'unconfirmed@example.com'
+          ? { code: 'email_not_confirmed', message: 'Email not confirmed' }
+          : { code: 'invalid_credentials', message: email === 'unknown@example.com' ? 'User not found' : 'Invalid login credentials' };
+        sendJson(response, error, 400);
         return;
       }
 
-      const error = email === 'unconfirmed@example.com'
-        ? { code: 'email_not_confirmed', message: 'Email not confirmed' }
-        : { code: 'invalid_credentials', message: email === 'unknown@example.com' ? 'User not found' : 'Invalid login credentials' };
-      sendJson(response, error, 400);
+      if (grantType === 'pkce' || grantType === 'refresh_token') {
+        sendJson(response, createSession());
+        return;
+      }
+    }
+
+    if (pathname === '/auth/v1/user' && request.method === 'GET') {
+      sendJson(response, customerUser);
       return;
     }
 
-    if (grantType === 'pkce' || grantType === 'refresh_token') {
-      sendJson(response, createSession());
+    if (pathname === '/auth/v1/logout' && request.method === 'POST') {
+      response.writeHead(204, {
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Origin': 'http://localhost:3001',
+      });
+      response.end();
       return;
     }
-  }
 
-  if (pathname === '/auth/v1/user' && request.method === 'GET') {
-    sendJson(response, customerUser);
-    return;
-  }
+    if (pathname === '/auth/v1/resend' && request.method === 'POST') {
+      sendJson(response, {});
+      return;
+    }
 
-  if (pathname === '/auth/v1/logout' && request.method === 'POST') {
-    response.writeHead(204, {
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Allow-Origin': 'http://localhost:3001',
-    });
-    response.end();
-    return;
-  }
+    if (pathname === '/api/v1/account/profile') {
+      state.profileRequests += 1;
+      sendJson(response, apiData({
+        account: {
+          id: customerUser.id,
+          email: customerUser.email,
+          emailVerified: true,
+          createdAt: confirmedAt,
+        },
+        profile: {
+          firstName: 'Confirmed',
+          lastName: 'Customer',
+          phone: null,
+          createdAt: confirmedAt,
+          updatedAt: confirmedAt,
+        },
+      }));
+      return;
+    }
 
-  if (pathname === '/auth/v1/resend' && request.method === 'POST') {
-    sendJson(response, {});
-    return;
-  }
+    if (pathname === '/api/v1/account/orders') {
+      sendJson(response, apiData({ items: [], nextCursor: null }));
+      return;
+    }
 
-  if (pathname === '/api/v1/account/profile') {
-    state.profileRequests += 1;
-    sendJson(response, apiData({
-      account: {
-        id: customerUser.id,
-        email: customerUser.email,
-        emailVerified: true,
-        createdAt: confirmedAt,
-      },
-      profile: {
-        firstName: 'Confirmed',
-        lastName: 'Customer',
-        phone: null,
-        createdAt: confirmedAt,
-        updatedAt: confirmedAt,
-      },
-    }));
-    return;
-  }
+    if (pathname === '/api/v1/account/kuji-history') {
+      sendJson(response, apiData({ items: [], nextCursor: null }));
+      return;
+    }
 
-  if (pathname === '/api/v1/account/orders') {
-    sendJson(response, apiData({ items: [], nextCursor: null }));
-    return;
-  }
+    if (pathname === '/api/v1/collections') {
+      sendJson(response, apiData([]));
+      return;
+    }
 
-  if (pathname === '/api/v1/account/kuji-history') {
-    sendJson(response, apiData({ items: [], nextCursor: null }));
-    return;
-  }
+    if (pathname === '/api/v1/settings/store-banner') {
+      sendJson(response, apiData({ enabled: false, message: '', href: null }));
+      return;
+    }
 
-  if (pathname === '/api/v1/collections') {
-    sendJson(response, apiData([]));
-    return;
-  }
-
-  if (pathname === '/api/v1/settings/store-banner') {
-    sendJson(response, apiData({ enabled: false, message: '', href: null }));
-    return;
-  }
-
-  if (pathname === '/api/v1/settings/shipping') {
-    sendJson(response, apiData({ freeShippingThresholdCents: 15000, flatRateCents: 1500 }));
-    return;
-  }
+    if (pathname === '/api/v1/settings/shipping') {
+      sendJson(response, apiData({ freeShippingThresholdCents: 15000, flatRateCents: 1500 }));
+      return;
+    }
 
     sendJson(response, { status: 'error', code: 404, success: false, message: 'Not found', data: null, errors: { code: 'NOT_FOUND' } }, 404);
   };
@@ -211,18 +212,18 @@ async function startMockServices(state: IAuthMockState) {
 }
 
 export const test = base.extend<{ authMock: IAuthMockState; mockServices: void }>({
-  authMock: async ({}, use) => {
+  authMock: async ({}, applyFixture) => {
     const state: IAuthMockState = {
       profileRequests: 0,
       reset() {
         this.profileRequests = 0;
       },
     };
-    await use(state);
+    await applyFixture(state);
   },
-  mockServices: [async ({ authMock }, use) => {
+  mockServices: [async ({ authMock }, applyFixture) => {
     const server = await startMockServices(authMock);
-    await use();
+    await applyFixture();
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }, { auto: true }],
 });

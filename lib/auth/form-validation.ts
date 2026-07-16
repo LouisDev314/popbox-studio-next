@@ -70,6 +70,7 @@ function getAuthErrorDetails(error: unknown) {
   };
 }
 
+// eslint-disable-next-line complexity -- Auth errors are normalized in one boundary so provider-specific details never leak into the UI.
 export function getCustomerAuthErrorMessage(error: unknown, context: AuthErrorContext): string {
   const { code, message, status } = getAuthErrorDetails(error);
 
