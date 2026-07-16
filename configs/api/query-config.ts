@@ -1,5 +1,5 @@
 import httpClient from '@/api/http-client';
-import { AxiosResponse } from 'axios';
+import { type AxiosRequestConfig, AxiosResponse } from 'axios';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 import { withAdminAuth } from '@/lib/api/admin-client';
 import { buildAdminProductListQueryParams, buildAdminProductsRequestParams, IAdminProductListQueryParams } from '@/lib/admin-product-filters';
@@ -58,8 +58,8 @@ const QueryConfigs = {
   fetchGuestTickets: (id: string): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
     return httpClient.get(`/api/v1/orders/${id}/tickets`);
   },
-  fetchAccountProfile: (): Promise<AxiosResponse<IBaseApiResponse<IAccountProfile>>> => {
-    return customerGet('/api/v1/account/profile');
+  fetchAccountProfile: (config?: AxiosRequestConfig): Promise<AxiosResponse<IBaseApiResponse<IAccountProfile>>> => {
+    return customerGet('/api/v1/account/profile', config);
   },
   fetchAccountOrders: (cursor?: string): Promise<AxiosResponse<IBaseApiResponse<IAccountOrderListPage>>> => {
     return customerGet('/api/v1/account/orders', { params: { cursor, limit: 20 } });

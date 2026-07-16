@@ -38,7 +38,7 @@ test('sign-in uses only generic submitted validation without native browser vali
   await page.goto('/account/sign-in');
   const form = page.locator('form[novalidate]');
   const email = page.getByLabel('Email');
-  const password = page.getByLabel('Password');
+  const password = page.getByLabel('Password', { exact: true });
   await expect(form).toHaveAttribute('novalidate', '');
   await expect(email).not.toHaveAttribute('required', '');
   await email.focus();
@@ -50,12 +50,12 @@ test('sign-in uses only generic submitted validation without native browser vali
   await expect(page.getByText('Enter a valid email address.')).toHaveCount(0);
   await expect(page.getByText(/Password must/)).toHaveCount(0);
   await page.getByRole('button', { name: 'Login' }).click();
-  await expect(page.getByRole('alert')).toHaveText('Incorrect email or password.');
+  await expect(page.locator('#sign-in-form-error')).toHaveText('Incorrect email or password.');
 
   await email.fill('');
   await password.fill('');
   await page.getByRole('button', { name: 'Login' }).click();
-  await expect(page.getByRole('alert')).toHaveText('Incorrect email or password.');
+  await expect(page.locator('#sign-in-form-error')).toHaveText('Incorrect email or password.');
   await expect(page.getByText('Email is required.')).toHaveCount(0);
   await expect(page.getByText('Password is required.')).toHaveCount(0);
 });
@@ -68,9 +68,9 @@ test('all normal credential failures have one private error and raw provider tex
   ]) {
     await page.goto('/account/sign-in');
     await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password').fill(password);
+    await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Login' }).click();
-    await expect(page.getByRole('alert')).toHaveText('Incorrect email or password.');
+    await expect(page.locator('#sign-in-form-error')).toHaveText('Incorrect email or password.');
     await expect(page.getByText(/Invalid login credentials|Email not confirmed|User not found/)).toHaveCount(0);
   }
 });
@@ -78,9 +78,9 @@ test('all normal credential failures have one private error and raw provider tex
 test('clear service failures use the availability message', async ({ page }) => {
   await page.goto('/account/sign-in');
   await page.getByLabel('Email').fill('service@example.com');
-  await page.getByLabel('Password').fill('x');
+  await page.getByLabel('Password', { exact: true }).fill('x');
   await page.getByRole('button', { name: 'Login' }).click();
-  await expect(page.getByRole('alert')).toHaveText('Unable to sign in right now. Please try again.');
+  await expect(page.locator('#sign-in-form-error')).toHaveText('Unable to sign in right now. Please try again.');
   await expect(page.getByText('raw upstream outage detail')).toHaveCount(0);
 });
 
@@ -117,7 +117,7 @@ test('callback shows a safe error without reflecting query values', async ({ pag
   await expect(page.getByText('secret-provider-detail')).toHaveCount(0);
 });
 
-test('signup confirmation callback reconciles the customer and restores the protected next route', async ({ page, authMock }) => {
+test('signup confirmation callback reconciles the customer and restores the protected next route', async ({ page, authMock }, testInfo) => {
   const consoleErrors: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
@@ -126,7 +126,7 @@ test('signup confirmation callback reconciles the customer and restores the prot
 
   await page.goto('/account/sign-up?next=%2Faccount%2Forders');
   await page.getByLabel('Email').fill('confirmed@example.com');
-  await page.getByLabel('Password').fill('valid123');
+  await page.getByLabel('Password', { exact: true }).fill('valid123');
   await page.getByRole('button', { name: 'Sign up' }).click();
 
   await expect(page).toHaveURL(/\/account\/check-email\?next=%2Faccount%2Forders$/);
@@ -137,12 +137,24 @@ test('signup confirmation callback reconciles the customer and restores the prot
   await expect(page).toHaveURL(/\/account\/orders$/);
   await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
   await expect(page.getByText('Open the email to activate your account.')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Open account menu' })).toBeVisible();
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Open menu' }).click();
+    await expect(page.getByRole('link', { name: 'My Orders' })).toBeVisible();
+    await page.keyboard.press('Escape');
+  } else {
+    await expect(page.getByRole('button', { name: 'Open account menu' })).toBeVisible();
+  }
   expect(authMock.profileRequests).toBeGreaterThanOrEqual(2);
 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Open account menu' })).toBeVisible();
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Open menu' }).click();
+    await expect(page.getByRole('link', { name: 'My Orders' })).toBeVisible();
+    await page.keyboard.press('Escape');
+  } else {
+    await expect(page.getByRole('button', { name: 'Open account menu' })).toBeVisible();
+  }
   await page.getByRole('button', { name: 'Open search' }).click();
   await expect(page.getByRole('dialog', { name: 'Search PopBox Studio products' })).toBeVisible();
   await page.keyboard.press('Escape');
@@ -152,7 +164,7 @@ test('signup confirmation callback reconciles the customer and restores the prot
 test('a successful callback cannot restore an external next destination', async ({ page }) => {
   await page.goto('/account/sign-up');
   await page.getByLabel('Email').fill('confirmed@example.com');
-  await page.getByLabel('Password').fill('valid123');
+  await page.getByLabel('Password', { exact: true }).fill('valid123');
   await page.getByRole('button', { name: 'Sign up' }).click();
   await page.goto('/auth/callback?code=confirmed-code&next=https%3A%2F%2Fevil.example');
 

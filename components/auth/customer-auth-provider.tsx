@@ -10,10 +10,14 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Session, User } from '@supabase/supabase-js';
 import type { IAccountProfile } from '@/interfaces/account';
 import { createClient } from '@/lib/supabase/client';
-import QueryConfigs from '@/configs/api/query-config';
+import {
+  accountProfileQueryKey,
+  getAccountProfileQueryOptions,
+} from '@/lib/auth/account-profile-query';
 import { getAccountApiErrorCode } from '@/utils/api-errors';
 
 export type CustomerAuthStatus =
@@ -25,6 +29,9 @@ export type CustomerAuthStatus =
 
 interface ICustomerAuthValue {
   status: CustomerAuthStatus;
+  isHydrated: boolean;
+  session: Session | null;
+  user: User | null;
   email: string | null;
   profile: IAccountProfile['profile'] | null;
   providers: string[];
@@ -35,6 +42,9 @@ interface ICustomerAuthValue {
 const CustomerAuthContext = createContext<ICustomerAuthValue | null>(null);
 const FALLBACK_CUSTOMER_AUTH: ICustomerAuthValue = {
   status: 'signedOut',
+  isHydrated: true,
+  session: null,
+  user: null,
   email: null,
   profile: null,
   providers: [],
@@ -45,7 +55,12 @@ const FALLBACK_CUSTOMER_AUTH: ICustomerAuthValue = {
 function classifyProviderError(error: unknown): CustomerAuthStatus {
   const code = getAccountApiErrorCode(error);
 
-  if (code === 'CUSTOMER_ACCOUNT_REQUIRED' || code === 'EMAIL_NOT_VERIFIED') {
+  if (
+    code === 'AUTH_REQUIRED'
+    || code === 'AUTH_TOKEN_INVALID'
+    || code === 'CUSTOMER_ACCOUNT_REQUIRED'
+    || code === 'EMAIL_NOT_VERIFIED'
+  ) {
     return 'signedOut';
   }
 
@@ -58,86 +73,126 @@ function classifyProviderError(error: unknown): CustomerAuthStatus {
 
 export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const mountedRef = useRef(true);
-  const refreshGenerationRef = useRef(0);
-  const [status, setStatus] = useState<CustomerAuthStatus>('resolving');
-  const [profile, setProfile] = useState<IAccountProfile | null>(null);
-  const [providers, setProviders] = useState<string[]>([]);
+  const activeUserIdRef = useRef<string | null>(null);
+  const [authState, setAuthState] = useState<{
+    isHydrated: boolean;
+    session: Session | null;
+  }>({ isHydrated: false, session: null });
+  const user = authState.session?.user ?? null;
+  const userId = user?.id ?? null;
+  const canFetchProfile = Boolean(
+    authState.isHydrated
+    && authState.session?.access_token
+    && userId
+    && user?.email_confirmed_at,
+  );
+  const profileQuery = useQuery({
+    ...getAccountProfileQueryOptions(userId ?? 'signed-out'),
+    enabled: canFetchProfile,
+  });
 
-  const refresh = useCallback(async () => {
-    const refreshGeneration = ++refreshGenerationRef.current;
-    const supabase = createClient();
-    const userResult = await supabase.auth.getUser();
-    const user = userResult.data.user;
-
-    if (!mountedRef.current || refreshGeneration !== refreshGenerationRef.current) {
-      return;
-    }
-
-    if (userResult.error || !user?.email_confirmed_at) {
-      setProfile(null);
-      setProviders([]);
-      setStatus('signedOut');
-      return;
-    }
-
-    setProviders([...new Set((user.identities ?? []).map((identity) => identity.provider))]);
-
-    try {
-      await queryClient.invalidateQueries({ queryKey: ['account'] });
-      const response = await QueryConfigs.fetchAccountProfile();
-      if (!mountedRef.current || refreshGeneration !== refreshGenerationRef.current) {
-        return;
-      }
-
-      setProfile(response.data.data);
-      setStatus('customer');
-    } catch (error) {
-      if (!mountedRef.current || refreshGeneration !== refreshGenerationRef.current) {
-        return;
-      }
-
-      setProfile(null);
-      setProviders([]);
-      setStatus(classifyProviderError(error));
-    }
+  const clearPrivateAccountQueries = useCallback(() => {
+    void queryClient.cancelQueries({ queryKey: ['account'] });
+    queryClient.removeQueries({ queryKey: ['account'] });
   }, [queryClient]);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    const initialRefreshTimeout = window.setTimeout(() => void refresh(), 0);
+  const refresh = useCallback(async () => {
+    if (!canFetchProfile || !userId) {
+      return;
+    }
 
-    const { data: authListener } = createClient().auth.onAuthStateChange(() => {
-      queueMicrotask(() => {
-        void queryClient.invalidateQueries({ queryKey: ['account'] });
-        void refresh();
-      });
+    await queryClient.invalidateQueries({
+      exact: true,
+      queryKey: accountProfileQueryKey(userId),
+    });
+  }, [canFetchProfile, queryClient, userId]);
+
+  useEffect(() => {
+    let isActive = true;
+    let authEventGeneration = 0;
+    const supabase = createClient();
+
+    const applySession = (session: Session | null) => {
+      if (!isActive) {
+        return;
+      }
+
+      const nextUserId = session?.user.id ?? null;
+      const previousUserId = activeUserIdRef.current;
+
+      if (!nextUserId || (previousUserId && previousUserId !== nextUserId)) {
+        clearPrivateAccountQueries();
+      }
+
+      activeUserIdRef.current = nextUserId;
+      setAuthState({ isHydrated: true, session });
+    };
+
+    const initialAuthEventGeneration = authEventGeneration;
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      authEventGeneration += 1;
+      applySession(session);
+    });
+
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (authEventGeneration !== initialAuthEventGeneration) {
+        return;
+      }
+
+      applySession(error ? null : data.session);
     });
 
     return () => {
-      mountedRef.current = false;
-      refreshGenerationRef.current += 1;
-      window.clearTimeout(initialRefreshTimeout);
+      isActive = false;
       authListener.subscription.unsubscribe();
     };
-  }, [queryClient, refresh]);
+  }, [clearPrivateAccountQueries]);
 
   const signOut = useCallback(async () => {
-    await createClient().auth.signOut({ scope: 'local' });
+    activeUserIdRef.current = null;
+    setAuthState({ isHydrated: true, session: null });
+    await queryClient.cancelQueries({ queryKey: ['account'] });
     queryClient.removeQueries({ queryKey: ['account'] });
-    setProfile(null);
-    setProviders([]);
-    setStatus('signedOut');
+    await createClient().auth.signOut({ scope: 'local' });
   }, [queryClient]);
+
+  const accountProfile = profileQuery.data?.data.data ?? null;
+  let status: CustomerAuthStatus = 'resolving';
+
+  if (authState.isHydrated && !canFetchProfile) {
+    status = 'signedOut';
+  } else if (profileQuery.isSuccess) {
+    status = 'customer';
+  } else if (profileQuery.isError) {
+    status = classifyProviderError(profileQuery.error);
+  }
+
+  const providers = useMemo(() => (
+    status === 'customer'
+      ? [...new Set((user?.identities ?? []).map((identity) => identity.provider))]
+      : []
+  ), [status, user?.identities]);
 
   const value = useMemo<ICustomerAuthValue>(() => ({
     status,
-    email: profile?.account.email ?? null,
-    profile: profile?.profile ?? null,
+    isHydrated: authState.isHydrated,
+    session: authState.session,
+    user,
+    email: accountProfile?.account.email ?? null,
+    profile: accountProfile?.profile ?? null,
     providers,
     refresh,
     signOut,
-  }), [profile, providers, refresh, signOut, status]);
+  }), [
+    accountProfile,
+    authState.isHydrated,
+    authState.session,
+    providers,
+    refresh,
+    signOut,
+    status,
+    user,
+  ]);
 
   return (
     <CustomerAuthContext.Provider value={value}>

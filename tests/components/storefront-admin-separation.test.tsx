@@ -46,7 +46,11 @@ describe('storefront and admin identity separation', () => {
       data: {
         session: {
           access_token: 'admin-session',
-          user: { identities: [{ provider: 'email' }] },
+          user: {
+            id: 'admin-user-id',
+            email_confirmed_at: '2026-07-15T00:00:00Z',
+            identities: [{ provider: 'email' }],
+          },
         },
       },
       error: null,
@@ -63,7 +67,10 @@ describe('storefront and admin identity separation', () => {
     authMocks.onAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe: vi.fn() } },
     });
-    accountMocks.fetchAccountProfile.mockRejectedValue(new Error('CUSTOMER_ACCOUNT_REQUIRED'));
+    accountMocks.fetchAccountProfile.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 403 },
+    });
   });
 
   it('keeps the account trigger in its loading shape during server rendering', () => {

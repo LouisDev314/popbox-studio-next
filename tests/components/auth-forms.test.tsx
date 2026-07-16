@@ -36,10 +36,11 @@ const accountMocks = vi.hoisted(() => ({
 }));
 
 const queryMocks = vi.hoisted(() => ({
-  invalidateQueries: vi.fn(),
+  fetchQuery: vi.fn(),
 }));
 
 vi.mock('@tanstack/react-query', () => ({
+  queryOptions: <T,>(options: T) => options,
   useQueryClient: () => queryMocks,
 }));
 
@@ -71,16 +72,22 @@ describe('customer auth forms', () => {
     Object.values(navigationMocks).forEach((mock) => mock.mockReset());
     Object.values(accountMocks).forEach((mock) => mock.mockReset());
     authMocks.signInWithOAuth.mockResolvedValue({ error: null });
-    authMocks.signInWithPassword.mockResolvedValue({ error: null });
+    authMocks.signInWithPassword.mockResolvedValue({
+      data: { session: { user: { id: 'customer-user-id' } } },
+      error: null,
+    });
     authMocks.exchangeCodeForSession.mockResolvedValue({
-      data: { session: { access_token: 'confirmed' }, user: { email_confirmed_at: '2026-07-15T00:00:00Z' } },
+      data: {
+        session: { access_token: 'confirmed', user: { id: 'customer-user-id' } },
+        user: { id: 'customer-user-id', email_confirmed_at: '2026-07-15T00:00:00Z' },
+      },
       error: null,
     });
     authMocks.refreshSession.mockResolvedValue({
       data: {
         session: {
           access_token: 'confirmed',
-          user: { email_confirmed_at: '2026-07-15T00:00:00Z' },
+          user: { id: 'customer-user-id', email_confirmed_at: '2026-07-15T00:00:00Z' },
         },
       },
       error: null,
@@ -94,7 +101,15 @@ describe('customer auth forms', () => {
     authMocks.resetPasswordForEmail.mockResolvedValue({ error: null });
     authMocks.updateUser.mockResolvedValue({ error: null });
     authMocks.signOut.mockResolvedValue({ error: null });
-    authMocks.getSession.mockResolvedValue({ data: { session: { access_token: 'recovery' } }, error: null });
+    authMocks.getSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: 'recovery',
+          user: { id: 'customer-user-id', email_confirmed_at: '2026-07-15T00:00:00Z' },
+        },
+      },
+      error: null,
+    });
     accountMocks.fetchAccountProfile.mockResolvedValue({
       data: {
         data: {
@@ -114,8 +129,10 @@ describe('customer auth forms', () => {
         },
       },
     });
-    queryMocks.invalidateQueries.mockReset();
-    queryMocks.invalidateQueries.mockResolvedValue(undefined);
+    queryMocks.fetchQuery.mockReset();
+    queryMocks.fetchQuery.mockImplementation(async (options) => options.queryFn({
+      signal: new AbortController().signal,
+    }));
     window.sessionStorage.clear();
     window.localStorage.clear();
     window.history.replaceState({}, '', '/');
@@ -270,14 +287,15 @@ describe('customer auth forms', () => {
   });
 
   it('keeps a genuinely unverified customer on check-email', async () => {
-    authMocks.getUser.mockResolvedValue({
-      data: { user: { email_confirmed_at: null } },
+    authMocks.refreshSession.mockResolvedValue({
+      data: { session: { user: { id: 'customer-user-id', email_confirmed_at: null } } },
       error: null,
     });
     render(<CheckEmailState next="/account/orders" />);
 
     expect(await screen.findByText('Open the email to activate your account.')).toBeVisible();
-    await waitFor(() => expect(authMocks.getUser).toHaveBeenCalled());
+    await waitFor(() => expect(authMocks.getSession).toHaveBeenCalled());
+    expect(authMocks.getUser).not.toHaveBeenCalled();
     expect(accountMocks.fetchAccountProfile).not.toHaveBeenCalled();
     expect(navigationMocks.replace).not.toHaveBeenCalled();
   });
@@ -291,7 +309,7 @@ describe('customer auth forms', () => {
 
     await waitFor(() => expect(navigationMocks.replace).toHaveBeenCalledWith('/account/orders'));
     expect(accountMocks.fetchAccountProfile).toHaveBeenCalledTimes(1);
-    expect(queryMocks.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['account'] });
+    expect(queryMocks.fetchQuery).toHaveBeenCalledTimes(1);
     expect(window.sessionStorage.getItem('popbox:pending-signup')).toBeNull();
     expect(window.localStorage.getItem('popbox:signup-resend-at')).toBeNull();
     expect(navigationMocks.refresh).toHaveBeenCalled();
@@ -305,16 +323,18 @@ describe('customer auth forms', () => {
     render(<AuthCallbackClient />);
 
     await waitFor(() => expect(navigationMocks.replace).toHaveBeenCalledWith('/account/orders'));
-    expect(authMocks.exchangeCodeForSession).toHaveBeenCalledWith('confirmation-code');
-    expect(authMocks.refreshSession).toHaveBeenCalledWith({ access_token: 'confirmed' });
-    expect(authMocks.getUser).toHaveBeenCalled();
-    expect(queryMocks.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['account'] });
+    expect(authMocks.getSession).toHaveBeenCalledTimes(1);
+    expect(authMocks.exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(authMocks.refreshSession).not.toHaveBeenCalled();
+    expect(authMocks.getUser).not.toHaveBeenCalled();
+    expect(queryMocks.fetchQuery).toHaveBeenCalledTimes(1);
     expect(accountMocks.fetchAccountProfile).toHaveBeenCalled();
     expect(window.sessionStorage.getItem('popbox:pending-signup')).toBeNull();
-    expect(navigationMocks.refresh).toHaveBeenCalled();
+    expect(navigationMocks.refresh).not.toHaveBeenCalled();
   });
 
   it('shows a safe callback error for an invalid or expired code', async () => {
+    authMocks.getSession.mockResolvedValue({ data: { session: null }, error: null });
     authMocks.exchangeCodeForSession.mockResolvedValue({
       data: { session: null, user: null },
       error: { message: 'raw expired-token detail' },

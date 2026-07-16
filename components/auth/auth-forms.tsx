@@ -16,7 +16,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import MutationConfigs from '@/configs/api/mutation-config';
-import QueryConfigs from '@/configs/api/query-config';
+import { getAccountProfileQueryOptions } from '@/lib/auth/account-profile-query';
 import { buildMissingGoogleNamePatch, getGoogleProfileName } from '@/lib/auth/google-profile';
 import {
   credentialsAuthFormSchema,
@@ -68,6 +68,7 @@ function AuthSubmitButton({ children, isPending }: { children: string; isPending
 
 export function SignInForm({ next, showResetSuccess = false }: { next: string; showResetSuccess?: boolean }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const form = useForm<SignInCredentialsAuthFormValues>({
     defaultValues: { email: '', password: '' },
     resolver: zodResolver(signInCredentialsAuthFormSchema),
@@ -77,7 +78,7 @@ export function SignInForm({ next, showResetSuccess = false }: { next: string; s
   const handleSubmit = async (values: SignInCredentialsAuthFormValues) => {
     form.clearErrors('root');
     const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: values.email.trim(),
       password: values.password,
     });
@@ -87,8 +88,13 @@ export function SignInForm({ next, showResetSuccess = false }: { next: string; s
       return;
     }
 
+    if (!signInData.session?.user.id) {
+      form.setError('root', { message: SIGN_IN_AVAILABILITY_ERROR_MESSAGE });
+      return;
+    }
+
     try {
-      await QueryConfigs.fetchAccountProfile();
+      await queryClient.fetchQuery(getAccountProfileQueryOptions(signInData.session.user.id));
       router.replace(validateInternalNext(next));
       router.refresh();
     } catch (accountError) {
@@ -327,21 +333,21 @@ export function CheckEmailState({ next }: { next: string }) {
 
       reconciliationRef.current = (async () => {
         const supabase = createClient();
-        const userResult = await supabase.auth.getUser();
-        const user = userResult.data.user;
+        const sessionResult = await supabase.auth.getSession();
+        const currentSession = sessionResult.data.session;
 
-        if (userResult.error || !user?.email_confirmed_at) {
+        if (sessionResult.error || !currentSession) {
           return;
         }
 
-        const refreshed = await supabase.auth.refreshSession();
-        if (refreshed.error || !refreshed.data.session?.user.email_confirmed_at) {
+        const refreshed = await supabase.auth.refreshSession(currentSession);
+        const refreshedUser = refreshed.data.session?.user;
+        if (refreshed.error || !refreshedUser?.id || !refreshedUser.email_confirmed_at) {
           return;
         }
 
         try {
-          await queryClient.invalidateQueries({ queryKey: ['account'] });
-          await QueryConfigs.fetchAccountProfile();
+          await queryClient.fetchQuery(getAccountProfileQueryOptions(refreshedUser.id));
         } catch {
           return;
         }
@@ -591,9 +597,15 @@ export function ResetPasswordForm() {
 export function AuthCallbackClient() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const hasStartedRef = useRef(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (hasStartedRef.current) {
+      return;
+    }
+    hasStartedRef.current = true;
+
     const run = async () => {
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
@@ -604,20 +616,21 @@ export function AuthCallbackClient() {
       }
 
       const supabase = createClient();
-      const exchange = await supabase.auth.exchangeCodeForSession(code);
-      if (exchange.error || !exchange.data.session || !exchange.data.user) {
+      const sessionResult = await supabase.auth.getSession();
+      let session = sessionResult.data.session;
+
+      if (!sessionResult.error && !session) {
+        const exchange = await supabase.auth.exchangeCodeForSession(code);
+        session = exchange.error ? null : exchange.data.session;
+      }
+
+      if (sessionResult.error || !session) {
         setError('We could not complete sign-in. Please try again.');
         return;
       }
 
-      const refreshed = await supabase.auth.refreshSession(exchange.data.session);
-      if (refreshed.error || !refreshed.data.session) {
-        setError('We could not complete sign-in. Please try again.');
-        return;
-      }
-
-      const verifiedUserResult = await supabase.auth.getUser();
-      if (verifiedUserResult.error || !verifiedUserResult.data.user) {
+      const verifiedUser = session.user;
+      if (!verifiedUser.id) {
         setError('We could not complete sign-in. Please try again.');
         return;
       }
@@ -629,11 +642,12 @@ export function AuthCallbackClient() {
       }
 
       try {
-        await queryClient.invalidateQueries({ queryKey: ['account'] });
-        const profileResponse = await QueryConfigs.fetchAccountProfile();
+        const profileResponse = await queryClient.fetchQuery(
+          getAccountProfileQueryOptions(verifiedUser.id),
+        );
         const patch = buildMissingGoogleNamePatch(
           profileResponse.data.data,
-          getGoogleProfileName(verifiedUserResult.data.user),
+          getGoogleProfileName(verifiedUser),
         );
         if (Object.keys(patch).length > 0) {
           try {
@@ -643,7 +657,6 @@ export function AuthCallbackClient() {
           }
         }
         clearPendingConfirmationState();
-        router.refresh();
         router.replace(next);
       } catch (accountError) {
         if (getAccountApiErrorCode(accountError) === 'CUSTOMER_ACCOUNT_REQUIRED') {
