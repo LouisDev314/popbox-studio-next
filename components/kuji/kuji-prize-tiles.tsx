@@ -19,6 +19,7 @@ export interface IKujiPrizeTileItem {
   kujiProductName?: string | null;
   stockClassName?: string;
   stockLabel?: string | null;
+  triggerId?: string;
 }
 
 interface IKujiPrizeTilesProps {
@@ -164,6 +165,7 @@ function KujiPrizeTileCard(props: IKujiPrizeTileCardProps) {
 
   return (
     <button
+      id={props.item.triggerId}
       type="button"
       aria-haspopup="dialog"
       className={className}

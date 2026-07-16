@@ -36,6 +36,7 @@ const eslintConfig = defineConfig([
   },
   globalIgnores([
     '.next/**',
+    '.next-playwright/**',
     'out/**',
     'build/**',
     'playwright-report/**',

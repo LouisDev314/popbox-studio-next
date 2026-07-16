@@ -39,6 +39,8 @@ import { IContactRequestBody } from '@/interfaces/contact';
 import { IShippingSettings, IUpdateShippingSettingsPayload } from '@/interfaces/shipping';
 import { IStoreBannerSettings, IUpdateStoreBannerSettingsPayload } from '@/interfaces/settings';
 import type {
+  IAccountKujiResult,
+  IAccountKujiResultCollection,
   IAccountProfile,
   IAccountProfilePatch,
 } from '@/interfaces/account';
@@ -96,12 +98,12 @@ const MutationConfigs = {
   }: {
     publicId: string;
     ticketId: string;
-  }): Promise<AxiosResponse<IBaseApiResponse<IOrderTicket>>> => {
+  }): Promise<AxiosResponse<IBaseApiResponse<IAccountKujiResult>>> => {
     return customerPost(`/api/v1/account/orders/${encodeURIComponent(publicId)}/tickets/${encodeURIComponent(ticketId)}/reveal`);
   },
   revealAllAccountTickets: (
     publicId: string,
-  ): Promise<AxiosResponse<IBaseApiResponse<IGuestTicketView>>> => {
+  ): Promise<AxiosResponse<IBaseApiResponse<IAccountKujiResultCollection>>> => {
     return customerPost(`/api/v1/account/orders/${encodeURIComponent(publicId)}/tickets/reveal-all`);
   },
   patchAdminProductStatus: async ({

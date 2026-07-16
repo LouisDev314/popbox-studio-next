@@ -27,6 +27,8 @@ export interface IAccountOrderProduct {
   productId: string;
   productName: string;
   productType: 'standard' | 'kuji';
+  productSlug: string | null;
+  isStorefrontAccessible: boolean;
   quantity: number;
   imageUrl: string | null;
   imageAltText: string | null;
@@ -61,23 +63,17 @@ export interface ICustomerPrize {
   prizeTier: string;
 }
 
-export interface IAccountTicketProduct {
-  productId: string;
-  name: string;
-  slug: string;
-  imageUrl: string | null;
-  imageAltText: string | null;
-}
-
-export interface IAccountOrderTicket {
+export interface IAccountKujiResult {
   id: string;
-  ticketNumber: string;
   createdAt: string;
   revealedAt: string | null;
   voidedAt: string | null;
   voidReason: string | null;
-  product: IAccountTicketProduct;
   prize: ICustomerPrize | null;
+}
+
+export interface IAccountKujiResultCollection {
+  results: IAccountKujiResult[];
 }
 
 export interface ICustomerOrderDetail {
@@ -110,35 +106,33 @@ export interface ICustomerOrderDetail {
     productId: string;
     productName: string;
     productType: 'standard' | 'kuji';
+    productSlug: string | null;
+    isStorefrontAccessible: boolean;
     unitPriceCents: number;
     quantity: number;
     lineTotalCents: number;
     imageUrl: string | null;
     imageAltText: string | null;
+    kujiResults: IAccountKujiResult[];
   }>;
-  tickets: IAccountOrderTicket[];
 }
 
-export interface IKujiHistoryItem extends Omit<IAccountOrderTicket, 'product'> {
+export interface IKujiHistoryItem extends IAccountKujiResult {
   order: {
     publicId: string;
     placedAt: string | null;
   };
-  product: IAccountTicketProduct;
+  product: {
+    productId: string;
+    name: string;
+    slug: string;
+    isStorefrontAccessible: boolean;
+    imageUrl: string | null;
+    imageAltText: string | null;
+  };
 }
 
 export interface IKujiHistoryPage {
   items: IKujiHistoryItem[];
   nextCursor: string | null;
-}
-
-export interface INormalizedTicket {
-  id: string;
-  ticketNumber: string;
-  createdAt: string;
-  revealedAt: string | null;
-  voidedAt: string | null;
-  voidReason: string | null;
-  product: IAccountTicketProduct;
-  prize: ICustomerPrize | null;
 }

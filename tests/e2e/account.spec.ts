@@ -11,7 +11,8 @@ const PROTECTED_ACCOUNT_PATHS = [
 function recordUnexpectedConsoleErrors(page: Page) {
   const errors: string[] = [];
   const handleConsole = (message: ConsoleMessage) => {
-    if (message.type() === 'error') {
+    const isHydrationWarning = message.type() === 'warning' && /hydrat|server rendered|did not match/i.test(message.text());
+    if (message.type() === 'error' || isHydrationWarning) {
       errors.push(message.text());
     }
   };
@@ -137,6 +138,22 @@ async function expectBrowserRedirect(page: Page, path: string) {
   await expect(page.getByText(path, { exact: true })).toHaveCount(0);
 }
 
+async function authenticateCustomer(page: Page, sessionCookieValue: string, next: string) {
+  await page.goto('/');
+  await page.context().addCookies([{
+    name: 'sb-127-auth-token',
+    value: sessionCookieValue,
+    url: new URL(page.url()).origin,
+  }]);
+  await page.goto(next);
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  expect(await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  )).toBe(false);
+}
+
 test('signed-out account routes redirect before protected account UI renders', async ({ page, request }) => {
   const console = recordUnexpectedConsoleErrors(page);
 
@@ -193,4 +210,115 @@ test('route changes close header overlays and release their interaction locks', 
 test('unsafe next destinations fall back to the account root', async ({ page }) => {
   await page.goto('/account/sign-in?next=https://evil.example');
   await expect(page.getByRole('link', { name: 'Create an account', exact: true })).toHaveAttribute('href', '/account/sign-up?next=%2Faccount');
+});
+
+test('authenticated orders and Kuji history are prize-first and responsive', async ({ page, request, authMock }) => {
+  const console = recordUnexpectedConsoleErrors(page);
+  authMock.reset();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await authenticateCustomer(page, authMock.sessionCookieValue(), '/account/orders');
+
+  await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
+  const accountOrdersEvidence = await page.evaluate(async (accessToken) => {
+    const response = await fetch('http://127.0.0.1:4010/api/v1/account/orders?limit=20', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    return {
+      body: await response.json() as { data: { items: Array<{ status: string }> } },
+      status: response.status,
+      url: response.url,
+    };
+  }, authMock.accessToken());
+  expect(accountOrdersEvidence.status).toBe(200);
+  expect(accountOrdersEvidence.url).toBe('http://127.0.0.1:4010/api/v1/account/orders?limit=20');
+  expect(accountOrdersEvidence.body.data.items.map((order) => order.status)).toEqual([
+    'paid',
+    'packed',
+    'shipped',
+    'refunded',
+  ]);
+  await expect(page.getByText(/Expired|Cancelled|Pending payment|Payment review/i)).toHaveCount(0);
+
+  const mixedOrderRow = page.getByTestId('order-row-PBX-ACCOUNT-1');
+  await expect(mixedOrderRow).toHaveAttribute('href', '/account/orders/PBX-ACCOUNT-1');
+  await expect(mixedOrderRow.locator('a')).toHaveCount(0);
+  await expect(mixedOrderRow.getByText('Archived Kuji Snapshot')).toBeVisible();
+  await expect(page.locator('a a')).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+
+  await mixedOrderRow.focus();
+  await expect(mixedOrderRow).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'PBX-ACCOUNT-1' })).toBeVisible();
+  await expect(page.getByText('Hero Figure')).toBeVisible();
+  await expect(page.getByText('Secret Prize')).toHaveCount(0);
+  await expect(page.getByText(/Ticket #/i)).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /Active Figure/ })).toHaveAttribute('href', '/products/active-figure');
+  await expect(page.getByText('Archived Kuji Snapshot')).toBeVisible();
+
+  await page.getByRole('button', { name: /Hero Figure/ }).click();
+  await expect(page.getByRole('dialog')).toContainText('A premium revealed prize.');
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('button', { name: 'Reveal prize' }).click();
+  const revealedSecret = page.getByRole('button', { name: /Secret Prize/ });
+  await expect(revealedSecret).toBeVisible();
+  await expect(revealedSecret).toBeFocused();
+
+  await page.goto('/account/orders/PBX-STANDARD-ONLY');
+  await expect(page.getByRole('heading', { name: 'PBX-STANDARD-ONLY' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Active Figure/ })).toHaveAttribute('href', '/products/active-figure');
+  await expect(page.getByRole('button', { name: 'Reveal prize' })).toHaveCount(0);
+
+  await page.goto('/account/orders/PBX-KUJI-ONLY');
+  await expect(page.getByRole('heading', { name: 'PBX-KUJI-ONLY' })).toBeVisible();
+  await expect(page.getByText('Hero Figure')).toBeVisible();
+  await expect(page.getByText('Secret Prize')).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto('/account/kuji');
+  await expect(page.getByRole('heading', { name: 'Kuji History' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Active History Kuji/ })).toHaveAttribute('href', '/products/active-history-kuji');
+  await expect(page.getByText(/Ticket #/i)).toHaveCount(0);
+  await page.getByRole('button', { name: /Secret Prize/ }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  const hiddenRequests = [
+    ['http://127.0.0.1:4010/api/v1/account/orders/PBX-EXPIRED', 'GET'],
+    ['http://127.0.0.1:4010/api/v1/account/orders/PBX-CANCELLED/tickets/11111111-1111-4111-8111-111111111111/reveal', 'POST'],
+    ['http://127.0.0.1:4010/api/v1/account/orders/PBX-PAYMENT-REVIEW/tickets/reveal-all', 'POST'],
+  ] as const;
+  const hiddenAccessEvidence = await Promise.all(hiddenRequests.map(async ([url, method]) => {
+    const response = await request.fetch(url, {
+      method,
+      headers: { Authorization: `Bearer ${authMock.accessToken()}` },
+    });
+    return {
+      body: await response.json() as { errors: { code: string } },
+      status: response.status(),
+    };
+  }));
+  expect(hiddenAccessEvidence).toEqual([
+    { status: 404, body: expect.objectContaining({ errors: { code: 'ORDER_NOT_FOUND' } }) },
+    { status: 404, body: expect.objectContaining({ errors: { code: 'ORDER_NOT_FOUND' } }) },
+    { status: 404, body: expect.objectContaining({ errors: { code: 'ORDER_NOT_FOUND' } }) },
+  ]);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Kuji History' })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto('/account/orders');
+  await expect(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto('/account/orders/PBX-ACCOUNT-1');
+  await expect(page.getByRole('heading', { name: 'PBX-ACCOUNT-1' })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  console.stop();
+  expect(console.errors).toEqual([]);
 });

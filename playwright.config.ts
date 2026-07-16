@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const playwrightPort = process.env.PLAYWRIGHT_PORT ?? '3001';
+const playwrightBaseUrl = `http://localhost:${playwrightPort}`;
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
@@ -7,7 +10,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://localhost:3001',
+    baseURL: playwrightBaseUrl,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
@@ -24,13 +27,15 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3001',
+    command: `pnpm exec next dev -p ${playwrightPort}`,
+    url: playwrightBaseUrl,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
+      NEXT_DIST_DIR: '.next-playwright',
+      NEXT_TYPESCRIPT_CONFIG: 'tsconfig.playwright.json',
       NEXT_PUBLIC_API_BASE_URL: 'http://127.0.0.1:4010',
-      NEXT_PUBLIC_SITE_URL: 'http://localhost:3001',
+      NEXT_PUBLIC_SITE_URL: playwrightBaseUrl,
       NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:4010',
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e',
       NEXT_PUBLIC_IS_SITE_OPEN: 'true',

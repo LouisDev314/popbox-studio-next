@@ -1,14 +1,22 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Gift } from 'lucide-react';
+import { AccountProductIdentity } from '@/components/account/account-product-identity';
 import { OrderStatusBadge } from '@/components/account/order-status-badge';
-import { OrderTicketExperience } from '@/components/kuji/order-ticket-experience';
-import { normalizeAccountTicket, normalizeRawOrderTicket, normalizeRawTicketView } from '@/components/kuji/ticket-adapter';
-import { StorefrontImage } from '@/components/ui/storefront-image';
+import { AccountPrizeResults } from '@/components/kuji/account-prize-results';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import MutationConfigs from '@/configs/api/mutation-config';
-import type { ICustomerOrderDetail } from '@/interfaces/account';
+import type { IAccountKujiResult, ICustomerOrderDetail } from '@/interfaces/account';
+import {
+  isAccountKujiResult,
+  normalizeAccountKujiResult,
+  normalizeAccountKujiResultCollection,
+  normalizeAccountOrderDetail,
+} from '@/lib/account-order-normalizers';
 import { formatPrice } from '@/lib/utils';
 
 function readAddressValue(address: Record<string, unknown>, ...keys: string[]) {
@@ -33,25 +41,63 @@ function safeTrackingUrl(value: string | null) {
   }
 }
 
-export function OrderDetail({ order }: { order: ICustomerOrderDetail }) {
+export function OrderDetail({ order: rawOrder }: { order: ICustomerOrderDetail }) {
+  const order = useMemo(() => normalizeAccountOrderDetail(rawOrder), [rawOrder]);
   const queryClient = useQueryClient();
+  const [results, setResults] = useState<IAccountKujiResult[]>(() => (
+    order.items.flatMap((item) => item.kujiResults.filter(isAccountKujiResult))
+  ));
+  const [pendingResultId, setPendingResultId] = useState<string | null>(null);
+  const [isRevealingAll, setIsRevealingAll] = useState(false);
+  const [revealError, setRevealError] = useState('');
   const address = order.shippingAddress;
   const fullName = readAddressValue(address, 'fullName', 'name') || [order.customer.firstName, order.customer.lastName].filter(Boolean).join(' ');
   const city = readAddressValue(address, 'city');
   const province = readAddressValue(address, 'province', 'state');
   const postalCode = readAddressValue(address, 'postalCode', 'postal_code');
   const trackingUrl = safeTrackingUrl(order.shipment?.trackingUrl ?? null);
+  const resultById = new Map(results.map((result) => [result.id, result]));
+  const unrevealedCount = results.filter((result) => !result.revealedAt && !result.voidedAt).length;
 
-  const revealOne = async (ticketId: string) => {
-    const response = await MutationConfigs.revealAccountTicket({ publicId: order.publicId, ticketId });
-    await queryClient.invalidateQueries({ queryKey: ['account', 'kuji'] });
-    return normalizeRawOrderTicket(response.data.data);
+  useEffect(() => {
+    setResults(order.items.flatMap((item) => item.kujiResults.filter(isAccountKujiResult)));
+  }, [order.items]);
+
+  const revealOne = async (resultId: string) => {
+    setRevealError('');
+    setPendingResultId(resultId);
+
+    try {
+      const response = await MutationConfigs.revealAccountTicket({ publicId: order.publicId, ticketId: resultId });
+      const revealed = normalizeAccountKujiResult(response.data.data);
+      if (!revealed || revealed.id !== resultId) throw new Error('Invalid reveal response');
+      setResults((current) => current.map((result) => result.id === revealed.id ? revealed : result));
+      await queryClient.invalidateQueries({ queryKey: ['account', 'kuji'] });
+      window.setTimeout(() => document.getElementById(`prize-result-${resultId}`)?.focus(), 0);
+    } catch {
+      setRevealError('This prize could not be revealed. Please try again.');
+    } finally {
+      setPendingResultId(null);
+    }
   };
 
   const revealAll = async () => {
-    const response = await MutationConfigs.revealAllAccountTickets(order.publicId);
-    await queryClient.invalidateQueries({ queryKey: ['account', 'kuji'] });
-    return normalizeRawTicketView(response.data.data);
+    const firstUnrevealedId = results.find((result) => !result.revealedAt && !result.voidedAt)?.id ?? null;
+    setRevealError('');
+    setIsRevealingAll(true);
+
+    try {
+      const response = await MutationConfigs.revealAllAccountTickets(order.publicId);
+      setResults(normalizeAccountKujiResultCollection(response.data.data).results);
+      await queryClient.invalidateQueries({ queryKey: ['account', 'kuji'] });
+      if (firstUnrevealedId) {
+        window.setTimeout(() => document.getElementById(`prize-result-${firstUnrevealedId}`)?.focus(), 0);
+      }
+    } catch {
+      setRevealError('Your prizes could not be revealed. Please try again.');
+    } finally {
+      setIsRevealingAll(false);
+    }
   };
 
   return (
@@ -64,17 +110,51 @@ export function OrderDetail({ order }: { order: ICustomerOrderDetail }) {
 
       <div className="grid gap-10 py-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-10">
-          <section>
-            <h2 className="text-lg font-semibold">Items</h2>
+          <section id="kuji-prizes" className="scroll-mt-28">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-lg font-semibold">Items</h2>
+              {unrevealedCount > 1 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isRevealingAll || pendingResultId !== null}
+                  onClick={() => void revealAll()}
+                >
+                  {isRevealingAll ? <Spinner className="mr-2" /> : <Gift className="mr-2 h-4 w-4" />}
+                  Reveal all prizes
+                </Button>
+              ) : null}
+            </div>
             <div className="mt-4 divide-y divide-border border-y border-border">
               {order.items.map((item) => (
-                <div key={item.productId} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] gap-4 py-5">
-                  <div className="h-18 w-18 overflow-hidden rounded-lg bg-muted"><StorefrontImage src={item.imageUrl} alt={item.imageAltText ?? item.productName} label={item.productName} sizes="72px" imageClassName="object-cover" /></div>
-                  <div><p className="font-medium">{item.productName}</p><p className="mt-1 text-sm text-muted-foreground">Qty {item.quantity} · {formatPrice(item.unitPriceCents, order.currency)} each</p></div>
+                <div key={item.productId} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 py-5">
+                  <div className="min-w-0">
+                    <AccountProductIdentity
+                      name={item.productName}
+                      productSlug={item.productSlug}
+                      isStorefrontAccessible={item.isStorefrontAccessible}
+                      imageUrl={item.imageUrl}
+                      imageAltText={item.imageAltText}
+                    />
+                    <p className="mt-2 text-sm text-muted-foreground sm:pl-[5.25rem]">
+                      Qty {item.quantity} · {formatPrice(item.unitPriceCents, order.currency)} each
+                    </p>
+                    {item.productType === 'kuji' ? (
+                      <AccountPrizeResults
+                        results={item.kujiResults
+                          .filter(isAccountKujiResult)
+                          .map((result) => resultById.get(result.id) ?? result)}
+                        pendingResultId={pendingResultId}
+                        disabled={pendingResultId !== null || isRevealingAll}
+                        onReveal={(resultId) => void revealOne(resultId)}
+                      />
+                    ) : null}
+                  </div>
                   <p className="font-medium">{formatPrice(item.lineTotalCents, order.currency)}</p>
                 </div>
               ))}
             </div>
+            {revealError ? <p role="alert" className="mt-3 text-sm text-destructive">{revealError}</p> : null}
           </section>
 
           <section className="grid gap-8 border-t border-border pt-8 sm:grid-cols-2">
@@ -86,7 +166,6 @@ export function OrderDetail({ order }: { order: ICustomerOrderDetail }) {
             <section className="border-t border-border pt-8"><h2 className="text-lg font-semibold">Shipment</h2><div className="mt-3 text-sm leading-6 text-muted-foreground"><p>{order.shipment.carrierName ?? 'Carrier pending'}</p>{order.shipment.trackingNumber ? <p>Tracking {order.shipment.trackingNumber}</p> : null}{trackingUrl ? <a href={trackingUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 font-medium text-foreground underline-offset-4 hover:underline">View tracking <ExternalLink className="h-3.5 w-3.5" /></a> : null}</div></section>
           ) : null}
 
-          <section id="tickets" className="scroll-mt-28 border-t border-border pt-8"><h2 className="text-lg font-semibold">Kuji Tickets</h2><div className="mt-5"><OrderTicketExperience initialTickets={order.tickets.map(normalizeAccountTicket)} onRevealOne={revealOne} onRevealAll={revealAll} /></div></section>
         </div>
 
         <aside className="h-fit border-t border-border pt-6 xl:border-t-0 xl:border-l xl:pl-8">

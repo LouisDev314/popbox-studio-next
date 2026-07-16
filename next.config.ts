@@ -32,6 +32,7 @@ if (shouldEnableSentryBuild && !hasRequiredSentryBuildEnv) {
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ['127.0.0.1'],
+  distDir: process.env.NEXT_DIST_DIR?.trim() || '.next',
   htmlLimitedBots: /.*/,
   async redirects() {
     return [
@@ -96,6 +97,9 @@ const nextConfig: NextConfig = {
       hostname,
       pathname: '/storage/v1/object/public/**',
     })),
+  },
+  typescript: {
+    tsconfigPath: process.env.NEXT_TYPESCRIPT_CONFIG?.trim() || 'tsconfig.json',
   },
 };
 

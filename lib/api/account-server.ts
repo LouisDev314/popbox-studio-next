@@ -9,6 +9,7 @@ import type {
   IKujiHistoryPage,
 } from '@/interfaces/account';
 import type { IBaseApiResponse } from '@/interfaces/api-response';
+import { normalizeAccountOrderDetail } from '@/lib/account-order-normalizers';
 
 const accountServerClient = axios.create({
   baseURL: getPublicEnvConfig().apiBaseUrl.replace(/\/$/, ''),
@@ -36,8 +37,9 @@ export function getAccountOrdersServer(token: string, cursor?: string): Promise<
   return readAccountData('/api/v1/account/orders', token, { params: { cursor, limit: 20 } });
 }
 
-export function getAccountOrderServer(token: string, publicId: string): Promise<ICustomerOrderDetail> {
-  return readAccountData(`/api/v1/account/orders/${encodeURIComponent(publicId)}`, token);
+export async function getAccountOrderServer(token: string, publicId: string): Promise<ICustomerOrderDetail> {
+  const detail = await readAccountData<unknown>(`/api/v1/account/orders/${encodeURIComponent(publicId)}`, token);
+  return normalizeAccountOrderDetail(detail);
 }
 
 export function getKujiHistoryServer(token: string, cursor?: string): Promise<IKujiHistoryPage> {
