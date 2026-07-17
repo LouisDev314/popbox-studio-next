@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { ListOrdered, Plus } from 'lucide-react';
 import { AdminPageLoadingOverlay } from '@/components/admin/admin-page-loading-overlay';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -140,6 +140,7 @@ export default function AdminProductsPage() {
     )),
     [collectionsRes?.data?.data],
   );
+  const featuredCollection = collections.find((collection) => collection.slug === 'featured');
   const tags = useMemo(
     () => [...(tagsRes?.data?.data ?? [])].sort((left, right) => (
       left.tagType.localeCompare(right.tagType) || left.name.localeCompare(right.name)
@@ -213,15 +214,25 @@ export default function AdminProductsPage() {
       >
         <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-3xl font-semibold tracking-tight text-[#111827]">Products</h1>
-          <Button
-            asChild
-            className="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_16px_34px_-26px_hsl(var(--primary)/0.8)] hover:bg-primary/90"
-          >
-            <Link href="/admin/products/new">
-              <Plus className="h-4 w-4" />
-              New Product
-            </Link>
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {featuredCollection ? (
+              <Button asChild variant="outline" className="h-10 rounded-xl px-4 text-sm font-semibold">
+                <Link href={`/admin/collections/${featuredCollection.id}`}>
+                  <ListOrdered className="h-4 w-4" />
+                  Manage Featured order
+                </Link>
+              </Button>
+            ) : null}
+            <Button
+              asChild
+              className="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_16px_34px_-26px_hsl(var(--primary)/0.8)] hover:bg-primary/90"
+            >
+              <Link href="/admin/products/new">
+                <Plus className="h-4 w-4" />
+                New Product
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <section className="rounded-3xl border border-[#e4dccf] bg-[#fbfaf7] p-4 shadow-[0_20px_50px_-44px_rgba(17,24,39,0.4)] lg:p-5">

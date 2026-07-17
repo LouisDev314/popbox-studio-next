@@ -4,10 +4,13 @@ import { expect, test as base } from '@playwright/test';
 
 interface IAuthMockState {
   accessToken: () => string;
+  featuredOrderIds: string[];
+  forceFeaturedConflict: boolean;
   profileRequests: number;
   revealedResultIds: Set<string>;
   reset: () => void;
   sessionCookieValue: () => string;
+  triggerFeaturedConflict: () => void;
 }
 
 const confirmedAt = '2026-07-15T18:00:00.000Z';
@@ -111,6 +114,74 @@ const revealedPrize = {
 const hiddenPrize = {
   prizeCode: 'S', prizeTier: 'S', name: 'Secret Prize', description: 'This must never appear before reveal.', imageUrl: null,
 };
+
+const featuredCollection = {
+  id: '00000000-0000-4000-8000-000000000100',
+  name: 'Featured',
+  slug: 'featured',
+  description: 'Homepage products',
+  sortOrder: 0,
+  isActive: true,
+};
+
+const adminFeaturedProducts = [
+  { id: '00000000-0000-4000-8000-000000000201', name: 'First Featured Figure', slug: 'first-featured-figure', productType: 'standard' as const },
+  { id: '00000000-0000-4000-8000-000000000202', name: 'Second Featured Kuji', slug: 'second-featured-kuji', productType: 'kuji' as const },
+  { id: '00000000-0000-4000-8000-000000000203', name: 'Final Featured Plush', slug: 'final-featured-plush', productType: 'standard' as const },
+];
+
+function adminFeaturedOrderItem(productId: string, sortOrder: number) {
+  const product = adminFeaturedProducts.find((candidate) => candidate.id === productId);
+  if (!product) return null;
+
+  return {
+    id: product.id,
+    name: product.name,
+    status: 'active',
+    productType: product.productType,
+    sortOrder,
+    collections: [{ id: featuredCollection.id, name: featuredCollection.name, slug: featuredCollection.slug }],
+    primaryImage: null,
+  };
+}
+
+function adminProductListItem(product: typeof adminFeaturedProducts[number]) {
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    status: 'active',
+    productType: product.productType,
+    priceCents: 4999,
+    currency: 'CAD',
+    sku: null,
+    collections: [{ id: featuredCollection.id, name: featuredCollection.name, slug: featuredCollection.slug }],
+    inventory: null,
+    tags: [],
+    primaryImage: null,
+    updatedAt: confirmedAt,
+  };
+}
+
+function storefrontProductCard(productId: string) {
+  const product = adminFeaturedProducts.find((candidate) => candidate.id === productId);
+  if (!product) return null;
+
+  return {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    description: null,
+    updatedAt: confirmedAt,
+    productType: product.productType,
+    status: 'active',
+    priceCents: 4999,
+    currency: 'CAD',
+    collections: [{ id: featuredCollection.id, name: featuredCollection.name, slug: featuredCollection.slug }],
+    images: [],
+    inventory: null,
+  };
+}
 
 function accountKujiResult(id: string, revealed: boolean) {
   return {
@@ -223,6 +294,11 @@ function createRequestHandler(state: IAuthMockState) {
 
       if (grantType === 'password') {
         const email = typeof body.email === 'string' ? body.email : '';
+        if (email === 'admin@example.com') {
+          sendJson(response, createSession());
+          return;
+        }
+
         if (email === 'service@example.com') {
           sendJson(response, { code: 'unexpected_failure', message: 'raw upstream outage detail' }, 503);
           return;
@@ -354,6 +430,71 @@ function createRequestHandler(state: IAuthMockState) {
       return;
     }
 
+    if (pathname === '/api/v1/admin/collections' && request.method === 'GET') {
+      sendJson(response, apiData([featuredCollection]));
+      return;
+    }
+
+    if (pathname === '/api/v1/admin/products' && request.method === 'GET') {
+      sendJson(response, apiData({
+        items: adminFeaturedProducts.map(adminProductListItem),
+        nextCursor: null,
+      }));
+      return;
+    }
+
+    if (pathname === '/api/v1/admin/tags' && request.method === 'GET') {
+      sendJson(response, apiData([]));
+      return;
+    }
+
+    if (pathname === '/api/v1/admin/collections/featured/order' && request.method === 'GET') {
+      sendJson(response, apiData({
+        items: state.featuredOrderIds.flatMap((productId, index) => {
+          const product = adminFeaturedOrderItem(productId, index);
+          return product ? [product] : [];
+        }),
+      }));
+      return;
+    }
+
+    if (pathname === '/api/v1/admin/collections/featured/order' && request.method === 'PUT') {
+      if (state.forceFeaturedConflict) {
+        state.forceFeaturedConflict = false;
+        sendJson(response, {
+          status: 'error',
+          code: 409,
+          success: false,
+          message: 'Featured membership changed',
+          data: null,
+          errors: { code: 'FEATURED_MEMBERSHIP_CHANGED' },
+        }, 409);
+        return;
+      }
+
+      const body = await readJson(request);
+      const productIds = Array.isArray(body.productIds)
+        ? body.productIds.filter((productId): productId is string => typeof productId === 'string')
+        : [];
+      state.featuredOrderIds = productIds;
+      sendJson(response, apiData({
+        items: state.featuredOrderIds.flatMap((productId, index) => {
+          const product = adminFeaturedOrderItem(productId, index);
+          return product ? [product] : [];
+        }),
+      }));
+      return;
+    }
+
+    if (pathname === '/api/v1/home' && request.method === 'GET') {
+      const featured = state.featuredOrderIds.flatMap((productId) => {
+        const product = storefrontProductCard(productId);
+        return product ? [product] : [];
+      });
+      sendJson(response, apiData({ featured, trendingNow: [], allProductsPreview: [] }));
+      return;
+    }
+
     if (pathname === '/api/v1/collections') {
       sendJson(response, apiData([]));
       return;
@@ -388,14 +529,21 @@ export const test = base.extend<{ authMock: IAuthMockState; mockServices: void }
       accessToken() {
         return createAccessToken();
       },
+      featuredOrderIds: adminFeaturedProducts.map((product) => product.id),
+      forceFeaturedConflict: false,
       profileRequests: 0,
       revealedResultIds: new Set<string>(),
       reset() {
+        this.featuredOrderIds = adminFeaturedProducts.map((product) => product.id);
+        this.forceFeaturedConflict = false;
         this.profileRequests = 0;
         this.revealedResultIds.clear();
       },
       sessionCookieValue() {
         return `base64-${Buffer.from(JSON.stringify(createSession())).toString('base64url')}`;
+      },
+      triggerFeaturedConflict() {
+        this.forceFeaturedConflict = true;
       },
     };
     await applyFixture(state);

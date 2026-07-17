@@ -195,6 +195,24 @@ export interface IAdminProductListResponse {
   nextCursor: string | null;
 }
 
+export interface IAdminFeaturedOrderItem {
+  id: string;
+  name: string;
+  productType: productType;
+  status: productStatus;
+  sortOrder: number;
+  collections: IProductCollection[];
+  primaryImage: IAdminProductListPrimaryImage | null;
+}
+
+export interface IAdminFeaturedOrderResponse {
+  items: IAdminFeaturedOrderItem[];
+}
+
+export interface IAdminFeaturedOrderUpdate {
+  productIds: string[];
+}
+
 export interface IAdminProductStatusUpdate {
   status: productStatus;
 }

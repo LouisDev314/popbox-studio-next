@@ -25,6 +25,8 @@ import {
   ITag,
   IAdminTagCreateRequest,
   IAdminTagUpdateRequest,
+  IAdminFeaturedOrderResponse,
+  IAdminFeaturedOrderUpdate,
 } from '@/interfaces/product';
 import {
   IAdminFaqCreate,
@@ -147,6 +149,9 @@ const MutationConfigs = {
   },
   updateAdminCollection: async ({ id, data }: { id: string; data: IAdminCollectionUpdateRequest }): Promise<AxiosResponse<IBaseApiResponse<ICollection>>> => {
     return httpClient.patch(`/api/v1/admin/collections/${id}`, data, await withAdminAuth());
+  },
+  updateAdminFeaturedOrder: async (data: IAdminFeaturedOrderUpdate): Promise<AxiosResponse<IBaseApiResponse<IAdminFeaturedOrderResponse>>> => {
+    return httpClient.put('/api/v1/admin/collections/featured/order', data, await withAdminAuth());
   },
   createAdminTag: async (data: IAdminTagCreateRequest): Promise<AxiosResponse<IBaseApiResponse<ITag>>> => {
     return httpClient.post('/api/v1/admin/tags', data, await withAdminAuth());

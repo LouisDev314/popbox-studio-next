@@ -11,8 +11,15 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import { filterAdminProductsBySearch } from '@/lib/admin-product-filters';
 import { cn } from '@/lib/utils';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
-import type { IAdminProductListItem, IAdminProductListResponse, ICollection } from '@/interfaces/product';
+import type {
+  IAdminFeaturedOrderItem,
+  IAdminFeaturedOrderResponse,
+  IAdminProductListItem,
+  IAdminProductListResponse,
+  ICollection,
+} from '@/interfaces/product';
 import { AdminProductStatusBadge } from '@/components/admin/admin-product-status-badge';
+import { FeaturedOrderSection } from '@/components/admin/collections/featured-order-section';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -49,7 +56,7 @@ function mergeCollectionIds(product: IAdminProductListItem, collectionId: string
   return Array.from(new Set([...getCollectionIds(product), collectionId]));
 }
 
-function removeCollectionId(product: IAdminProductListItem, collectionId: string) {
+function removeCollectionId(product: Pick<IAdminProductListItem, 'collections'>, collectionId: string) {
   return getCollectionIds(product).filter((id) => id !== collectionId);
 }
 
@@ -446,6 +453,7 @@ function CollectionProductsSection({
   );
 }
 
+// eslint-disable-next-line complexity
 export default function AdminCollectionDetailPageClient({ collectionId }: { collectionId: string }) {
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -478,6 +486,18 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
     () => collectionsRes?.data?.data?.find((item) => item.id === collectionId) ?? null,
     [collectionId, collectionsRes?.data?.data],
   );
+  const isFeaturedCollection = collection?.slug === 'featured';
+  const featuredOrderQuery = useCustomizeQuery<IAdminFeaturedOrderResponse>({
+    queryKey: ['admin', 'featured-order'],
+    queryFn: QueryConfigs.fetchAdminFeaturedOrder,
+    enabled: isFeaturedCollection,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
+  const featuredItems = useMemo(
+    () => featuredOrderQuery.data?.data?.data?.items ?? [],
+    [featuredOrderQuery.data?.data?.data?.items],
+  );
   const assignedProducts = useMemo(
     () => (productsRes?.data?.data?.items ?? []).filter((product) => (
       getCollectionIds(product).includes(collectionId)
@@ -486,8 +506,8 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
   );
   const allProducts = productsRes?.data?.data?.items ?? [];
   const assignedProductIds = useMemo(
-    () => new Set(assignedProducts.map((product) => product.id)),
-    [assignedProducts],
+    () => new Set((isFeaturedCollection ? featuredItems : assignedProducts).map((product) => product.id)),
+    [assignedProducts, featuredItems, isFeaturedCollection],
   );
   const isMutatingProducts = pendingProductIds.length > 0;
 
@@ -495,6 +515,7 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
       queryClient.invalidateQueries({ queryKey: ['admin', 'collections'] }),
+      queryClient.invalidateQueries({ queryKey: ['admin', 'featured-order'] }),
     ]);
   };
 
@@ -532,7 +553,7 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
     }
   };
 
-  const handleRemoveProduct = async (product: IAdminProductListItem) => {
+  const handleRemoveProduct = async (product: IAdminProductListItem | IAdminFeaturedOrderItem) => {
     if (!collection) {
       return;
     }
@@ -556,6 +577,11 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
     } finally {
       setPendingProductIds([]);
     }
+  };
+
+  const reloadFeaturedProducts = async () => {
+    const response = await featuredOrderQuery.refetch();
+    return response.data?.data?.data?.items ?? null;
   };
 
   if (isCollectionPending) {
@@ -589,18 +615,33 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
 
       <ErrorAlert message={requestErrorMessage} />
 
-      <CollectionMetadataCard collection={collection} productCount={assignedProducts.length} />
-
-      <CollectionProductsSection
-        assignedProducts={assignedProducts}
+      <CollectionMetadataCard
         collection={collection}
-        isAssignedProductsError={isProductsError}
-        isAssignedProductsPending={isProductsPending}
-        isMutatingProducts={isMutatingProducts}
-        onAddProductsClick={() => setIsAddDialogOpen(true)}
-        onRemoveProduct={handleRemoveProduct}
-        pendingProductIds={pendingProductIds}
+        productCount={isFeaturedCollection ? featuredItems.length : assignedProducts.length}
       />
+
+      {isFeaturedCollection ? (
+        <FeaturedOrderSection
+          items={featuredItems}
+          isError={featuredOrderQuery.isError}
+          isLoading={featuredOrderQuery.isPending || featuredOrderQuery.isFetching}
+          isMembershipMutationPending={isMutatingProducts}
+          onAddProductsClick={() => setIsAddDialogOpen(true)}
+          onReload={reloadFeaturedProducts}
+          onRemoveProduct={handleRemoveProduct}
+        />
+      ) : (
+        <CollectionProductsSection
+          assignedProducts={assignedProducts}
+          collection={collection}
+          isAssignedProductsError={isProductsError}
+          isAssignedProductsPending={isProductsPending}
+          isMutatingProducts={isMutatingProducts}
+          onAddProductsClick={() => setIsAddDialogOpen(true)}
+          onRemoveProduct={handleRemoveProduct}
+          pendingProductIds={pendingProductIds}
+        />
+      )}
 
       <AddProductsDialog
         assignedProductIds={assignedProductIds}

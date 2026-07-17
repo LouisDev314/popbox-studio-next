@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AxiosResponse } from 'axios';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -8,6 +8,7 @@ import MutationConfigs from '@/configs/api/mutation-config';
 import type { IBaseApiResponse } from '@/interfaces/api-response';
 import type {
   IAdminProduct,
+  IAdminFeaturedOrderItem,
   IAdminProductListItem,
   IAdminProductListResponse,
   ICollection,
@@ -122,6 +123,18 @@ function createProductListResponse(items: IAdminProductListItem[]): IAdminProduc
   };
 }
 
+function toFeaturedOrderItem(product: IAdminProductListItem, sortOrder: number): IAdminFeaturedOrderItem {
+  return {
+    id: product.id,
+    name: product.name,
+    productType: product.productType,
+    status: product.status,
+    sortOrder,
+    collections: product.collections,
+    primaryImage: product.primaryImage,
+  };
+}
+
 function mockCollectionDetailQueries({
   allProducts,
   assignedProducts = [],
@@ -133,10 +146,13 @@ function mockCollectionDetailQueries({
   vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockResolvedValue(
     createResponse(createProductListResponse(allProducts ?? assignedProducts)),
   );
+  vi.spyOn(QueryConfigs, 'fetchAdminFeaturedOrder').mockResolvedValue(
+    createResponse({ items: assignedProducts.map(toFeaturedOrderItem) }),
+  );
 }
 
 describe('AdminCollectionDetailPageClient', () => {
-  it('shows assigned products with merchandising fields', async () => {
+  it('shows Featured products in the dedicated storefront order', async () => {
     mockCollectionDetailQueries({
       assignedProducts: [
         createProduct(),
@@ -147,10 +163,9 @@ describe('AdminCollectionDetailPageClient', () => {
 
     expect(await screen.findByRole('heading', { name: 'Featured' })).toBeInTheDocument();
     expect(await screen.findAllByText('Ichiban Figure')).not.toHaveLength(0);
-    expect(screen.getAllByText('PB-001')).not.toHaveLength(0);
     expect(screen.getAllByText('Active')).not.toHaveLength(0);
     expect(screen.getAllByText('Standard')).not.toHaveLength(0);
-    expect(screen.getAllByText('$49.99')).not.toHaveLength(0);
+    expect(screen.getAllByText('1').length).toBeGreaterThan(0);
   });
 
   it('shows the empty state when no products are assigned', async () => {
@@ -160,8 +175,8 @@ describe('AdminCollectionDetailPageClient', () => {
 
     renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
 
-    expect(await screen.findByText('No products in this collection yet.')).toBeInTheDocument();
-    expect(screen.getByText('Add products to control what appears on this collection page.')).toBeInTheDocument();
+    expect(await screen.findByText('No Featured products yet.')).toBeInTheDocument();
+    expect(screen.getByText('Add a product and it will be placed at the end of this list.')).toBeInTheDocument();
   });
 
   it('opens the add products dialog', async () => {
@@ -267,8 +282,7 @@ describe('AdminCollectionDetailPageClient', () => {
 
     renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
 
-    const table = await screen.findByRole('table');
-    await userEvent.click(within(table).getByRole('button', { name: /Remove/i }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove Ichiban Figure from Featured' }));
 
     await waitFor(() => {
       expect(updateProduct).toHaveBeenCalledWith({

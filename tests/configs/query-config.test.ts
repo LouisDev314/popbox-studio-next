@@ -80,4 +80,14 @@ describe('admin query configs', () => {
     expect(httpGet.mock.calls[0][1].params).not.toHaveProperty('type');
     expect(httpGet.mock.calls[0][1].params).not.toHaveProperty('tagIds');
   });
+
+  it('loads the dedicated unpaginated Featured order endpoint with admin auth', async () => {
+    const QueryConfigs = (await import('@/configs/api/query-config')).default;
+
+    await QueryConfigs.fetchAdminFeaturedOrder();
+
+    expect(httpGet).toHaveBeenCalledWith('/api/v1/admin/collections/featured/order', {
+      headers: { Authorization: 'Bearer test-token' },
+    });
+  });
 });

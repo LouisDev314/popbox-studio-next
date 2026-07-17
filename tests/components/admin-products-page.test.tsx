@@ -108,6 +108,19 @@ describe('AdminProductsPage', () => {
     vi.spyOn(QueryConfigs, 'fetchAdminTags').mockResolvedValue(createResponse(tags));
   });
 
+  it('links to the focused Featured ordering surface', async () => {
+    vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockResolvedValue(
+      createResponse(createProductListResponse([])),
+    );
+
+    renderWithProviders(<AdminProductsPage />);
+
+    expect(await screen.findByRole('link', { name: 'Manage Featured order' })).toHaveAttribute(
+      'href',
+      '/admin/collections/collection-1',
+    );
+  });
+
   it('sends canonical search, filter, sort, cursor, and limit params to the backend', async () => {
     currentSearchParams = 'search=hero&status=active&productType=kuji&collectionId=collection-1&tagId=tag-1&sort=price_desc';
     const fetchProducts = vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockResolvedValue(
