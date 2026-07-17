@@ -44,7 +44,7 @@ export function OrdersList({ initialPage }: { initialPage: IAccountOrderListPage
             href={`/account/orders/${encodeURIComponent(order.publicId)}`}
             className="group/order grid cursor-pointer gap-4 px-4 py-5 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:grid-cols-[1fr_1.8fr_.9fr_.8fr_.5fr_.8fr] md:items-center"
           >
-            <span className="inline-flex items-center gap-1 font-semibold transition-colors group-hover/order:text-primary">
+            <span className="inline-flex text-nowrap items-center gap-1 font-semibold transition-colors group-hover/order:text-primary">
               {order.publicId}
               <ChevronRight className="h-4 w-4 transition-transform group-hover/order:translate-x-0.5" aria-hidden="true" />
             </span>
