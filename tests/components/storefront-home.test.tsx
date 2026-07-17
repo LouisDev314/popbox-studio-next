@@ -8,11 +8,11 @@ vi.mock('@/components/home/storefront-featured-carousel-client', () => ({
 }));
 
 vi.mock('@/components/home/home-product-section', () => ({
-  HomeProductSection: () => null,
+  HomeProductSection: ({ title }: { title: string }) => <section data-testid={`product-section-${title}`} />,
 }));
 
 vi.mock('@/components/home/storefront-kuji-banner', () => ({
-  StorefrontKujiBanner: () => null,
+  StorefrontKujiBanner: () => <section data-testid="kuji-banner" />,
 }));
 
 vi.mock('@/components/home/storefront-bottom-cta', () => ({
@@ -54,5 +54,31 @@ describe('StorefrontHome', () => {
       name: 'Discover Anime Merchandise',
     })).toBeInTheDocument();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
+  });
+
+  it('explains account benefits and renders the requested homepage section order', () => {
+    render(
+      <StorefrontHome
+        homeData={{
+          featured: [createProductCard()],
+          trendingNow: [createProductCard()],
+          allProductsPreview: [],
+        }}
+      />,
+    );
+
+    const welcomeHeading = screen.getByRole('heading', { level: 2, name: 'PopBox Studio' });
+    const featuredSection = screen.getByTestId('product-section-Featured');
+    const kujiBanner = screen.getByTestId('kuji-banner');
+    const trendingSection = screen.getByTestId('product-section-Trending Now');
+
+    expect(screen.getByRole('link', { name: 'Create Account' })).toHaveAttribute('href', '/account/sign-up');
+    expect(screen.getByRole('link', { name: 'Browse Products' })).toHaveAttribute('href', '/products');
+    expect(screen.getByText('Track your orders')).toBeInTheDocument();
+    expect(screen.getByText('View your Ichiban Kuji history')).toBeInTheDocument();
+    expect(screen.getByText(/Google Sign-In is an optional, secure way/)).toBeInTheDocument();
+    expect(welcomeHeading.compareDocumentPosition(featuredSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(featuredSection.compareDocumentPosition(kujiBanner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(kujiBanner.compareDocumentPosition(trendingSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

@@ -3,6 +3,7 @@ import { HomeProductSection } from '@/components/home/home-product-section';
 import { StorefrontFeaturedCarouselClient } from '@/components/home/storefront-featured-carousel-client';
 import { StorefrontHero } from '@/components/home/storefront-hero';
 import { StorefrontKujiBanner } from '@/components/home/storefront-kuji-banner';
+import { StorefrontWelcome } from '@/components/home/storefront-welcome';
 import type { IHomepageData } from '@/interfaces/home';
 
 interface IStorefrontHomeProps {
@@ -31,7 +32,7 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
         />
       )}
 
-      <StorefrontKujiBanner />
+      <StorefrontWelcome />
 
       <div className="container mx-auto w-full px-4 pt-0 md:px-6 lg:px-8">
         <HomeProductSection
@@ -43,7 +44,11 @@ export function StorefrontHome(props: IStorefrontHomeProps) {
           headerClassName="mb-4 md:mb-6"
           viewAllHref="/collections/featured"
         />
+      </div>
 
+      <StorefrontKujiBanner />
+
+      <div className="container mx-auto w-full px-4 pt-0 md:px-6 lg:px-8">
         <HomeProductSection
           listId="home_trending"
           title="Trending Now"
