@@ -61,6 +61,31 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+.mobile-benefits-disclosure {
+  interpolate-size: allow-keywords;
+}
+
+.mobile-benefits-disclosure::details-content {
+  block-size: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    block-size 250ms ease,
+    content-visibility 250ms allow-discrete,
+    opacity 200ms ease;
+}
+
+.mobile-benefits-disclosure[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-benefits-disclosure::details-content {
+    transition: none;
+  }
+}
+
 .surface-scrollbar {
   scrollbar-color: hsl(var(--muted-foreground) / 0.38) hsl(var(--muted) / 0.45);
   scrollbar-width: thin;

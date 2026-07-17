@@ -74,9 +74,12 @@ describe('StorefrontHome', () => {
 
     expect(screen.getByRole('link', { name: 'Create Account' })).toHaveAttribute('href', '/account/sign-up');
     expect(screen.getByRole('link', { name: 'Browse Products' })).toHaveAttribute('href', '/products');
-    expect(screen.getByText('Track your orders')).toBeInTheDocument();
-    expect(screen.getByText('View your Ichiban Kuji history')).toBeInTheDocument();
-    expect(screen.getByText(/Google Sign-In is an optional, secure way/)).toBeInTheDocument();
+    expect(screen.getByText(/Discover authentic anime collectibles from Japan/)).toBeInTheDocument();
+    expect(screen.getByRole('group')).not.toHaveAttribute('open');
+    expect(screen.getByText('Benefits')).toBeInTheDocument();
+    expect(screen.getAllByText('Track your orders')).toHaveLength(2);
+    expect(screen.getAllByText('View your Ichiban Kuji history')).toHaveLength(2);
+    expect(screen.getAllByText(/Google Sign-In is an optional, secure way/)).toHaveLength(2);
     expect(welcomeHeading.compareDocumentPosition(featuredSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(featuredSection.compareDocumentPosition(kujiBanner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(kujiBanner.compareDocumentPosition(trendingSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
