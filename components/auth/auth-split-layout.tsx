@@ -6,7 +6,7 @@ export function AuthSplitLayout({ children, title }: { children: ReactNode; titl
     <section className="grid min-h-[calc(100svh-4rem)] lg:grid-cols-[54%_46%]">
       <div className="relative hidden min-h-[42rem] overflow-hidden bg-muted lg:block">
         <Image
-          src="/kuji-bottom-cta.webp"
+          src="/store-bg.webp"
           alt=""
           fill
           priority

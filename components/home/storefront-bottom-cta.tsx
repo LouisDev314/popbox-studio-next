@@ -31,7 +31,7 @@ export function StorefrontBottomCta() {
       <div className="relative overflow-hidden border border-border/60 bg-card text-left">
         <div className="relative min-h-48 sm:min-h-58 lg:min-h-68">
           <StorefrontImage
-            src="/kuji-auth-split.webp"
+            src="/kuji-bottom-cta.webp"
             loading='eager'
             alt="Ichiban Kuji lucky draw banner"
             className="absolute inset-0 h-full w-full"

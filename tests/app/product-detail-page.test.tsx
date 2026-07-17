@@ -116,7 +116,7 @@ describe('ProductDetailPage', () => {
     expect(navigationMocks.notFound).toHaveBeenCalledOnce();
   });
 
-  it('uses the canonical SEO image for both Open Graph and Twitter metadata', async () => {
+  it('uses the primary product image for both Open Graph and Twitter metadata', async () => {
     const metadata = await generateMetadata({
       params: Promise.resolve({ slug: 'ichiban-figure' }),
     });
@@ -125,6 +125,28 @@ describe('ProductDetailPage', () => {
       {
         alt: 'Ichiban Figure front',
         url: `http://localhost:3001/media/product-images/products/${PRODUCT_ID}/front.jpg`,
+      },
+    ]);
+    expect(metadata.twitter?.images).toEqual(metadata.openGraph?.images);
+  });
+
+  it('falls back to the static social image when the product has no valid image', async () => {
+    const product = await getPublicProductBySlug('image-pending');
+    vi.mocked(getPublicProductBySlug).mockResolvedValueOnce({
+      ...product,
+      images: [],
+    });
+
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ slug: 'image-pending' }),
+    });
+
+    expect(metadata.openGraph?.images).toEqual([
+      {
+        alt: 'PopBox Studio',
+        height: 630,
+        url: '/opengraph-image.png',
+        width: 1200,
       },
     ]);
     expect(metadata.twitter?.images).toEqual(metadata.openGraph?.images);

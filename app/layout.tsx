@@ -31,7 +31,7 @@ export const metadata: Metadata = {
         url: DEFAULT_OG_IMAGE_PATH,
         width: 1200,
         height: 630,
-        alt: 'PopBox Studio anime collectibles and Ichiban Kuji',
+        alt: BRAND_NAME,
       },
     ],
   },
@@ -39,7 +39,14 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: BRAND_NAME,
     description: DEFAULT_SITE_DESCRIPTION,
-    images: [DEFAULT_OG_IMAGE_PATH],
+    images: [
+      {
+        url: DEFAULT_OG_IMAGE_PATH,
+        width: 1200,
+        height: 630,
+        alt: BRAND_NAME,
+      },
+    ],
   },
   robots: getDefaultRobots(),
 };
