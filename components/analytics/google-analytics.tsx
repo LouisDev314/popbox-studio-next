@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   deactivateGoogleAnalytics,
@@ -16,25 +16,25 @@ import {
 const ANALYTICS_CONSENT_STORAGE_KEY = 'popbox_analytics_consent';
 const ANALYTICS_CONSENT_EVENT = 'popbox:analytics-consent';
 
-type TAnalyticsConsent = 'accepted' | 'declined' | null;
+type TAnalyticsConsentDecision = 'accepted' | 'declined';
+type TAnalyticsConsentState = 'loading' | TAnalyticsConsentDecision | 'unset';
 
 interface IGoogleAnalyticsProps {
   debugMode: boolean;
   measurementId: string;
 }
 
-function readConsent(): TAnalyticsConsent {
-  try {
-    const value = window.localStorage.getItem(ANALYTICS_CONSENT_STORAGE_KEY);
-    return value === 'accepted' || value === 'declined' ? value : null;
-  } catch {
-    return null;
-  }
+function isConsentDecision(value: unknown): value is TAnalyticsConsentDecision {
+  return value === 'accepted' || value === 'declined';
 }
 
-function subscribeToConsent(onStoreChange: () => void) {
-  window.addEventListener(ANALYTICS_CONSENT_EVENT, onStoreChange);
-  return () => window.removeEventListener(ANALYTICS_CONSENT_EVENT, onStoreChange);
+function readConsent(): Exclude<TAnalyticsConsentState, 'loading'> {
+  try {
+    const value = window.localStorage.getItem(ANALYTICS_CONSENT_STORAGE_KEY);
+    return isConsentDecision(value) ? value : 'unset';
+  } catch {
+    return 'unset';
+  }
 }
 
 function GoogleAnalyticsPageViews(props: IGoogleAnalyticsProps) {
@@ -60,18 +60,28 @@ function GoogleAnalyticsPageViews(props: IGoogleAnalyticsProps) {
   return null;
 }
 
-function useAnalyticsConsent(): TAnalyticsConsent {
-  return useSyncExternalStore(
-    subscribeToConsent,
-    readConsent,
-    () => null,
-  );
+function useAnalyticsConsent() {
+  const [consentState, setConsentState] = useState<TAnalyticsConsentState>('loading');
+
+  useEffect(() => {
+    const syncConsent = (event?: Event) => {
+      const eventConsent = event instanceof CustomEvent ? event.detail : null;
+      setConsentState(isConsentDecision(eventConsent) ? eventConsent : readConsent());
+    };
+
+    syncConsent();
+    window.addEventListener(ANALYTICS_CONSENT_EVENT, syncConsent);
+
+    return () => window.removeEventListener(ANALYTICS_CONSENT_EVENT, syncConsent);
+  }, []);
+
+  return [consentState, setConsentState] as const;
 }
 
 export function OperationalAnalytics() {
-  const consent = useAnalyticsConsent();
+  const [consentState] = useAnalyticsConsent();
 
-  return consent === 'accepted' ? (
+  return consentState === 'accepted' ? (
     <>
       <Analytics />
       <SpeedInsights />
@@ -79,7 +89,7 @@ export function OperationalAnalytics() {
   ) : null;
 }
 
-function AnalyticsConsentBanner(props: { onConsent: (consent: Exclude<TAnalyticsConsent, null>) => void }) {
+function AnalyticsConsentBanner(props: { onConsent: (consent: TAnalyticsConsentDecision) => void }) {
   return (
     <div
       className="fixed inset-x-3 bottom-3 z-[100] mx-auto max-w-2xl rounded-2xl border border-border/70 bg-background/95 p-4 shadow-xl backdrop-blur sm:inset-x-6 sm:bottom-6 sm:p-5"
@@ -115,22 +125,23 @@ function AnalyticsConsentBanner(props: { onConsent: (consent: Exclude<TAnalytics
 }
 
 export function GoogleAnalytics(props: IGoogleAnalyticsProps) {
-  const consent = useAnalyticsConsent();
+  const [consentState, setConsentState] = useAnalyticsConsent();
 
-  const updateConsent = (nextConsent: Exclude<TAnalyticsConsent, null>) => {
+  const updateConsent = (nextConsent: TAnalyticsConsentDecision) => {
     try {
       window.localStorage.setItem(ANALYTICS_CONSENT_STORAGE_KEY, nextConsent);
     } catch {
       // Consent remains valid for this page even when persistent storage is unavailable.
     }
 
-    window.dispatchEvent(new Event(ANALYTICS_CONSENT_EVENT));
+    setConsentState(nextConsent);
+    window.dispatchEvent(new CustomEvent(ANALYTICS_CONSENT_EVENT, { detail: nextConsent }));
   };
 
   return (
     <>
-      {consent === null ? <AnalyticsConsentBanner onConsent={updateConsent} /> : null}
-      {consent === 'accepted' ? (
+      {consentState === 'unset' ? <AnalyticsConsentBanner onConsent={updateConsent} /> : null}
+      {consentState === 'accepted' ? (
         <>
           <Script
             id="popbox-google-analytics"

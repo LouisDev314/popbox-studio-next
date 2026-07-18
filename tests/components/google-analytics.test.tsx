@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   GoogleAnalytics,
@@ -32,18 +33,74 @@ describe('GoogleAnalytics', () => {
     window.dataLayer = [];
   });
 
-  it('waits for analytics consent and renders the GA script exactly once after acceptance', () => {
-    const { container, rerender } = render(
+  it('renders nothing before the persisted consent check can run', () => {
+    const getItem = vi.spyOn(Storage.prototype, 'getItem');
+    const html = renderToString(
       <GoogleAnalytics debugMode={false} measurementId="G-N3TZG44VCT" />,
     );
 
+    expect(html).not.toContain('Analytics cookie preferences');
+    expect(html).not.toContain('popbox-google-analytics');
+    expect(getItem).not.toHaveBeenCalled();
+  });
+
+  it.each(['accepted', 'declined'] as const)('never displays the banner for stored %s consent', (consent) => {
+    window.localStorage.setItem('popbox_analytics_consent', consent);
+    render(<GoogleAnalytics debugMode={false} measurementId="G-N3TZG44VCT" />);
+
+    expect(screen.queryByRole('dialog', { name: 'Analytics cookie preferences' })).not.toBeInTheDocument();
+  });
+
+  it.each([null, 'invalid', 'legacy-value'])('displays the banner after hydrating %s stored consent', (consent) => {
+    if (consent !== null) {
+      window.localStorage.setItem('popbox_analytics_consent', consent);
+    }
+
+    render(<GoogleAnalytics debugMode={false} measurementId="G-N3TZG44VCT" />);
+
     expect(screen.getByRole('dialog', { name: 'Analytics cookie preferences' })).toBeInTheDocument();
-    expect(container.querySelectorAll('[data-script-id="popbox-google-analytics"]')).toHaveLength(0);
+  });
+
+  it('persists accepted consent, hides the banner immediately, and enables analytics', () => {
+    const { container } = render(
+      <GoogleAnalytics debugMode={false} measurementId="G-N3TZG44VCT" />,
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Accept' }));
-    rerender(<GoogleAnalytics debugMode={false} measurementId="G-N3TZG44VCT" />);
 
+    expect(window.localStorage.getItem('popbox_analytics_consent')).toBe('accepted');
+    expect(screen.queryByRole('dialog', { name: 'Analytics cookie preferences' })).not.toBeInTheDocument();
     expect(container.querySelectorAll('[data-script-id="popbox-google-analytics"]')).toHaveLength(1);
+    expect((window.dataLayer ?? []).map((entry) => Array.from(entry as ArrayLike<unknown>))).toEqual(
+      expect.arrayContaining([
+        expect.arrayContaining(['config', 'G-N3TZG44VCT']),
+        expect.arrayContaining(['event', 'page_view']),
+      ]),
+    );
+  });
+
+  it('persists declined consent and hides the banner immediately without enabling analytics', () => {
+    const { container } = render(
+      <GoogleAnalytics debugMode={false} measurementId="G-N3TZG44VCT" />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Decline' }));
+
+    expect(window.localStorage.getItem('popbox_analytics_consent')).toBe('declined');
+    expect(screen.queryByRole('dialog', { name: 'Analytics cookie preferences' })).not.toBeInTheDocument();
+    expect(container.querySelectorAll('[data-script-id="popbox-google-analytics"]')).toHaveLength(0);
+    expect(window.__popboxGaReady).not.toBe(true);
+  });
+
+  it.each(['accepted', 'declined'] as const)('does not flash the banner when remounted with %s consent', (consent) => {
+    window.localStorage.setItem('popbox_analytics_consent', consent);
+
+    const firstMount = render(<GoogleAnalytics debugMode={false} measurementId="G-N3TZG44VCT" />);
+    expect(screen.queryByRole('dialog', { name: 'Analytics cookie preferences' })).not.toBeInTheDocument();
+    firstMount.unmount();
+
+    render(<GoogleAnalytics debugMode={false} measurementId="G-N3TZG44VCT" />);
+    expect(screen.queryByRole('dialog', { name: 'Analytics cookie preferences' })).not.toBeInTheDocument();
   });
 
   it('keeps private checkout query parameters out of manual page-view payloads', () => {
