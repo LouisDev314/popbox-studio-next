@@ -3,6 +3,7 @@
 import { type ImgHTMLAttributes } from 'react';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import useEmblaCarousel from 'embla-carousel-react';
 import { StorefrontCarousel } from '@/components/home/storefront-carousel';
 import { StorefrontFeaturedCarouselClient } from '@/components/home/storefront-featured-carousel-client';
 import { createProductCard } from '../fixtures';
@@ -132,6 +133,48 @@ describe('StorefrontCarousel', () => {
     expect(secondImage).toHaveClass('opacity-0');
     expect(secondImage.parentElement?.querySelector('[data-testid="storefront-image-skeleton"]'))
       .toBeInTheDocument();
+  });
+
+  it.each([10, 4])('renders all %i featured products in their received order', (productCount) => {
+    const products = Array.from({ length: productCount }, (_, index) => createProductCard({
+      id: `product-${index + 1}`,
+      name: `Featured Product ${index + 1}`,
+      slug: `featured-product-${index + 1}`,
+    }));
+
+    const { container } = renderWithProviders(
+      <StorefrontCarousel featuredProducts={products} />,
+    );
+
+    const slides = container.querySelectorAll('.flex.touch-pan-y > div');
+    const slideLinks = Array.from(
+      container.querySelectorAll<HTMLAnchorElement>('a[href^="/products/"]'),
+    );
+
+    expect(slides).toHaveLength(productCount);
+    expect(slideLinks.map((link) => link.getAttribute('href'))).toEqual(
+      products.map((product) => `/products/${product.slug}`),
+    );
+  });
+
+  it('keeps looping, one-slide navigation, and autoplay enabled for ten slides', () => {
+    const products = Array.from({ length: 10 }, (_, index) => createProductCard({
+      id: `product-${index + 1}`,
+      slug: `featured-product-${index + 1}`,
+    }));
+
+    renderWithProviders(
+      <StorefrontCarousel featuredProducts={products} />,
+    );
+
+    expect(vi.mocked(useEmblaCarousel)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        align: 'start',
+        loop: true,
+        slidesToScroll: 1,
+      }),
+      [autoplayPlugin],
+    );
   });
 
   it('keeps arrows and dots wired through the featured carousel client', async () => {

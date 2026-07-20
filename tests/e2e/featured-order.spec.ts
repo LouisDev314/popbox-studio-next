@@ -51,7 +51,21 @@ test('admin reorders Featured products and the storefront uses the persisted ord
   await expectNoHorizontalOverflow(page);
 
   await page.goto('/');
-  const firstCarouselProduct = page.locator('main a[href^="/products/"]').first();
+  const carouselProducts = page.locator('main section').first().locator('a[href^="/products/"]');
+  await expect(carouselProducts).toHaveCount(10);
+  expect(await carouselProducts.evaluateAll((links) => links.map((link) => link.getAttribute('href')))).toEqual([
+    '/products/final-featured-plush',
+    '/products/first-featured-figure',
+    '/products/second-featured-kuji',
+    '/products/featured-acrylic-stand',
+    '/products/featured-character-badge',
+    '/products/featured-prize-kuji',
+    '/products/featured-art-board',
+    '/products/featured-mascot-plush',
+    '/products/featured-towel-set',
+    '/products/featured-anniversary-kuji',
+  ]);
+  const firstCarouselProduct = carouselProducts.first();
   await expect(firstCarouselProduct).toHaveAttribute('href', '/products/final-featured-plush');
   await expect(firstCarouselProduct).toContainText('Final Featured Plush');
   const carouselNavigation = testInfo.project.name === 'mobile'

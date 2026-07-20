@@ -128,6 +128,13 @@ const adminFeaturedProducts = [
   { id: '00000000-0000-4000-8000-000000000201', name: 'First Featured Figure', slug: 'first-featured-figure', productType: 'standard' as const },
   { id: '00000000-0000-4000-8000-000000000202', name: 'Second Featured Kuji', slug: 'second-featured-kuji', productType: 'kuji' as const },
   { id: '00000000-0000-4000-8000-000000000203', name: 'Final Featured Plush', slug: 'final-featured-plush', productType: 'standard' as const },
+  { id: '00000000-0000-4000-8000-000000000204', name: 'Featured Acrylic Stand', slug: 'featured-acrylic-stand', productType: 'standard' as const },
+  { id: '00000000-0000-4000-8000-000000000205', name: 'Featured Character Badge', slug: 'featured-character-badge', productType: 'standard' as const },
+  { id: '00000000-0000-4000-8000-000000000206', name: 'Featured Prize Kuji', slug: 'featured-prize-kuji', productType: 'kuji' as const },
+  { id: '00000000-0000-4000-8000-000000000207', name: 'Featured Art Board', slug: 'featured-art-board', productType: 'standard' as const },
+  { id: '00000000-0000-4000-8000-000000000208', name: 'Featured Mascot Plush', slug: 'featured-mascot-plush', productType: 'standard' as const },
+  { id: '00000000-0000-4000-8000-000000000209', name: 'Featured Towel Set', slug: 'featured-towel-set', productType: 'standard' as const },
+  { id: '00000000-0000-4000-8000-000000000210', name: 'Featured Anniversary Kuji', slug: 'featured-anniversary-kuji', productType: 'kuji' as const },
 ];
 
 function adminFeaturedOrderItem(productId: string, sortOrder: number) {
