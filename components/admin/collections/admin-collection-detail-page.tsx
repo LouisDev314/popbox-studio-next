@@ -628,7 +628,6 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
           isMembershipMutationPending={isMutatingProducts}
           onAddProductsClick={() => setIsAddDialogOpen(true)}
           onReload={reloadFeaturedProducts}
-          onRemoveProduct={handleRemoveProduct}
         />
       ) : (
         <CollectionProductsSection

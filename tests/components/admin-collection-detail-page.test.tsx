@@ -258,7 +258,7 @@ describe('AdminCollectionDetailPageClient', () => {
     expect(payload).not.toHaveProperty('collectionId');
   });
 
-  it('removes only the current collection id from a product', async () => {
+  it('keeps Featured removal local until the order is saved', async () => {
     const product = createProduct({
       collections: [
         {
@@ -276,22 +276,19 @@ describe('AdminCollectionDetailPageClient', () => {
     mockCollectionDetailQueries({
       assignedProducts: [product],
     });
-    const updateProduct = vi.spyOn(MutationConfigs, 'updateAdminProduct').mockResolvedValue(
-      createResponse(createAdminProduct()),
+    const updateProduct = vi.spyOn(MutationConfigs, 'updateAdminProduct');
+    const updateOrder = vi.spyOn(MutationConfigs, 'updateAdminFeaturedOrder').mockResolvedValue(
+      createResponse({ items: [] }),
     );
 
     renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
 
     await userEvent.click(await screen.findByRole('button', { name: 'Remove Ichiban Figure from Featured' }));
 
-    await waitFor(() => {
-      expect(updateProduct).toHaveBeenCalledWith({
-        productId: 'product-1',
-        data: {
-          collectionIds: ['collection-2'],
-        },
-      });
-    });
+    expect(updateProduct).not.toHaveBeenCalled();
+    expect(screen.queryByText('Ichiban Figure')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
+    await waitFor(() => expect(updateOrder.mock.calls[0]?.[0]).toEqual({ productIds: [] }));
   });
 
   it('shows a friendly error when an add partially fails', async () => {

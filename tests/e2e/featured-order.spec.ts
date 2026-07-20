@@ -1,4 +1,4 @@
-import type { ConsoleMessage, Page } from '@playwright/test';
+import type { ConsoleMessage, Locator, Page } from '@playwright/test';
 import { test, expect } from './fixtures/mock-services';
 
 function recordUnexpectedConsoleErrors(page: Page) {
@@ -29,8 +29,69 @@ async function expectNoHorizontalOverflow(page: Page) {
   )).toBe(false);
 }
 
+async function dragProduct(page: Page, productName: string, targetRow: Locator, useTouch = false) {
+  const handle = page.getByRole('button', { name: `Reorder ${productName}` });
+  const [handleBox, targetBox] = await Promise.all([handle.boundingBox(), targetRow.boundingBox()]);
+
+  if (!handleBox || !targetBox) throw new Error(`Unable to measure drag positions for ${productName}.`);
+
+  const startX = handleBox.x + handleBox.width / 2;
+  const startY = handleBox.y + handleBox.height / 2;
+
+  if (useTouch) {
+    const dispatchTouch = async (type: 'touchstart' | 'touchmove' | 'touchend', x: number, y: number) => {
+      await handle.evaluate((element, eventInit) => {
+        const touch = new Touch({
+          identifier: 1,
+          target: element,
+          clientX: eventInit.x,
+          clientY: eventInit.y,
+        });
+        element.dispatchEvent(new TouchEvent(eventInit.type, {
+          bubbles: true,
+          cancelable: true,
+          touches: eventInit.type === 'touchend' ? [] : [touch],
+          targetTouches: eventInit.type === 'touchend' ? [] : [touch],
+          changedTouches: [touch],
+        }));
+      }, { type, x, y });
+    };
+
+    await dispatchTouch('touchstart', startX, startY);
+    await page.waitForTimeout(220);
+    await dispatchTouch('touchmove', startX, startY - 12);
+    await dispatchTouch(
+      'touchmove',
+      targetBox.x + Math.min(targetBox.width / 2, 120),
+      targetBox.y + targetBox.height / 2,
+    );
+    await dispatchTouch(
+      'touchend',
+      targetBox.x + Math.min(targetBox.width / 2, 120),
+      targetBox.y + targetBox.height / 2,
+    );
+    return;
+  }
+
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX, startY - 12, { steps: 3 });
+  await page.mouse.move(
+    targetBox.x + Math.min(targetBox.width / 2, 120),
+    targetBox.y + targetBox.height / 2,
+    { steps: 12 },
+  );
+  await page.mouse.up();
+}
+
 test('admin reorders Featured products and the storefront uses the persisted order', async ({ page }, testInfo) => {
   const console = recordUnexpectedConsoleErrors(page);
+  let reorderRequestCount = 0;
+  page.on('request', (request) => {
+    if (request.method() === 'PUT' && request.url().endsWith('/api/v1/admin/collections/featured/order')) {
+      reorderRequestCount += 1;
+    }
+  });
   await authenticateAdmin(page);
   await page.goto('/admin/collections/00000000-0000-4000-8000-000000000100');
 
@@ -39,13 +100,25 @@ test('admin reorders Featured products and the storefront uses the persisted ord
   });
   const orderList = orderSection.getByRole('list');
   await expect(orderList.getByRole('listitem').first()).toContainText('First Featured Figure');
-  await page.getByRole('button', { name: 'Move Final Featured Plush up' }).click();
-  await page.getByRole('button', { name: 'Move Final Featured Plush up' }).click();
+  await dragProduct(
+    page,
+    'Final Featured Plush',
+    orderList.getByRole('listitem').first(),
+    testInfo.project.name === 'mobile',
+  );
   await expect(orderList.getByRole('listitem').first()).toContainText('Final Featured Plush');
   await expect(page.getByText('Unsaved changes')).toBeVisible();
+  expect(reorderRequestCount).toBe(0);
 
-  await page.getByRole('button', { name: 'Save order' }).click();
+  await Promise.all([
+    page.waitForResponse((response) => (
+      response.request().method() === 'PUT'
+      && response.url().endsWith('/api/v1/admin/collections/featured/order')
+    )),
+    page.getByRole('button', { name: 'Save order' }).click(),
+  ]);
   await expect(page.getByText('Featured product order saved.')).toBeVisible();
+  expect(reorderRequestCount).toBe(1);
   await page.reload();
   await expect(orderList.getByRole('listitem').first()).toContainText('Final Featured Plush');
   await expectNoHorizontalOverflow(page);
@@ -79,12 +152,27 @@ test('admin reorders Featured products and the storefront uses the persisted ord
   expect(console.errors).toEqual([]);
 });
 
-test('admin membership conflict preserves the draft until products are reloaded', async ({ authMock, page }) => {
+test('admin membership conflict preserves the draft until products are reloaded', async ({ authMock, page }, testInfo) => {
   await authenticateAdmin(page);
   await page.goto('/admin/collections/00000000-0000-4000-8000-000000000100');
-  await page.getByRole('button', { name: 'Move Final Featured Plush up' }).click();
+  const orderList = page.locator('section').filter({
+    has: page.getByRole('heading', { name: 'Featured storefront order' }),
+  }).getByRole('list');
+  await dragProduct(
+    page,
+    'Final Featured Plush',
+    orderList.getByRole('listitem').nth(1),
+    testInfo.project.name === 'mobile',
+  );
   authMock.triggerFeaturedConflict();
-  await page.getByRole('button', { name: 'Save order' }).click();
+  await expect(page.getByRole('button', { name: 'Save order' })).toBeEnabled();
+  await Promise.all([
+    page.waitForResponse((response) => (
+      response.request().method() === 'PUT'
+      && response.url().endsWith('/api/v1/admin/collections/featured/order')
+    )),
+    page.getByRole('button', { name: 'Save order' }).click(),
+  ]);
 
   await expect(page.getByText(/Featured membership changed while you were editing/i)).toBeVisible();
   await expect(page.getByText('Unsaved changes')).toBeVisible();
@@ -96,4 +184,26 @@ test('admin membership conflict preserves the draft until products are reloaded'
     has: page.getByRole('heading', { name: 'Featured storefront order' }),
   });
   await expect(orderSection.getByRole('list').getByRole('listitem').first()).toContainText('First Featured Figure');
+});
+
+test('admin can sort Featured products with the keyboard', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile', 'Keyboard sorting is covered in the desktop project.');
+  await authenticateAdmin(page);
+  await page.goto('/admin/collections/00000000-0000-4000-8000-000000000100');
+
+  const orderSection = page.locator('section').filter({
+    has: page.getByRole('heading', { name: 'Featured storefront order' }),
+  });
+  const orderList = orderSection.getByRole('list');
+  const handle = page.getByRole('button', { name: 'Reorder Final Featured Plush' });
+  await handle.focus();
+  await expect(handle).toBeFocused();
+  await page.keyboard.press('Space');
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Space');
+
+  await expect(orderList.getByRole('listitem').first()).toContainText('Final Featured Plush');
+  await expect(page.getByText('Unsaved changes')).toBeVisible();
+  await expectNoHorizontalOverflow(page);
 });
