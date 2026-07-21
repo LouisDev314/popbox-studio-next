@@ -1,28 +1,37 @@
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions, type UseQueryResult } from '@tanstack/react-query';
 import { AxiosError, AxiosResponse, HttpStatusCode } from 'axios';
 import { useEffect } from 'react';
 import { IBaseApiResponse } from '@/interfaces/api-response';
 
+type QueryResponse<ApiResponse> = AxiosResponse<IBaseApiResponse<ApiResponse>>;
+type QueryError = AxiosError<IBaseApiResponse<unknown>>;
+
 interface ICustomizeQueryConfig<ApiResponse> {
   queryKey: readonly unknown[];
-  queryFn: () => Promise<AxiosResponse<IBaseApiResponse<ApiResponse>>>;
+  queryFn: () => Promise<QueryResponse<ApiResponse>>;
   retry?: boolean | number;
   enabled?: boolean;
   staleTime?: number;
   gcTime?: number;
   refetchOnWindowFocus?: boolean | 'always';
-  onSuccess?: (data: AxiosResponse<IBaseApiResponse<ApiResponse>>) => void;
+  placeholderData?: UseQueryOptions<
+    QueryResponse<ApiResponse>,
+    QueryError,
+    QueryResponse<ApiResponse>,
+    readonly unknown[]
+  >['placeholderData'];
+  onSuccess?: (data: QueryResponse<ApiResponse>) => void;
   onError?: (err: AxiosError<IBaseApiResponse>) => void;
 }
 
 function useCustomizeQuery<ApiResponse>(
   config: ICustomizeQueryConfig<ApiResponse>,
-): UseQueryResult<AxiosResponse<IBaseApiResponse<ApiResponse>>, AxiosError<IBaseApiResponse<unknown>>> {
+): UseQueryResult<QueryResponse<ApiResponse>, QueryError> {
   const { onSuccess, onError, ...queryConfig } = config;
 
   const queryResult = useQuery<
-    AxiosResponse<IBaseApiResponse<ApiResponse>>,
-    AxiosError<IBaseApiResponse<unknown>>
+    QueryResponse<ApiResponse>,
+    QueryError
   >({
     queryKey: queryConfig.queryKey,
     queryFn: queryConfig.queryFn,
@@ -47,13 +56,14 @@ function useCustomizeQuery<ApiResponse>(
     staleTime: queryConfig.staleTime,
     gcTime: queryConfig.gcTime,
     refetchOnWindowFocus: queryConfig.refetchOnWindowFocus,
+    placeholderData: queryConfig.placeholderData,
   });
 
   useEffect(() => {
-    if (queryResult.isSuccess && onSuccess) {
+    if (queryResult.isSuccess && !queryResult.isPlaceholderData && onSuccess) {
       onSuccess(queryResult.data);
     }
-  }, [queryResult.isSuccess, queryResult.data, onSuccess]);
+  }, [queryResult.isSuccess, queryResult.isPlaceholderData, queryResult.data, onSuccess]);
 
   useEffect(() => {
     if (queryResult.isError && onError) {

@@ -193,6 +193,7 @@ export interface IAdminProductEditor extends Omit<IAdminProductDetail, 'images'>
 export interface IAdminProductListResponse {
   items: IAdminProductListItem[];
   nextCursor: string | null;
+  totalCount: number;
 }
 
 export interface IAdminFeaturedOrderItem {

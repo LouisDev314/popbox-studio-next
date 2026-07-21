@@ -446,6 +446,7 @@ function createRequestHandler(state: IAuthMockState) {
       sendJson(response, apiData({
         items: adminFeaturedProducts.map(adminProductListItem),
         nextCursor: null,
+        totalCount: adminFeaturedProducts.length,
       }));
       return;
     }

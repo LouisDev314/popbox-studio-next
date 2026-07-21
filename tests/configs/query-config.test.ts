@@ -81,6 +81,29 @@ describe('admin query configs', () => {
     expect(httpGet.mock.calls[0][1].params).not.toHaveProperty('tagIds');
   });
 
+  it('preserves the admin product list totalCount response field', async () => {
+    const backendResponse = {
+      data: {
+        data: {
+          items: [],
+          nextCursor: 'cursor-2',
+          totalCount: 26,
+        },
+      },
+    };
+    httpGet.mockResolvedValueOnce(backendResponse);
+    const QueryConfigs = (await import('@/configs/api/query-config')).default;
+
+    const response = await QueryConfigs.fetchAdminProducts();
+
+    expect(response).toBe(backendResponse);
+    expect(response.data.data).toEqual({
+      items: [],
+      nextCursor: 'cursor-2',
+      totalCount: 26,
+    });
+  });
+
   it('loads the dedicated unpaginated Featured order endpoint with admin auth', async () => {
     const QueryConfigs = (await import('@/configs/api/query-config')).default;
 

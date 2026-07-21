@@ -1,6 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AxiosResponse } from 'axios';
+import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import NewProductPage from '@/app/(admin)/admin/products/new/page';
 import { ProductCoreForm } from '@/components/admin/product/product-core-form';
@@ -119,6 +120,7 @@ function createAdminProductEditor(
 describe('admin product collection forms', () => {
   it('creates products with collectionIds and sends an empty array when none are selected', async () => {
     mockAdminTaxonomies();
+    const invalidateQueries = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
     const createProduct = vi.spyOn(MutationConfigs, 'createAdminProduct').mockResolvedValue(
       createResponse(createAdminProduct()),
     );
@@ -140,6 +142,7 @@ describe('admin product collection forms', () => {
 
     expect(payload.collectionIds).toEqual([]);
     expect(payload).not.toHaveProperty('collectionId');
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin', 'products'] });
   });
 
   it('prefills edit collections and saves multiple collectionIds without collectionId', async () => {

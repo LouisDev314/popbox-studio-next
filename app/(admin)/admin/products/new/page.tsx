@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowLeft, Save, Image as ImageIcon, Boxes } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
@@ -21,6 +22,7 @@ const DEFAULT_CURRENCY = 'CAD';
 
 export default function NewProductPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -56,6 +58,7 @@ export default function NewProductPage() {
     mutationFn: MutationConfigs.createAdminProduct,
     onSuccess: (res) => {
       setRequestErrorMessage(null);
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
 
       if (res?.data?.data?.id) {
         router.push(`/admin/products/${res.data.data.id}`);

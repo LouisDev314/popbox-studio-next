@@ -1,4 +1,5 @@
-import { screen, waitFor } from '@testing-library/react';
+import { useEffect, useState } from 'react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AxiosResponse } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,14 +17,40 @@ import { renderWithProviders } from '../test-utils';
 const replace = vi.fn();
 const push = vi.fn();
 let currentSearchParams = '';
+let memoizedSearchParamsValue = '';
+let memoizedSearchParams = new URLSearchParams();
+let rerenderAdminProductsRoute: (() => void) | undefined;
+
+function getCurrentSearchParams() {
+  if (memoizedSearchParamsValue !== currentSearchParams) {
+    memoizedSearchParamsValue = currentSearchParams;
+    memoizedSearchParams = new URLSearchParams(currentSearchParams);
+  }
+
+  return memoizedSearchParams;
+}
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push,
     replace,
   }),
-  useSearchParams: () => new URLSearchParams(currentSearchParams),
+  useSearchParams: getCurrentSearchParams,
 }));
+
+function AdminProductsRouteHarness() {
+  const [, setRouteVersion] = useState(0);
+
+  useEffect(() => {
+    rerenderAdminProductsRoute = () => setRouteVersion((version) => version + 1);
+
+    return () => {
+      rerenderAdminProductsRoute = undefined;
+    };
+  }, []);
+
+  return <AdminProductsPage />;
+}
 
 function createResponse<T>(data: T): AxiosResponse<IBaseApiResponse<T>> {
   return {
@@ -68,10 +95,12 @@ function createProduct(overrides: Partial<IAdminProductListItem> = {}): IAdminPr
 function createProductListResponse(
   items: IAdminProductListItem[],
   nextCursor: string | null = null,
+  totalCount = items.length,
 ): IAdminProductListResponse {
   return {
     items,
     nextCursor,
+    totalCount,
   };
 }
 
@@ -99,9 +128,11 @@ describe('AdminProductsPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     currentSearchParams = '';
+    rerenderAdminProductsRoute = undefined;
     replace.mockReset();
     replace.mockImplementation((url: string) => {
       currentSearchParams = url.split('?')[1] ?? '';
+      rerenderAdminProductsRoute?.();
     });
     push.mockReset();
     vi.spyOn(QueryConfigs, 'fetchAdminCollections').mockResolvedValue(createResponse(collections));
@@ -119,6 +150,152 @@ describe('AdminProductsPage', () => {
       'href',
       '/admin/collections/collection-1',
     );
+  });
+
+  it('replaces the initial loading label with the authoritative API total', async () => {
+    let resolveProducts: (
+      response: AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>,
+    ) => void = () => undefined;
+    vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockReturnValue(new Promise((resolve) => {
+      resolveProducts = resolve;
+    }));
+
+    renderWithProviders(<AdminProductsPage />);
+
+    expect(screen.getByTestId('admin-product-count')).toHaveTextContent('Loading product count…');
+
+    resolveProducts(createResponse(createProductListResponse([createProduct()], null, 26)));
+
+    expect(await screen.findByText('26 products')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-product-count')).not.toHaveTextContent('1 product');
+    expect(screen.getByTestId('admin-product-count')).not.toHaveTextContent('Loading product count…');
+  });
+
+  it('uses singular product text for a total of one', async () => {
+    vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockResolvedValue(
+      createResponse(createProductListResponse([createProduct()], null, 1)),
+    );
+
+    renderWithProviders(<AdminProductsPage />);
+
+    expect(await screen.findByText('1 product')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-product-count')).not.toHaveTextContent('1 products');
+  });
+
+  it('does not strand the count when equivalent URLs reorder or omit default params', async () => {
+    currentSearchParams = 'sort=updated_desc&tagId=all&status=all&collectionId=all&productType=all';
+    const fetchProducts = vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockResolvedValue(
+      createResponse(createProductListResponse([createProduct()], null, 26)),
+    );
+
+    renderWithProviders(<AdminProductsRouteHarness />);
+
+    expect(await screen.findByText('26 products')).toBeInTheDocument();
+    expect(fetchProducts).toHaveBeenCalledTimes(1);
+
+    currentSearchParams = '';
+    await act(async () => {
+      rerenderAdminProductsRoute?.();
+    });
+
+    expect(screen.getByTestId('admin-product-count')).toHaveTextContent('26 products');
+    expect(screen.getByTestId('admin-product-count')).not.toHaveTextContent('Loading product count…');
+    expect(fetchProducts).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not clear a cached count when the active normalized search is resubmitted', async () => {
+    currentSearchParams = 'search=hero';
+    const fetchProducts = vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockResolvedValue(
+      createResponse(createProductListResponse([createProduct()], null, 2)),
+    );
+
+    renderWithProviders(<AdminProductsRouteHarness />);
+
+    expect(await screen.findByText('2 products')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^Search$/i }));
+
+    expect(replace).toHaveBeenLastCalledWith('/admin/products?search=hero', { scroll: false });
+    expect(screen.getByTestId('admin-product-count')).toHaveTextContent('2 products');
+    expect(screen.getByTestId('admin-product-count')).not.toHaveTextContent('Loading product count…');
+    expect(fetchProducts).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears the previous count while a changed filter query is loading, then displays the new total', async () => {
+    let resolveActiveResponse: ((response: AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>) => void) | undefined;
+    const activeResponse = new Promise<AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>>((resolve) => {
+      resolveActiveResponse = resolve;
+    });
+    const fetchProducts = vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockImplementation((filters) => (
+      filters?.status === 'active'
+        ? activeResponse
+        : Promise.resolve(createResponse(createProductListResponse([createProduct()], null, 26)))
+    ));
+    renderWithProviders(<AdminProductsRouteHarness />);
+
+    expect(await screen.findByText('26 products')).toBeInTheDocument();
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'Active' })[0]);
+
+    await waitFor(() => {
+      expect(fetchProducts).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'active' }));
+    });
+    expect(screen.getByTestId('admin-product-count')).toHaveTextContent('Loading product count…');
+    expect(screen.getByTestId('admin-product-count')).not.toHaveTextContent('26 products');
+
+    resolveActiveResponse?.(
+      createResponse(createProductListResponse([createProduct()], null, 21)),
+    );
+
+    expect(await screen.findByText('21 products')).toBeInTheDocument();
+  });
+
+  it('updates the total for search and restores it when search is cleared', async () => {
+    const fetchProducts = vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockImplementation((filters) => (
+      Promise.resolve(createResponse(createProductListResponse(
+        [createProduct()],
+        null,
+        filters?.search ? 2 : 26,
+      )))
+    ));
+    renderWithProviders(<AdminProductsRouteHarness />);
+
+    expect(await screen.findByText('26 products')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search products' }), 'hero');
+    await userEvent.click(screen.getByRole('button', { name: /^Search$/i }));
+
+    expect(await screen.findByText('2 products')).toBeInTheDocument();
+    expect(fetchProducts).toHaveBeenLastCalledWith(expect.objectContaining({ search: 'hero' }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear search products' }));
+
+    expect(await screen.findByText('26 products')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-product-count')).not.toHaveTextContent('2 products');
+  });
+
+  it('keeps a valid count visible during a background refetch of the same query', async () => {
+    let resolveRefetch: (
+      response: AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>,
+    ) => void = () => undefined;
+    const fetchProducts = vi.spyOn(QueryConfigs, 'fetchAdminProducts')
+      .mockResolvedValueOnce(createResponse(createProductListResponse([createProduct()], null, 26)))
+      .mockReturnValueOnce(new Promise((resolve) => {
+        resolveRefetch = resolve;
+      }));
+    const view = renderWithProviders(<AdminProductsPage />);
+
+    expect(await screen.findByText('26 products')).toBeInTheDocument();
+
+    void view.queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+
+    await waitFor(() => {
+      expect(fetchProducts).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.getByTestId('admin-product-count')).toHaveTextContent('26 products');
+    expect(screen.getByTestId('admin-product-count')).not.toHaveTextContent('Loading product count…');
+
+    resolveRefetch(createResponse(createProductListResponse([createProduct()], null, 25)));
+
+    expect(await screen.findByText('25 products')).toBeInTheDocument();
   });
 
   it('sends canonical search, filter, sort, cursor, and limit params to the backend', async () => {
@@ -291,13 +468,16 @@ describe('AdminProductsPage', () => {
   });
 
   it('load more appends rows using nextCursor', async () => {
+    let resolveNextPage: (
+      response: AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>,
+    ) => void = () => undefined;
+    const nextPageResponse = new Promise<AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>>((resolve) => {
+      resolveNextPage = resolve;
+    });
     const fetchProducts = vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockImplementation((filters) => (
-      Promise.resolve(createResponse(createProductListResponse(
-        filters.cursor
-          ? [createProduct({ id: 'product-2', name: 'Second Figure', slug: 'second-figure' })]
-          : [createProduct()],
-        filters.cursor ? null : 'cursor-2',
-      )))
+      filters?.cursor
+        ? nextPageResponse
+        : Promise.resolve(createResponse(createProductListResponse([createProduct()], 'cursor-2', 26)))
     ));
 
     renderWithProviders(<AdminProductsPage />);
@@ -317,8 +497,16 @@ describe('AdminProductsPage', () => {
         tagId: 'all',
       });
     });
+    expect(screen.getByTestId('admin-product-count')).toHaveTextContent('26 products');
+    expect(screen.getByTestId('admin-product-count')).not.toHaveTextContent('Loading product count…');
+
+    resolveNextPage(createResponse(createProductListResponse([
+      createProduct({ id: 'product-2', name: 'Second Figure', slug: 'second-figure' }),
+    ], null, 26)));
+
     expect(await screen.findAllByText('Second Figure')).not.toHaveLength(0);
     expect(screen.getAllByText('Hero Figure')).not.toHaveLength(0);
+    expect(screen.getByTestId('admin-product-count')).toHaveTextContent('26 products');
   });
 
   it('does not locally filter loaded product rows', async () => {

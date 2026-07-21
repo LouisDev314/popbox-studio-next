@@ -141,7 +141,7 @@ export function buildAdminProductListQueryParams(
   };
 }
 
-export function buildAdminProductsQueryKey(filters: IAdminProductListQueryParams) {
+export function buildAdminProductsQueryScopeKey(filters: IAdminProductListQueryParams) {
   return [
     'admin',
     'products',
@@ -151,6 +151,24 @@ export function buildAdminProductsQueryKey(filters: IAdminProductListQueryParams
     filters.collectionId,
     filters.tagId,
     filters.sort,
+  ] as const;
+}
+
+export type AdminProductsQueryScopeKey = ReturnType<typeof buildAdminProductsQueryScopeKey>;
+
+export function isSameAdminProductsQueryScope(
+  queryKey: readonly unknown[] | null | undefined,
+  scopeKey: AdminProductsQueryScopeKey,
+) {
+  return Boolean(
+    queryKey
+    && scopeKey.every((value, index) => queryKey[index] === value),
+  );
+}
+
+export function buildAdminProductsQueryKey(filters: IAdminProductListQueryParams) {
+  return [
+    ...buildAdminProductsQueryScopeKey(filters),
     filters.cursor ?? '',
     filters.limit ?? ADMIN_PRODUCT_LIST_LIMIT,
   ] as const;

@@ -20,7 +20,10 @@ import { useAdminProductFilters } from '@/hooks/use-admin-product-filters';
 import {
   ADMIN_PRODUCT_DEFAULT_STATUS,
   ADMIN_PRODUCT_STATUS_TABS,
+  type AdminProductsQueryScopeKey,
   buildAdminProductsQueryKey,
+  buildAdminProductsQueryScopeKey,
+  isSameAdminProductsQueryScope,
 } from '@/lib/admin-product-filters';
 import { cn } from '@/lib/utils';
 import { AdminSearchForm } from '@/components/admin/admin-search-form';
@@ -42,12 +45,12 @@ export default function AdminProductsPage() {
     cursor?: string;
     products: IAdminProductListItem[];
     nextCursor: string | null;
-    signature: string;
+    queryScopeKey: AdminProductsQueryScopeKey | null;
   }>({
     cursor: undefined,
     products: [],
     nextCursor: null,
-    signature: '',
+    queryScopeKey: null,
   });
   const {
     activeTab,
@@ -66,29 +69,40 @@ export default function AdminProductsPage() {
   });
   const searchQuery = searchState.urlSearch === (filters.search ?? '') ? searchState.value : filters.search ?? '';
   const hasActiveSearch = Boolean(filters.search);
-  const querySignature = `${filters.search ?? ''}|${filters.status}|${filters.productType}|${filters.collectionId}|${filters.tagId}|${filters.sort}`;
-  const isSameQuerySignature = pageState.signature === querySignature;
-  const products = isSameQuerySignature ? pageState.products : [];
-  const nextCursor = isSameQuerySignature ? pageState.nextCursor : null;
+  const queryScopeKey = useMemo(() => buildAdminProductsQueryScopeKey(filters), [filters]);
+  const isSameQueryScope = isSameAdminProductsQueryScope(pageState.queryScopeKey, queryScopeKey);
+  const products = isSameQueryScope ? pageState.products : [];
+  const nextCursor = isSameQueryScope ? pageState.nextCursor : null;
   const queryFilters = useMemo(() => ({
     ...filters,
-    cursor: isSameQuerySignature ? pageState.cursor : undefined,
-  }), [filters, isSameQuerySignature, pageState.cursor]);
+    cursor: isSameQueryScope ? pageState.cursor : undefined,
+  }), [filters, isSameQueryScope, pageState.cursor]);
   const queryKey = useMemo(() => buildAdminProductsQueryKey(queryFilters), [queryFilters]);
+
+  const keepPreviousCursorPage = useCallback((
+    previousData: Awaited<ReturnType<typeof QueryConfigs.fetchAdminProducts>> | undefined,
+    previousQuery: { queryKey: readonly unknown[] } | undefined,
+  ) => (
+    isSameAdminProductsQueryScope(previousQuery?.queryKey, queryScopeKey)
+      ? previousData
+      : undefined
+  ), [queryScopeKey]);
 
   const handleProductsSuccess = useCallback((response: Awaited<ReturnType<typeof QueryConfigs.fetchAdminProducts>>) => {
     const page = response.data.data;
     setPageState((currentState) => ({
       cursor: queryFilters.cursor,
-      products: queryFilters.cursor && currentState.signature === querySignature
+      products: queryFilters.cursor
+        && isSameAdminProductsQueryScope(currentState.queryScopeKey, queryScopeKey)
         ? [...currentState.products, ...page.items]
         : page.items,
       nextCursor: page.nextCursor,
-      signature: querySignature,
+      queryScopeKey,
     }));
-  }, [queryFilters.cursor, querySignature]);
+  }, [queryFilters.cursor, queryScopeKey]);
 
   const {
+    data: productsRes,
     isPending,
     isFetching,
     isError,
@@ -96,6 +110,7 @@ export default function AdminProductsPage() {
     queryKey,
     queryFn: () => QueryConfigs.fetchAdminProducts(queryFilters),
     onSuccess: handleProductsSuccess,
+    placeholderData: keepPreviousCursorPage,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
@@ -160,6 +175,12 @@ export default function AdminProductsPage() {
   const tableStatusFilter = filters.status === ADMIN_PRODUCT_DEFAULT_STATUS
     ? undefined
     : filters.status as productStatus;
+  const totalCount = productsRes?.data.data.totalCount;
+  const productCountLabel = totalCount !== undefined
+    ? `${totalCount} ${totalCount === 1 ? 'product' : 'products'}`
+    : isPending
+      ? 'Loading product count…'
+      : 'Product count unavailable';
 
   const handleStatusChange = (productId: string, newStatus: productStatus) => {
     patchStatus({ productId, status: newStatus });
@@ -181,13 +202,6 @@ export default function AdminProductsPage() {
     } else {
       params.delete('search');
     }
-
-    setPageState((currentState) => ({
-      ...currentState,
-      cursor: undefined,
-      nextCursor: null,
-      signature: '',
-    }));
 
     const nextQueryString = params.toString();
     router.replace(nextQueryString ? `/admin/products?${nextQueryString}` : '/admin/products', { scroll: false });
@@ -213,7 +227,16 @@ export default function AdminProductsPage() {
         )}
       >
         <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-3xl font-semibold tracking-tight text-[#111827]">Products</h1>
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight text-[#111827]">Products</h1>
+            <p
+              aria-live="polite"
+              className="mt-1 min-h-5 text-sm text-[#8f8577]"
+              data-testid="admin-product-count"
+            >
+              {productCountLabel}
+            </p>
+          </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             {featuredCollection ? (
               <Button asChild variant="outline" className="h-10 rounded-xl px-4 text-sm font-semibold">
@@ -320,7 +343,7 @@ export default function AdminProductsPage() {
                     setPageState((currentState) => ({
                       ...currentState,
                       cursor: nextCursor,
-                      signature: querySignature,
+                      queryScopeKey,
                     }));
                   }}
                 >

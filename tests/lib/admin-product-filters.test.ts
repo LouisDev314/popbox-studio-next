@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   buildAdminProductListQueryParams,
   buildAdminProductsQueryKey,
+  buildAdminProductsQueryScopeKey,
   buildAdminProductsRequestParams,
   filterAdminProductsBySearch,
+  isSameAdminProductsQueryScope,
   parseAdminProductSortParam,
   parseAdminProductTypeParam,
   parseAdminTagIdParam,
@@ -104,6 +106,22 @@ describe('admin product filters', () => {
       status: 'active',
       tagId: 'tag-1',
     });
+  });
+
+  it('uses the same normalized query scope across cursor pages', () => {
+    const firstPageFilters = buildAdminProductListQueryParams({ search: '  hero  ' });
+    const nextPageFilters = buildAdminProductListQueryParams({
+      ...firstPageFilters,
+      cursor: 'cursor-2',
+    });
+    const scopeKey = buildAdminProductsQueryScopeKey(firstPageFilters);
+
+    expect(isSameAdminProductsQueryScope(buildAdminProductsQueryKey(firstPageFilters), scopeKey)).toBe(true);
+    expect(isSameAdminProductsQueryScope(buildAdminProductsQueryKey(nextPageFilters), scopeKey)).toBe(true);
+    expect(isSameAdminProductsQueryScope(
+      buildAdminProductsQueryKey(buildAdminProductListQueryParams({ search: 'villain' })),
+      scopeKey,
+    )).toBe(false);
   });
 
   it('keeps local product search available for collection assignment dialogs only', () => {

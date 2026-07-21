@@ -120,6 +120,7 @@ function createProductListResponse(items: IAdminProductListItem[]): IAdminProduc
   return {
     items,
     nextCursor: null,
+    totalCount: items.length,
   };
 }
 
