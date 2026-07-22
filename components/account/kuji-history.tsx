@@ -71,6 +71,7 @@ export function KujiHistory({ initialPage }: { initialPage: IKujiHistoryPage }) 
                     <KujiPrizeTiles
                       compact
                       gridClassName="grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 xl:grid-cols-1"
+                      imageSizes="(max-width: 639px) 92vw, (max-width: 1023px) 46vw, (max-width: 1151px) 35vw, 414px"
                       items={[
                         {
                           id: result.id,

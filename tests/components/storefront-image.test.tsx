@@ -9,13 +9,15 @@ vi.mock('next/image', () => ({
   default: forwardRef<HTMLImageElement, ImgHTMLAttributes<HTMLImageElement> & {
     fill?: boolean;
     priority?: boolean;
+    unoptimized?: boolean;
   }>(function MockNextImage({
     alt,
     fill: _fill,
     priority: _priority,
+    unoptimized,
     ...props
   }, ref) {
-    return <img ref={ref} {...props} alt={alt ?? ''} />;
+    return <img ref={ref} {...props} alt={alt ?? ''} data-unoptimized={unoptimized ? 'true' : undefined} />;
   }),
 }));
 
@@ -124,5 +126,18 @@ describe('StorefrontImage', () => {
     fireEvent.error(image);
 
     expect(screen.getByAltText('Kuji product')).toHaveAttribute('src', 'https://example.com/products/kuji-product-cover-webp');
+  });
+
+  it('can bypass optimization for internal thumbnail surfaces', () => {
+    render(
+      <StorefrontImage
+        src="https://example.com/products/admin-thumbnail.jpg"
+        alt="Admin thumbnail"
+        sizes="56px"
+        unoptimized
+      />,
+    );
+
+    expect(screen.getByAltText('Admin thumbnail')).toHaveAttribute('data-unoptimized', 'true');
   });
 });

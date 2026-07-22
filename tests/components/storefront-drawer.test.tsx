@@ -27,6 +27,16 @@ function StorefrontDrawerHarness() {
 }
 
 describe('StorefrontDrawer', () => {
+  it('does not mount closed drawer content that can trigger hidden image requests', async () => {
+    renderWithProviders(<StorefrontDrawerHarness />);
+
+    expect(screen.queryByRole('button', { name: 'First action' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open drawer' }));
+
+    expect(screen.getByRole('button', { name: 'First action' })).toBeInTheDocument();
+  });
+
   it('moves focus into the drawer and restores it after escape close', async () => {
     renderWithProviders(<StorefrontDrawerHarness />);
 

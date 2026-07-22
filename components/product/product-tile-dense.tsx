@@ -16,7 +16,8 @@ import { getProductInventoryState } from '@/utils/product-stock';
 import { mapProductToWishlistItem } from '@/utils/wishlist';
 import { type IAnalyticsListContext, trackSelectItem } from '@/lib/analytics';
 
-const DENSE_PRODUCT_IMAGE_SIZES = '(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw';
+const DENSE_PRODUCT_IMAGE_SIZES = '(max-width: 639px) 46vw, (max-width: 767px) 30vw, (max-width: 1023px) 230px, (max-width: 1279px) 23vw, (max-width: 1535px) 294px, 358px';
+const FILTERED_PRODUCT_IMAGE_SIZES = '(max-width: 639px) 46vw, (max-width: 767px) 30vw, (max-width: 1023px) 230px, (max-width: 1279px) 17vw, (max-width: 1535px) 214px, 278px';
 
 interface IProductTileDenseProps {
   index?: number;
@@ -112,4 +113,4 @@ export function ProductTileDense(props: IProductTileDenseProps) {
   );
 }
 
-export { DENSE_PRODUCT_IMAGE_SIZES };
+export { DENSE_PRODUCT_IMAGE_SIZES, FILTERED_PRODUCT_IMAGE_SIZES };

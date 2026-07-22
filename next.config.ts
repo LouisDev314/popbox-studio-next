@@ -91,6 +91,8 @@ const nextConfig: NextConfig = {
     };
   },
   images: {
+    deviceSizes: [414, 640, 768, 828, 1024, 1280, 1536, 1920],
+    imageSizes: [32, 48, 64, 96, 128, 256],
     minimumCacheTTL: 2678400,
     remotePatterns: supabaseImageHostnames.map((hostname) => ({
       protocol: 'https',

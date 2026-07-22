@@ -20,6 +20,7 @@ interface IStorefrontImageProps {
   src?: string | null;
   priority?: boolean;
   loading?: 'eager' | 'lazy' | undefined;
+  unoptimized?: boolean;
 }
 
 function buildFallbackLabel(label: string) {
@@ -97,12 +98,13 @@ export function StorefrontImage(props: IStorefrontImageProps) {
 
             setHasError(true);
           }}
-          loading={props.loading}
+          loading={props.loading ?? (props.priority ? 'eager' : undefined)}
           onLoad={(event) => {
             setIsLoaded(true);
             onImageLoad?.(event.currentTarget);
           }}
           priority={props.priority ?? false}
+          unoptimized={props.unoptimized}
         />
       </div>
     );

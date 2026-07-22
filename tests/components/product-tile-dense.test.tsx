@@ -25,6 +25,15 @@ describe('ProductTileDense', () => {
     resetStores();
   });
 
+  it('declares widths that match the shared two, three, and four-column grid', () => {
+    renderWithProviders(<ProductTileDense product={createProductCard()} />);
+
+    expect(screen.getByRole('img')).toHaveAttribute(
+      'sizes',
+      '(max-width: 639px) 46vw, (max-width: 767px) 30vw, (max-width: 1023px) 230px, (max-width: 1279px) 23vw, (max-width: 1535px) 294px, 358px',
+    );
+  });
+
   it('renders a wishlist button instead of the kuji badge for kuji storefront cards', () => {
     renderWithProviders(
       <ProductTileDense

@@ -187,7 +187,7 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
                           loading={isFirstSlide ? 'eager' : undefined}
                           fetchPriority={isFirstSlide ? 'high' : undefined}
                           revealImmediately={isFirstSlide}
-                          sizes="(max-width: 639px) 412px, (max-width: 1280px) 100vw, 1280px"
+                          sizes="100vw"
                           className="h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(239,158,191,0.2),transparent_34%),linear-gradient(160deg,#1c1016_0%,#32202a_54%,#130d10_100%)] lg:bg-none"
                           imageClassName="object-cover object-center transition-transform duration-700 ease-out group-hover/slide:scale-[1.02]"
                           fallbackClassName="border-white/15 bg-white/10 text-white/82 shadow-none backdrop-blur-sm"

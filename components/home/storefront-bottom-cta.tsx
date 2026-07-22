@@ -32,11 +32,10 @@ export function StorefrontBottomCta() {
         <div className="relative min-h-48 sm:min-h-58 lg:min-h-68">
           <StorefrontImage
             src="/kuji-bottom-cta.webp"
-            loading='eager'
             alt="Ichiban Kuji lucky draw banner"
             className="absolute inset-0 h-full w-full"
             imageClassName="object-cover object-center sm:object-[center_40%]"
-            sizes="(min-width: 1024px) 1200px, 100vw"
+            sizes="100vw"
           />
           <div className="absolute inset-0 bg-black/22" />
           <div className="relative flex min-h-48 items-end px-6 py-6 sm:min-h-58 sm:px-8 sm:py-8 lg:min-h-68 lg:px-10 lg:py-10">

@@ -77,10 +77,11 @@ function SortableProductImageCard({
           <Image
             src={previewSrc}
             alt={image.altText || 'Product image'}
-            fill
+            width={72}
+            height={72}
             sizes="72px"
-            className="object-cover"
-            unoptimized={previewSrc.includes('supabase')}
+            className="h-[72px] w-[72px] object-cover"
+            unoptimized
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center px-2 text-center text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">

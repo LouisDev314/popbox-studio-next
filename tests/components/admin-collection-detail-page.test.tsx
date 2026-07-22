@@ -164,6 +164,9 @@ describe('AdminCollectionDetailPageClient', () => {
 
     expect(await screen.findByRole('heading', { name: 'Featured' })).toBeInTheDocument();
     expect(await screen.findAllByText('Ichiban Figure')).not.toHaveLength(0);
+    expect((await screen.findAllByAltText('Ichiban Figure image')).every(
+      (image) => image.getAttribute('src') === 'https://example.com/figure.jpg',
+    )).toBe(true);
     expect(screen.getAllByText('Active')).not.toHaveLength(0);
     expect(screen.getAllByText('Standard')).not.toHaveLength(0);
     expect(screen.getAllByText('1').length).toBeGreaterThan(0);

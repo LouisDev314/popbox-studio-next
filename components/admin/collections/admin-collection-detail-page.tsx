@@ -78,6 +78,7 @@ function ProductRow({ collectionId, isBusy, onRemove, product }: IProductRowProp
               src={getProductImageSrc(product)}
               label={product.name}
               sizes="56px"
+              unoptimized
             />
           </div>
           <div className="min-w-0">
@@ -240,6 +241,7 @@ function AddProductsDialog({
                           src={getProductImageSrc(product)}
                           label={product.name}
                           sizes="44px"
+                          unoptimized
                         />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -392,6 +394,7 @@ function CollectionProductsSection({
                       src={getProductImageSrc(product)}
                       label={product.name}
                       sizes="64px"
+                      unoptimized
                     />
                   </div>
                   <div className="min-w-0 flex-1">

@@ -29,20 +29,27 @@ interface IKujiPrizeTilesProps {
   enableDialog?: boolean;
   emptyState?: ReactNode;
   gridClassName?: string;
+  imageSizes?: string;
 }
 
 interface IKujiPrizeTileCardProps {
   compact: boolean;
+  imageSizes: string;
   interactive: boolean;
   item: IKujiPrizeTileItem;
   onSelect: () => void;
 }
+
+const COMPACT_PRIZE_IMAGE_SIZES = '(max-width: 639px) 46vw, (max-width: 1023px) 31vw, (max-width: 1279px) 23vw, 214px';
+const PRIZE_GRID_IMAGE_SIZES = '(max-width: 639px) calc(100vw - 80px), (max-width: 767px) calc((100vw - 128px) / 2), (max-width: 1023px) 320px, (max-width: 1279px) calc((100vw - 160px) / 3), 373px';
+const PRIZE_DIALOG_IMAGE_SIZES = '(max-width: 639px) calc(100vw - 64px), (max-width: 1023px) calc(100vw - 96px), 480px';
 
 function KujiPrizeImage(props: {
   alt: string;
   className?: string;
   compact?: boolean;
   label: string;
+  sizes: string;
   src: string | null;
 }) {
   const [loadedImageRatio, setLoadedImageRatio] = useState<{
@@ -65,7 +72,7 @@ function KujiPrizeImage(props: {
         src={props.src}
         alt={props.alt}
         label={props.label}
-        sizes={props.compact ? '(max-width: 640px) 50vw, 12rem' : '(max-width: 1024px) 50vw, 24rem'}
+        sizes={props.sizes}
         className="h-full w-full"
         imageClassName="object-contain"
         fallbackClassName={props.compact ? 'px-3 py-1.5 text-[10px]' : undefined}
@@ -97,8 +104,9 @@ function KujiPrizeTileCard(props: IKujiPrizeTileCardProps) {
         <KujiPrizeImage
           src={props.item.imageUrl}
           alt={props.item.name}
-          label={props.item.name}
           compact={props.compact}
+          label={props.item.name}
+          sizes={props.imageSizes}
           className={cn(
             'transition-transform duration-500 ease-out',
             props.interactive && 'group-hover:scale-[1.02]',
@@ -205,6 +213,7 @@ function KujiPrizeDialog(props: {
                 src={props.item.imageUrl}
                 alt={props.item.name}
                 label={props.item.name}
+                sizes={PRIZE_DIALOG_IMAGE_SIZES}
                 className="max-h-[min(72vh,44rem)]"
               />
             </div>
@@ -252,6 +261,8 @@ function KujiPrizeDialog(props: {
 export function KujiPrizeTiles(props: IKujiPrizeTilesProps) {
   const [selectedPrize, setSelectedPrize] = useState<IKujiPrizeTileItem | null>(null);
   const interactive = props.enableDialog ?? true;
+  const imageSizes = props.imageSizes
+    ?? (props.compact ? COMPACT_PRIZE_IMAGE_SIZES : PRIZE_GRID_IMAGE_SIZES);
 
   if (!props.items.length) {
     return props.emptyState ?? null;
@@ -272,6 +283,7 @@ export function KujiPrizeTiles(props: IKujiPrizeTilesProps) {
           <KujiPrizeTileCard
             key={item.id}
             compact={props.compact ?? false}
+            imageSizes={imageSizes}
             interactive={interactive}
             item={item}
             onSelect={() => setSelectedPrize(item)}

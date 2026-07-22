@@ -9,8 +9,7 @@ export function AuthSplitLayout({ children, title }: { children: ReactNode; titl
           src="/kuji-bottom-cta.webp"
           alt=""
           fill
-          priority
-          sizes="54vw"
+          sizes="(max-width: 1023px) 0px, 54vw"
           className="object-cover"
         />
         <div className="absolute inset-0 bg-foreground/10" aria-hidden="true" />

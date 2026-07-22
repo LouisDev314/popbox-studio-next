@@ -82,7 +82,7 @@ function TicketFace(props: {
           fetchPriority={props.priority ? 'high' : undefined}
           loading={props.priority ? 'eager' : undefined}
           priority={props.priority ?? false}
-          sizes="(min-width: 1280px) 36rem, (min-width: 640px) 42rem, 100vw"
+          sizes="(max-width: 639px) calc(100vw - 32px), (max-width: 1023px) 608px, (max-width: 1151px) 48vw, (max-width: 1279px) 548px, 358px"
           className={cn(
             'object-cover object-center transition-all duration-700 ease-out group-data-[ticket-state=unrevealed]:saturate-[0.94] group-hover:scale-[1.015]',
             isTicketImageLoaded ? 'opacity-100' : 'opacity-0',

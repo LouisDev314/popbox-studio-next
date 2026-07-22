@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { IProductListPage, ITag, productType } from '@/interfaces/product';
 import { getStorefrontSortHref } from '@/components/layout/store-navigation';
 import { ProductGridDense, ProductGridDenseSkeleton } from '@/components/product/product-grid-dense';
+import { FILTERED_PRODUCT_IMAGE_SIZES } from '@/components/product/product-tile-dense';
 import { FilterPanelContent } from '@/components/product/filter-panel-content';
 import { ProductFilterSidebar } from '@/components/product/product-filter-sidebar';
 import { Button } from '@/components/ui/button';
@@ -121,6 +122,7 @@ function ProductsResults(props: IProductsResultsProps) {
       products={props.products}
       priorityCount={3}
       list={{ id: props.listId, name: props.listName }}
+      sizes={FILTERED_PRODUCT_IMAGE_SIZES}
     />
   );
 }

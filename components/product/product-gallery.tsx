@@ -29,7 +29,7 @@ export function ProductGallery(props: IProductGalleryProps) {
           alt={getProductImageAltText(props.product.name, activeImageData?.altText)}
           label={props.product.name}
           priority={props.priority}
-          sizes="(max-width: 1024px) 100vw, 50vw"
+          sizes="(max-width: 639px) calc(100vw - 32px), (max-width: 767px) calc(100vw - 48px), (max-width: 1023px) 720px, (max-width: 1279px) calc(100vw - 672px), 608px"
           imageClassName="transition-transform duration-500 ease-out"
         />
         {props.product.productType === 'kuji' && (

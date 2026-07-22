@@ -99,7 +99,7 @@ describe('StorefrontCarousel', () => {
     expect(sharedControls?.className).not.toContain('lg:max-w-6xl');
   });
 
-  it('reveals only the first slide immediately and requests the capped responsive image size', () => {
+  it('reveals only the first slide immediately and declares the real full-viewport width', () => {
     const products = [
       createProductCard({
         id: 'product-1',
@@ -119,7 +119,7 @@ describe('StorefrontCarousel', () => {
 
     const firstImage = screen.getByAltText('Featured Release');
     const secondImage = screen.getByAltText('Second Release');
-    const carouselSizes = '(max-width: 639px) 412px, (max-width: 1280px) 100vw, 1280px';
+    const carouselSizes = '100vw';
 
     expect(firstImage).toHaveAttribute('loading', 'eager');
     expect(firstImage).toHaveAttribute('fetchpriority', 'high');

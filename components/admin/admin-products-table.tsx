@@ -244,9 +244,6 @@ function ProductThumbnail({
   productName: string;
 }) {
   if (imageState.kind === 'ready') {
-    const shouldDisableOptimization = imageState.value.src.includes('/storage/v1/object/public/')
-      || imageState.value.src.includes('supabase');
-
     return (
       <Image
         src={imageState.value.src}
@@ -255,7 +252,7 @@ function ProductThumbnail({
         height={44}
         sizes="44px"
         className="h-11 w-11 shrink-0 rounded-[14px] object-cover"
-        unoptimized={shouldDisableOptimization || undefined}
+        unoptimized
       />
     );
   }

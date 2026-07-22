@@ -77,6 +77,7 @@ const FeaturedOrderRowContent = memo(function FeaturedOrderRowContent({
           src={product.primaryImage?.url ?? null}
           label={product.name}
           sizes="56px"
+          unoptimized
         />
       </div>
       <div className="min-w-0 flex-1">

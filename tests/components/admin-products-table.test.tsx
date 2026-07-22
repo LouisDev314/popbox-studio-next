@@ -6,8 +6,8 @@ import { AdminProductsTable } from '@/components/admin/admin-products-table';
 import type { IAdminProductListItem } from '@/interfaces/product';
 
 vi.mock('next/image', () => ({
-  default: ({ alt, src, ...props }: { alt: string; src: string }) => (
-    <img alt={alt} src={src} {...props} />
+  default: ({ alt, src, unoptimized, ...props }: { alt: string; src: string; unoptimized?: boolean }) => (
+    <img alt={alt} src={src} {...props} data-unoptimized={unoptimized ? 'true' : undefined} />
   ),
 }));
 
@@ -77,6 +77,9 @@ describe('AdminProductsTable', () => {
     expect(screen.getAllByText('Anime').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Limited').length).toBeGreaterThan(0);
     expect(screen.getAllByAltText('Hero thumbnail').at(0)).toHaveAttribute('src', 'https://cdn.example.com/hero.jpg');
+    expect(screen.getAllByAltText('Hero thumbnail').every(
+      (image) => image.getAttribute('data-unoptimized') === 'true',
+    )).toBe(true);
   });
 
   it('renders multiple collection chips and the no collections fallback', () => {

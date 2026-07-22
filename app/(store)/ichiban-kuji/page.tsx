@@ -78,7 +78,7 @@ export default function IchibanKujiPage() {
                   loading='eager'
                   className="h-full w-full"
                   imageClassName="object-cover"
-                  sizes="(min-width: 1024px) 50vw, 100vw"
+                  sizes="(max-width: 639px) calc(100vw - 32px), (max-width: 767px) calc(100vw - 48px), (max-width: 1023px) 720px, (max-width: 1279px) 50vw, 640px"
                 />
               </div>
               <div className="grid grid-cols-3 gap-3 text-center text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground sm:text-xs">

@@ -4,6 +4,7 @@ import {
   type ReactNode,
   useEffect,
   useRef,
+  useState,
 } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ const FOCUSABLE_SELECTOR = [
   'textarea:not([disabled])',
   '[tabindex]:not([tabindex="-1"])',
 ].join(',');
+const DRAWER_TRANSITION_DURATION_MS = 300;
 
 export interface IStorefrontDrawerProps {
   isOpen: boolean;
@@ -72,6 +74,8 @@ export function StorefrontDrawer(props: IStorefrontDrawerProps) {
   } = props;
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
+  const [isContentMounted, setIsContentMounted] = useState(isOpen);
+  const shouldRenderContent = isOpen || isContentMounted;
   const titleId = title || ariaLabel
     ? `${triggerButtonId ?? `storefront-drawer-${side}`}-title`
     : undefined;
@@ -164,6 +168,19 @@ export function StorefrontDrawer(props: IStorefrontDrawerProps) {
     };
   }, [canClose, isOpen, onClose, triggerButtonId]);
 
+  useEffect(() => {
+    if (isOpen) {
+      setIsContentMounted(true);
+      return undefined;
+    }
+
+    const unmountTimeout = window.setTimeout(() => {
+      setIsContentMounted(false);
+    }, DRAWER_TRANSITION_DURATION_MS);
+
+    return () => window.clearTimeout(unmountTimeout);
+  }, [isOpen]);
+
   const handleOverlayClick = () => {
     if (!canClose) {
       return;
@@ -235,19 +252,21 @@ export function StorefrontDrawer(props: IStorefrontDrawerProps) {
           </div>
         ) : null}
 
-        <div className={cn('relative flex min-h-0 flex-1 flex-col', contentClassName)}>
-          <div className={cn('flex-1 overflow-y-auto px-5 py-5 sm:px-2', bodyClassName)}>
-            {children}
-          </div>
-
-          {footer ? (
-            <div className={cn('border-t border-border/70 px-5 py-5 sm:px-6', footerClassName)}>
-              {footer}
+        {shouldRenderContent ? (
+          <div className={cn('relative flex min-h-0 flex-1 flex-col', contentClassName)}>
+            <div className={cn('flex-1 overflow-y-auto px-5 py-5 sm:px-2', bodyClassName)}>
+              {children}
             </div>
-          ) : null}
 
-          {overlay}
-        </div>
+            {footer ? (
+              <div className={cn('border-t border-border/70 px-5 py-5 sm:px-6', footerClassName)}>
+                {footer}
+              </div>
+            ) : null}
+
+            {overlay}
+          </div>
+        ) : null}
       </aside>
     </>
   );

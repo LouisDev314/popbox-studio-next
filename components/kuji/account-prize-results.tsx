@@ -32,6 +32,7 @@ export function AccountPrizeResults({
               key={result.id}
               compact
               gridClassName="grid-cols-1 sm:grid-cols-1 lg:grid-cols-1 xl:grid-cols-1"
+              imageSizes="(max-width: 639px) 92vw, (max-width: 1023px) 46vw, (max-width: 1151px) 23vw, 272px"
               items={[
                 {
                   id: result.id,
