@@ -83,14 +83,26 @@ const items = [
   item('product-3', 'Final Product', 2),
 ];
 
-function response(nextItems: IAdminFeaturedOrderItem[]): AxiosResponse<IBaseApiResponse<IAdminFeaturedOrderResponse>> {
+const INITIAL_MEMBERSHIP_SIGNATURE = 'a'.repeat(64);
+
+function featuredOrder(
+  nextItems: IAdminFeaturedOrderItem[],
+  membershipSignature = INITIAL_MEMBERSHIP_SIGNATURE,
+): IAdminFeaturedOrderResponse {
+  return { items: nextItems, membershipSignature };
+}
+
+function response(
+  nextItems: IAdminFeaturedOrderItem[],
+  membershipSignature = INITIAL_MEMBERSHIP_SIGNATURE,
+): AxiosResponse<IBaseApiResponse<IAdminFeaturedOrderResponse>> {
   return {
     data: {
       status: 'success',
       code: 200,
       success: true,
       message: 'OK',
-      data: { items: nextItems },
+      data: featuredOrder(nextItems, membershipSignature),
     },
     status: 200,
     statusText: 'OK',
@@ -101,12 +113,13 @@ function response(nextItems: IAdminFeaturedOrderItem[]): AxiosResponse<IBaseApiR
 
 function renderSection(overrides: Partial<React.ComponentProps<typeof FeaturedOrderSection>> = {}) {
   const props: React.ComponentProps<typeof FeaturedOrderSection> = {
+    featuredCollection: { id: 'featured', name: 'Featured', slug: 'featured' },
+    featuredOrder: featuredOrder(items),
     isError: false,
     isLoading: false,
     isMembershipMutationPending: false,
-    items,
     onAddProductsClick: vi.fn(),
-    onReload: vi.fn().mockResolvedValue(items),
+    onReload: vi.fn().mockResolvedValue(featuredOrder(items)),
     ...overrides,
   };
 
@@ -162,8 +175,12 @@ describe('FeaturedOrderSection', () => {
     await userEvent.dblClick(saveButton);
 
     expect(updateOrder).toHaveBeenCalledTimes(1);
-    expect(updateOrder.mock.calls[0]?.[0]).toEqual({ productIds: ['product-3', 'product-1', 'product-2'] });
+    expect(updateOrder.mock.calls[0]?.[0]).toEqual({
+      membershipSignature: INITIAL_MEMBERSHIP_SIGNATURE,
+      productIds: ['product-3', 'product-1', 'product-2'],
+    });
     expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Remove First Product from Featured' })).toBeDisabled();
 
     resolveSave?.(response([items[2], items[0], items[1]]));
     await waitFor(() => expect(toastSuccessMock).toHaveBeenCalledWith('Featured product order saved.'));
@@ -185,20 +202,23 @@ describe('FeaturedOrderSection', () => {
   });
 
   it('preserves the draft on membership conflict and offers reload', async () => {
-    vi.spyOn(MutationConfigs, 'updateAdminFeaturedOrder').mockRejectedValue({
-      isAxiosError: true,
-      response: {
-        status: 409,
-        data: {
-          code: 409,
-          success: false,
-          message: 'Conflict',
-          data: null,
-          errors: { code: 'FEATURED_MEMBERSHIP_CHANGED' },
+    const updateOrder = vi.spyOn(MutationConfigs, 'updateAdminFeaturedOrder')
+      .mockRejectedValueOnce({
+        isAxiosError: true,
+        response: {
+          status: 409,
+          data: {
+            code: 409,
+            success: false,
+            message: 'Conflict',
+            data: null,
+            errors: { code: 'FEATURED_MEMBERSHIP_CHANGED' },
+          },
         },
-      },
-    });
-    const onReload = vi.fn().mockResolvedValue([items[0], items[2]]);
+      })
+      .mockResolvedValueOnce(response([items[2], items[0]], 'b'.repeat(64)));
+    const reloadedOrder = featuredOrder([items[0], items[2]], 'b'.repeat(64));
+    const onReload = vi.fn().mockResolvedValue(reloadedOrder);
     renderSection({ onReload });
 
     await screen.findByRole('list');
@@ -210,7 +230,15 @@ describe('FeaturedOrderSection', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reload Featured products' }));
     expect(onReload).toHaveBeenCalledTimes(1);
     expect(await screen.findByText('Final Product')).toBeInTheDocument();
-    expect(screen.queryByText('Second Product')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Second Product')).not.toBeInTheDocument());
+
+    dragProduct('product-3', 'product-1');
+    await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
+    await waitFor(() => expect(updateOrder).toHaveBeenCalledTimes(2));
+    expect(updateOrder.mock.calls[1]?.[0]).toEqual({
+      membershipSignature: 'b'.repeat(64),
+      productIds: ['product-3', 'product-1'],
+    });
   });
 
   it('preserves a failed draft and allows retry', async () => {
@@ -228,10 +256,14 @@ describe('FeaturedOrderSection', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
     await waitFor(() => expect(updateOrder).toHaveBeenCalledTimes(2));
+    expect(updateOrder.mock.calls.map(([payload]) => payload.membershipSignature)).toEqual([
+      INITIAL_MEMBERSHIP_SIGNATURE,
+      INITIAL_MEMBERSHIP_SIGNATURE,
+    ]);
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save order' })).toBeDisabled());
 
     unmount();
-    renderSection({ items: [] });
+    renderSection({ featuredOrder: featuredOrder([]) });
     expect(await screen.findByText('No Featured products yet.')).toBeInTheDocument();
   });
 
@@ -263,8 +295,72 @@ describe('FeaturedOrderSection', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Remove Second Product from Featured' }));
     await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
 
-    expect(updateOrder.mock.calls[0]?.[0]).toEqual({ productIds: ['product-1', 'product-3'] });
+    expect(updateOrder.mock.calls[0]?.[0]).toEqual({
+      membershipSignature: INITIAL_MEMBERSHIP_SIGNATURE,
+      productIds: ['product-1', 'product-3'],
+    });
     await waitFor(() => expect(screen.getByRole('button', { name: 'Save order' })).toBeDisabled());
+  });
+
+  it('adopts canonical metadata across consecutive reorders before removing without a reload', async () => {
+    const reorderedSignature = 'b'.repeat(64);
+    const removedSignature = 'c'.repeat(64);
+    const updateOrder = vi.spyOn(MutationConfigs, 'updateAdminFeaturedOrder')
+      .mockResolvedValueOnce(response([items[2], items[0], items[1]], reorderedSignature))
+      .mockResolvedValueOnce(response([items[0], items[2], items[1]], reorderedSignature))
+      .mockResolvedValueOnce(response([items[0], items[2]], removedSignature));
+    const { props, queryClient } = renderSection();
+
+    await screen.findByRole('list');
+    dragProduct('product-3', 'product-1');
+    await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
+    await waitFor(() => expect(updateOrder).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument());
+
+    dragProduct('product-1', 'product-3');
+    await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
+    await waitFor(() => expect(updateOrder).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument());
+    expect(updateOrder.mock.calls[1]?.[0]).toEqual({
+      membershipSignature: reorderedSignature,
+      productIds: ['product-1', 'product-3', 'product-2'],
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Second Product from Featured' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
+    await waitFor(() => expect(updateOrder).toHaveBeenCalledTimes(3));
+
+    expect(updateOrder.mock.calls[2]?.[0]).toEqual({
+      membershipSignature: reorderedSignature,
+      productIds: ['product-1', 'product-3'],
+    });
+    expect(props.onReload).not.toHaveBeenCalled();
+    expect(
+      queryClient.getQueryData<AxiosResponse<IBaseApiResponse<IAdminFeaturedOrderResponse>>>(
+        ['admin', 'featured-order'],
+      )?.data.data.membershipSignature,
+    ).toBe(removedSignature);
+  });
+
+  it('uses the post-removal signature for the next reorder', async () => {
+    const removedSignature = 'c'.repeat(64);
+    const updateOrder = vi.spyOn(MutationConfigs, 'updateAdminFeaturedOrder')
+      .mockResolvedValueOnce(response([items[0], items[2]], removedSignature))
+      .mockResolvedValueOnce(response([items[2], items[0]], removedSignature));
+    renderSection();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove Second Product from Featured' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
+    await waitFor(() => expect(updateOrder).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument());
+
+    dragProduct('product-3', 'product-1');
+    await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
+    await waitFor(() => expect(updateOrder).toHaveBeenCalledTimes(2));
+    expect(updateOrder.mock.calls[1]?.[0]).toEqual({
+      membershipSignature: removedSignature,
+      productIds: ['product-3', 'product-1'],
+    });
   });
 
   it('applies the same local order change produced by keyboard sorting', async () => {
@@ -280,7 +376,7 @@ describe('FeaturedOrderSection', () => {
   });
 
   it('renders an initial load error with a retry action', async () => {
-    renderSection({ isError: true, items: [] });
+    renderSection({ featuredOrder: null, isError: true });
 
     expect(await screen.findByText('Unable to load Featured products. Please refresh and try again.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled();

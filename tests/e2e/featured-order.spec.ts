@@ -84,7 +84,7 @@ async function dragProduct(page: Page, productName: string, targetRow: Locator, 
   await page.mouse.up();
 }
 
-test('admin reorders Featured products and the storefront uses the persisted order', async ({ page }, testInfo) => {
+test('admin reorders then removes a Featured product without reloading', async ({ page }, testInfo) => {
   const console = recordUnexpectedConsoleErrors(page);
   let reorderRequestCount = 0;
   page.on('request', (request) => {
@@ -119,17 +119,30 @@ test('admin reorders Featured products and the storefront uses the persisted ord
   ]);
   await expect(page.getByText('Featured product order saved.')).toBeVisible();
   expect(reorderRequestCount).toBe(1);
+
+  await page.getByRole('button', { name: 'Remove Second Featured Kuji from Featured' }).click();
+  await Promise.all([
+    page.waitForResponse((response) => (
+      response.request().method() === 'PUT'
+      && response.url().endsWith('/api/v1/admin/collections/featured/order')
+    )),
+    page.getByRole('button', { name: 'Save order' }).click(),
+  ]);
+  await expect(page.getByText(/Featured membership changed while you were editing/i)).toHaveCount(0);
+  await expect(orderList.getByText('Second Featured Kuji')).toHaveCount(0);
+  expect(reorderRequestCount).toBe(2);
+
   await page.reload();
   await expect(orderList.getByRole('listitem').first()).toContainText('Final Featured Plush');
+  await expect(orderList.getByText('Second Featured Kuji')).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 
   await page.goto('/');
   const carouselProducts = page.locator('main section').first().locator('a[href^="/products/"]');
-  await expect(carouselProducts).toHaveCount(10);
+  await expect(carouselProducts).toHaveCount(9);
   expect(await carouselProducts.evaluateAll((links) => links.map((link) => link.getAttribute('href')))).toEqual([
     '/products/final-featured-plush',
     '/products/first-featured-figure',
-    '/products/second-featured-kuji',
     '/products/featured-acrylic-stand',
     '/products/featured-character-badge',
     '/products/featured-prize-kuji',

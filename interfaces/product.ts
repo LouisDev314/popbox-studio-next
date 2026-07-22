@@ -208,9 +208,11 @@ export interface IAdminFeaturedOrderItem {
 
 export interface IAdminFeaturedOrderResponse {
   items: IAdminFeaturedOrderItem[];
+  membershipSignature: string;
 }
 
 export interface IAdminFeaturedOrderUpdate {
+  membershipSignature: string;
   productIds: string[];
 }
 

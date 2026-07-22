@@ -497,10 +497,8 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
-  const featuredItems = useMemo(
-    () => featuredOrderQuery.data?.data?.data?.items ?? [],
-    [featuredOrderQuery.data?.data?.data?.items],
-  );
+  const featuredOrder = featuredOrderQuery.data?.data?.data ?? null;
+  const featuredItems = useMemo(() => featuredOrder?.items ?? [], [featuredOrder]);
   const assignedProducts = useMemo(
     () => (productsRes?.data?.data?.items ?? []).filter((product) => (
       getCollectionIds(product).includes(collectionId)
@@ -584,7 +582,7 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
 
   const reloadFeaturedProducts = async () => {
     const response = await featuredOrderQuery.refetch();
-    return response.data?.data?.data?.items ?? null;
+    return response.data?.data?.data ?? null;
   };
 
   if (isCollectionPending) {
@@ -625,7 +623,8 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
 
       {isFeaturedCollection ? (
         <FeaturedOrderSection
-          items={featuredItems}
+          featuredCollection={collection}
+          featuredOrder={featuredOrder}
           isError={featuredOrderQuery.isError}
           isLoading={featuredOrderQuery.isPending || featuredOrderQuery.isFetching}
           isMembershipMutationPending={isMutatingProducts}

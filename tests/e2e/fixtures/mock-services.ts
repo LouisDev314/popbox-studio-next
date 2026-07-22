@@ -1,11 +1,10 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { generateKeyPairSync, sign } from 'node:crypto';
+import { createHash, generateKeyPairSync, sign } from 'node:crypto';
 import { expect, test as base } from '@playwright/test';
 
 interface IAuthMockState {
   accessToken: () => string;
   featuredOrderIds: string[];
-  forceFeaturedConflict: boolean;
   profileRequests: number;
   revealedResultIds: Set<string>;
   reset: () => void;
@@ -99,6 +98,10 @@ function sendJson(response: ServerResponse, data: unknown, status = 200) {
 
 function apiData(data: unknown) {
   return { status: 'success', code: 200, success: true, message: 'OK', data };
+}
+
+function featuredMembershipSignature(productIds: string[]) {
+  return createHash('sha256').update(JSON.stringify([...productIds].sort())).digest('hex');
 }
 
 const accountTaxBreakdown = {
@@ -462,13 +465,14 @@ function createRequestHandler(state: IAuthMockState) {
           const product = adminFeaturedOrderItem(productId, index);
           return product ? [product] : [];
         }),
+        membershipSignature: featuredMembershipSignature(state.featuredOrderIds),
       }));
       return;
     }
 
     if (pathname === '/api/v1/admin/collections/featured/order' && request.method === 'PUT') {
-      if (state.forceFeaturedConflict) {
-        state.forceFeaturedConflict = false;
+      const body = await readJson(request);
+      if (body.membershipSignature !== featuredMembershipSignature(state.featuredOrderIds)) {
         sendJson(response, {
           status: 'error',
           code: 409,
@@ -480,16 +484,23 @@ function createRequestHandler(state: IAuthMockState) {
         return;
       }
 
-      const body = await readJson(request);
       const productIds = Array.isArray(body.productIds)
         ? body.productIds.filter((productId): productId is string => typeof productId === 'string')
         : [];
+      if (productIds.some((productId) => !state.featuredOrderIds.includes(productId))) {
+        sendJson(response, {
+          status: 'error', code: 409, success: false, message: 'Featured membership changed', data: null,
+          errors: { code: 'FEATURED_MEMBERSHIP_CHANGED' },
+        }, 409);
+        return;
+      }
       state.featuredOrderIds = productIds;
       sendJson(response, apiData({
         items: state.featuredOrderIds.flatMap((productId, index) => {
           const product = adminFeaturedOrderItem(productId, index);
           return product ? [product] : [];
         }),
+        membershipSignature: featuredMembershipSignature(state.featuredOrderIds),
       }));
       return;
     }
@@ -538,12 +549,10 @@ export const test = base.extend<{ authMock: IAuthMockState; mockServices: void }
         return createAccessToken();
       },
       featuredOrderIds: adminFeaturedProducts.map((product) => product.id),
-      forceFeaturedConflict: false,
       profileRequests: 0,
       revealedResultIds: new Set<string>(),
       reset() {
         this.featuredOrderIds = adminFeaturedProducts.map((product) => product.id);
-        this.forceFeaturedConflict = false;
         this.profileRequests = 0;
         this.revealedResultIds.clear();
       },
@@ -551,7 +560,7 @@ export const test = base.extend<{ authMock: IAuthMockState; mockServices: void }
         return `base64-${Buffer.from(JSON.stringify(createSession())).toString('base64url')}`;
       },
       triggerFeaturedConflict() {
-        this.forceFeaturedConflict = true;
+        this.featuredOrderIds = this.featuredOrderIds.slice(0, -1);
       },
     };
     await applyFixture(state);

@@ -24,15 +24,6 @@ function AccountBenefits() {
   );
 }
 
-function GoogleSignInNote() {
-  return (
-    <p className="mt-5 border-t border-border/70 pt-4 text-sm leading-6 text-muted-foreground lg:mt-6 lg:pt-5">
-      Google Sign-In is an optional, secure way to create or access your customer account. It is used only
-      for account access and these shopping features.
-    </p>
-  );
-}
-
 export function StorefrontWelcome() {
   return (
     <section
@@ -81,14 +72,12 @@ export function StorefrontWelcome() {
           <div className="overflow-hidden">
             <div className="pt-4">
               <AccountBenefits />
-              <GoogleSignInNote />
             </div>
           </div>
         </details>
 
         <div className="hidden lg:block">
           <AccountBenefits />
-          <GoogleSignInNote />
         </div>
       </div>
     </section>

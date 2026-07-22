@@ -17,12 +17,15 @@ vi.mock('@/lib/api/admin-client', () => ({
 describe('Featured order mutation config', () => {
   beforeEach(() => {
     httpPut.mockReset();
-    httpPut.mockResolvedValue({ data: { data: { items: [] } } });
+    httpPut.mockResolvedValue({ data: { data: { items: [], membershipSignature: 'b'.repeat(64) } } });
   });
 
   it('sends the visual product order to the focused endpoint', async () => {
     const MutationConfigs = (await import('@/configs/api/mutation-config')).default;
-    const payload = { productIds: ['product-3', 'product-1', 'product-2'] };
+    const payload = {
+      membershipSignature: 'a'.repeat(64),
+      productIds: ['product-3', 'product-1', 'product-2'],
+    };
 
     await MutationConfigs.updateAdminFeaturedOrder(payload);
 

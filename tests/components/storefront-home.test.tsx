@@ -79,7 +79,6 @@ describe('StorefrontHome', () => {
     expect(screen.getByText('Benefits')).toBeInTheDocument();
     expect(screen.getAllByText('Track your orders')).toHaveLength(2);
     expect(screen.getAllByText('View your Ichiban Kuji history')).toHaveLength(2);
-    expect(screen.getAllByText(/Google Sign-In is an optional, secure way/)).toHaveLength(2);
     expect(welcomeHeading.compareDocumentPosition(featuredSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(featuredSection.compareDocumentPosition(kujiBanner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(kujiBanner.compareDocumentPosition(trendingSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

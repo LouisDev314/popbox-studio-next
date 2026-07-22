@@ -27,15 +27,16 @@ function createTestQueryClient() {
 export function renderWithProviders(ui: ReactElement) {
   const queryClient = createTestQueryClient();
 
-  const renderResult = render(
-    <QueryClientProvider client={queryClient}>
-      <StorefrontAlertProvider>
-        {ui}
-      </StorefrontAlertProvider>
-    </QueryClientProvider>,
-  );
-
-  return { ...renderResult, queryClient };
+  return {
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <StorefrontAlertProvider>
+          {ui}
+        </StorefrontAlertProvider>
+      </QueryClientProvider>,
+    ),
+    queryClient,
+  };
 }
 
 export function resetStores() {

@@ -148,7 +148,10 @@ function mockCollectionDetailQueries({
     createResponse(createProductListResponse(allProducts ?? assignedProducts)),
   );
   vi.spyOn(QueryConfigs, 'fetchAdminFeaturedOrder').mockResolvedValue(
-    createResponse({ items: assignedProducts.map(toFeaturedOrderItem) }),
+    createResponse({
+      items: assignedProducts.map(toFeaturedOrderItem),
+      membershipSignature: 'a'.repeat(64),
+    }),
   );
 }
 
@@ -282,17 +285,28 @@ describe('AdminCollectionDetailPageClient', () => {
     });
     const updateProduct = vi.spyOn(MutationConfigs, 'updateAdminProduct');
     const updateOrder = vi.spyOn(MutationConfigs, 'updateAdminFeaturedOrder').mockResolvedValue(
-      createResponse({ items: [] }),
+      createResponse({ items: [], membershipSignature: 'b'.repeat(64) }),
     );
 
-    renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
+    const { queryClient } = renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
 
     await userEvent.click(await screen.findByRole('button', { name: 'Remove Ichiban Figure from Featured' }));
 
     expect(updateProduct).not.toHaveBeenCalled();
     expect(screen.queryByText('Ichiban Figure')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
-    await waitFor(() => expect(updateOrder.mock.calls[0]?.[0]).toEqual({ productIds: [] }));
+    await waitFor(() => expect(updateOrder.mock.calls[0]?.[0]).toEqual({
+      membershipSignature: 'a'.repeat(64),
+      productIds: [],
+    }));
+    await waitFor(() => {
+      const cachedProducts = queryClient.getQueryData<AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>>(
+        ['admin', 'products', 'collection-membership'],
+      );
+      expect(cachedProducts?.data.data.items[0]?.collections).toEqual([
+        { id: 'collection-2', name: 'Kuji Picks', slug: 'kuji-picks' },
+      ]);
+    });
   });
 
   it('shows a friendly error when an add partially fails', async () => {

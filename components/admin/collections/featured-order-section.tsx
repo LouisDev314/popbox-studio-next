@@ -1,7 +1,8 @@
 'use client';
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { type QueryClient, useQueryClient } from '@tanstack/react-query';
+import type { AxiosResponse } from 'axios';
 import {
   closestCenter,
   DndContext,
@@ -27,7 +28,14 @@ import { toast } from 'sonner';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import { getApiErrorCode, getFriendlyErrorMessage } from '@/utils/api-errors';
-import type { IAdminFeaturedOrderItem, IAdminFeaturedOrderResponse } from '@/interfaces/product';
+import type { IBaseApiResponse } from '@/interfaces/api-response';
+import type {
+  IAdminFeaturedOrderItem,
+  IAdminFeaturedOrderResponse,
+  IAdminFeaturedOrderUpdate,
+  IAdminProductListResponse,
+  IProductCollection,
+} from '@/interfaces/product';
 import { AdminProductStatusBadge } from '@/components/admin/admin-product-status-badge';
 import { Button } from '@/components/ui/button';
 import { ErrorAlert } from '@/components/ui/error-alert';
@@ -36,20 +44,63 @@ import { SortableHandle, useAdminSortable } from '@/components/admin/product/sor
 import { cn } from '@/lib/utils';
 
 interface IFeaturedOrderSectionProps {
+  featuredCollection: IProductCollection;
+  featuredOrder: IAdminFeaturedOrderResponse | null;
   isError: boolean;
   isLoading: boolean;
   isMembershipMutationPending: boolean;
-  items: IAdminFeaturedOrderItem[];
   onAddProductsClick: () => void;
-  onReload: () => Promise<IAdminFeaturedOrderItem[] | null>;
+  onReload: () => Promise<IAdminFeaturedOrderResponse | null>;
 }
+
+const FEATURED_ORDER_QUERY_KEY = ['admin', 'featured-order'] as const;
 
 function idsMatch(left: string[], right: string[]) {
   return left.length === right.length && left.every((id, index) => id === right[index]);
 }
 
-function hasSameMembership(left: string[], right: string[]) {
-  return left.length === right.length && left.every((id) => right.includes(id));
+function synchronizeAdminProductMembershipCaches(
+  queryClient: QueryClient,
+  featuredCollection: IProductCollection,
+  featuredOrder: IAdminFeaturedOrderResponse,
+) {
+  const featuredProductIds = new Set(featuredOrder.items.map((item) => item.id));
+
+  queryClient.setQueriesData<AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>>(
+    { queryKey: ['admin', 'products'] },
+    (cachedResponse) => {
+      if (!cachedResponse) return cachedResponse;
+
+      let didChange = false;
+      const items = cachedResponse.data.data.items.map((product) => {
+        const isFeatured = product.collections.some((collection) => collection.id === featuredCollection.id);
+        const shouldBeFeatured = featuredProductIds.has(product.id);
+
+        if (isFeatured === shouldBeFeatured) return product;
+        didChange = true;
+
+        return {
+          ...product,
+          collections: shouldBeFeatured
+            ? [...product.collections, featuredCollection]
+            : product.collections.filter((collection) => collection.id !== featuredCollection.id),
+        };
+      });
+
+      if (!didChange) return cachedResponse;
+
+      return {
+        ...cachedResponse,
+        data: {
+          ...cachedResponse.data,
+          data: {
+            ...cachedResponse.data.data,
+            items,
+          },
+        },
+      };
+    },
+  );
 }
 
 function formatProductType(productType: IAdminFeaturedOrderItem['productType']) {
@@ -146,23 +197,26 @@ const FeaturedOrderRow = memo(function FeaturedOrderRow({
   );
 });
 
+// eslint-disable-next-line complexity -- Draft ordering, conflict recovery, and mutation serialization share one UI boundary.
 export function FeaturedOrderSection({
+  featuredCollection,
+  featuredOrder,
   isError,
   isLoading,
   isMembershipMutationPending,
-  items,
   onAddProductsClick,
   onReload,
 }: IFeaturedOrderSectionProps) {
   const queryClient = useQueryClient();
   const submissionGuard = useRef(false);
-  const observedItemsRef = useRef(items);
-  const [persistedItems, setPersistedItems] = useState<IAdminFeaturedOrderItem[]>(items);
-  const [draftIds, setDraftIds] = useState<string[]>(items.map((item) => item.id));
-  const [isInitialized, setIsInitialized] = useState(!isLoading && !isError);
+  const observedOrderRef = useRef(featuredOrder);
+  const [persistedOrder, setPersistedOrder] = useState<IAdminFeaturedOrderResponse | null>(featuredOrder);
+  const [draftIds, setDraftIds] = useState<string[]>(featuredOrder?.items.map((item) => item.id) ?? []);
+  const [isInitialized, setIsInitialized] = useState(!isLoading && !isError && featuredOrder !== null);
   const [hasMembershipConflict, setHasMembershipConflict] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const persistedItems = useMemo(() => persistedOrder?.items ?? [], [persistedOrder]);
   const persistedIds = useMemo(() => persistedItems.map((item) => item.id), [persistedItems]);
   const isDirty = isInitialized && !idsMatch(draftIds, persistedIds);
   const itemMap = useMemo(() => new Map(persistedItems.map((item) => [item.id, item])), [persistedItems]);
@@ -183,31 +237,36 @@ export function FeaturedOrderSection({
     }),
   );
 
-  const resetOrder = useCallback((nextItems: IAdminFeaturedOrderItem[]) => {
-    setPersistedItems(nextItems);
-    setDraftIds(nextItems.map((item) => item.id));
+  const resetOrder = useCallback((nextOrder: IAdminFeaturedOrderResponse) => {
+    setPersistedOrder(nextOrder);
+    setDraftIds(nextOrder.items.map((item) => item.id));
     setActiveId(null);
     setHasMembershipConflict(false);
     setErrorMessage(null);
     setIsInitialized(true);
   }, []);
 
+  const synchronizeCanonicalOrder = useCallback((response: AxiosResponse<IBaseApiResponse<IAdminFeaturedOrderResponse>>) => {
+    queryClient.setQueryData(FEATURED_ORDER_QUERY_KEY, response);
+    synchronizeAdminProductMembershipCaches(queryClient, featuredCollection, response.data.data);
+    resetOrder(response.data.data);
+  }, [featuredCollection, queryClient, resetOrder]);
+
   useEffect(() => {
-    if (observedItemsRef.current === items) return undefined;
-    observedItemsRef.current = items;
-    const incomingIds = items.map((item) => item.id);
+    if (!featuredOrder || observedOrderRef.current === featuredOrder) return undefined;
+    observedOrderRef.current = featuredOrder;
     let isCancelled = false;
 
-    if (!isInitialized || (!isDirty && persistedItems !== items)) {
+    if (!isInitialized || (!isDirty && persistedOrder !== featuredOrder)) {
       queueMicrotask(() => {
-        if (!isCancelled) resetOrder(items);
+        if (!isCancelled) resetOrder(featuredOrder);
       });
       return () => {
         isCancelled = true;
       };
     }
 
-    if (!hasSameMembership(incomingIds, persistedIds)) {
+    if (featuredOrder.membershipSignature !== persistedOrder?.membershipSignature) {
       queueMicrotask(() => {
         if (!isCancelled) setHasMembershipConflict(true);
       });
@@ -216,7 +275,7 @@ export function FeaturedOrderSection({
     return () => {
       isCancelled = true;
     };
-  }, [isDirty, isInitialized, items, persistedIds, persistedItems, resetOrder]);
+  }, [featuredOrder, isDirty, isInitialized, persistedOrder, resetOrder]);
 
   useEffect(() => {
     if (!isDirty) return undefined;
@@ -232,17 +291,12 @@ export function FeaturedOrderSection({
 
   const { mutation: saveOrder, isPending: isSaving } = useCustomizeMutation<
     IAdminFeaturedOrderResponse,
-    { productIds: string[] }
+    IAdminFeaturedOrderUpdate
   >({
     mutationFn: MutationConfigs.updateAdminFeaturedOrder,
-    onSuccess: async (response) => {
-      resetOrder(response.data.data.items);
+    onSuccess: (response) => {
+      synchronizeCanonicalOrder(response);
       submissionGuard.current = false;
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['admin', 'featured-order'] }),
-        queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
-        queryClient.invalidateQueries({ queryKey: ['admin', 'collections'] }),
-      ]);
       toast.success('Featured product order saved.');
     },
     onError: (error) => {
@@ -285,10 +339,13 @@ export function FeaturedOrderSection({
   }, []);
 
   const handleSave = () => {
-    if (!isDirty || isSaving || hasMembershipConflict || submissionGuard.current) return;
+    if (!isDirty || !persistedOrder || isSaving || hasMembershipConflict || submissionGuard.current) return;
     submissionGuard.current = true;
     setErrorMessage(null);
-    saveOrder({ productIds: draftIds });
+    saveOrder({
+      membershipSignature: persistedOrder.membershipSignature,
+      productIds: draftIds,
+    });
   };
 
   const handleDiscard = () => {
@@ -299,8 +356,11 @@ export function FeaturedOrderSection({
   };
 
   const handleReload = async () => {
-    const nextItems = await onReload();
-    if (nextItems) resetOrder(nextItems);
+    const nextOrder = await onReload();
+    if (!nextOrder) return;
+
+    synchronizeAdminProductMembershipCaches(queryClient, featuredCollection, nextOrder);
+    resetOrder(nextOrder);
   };
 
   const controlsDisabled = isSaving
