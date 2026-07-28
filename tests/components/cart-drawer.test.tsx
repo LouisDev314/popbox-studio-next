@@ -82,6 +82,28 @@ describe('CartDrawer', () => {
     resetStores();
   });
 
+  it('shows the migration notice when no legacy standard items survive', async () => {
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [],
+        migrationNotice: {
+          code: 'legacy_standard_variants_removed',
+          removedCount: 1,
+        },
+      });
+    });
+
+    renderWithProviders(<CartDrawerHarness />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
+
+    expect(screen.getByText(/Some outdated standard items were removed/)).toBeInTheDocument();
+    expect(screen.getByText('1 item removed.')).toBeInTheDocument();
+    expect(screen.getByText('Your cart is empty')).toBeInTheDocument();
+  });
+
   it('closes the empty-state continue shopping action and restores focus without navigation', async () => {
     act(() => {
       useCartStore.setState({

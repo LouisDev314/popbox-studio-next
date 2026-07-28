@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   type ICartItem,
+  type ICartLineIdentity,
   type ICartInvalidItem,
 } from '@/interfaces/cart';
 import {
@@ -107,6 +108,7 @@ export function shouldConfirmSuggestedAddress(
 
 const checkoutItemSchema = z.object({
   productId: z.string().uuid(),
+  productVariantId: z.string().uuid().optional(),
   quantity: z.coerce.number().int().min(1).max(20),
 });
 
@@ -150,6 +152,22 @@ export function getPurchasedProductIdsFromOrder(order: IOrderDetail): string[] {
   return [...new Set(order.items.map((item) => item.productId))];
 }
 
+export function getPurchasedLineIdentitiesFromOrder(
+  order: IOrderDetail,
+): ICartLineIdentity[] {
+  const identities = order.items.map((item) => ({
+    productId: item.productId,
+    variantId: item.productType === 'standard' ? item.variantId ?? null : null,
+  }));
+
+  return identities.filter((identity, index) => (
+    identities.findIndex((candidate) => (
+      candidate.productId === identity.productId
+      && candidate.variantId === identity.variantId
+    )) === index
+  ));
+}
+
 export function getInvalidCartItemsCheckoutMessage(invalidItems: ICartInvalidItem[]): string {
   if (invalidItems.length === 1) {
     return 'One cart item is no longer valid. Remove it before checking out.';
@@ -174,6 +192,9 @@ export function buildCheckoutRequest(
     email: trimRequired(customer.email),
     items: items.map((item) => ({
       productId: item.product.id,
+      ...(item.product.productType === 'standard' && item.variant
+        ? { productVariantId: item.variant.id }
+        : {}),
       quantity: item.quantity,
     })),
     shippingAddress: {
@@ -187,6 +208,19 @@ export function buildCheckoutRequest(
       province: normalizeProvinceCode(customer.shippingAddress.province) as CanadianProvinceCode,
     },
   };
+
+  const hasInvalidVariantIdentity = items.some((item) => (
+    (item.product.productType === 'standard' && !item.variant)
+    || (item.product.productType === 'kuji' && item.variant !== null)
+  ));
+
+  if (hasInvalidVariantIdentity) {
+    return {
+      issues: ['Every standard cart item requires a selected variant.'],
+      message: 'A cart item needs a valid variant selection. Remove it and choose the product again.',
+      success: false,
+    };
+  }
 
   if (options.includeCustomerNote !== false) {
     payload.customerNote = trimOptional(customer.customerNote);

@@ -57,7 +57,7 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
           )}
         </div>
         <p className="mx-auto max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7 mt-8">
-          **Your order will be processed within 2 business days. We’ll email you as
+          Your order will be processed within 2 business days. We’ll email you as
           soon as it ships.
         </p>
       </div>
@@ -96,6 +96,11 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
                       <h3 className="line-clamp-2 text-base font-semibold leading-6 text-foreground">
                         {item.productName}
                       </h3>
+                      {item.variantName ? (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {item.variantName}{item.variantSku ? ` · ${item.variantSku}` : ''}
+                        </p>
+                      ) : null}
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                         <span>Qty {item.quantity}</span>
                         <span aria-hidden="true" className="text-border">
@@ -182,13 +187,12 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
               </span>
             </div>
 
-            {/* TEMP: Tax disabled (not collecting tax yet) */}
-            {/* <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Taxes</span>
               <span className="font-medium text-foreground">
                 {formatPrice(order.taxCents, order.currency)}
               </span>
-            </div> */}
+            </div>
 
             <div className="mt-2 flex justify-between border-t border-border/30 pt-4">
               <span className="text-base font-bold text-foreground">Total</span>

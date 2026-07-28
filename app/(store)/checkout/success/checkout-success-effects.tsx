@@ -14,7 +14,12 @@ import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import type { IOrderDetail } from '@/interfaces/order';
-import { getPurchasedProductIdsFromOrder, isFinalizedCheckoutOrder } from '@/utils/checkout';
+import {
+  getPurchasedLineIdentitiesFromOrder,
+  getPurchasedProductIdsFromOrder,
+  isFinalizedCheckoutOrder,
+} from '@/utils/checkout';
+import { getCartItemKey, getCartLineKey } from '@/utils/cart';
 import { useAnalyticsReady } from '@/components/analytics/ecommerce-trackers';
 import { trackPurchaseOnce } from '@/lib/analytics';
 
@@ -110,14 +115,22 @@ export function CheckoutSuccessFinalizing(props: { message: string; sessionId: s
 export function CheckoutSuccessEffects(props: ICheckoutSuccessEffectsProps) {
   const isAnalyticsReady = useAnalyticsReady();
   const purchasedProductIds = useMemo(() => getPurchasedProductIdsFromOrder(props.order), [props.order]);
+  const purchasedLineIdentities = useMemo(
+    () => getPurchasedLineIdentitiesFromOrder(props.order),
+    [props.order],
+  );
+  const purchasedLineKeySet = useMemo(
+    () => new Set(purchasedLineIdentities.map(getCartLineKey)),
+    [purchasedLineIdentities],
+  );
   const purchasedProductIdSet = useMemo(() => new Set(purchasedProductIds), [purchasedProductIds]);
   const isFinalizedOrder = isFinalizedCheckoutOrder(props.order);
 
   const hasCartHydrated = useCartStore((state) => state.hasHydrated);
   const hasPurchasedCartItems = useCartStore((state) => (
-    state.items.some((item) => purchasedProductIdSet.has(item.product.id))
+    state.items.some((item) => purchasedLineKeySet.has(getCartItemKey(item)))
   ));
-  const removePurchasedProductIds = useCartStore((state) => state.removePurchasedProductIds);
+  const removePurchasedLines = useCartStore((state) => state.removePurchasedLines);
   const hasWishlistHydrated = useWishlistStore((state) => state.hasHydrated);
   const hasPurchasedWishlistItems = useWishlistStore((state) => (
     state.items.some((item) => purchasedProductIdSet.has(item.id))
@@ -167,7 +180,7 @@ export function CheckoutSuccessEffects(props: ICheckoutSuccessEffectsProps) {
     }
 
     useCheckoutUiStore.getState().endCheckout();
-    removePurchasedProductIds(purchasedProductIds);
+    removePurchasedLines(purchasedLineIdentities);
     removeWishlistItems(purchasedProductIds);
     hasCleanedUp.current = true;
     markCheckoutSuccessCleanupComplete(props.sessionId);
@@ -177,8 +190,9 @@ export function CheckoutSuccessEffects(props: ICheckoutSuccessEffectsProps) {
     isFinalizedOrder,
     markCheckoutSuccessCleanupComplete,
     purchasedProductIds,
+    purchasedLineIdentities,
     props.sessionId,
-    removePurchasedProductIds,
+    removePurchasedLines,
     removeWishlistItems,
   ]);
 

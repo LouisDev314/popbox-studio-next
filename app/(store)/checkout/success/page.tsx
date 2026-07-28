@@ -89,6 +89,9 @@ export default async function CheckoutSuccessPage(props: { searchParams: Promise
   }
 
   const hasKujiTickets = Boolean(order?.tickets?.length);
+  const needsAttention = (
+    successData?.pending === false && successData.needsAttention
+  ) || order.status === 'paid_needs_attention';
   const publicOrderUrl = `/orders/${order.publicId}`;
   const publicTicketsUrl = `/orders/${order.publicId}/tickets`;
 
@@ -100,11 +103,13 @@ export default async function CheckoutSuccessPage(props: { searchParams: Promise
         </div>
 
         <h1 className="mb-4 text-4xl font-extrabold tracking-tight text-foreground md:text-5xl">
-          Order Confirmed!
+          {needsAttention ? 'Payment Received' : 'Order Confirmed!'}
         </h1>
 
         <p className="mb-8 max-w-xl text-xl leading-relaxed text-muted-foreground">
-          Thank you for your purchase. We&apos;ve sent a confirmation email with your order details.
+          {needsAttention
+            ? `Order ${order.publicId} requires a review before fulfillment. You do not need to pay again; please contact support if you need assistance.`
+            : 'Thank you for your purchase. We’ve sent a confirmation email with your order details.'}
         </p>
 
         <div className="mb-8 w-full rounded-2xl border border-border/50 bg-card p-6 text-left shadow-sm md:p-8">
@@ -114,7 +119,9 @@ export default async function CheckoutSuccessPage(props: { searchParams: Promise
             <div className="text-right font-medium text-foreground">{order.publicId}</div>
 
             <div className="text-muted-foreground">Status</div>
-            <div className="text-right font-medium capitalize text-foreground">{order.status.replace('_', ' ')}</div>
+            <div className="text-right font-medium capitalize text-foreground">
+              {order.status.replaceAll('_', ' ')}
+            </div>
 
             <div className="text-muted-foreground">Items</div>
             <div className="text-right font-medium text-foreground">
@@ -124,7 +131,7 @@ export default async function CheckoutSuccessPage(props: { searchParams: Promise
         </div>
 
         <div className="flex w-full flex-col justify-center gap-4 sm:flex-row">
-          {hasKujiTickets ? (
+          {hasKujiTickets && !needsAttention ? (
             <Button asChild size="lg" className="h-14 rounded-xl px-8 text-lg font-semibold">
               <Link href={publicTicketsUrl}>
                 <Ticket className="mr-2 h-5 w-5" />
@@ -137,7 +144,7 @@ export default async function CheckoutSuccessPage(props: { searchParams: Promise
             </Button>
           )}
           <Button asChild variant="outline" size="lg" className="h-14 rounded-xl border-border px-8 text-lg font-semibold hover:bg-muted">
-            <Link href="/">Continue Shopping</Link>
+            <Link href={needsAttention ? '/contact' : '/'}>{needsAttention ? 'Contact Support' : 'Continue Shopping'}</Link>
           </Button>
         </div>
       </div>

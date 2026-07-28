@@ -51,13 +51,15 @@ export function OrdersList({ initialPage }: { initialPage: IAccountOrderListPage
             <div className="space-y-2">
               {order.products.slice(0, 2).map((product) => (
                 <AccountProductIdentity
-                  key={product.productId}
+                  key={`${product.productId}:${product.variantId ?? 'product'}`}
                   size="compact"
                   name={product.productName}
                   productSlug={product.productSlug}
                   isStorefrontAccessible={product.isStorefrontAccessible}
                   imageUrl={product.imageUrl}
                   imageAltText={product.imageAltText}
+                  variantName={product.variantName}
+                  variantSku={product.variantSku}
                   storefrontLinkEnabled={false}
                 />
               ))}

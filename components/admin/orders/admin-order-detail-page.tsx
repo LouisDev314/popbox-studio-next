@@ -326,6 +326,11 @@ function OrderItemsSection({ order }: { order: IOrderDetail }) {
             <div className="flex flex-1 flex-col">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <p className="font-medium text-foreground">{item.productName}</p>
+                {item.variantName ? (
+                  <p className="text-sm text-muted-foreground">
+                    {item.variantName}{item.variantSku ? ` · ${item.variantSku}` : ''}
+                  </p>
+                ) : null}
                 <p className="font-medium text-foreground">{formatPrice(item.lineTotalCents, order.currency)}</p>
               </div>
               <p className="mt-1 text-sm capitalize text-muted-foreground">{item.productType} Product</p>

@@ -16,6 +16,28 @@ vi.mock('@/components/cart/checkout-button', () => ({
 }));
 
 describe('CartPageClient', () => {
+  it('explains when migration removes every legacy standard item', () => {
+    resetStores();
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [],
+        migrationNotice: {
+          code: 'legacy_standard_variants_removed',
+          removedCount: 2,
+        },
+      });
+    });
+
+    renderWithProviders(<CartPageClient />);
+
+    expect(screen.getByText(/Some outdated standard items were removed/)).toBeInTheDocument();
+    expect(screen.getByText('2 items removed.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Your cart is empty' })).toBeInTheDocument();
+  });
+
   it('shows a shipping and returns reminder for standard carts', () => {
     resetStores();
 

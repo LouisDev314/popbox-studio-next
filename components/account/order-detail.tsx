@@ -127,7 +127,7 @@ export function OrderDetail({ order: rawOrder }: { order: ICustomerOrderDetail }
             </div>
             <div className="mt-4 divide-y divide-border border-y border-border">
               {order.items.map((item) => (
-                <div key={item.productId} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 py-5">
+                <div key={`${item.productId}:${item.variantId ?? 'product'}`} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 py-5">
                   <div className="min-w-0">
                     <AccountProductIdentity
                       name={item.productName}
@@ -135,6 +135,8 @@ export function OrderDetail({ order: rawOrder }: { order: ICustomerOrderDetail }
                       isStorefrontAccessible={item.isStorefrontAccessible}
                       imageUrl={item.imageUrl}
                       imageAltText={item.imageAltText}
+                      variantName={item.variantName}
+                      variantSku={item.variantSku}
                     />
                     <p className="mt-2 text-sm text-muted-foreground sm:pl-[5.25rem]">
                       Qty {item.quantity} · {formatPrice(item.unitPriceCents, order.currency)} each

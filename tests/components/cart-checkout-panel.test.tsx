@@ -1340,6 +1340,68 @@ describe('CartCheckoutPanel', () => {
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
   });
 
+  it('ignores a stale quote response that arrives after the current cart quote', async () => {
+    resetStores();
+    let quoteCount = 0;
+    let firstQuoteReturned = false;
+    let resolveFirstQuote: (() => void) | null = null;
+
+    server.use(
+      http.post(QUOTE_URL, async () => {
+        quoteCount += 1;
+
+        if (quoteCount === 1) {
+          await new Promise<void>((resolve) => {
+            resolveFirstQuote = resolve;
+          });
+
+          firstQuoteReturned = true;
+          return HttpResponse.json(createQuoteResponse());
+        }
+
+        return HttpResponse.json(createQuoteResponse({
+          subtotalCents: 9998,
+          totalCents: 12542,
+        }));
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({
+        hasHydrated: true,
+        invalidItems: [],
+        items: [createCartItem()],
+      });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+
+    await fillValidCheckoutForm();
+
+    await waitFor(() => {
+      expect(quoteCount).toBe(1);
+    });
+
+    act(() => {
+      useCartStore.getState().updateQuantity('cart-item-1', 2);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('$125.42')).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+
+    act(() => {
+      resolveFirstQuote?.();
+    });
+
+    await waitFor(() => {
+      expect(firstQuoteReturned).toBe(true);
+    });
+    expect(screen.getByText('$125.42')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
+  });
+
   it('creates checkout with only cart, contact, and shipping payload after a fresh quote', async () => {
     resetStores();
     let sessionBody: Record<string, unknown> | null = null;

@@ -70,6 +70,7 @@ async function dragProduct(page: Page, productName: string, targetRow: Locator, 
       targetBox.x + Math.min(targetBox.width / 2, 120),
       targetBox.y + targetBox.height / 2,
     );
+    await page.waitForTimeout(250);
     return;
   }
 
@@ -82,6 +83,7 @@ async function dragProduct(page: Page, productName: string, targetRow: Locator, 
     { steps: 12 },
   );
   await page.mouse.up();
+  await page.waitForTimeout(250);
 }
 
 test('admin reorders then removes a Featured product without reloading', async ({ page }, testInfo) => {

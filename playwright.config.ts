@@ -1,7 +1,17 @@
+import { generateKeyPairSync } from 'node:crypto';
 import { defineConfig, devices } from '@playwright/test';
 
 const playwrightPort = process.env.PLAYWRIGHT_PORT ?? '3001';
 const playwrightBaseUrl = `http://localhost:${playwrightPort}`;
+const playwrightJwtKeyPair = generateKeyPairSync('rsa', { modulusLength: 2048 });
+
+process.env.PLAYWRIGHT_JWT_PRIVATE_KEY ??= playwrightJwtKeyPair.privateKey.export({
+  format: 'pem',
+  type: 'pkcs8',
+}).toString();
+process.env.PLAYWRIGHT_JWT_PUBLIC_JWK ??= JSON.stringify(
+  playwrightJwtKeyPair.publicKey.export({ format: 'jwk' }),
+);
 
 export default defineConfig({
   testDir: './tests/e2e',

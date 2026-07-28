@@ -11,6 +11,7 @@ export function AuthSplitLayout({ children, title }: { children: ReactNode; titl
           fill
           sizes="(max-width: 1023px) 0px, 54vw"
           className="object-cover"
+          loading="eager"
         />
         <div className="absolute inset-0 bg-foreground/10" aria-hidden="true" />
       </div>

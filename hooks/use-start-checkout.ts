@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { AxiosError, HttpStatusCode } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -17,6 +17,8 @@ import {
   getApiErrorDetails,
   getApiErrorCode,
   getCheckoutAddressError,
+  getProductVariantErrorCode,
+  getProductVariantErrorMessage,
   isTimeoutAxiosError,
 } from '@/utils/api-errors';
 import {
@@ -83,6 +85,7 @@ export function useStartCheckout() {
   const checkoutErrorMessage = useCheckoutUiStore((state) => state.checkoutErrorMessage);
   const checkoutDialog = useCheckoutUiStore((state) => state.checkoutDialog);
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
+  const attemptRef = useRef<{ fingerprint: string; key: string } | null>(null);
 
   const { mutation: createCheckoutSession } = useCustomizeMutation<
     CheckoutSessionData,
@@ -115,10 +118,20 @@ export function useStartCheckout() {
       return;
     }
 
+    const fingerprint = JSON.stringify(data);
+    if (attemptRef.current?.fingerprint !== fingerprint) {
+      attemptRef.current = {
+        fingerprint,
+        key: `checkout-${uuidv4()}`,
+      };
+    }
+
     createCheckoutSession(
-      { data, key: `checkout-${uuidv4()}` },
+      { data, key: attemptRef.current.key },
       {
         onSuccess: (response) => {
+          attemptRef.current = null;
+
           if (response.status !== HttpStatusCode.Created) {
             useCheckoutUiStore.getState().setCheckoutError(
               'We couldn’t start checkout right now. Please try again.',
@@ -143,6 +156,10 @@ export function useStartCheckout() {
           }
         },
         onError: (error) => {
+          if (error.response) {
+            attemptRef.current = null;
+          }
+
           if (getApiErrorCode(error) === 'AUTH_CHECKOUT_EMAIL_MISMATCH') {
             useCheckoutUiStore.getState().endCheckout();
             options.onAuthEmailMismatch?.();
@@ -162,6 +179,16 @@ export function useStartCheckout() {
             }
 
             useCheckoutUiStore.getState().setCheckoutError(checkoutAddressError.message);
+            return;
+          }
+
+          if (getProductVariantErrorCode(error)) {
+            useCheckoutUiStore.getState().setCheckoutError(
+              getProductVariantErrorMessage(
+                error,
+                'A selected variant is no longer available. Review your cart and try again.',
+              ),
+            );
             return;
           }
 

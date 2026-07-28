@@ -169,7 +169,9 @@ describe('guest order pages', () => {
     expect(screen.getByRole('img', {
       name: 'Ichiban Figure image',
     })).toHaveAttribute('src', expect.stringContaining('item.jpg'));
-    expect(screen.queryByText('Taxes')).not.toBeInTheDocument();
+    expect(screen.getByText('Taxes')).toBeInTheDocument();
+    expect(screen.getByText('$6.50')).toBeInTheDocument();
+    expect(screen.getByText(/^Your order will be processed/)).not.toHaveTextContent('**');
     expect(screen.queryByText('Backend attention text must stay admin-only.')).not.toBeInTheDocument();
     expect(screen.queryByText('Do not show this to customers.')).not.toBeInTheDocument();
     expect(screen.queryByText('admin_only_attention')).not.toBeInTheDocument();

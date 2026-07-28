@@ -98,6 +98,9 @@ export function normalizeAccountOrderDetail(value: unknown): ICustomerOrderDetai
 
     return {
       ...item,
+      variantId: nullableString(item.variantId),
+      variantName: nullableString(item.variantName),
+      variantSku: nullableString(item.variantSku),
       kujiResults: hasFinalResults
         ? normalizeAccountKujiResults(item.kujiResults)
         : legacyResultsByProductId.get(productId) ?? [],

@@ -1,6 +1,11 @@
-import type { ICartItem, ICartProduct } from '@/interfaces/cart';
+import type {
+  ICartItem,
+  ICartProduct,
+  ICartVariantSnapshot,
+} from '@/interfaces/cart';
 import type { IOrderDetail, IOrderItem } from '@/interfaces/order';
 import type { IProduct, IProductCard } from '@/interfaces/product';
+import { getCartItemUnitPrice } from '@/utils/cart';
 
 export const GA_CURRENCY = 'CAD';
 export const ANALYTICS_READY_EVENT = 'popbox:analytics-ready';
@@ -27,7 +32,7 @@ export interface IGaItem {
   item_id: string;
   item_name: string;
   item_category: 'Ichiban Kuji' | 'Standard Product';
-  item_variant?: 'Ticket';
+  item_variant?: string;
   price: number;
   quantity: number;
   currency: typeof GA_CURRENCY;
@@ -137,6 +142,8 @@ export function mapOrderItemToGaItem(item: IOrderItem): IGaItem | null {
 
   if (item.productType === 'kuji') {
     gaItem.item_variant = 'Ticket';
+  } else if (item.variantName) {
+    gaItem.item_variant = item.variantName;
   }
 
   return gaItem;
@@ -144,7 +151,18 @@ export function mapOrderItemToGaItem(item: IOrderItem): IGaItem | null {
 
 function mapCartItems(items: ICartItem[]): IGaItem[] {
   return items
-    .map((item) => mapProductToGaItem(item.product, item.quantity))
+    .map((item) => {
+      const gaItem = mapProductToGaItem({
+        ...item.product,
+        priceCents: getCartItemUnitPrice(item),
+      }, item.quantity);
+
+      if (gaItem && item.product.productType === 'standard' && item.variant) {
+        gaItem.item_variant = item.variant.name;
+      }
+
+      return gaItem;
+    })
     .filter((item): item is IGaItem => item !== null);
 }
 
@@ -294,11 +312,24 @@ export function trackSearch(searchTerm: string): boolean {
   return sendEvent('search', { search_term: normalizedTerm });
 }
 
-export function trackAddToCart(product: ICartProduct, quantity: number): boolean {
-  const item = mapProductToGaItem(product, quantity);
+export function trackAddToCart(
+  product: ICartProduct,
+  quantity: number,
+  variant: ICartVariantSnapshot | null = null,
+): boolean {
+  const item = mapProductToGaItem({
+    ...product,
+    priceCents: product.productType === 'standard' && variant
+      ? variant.priceCents
+      : product.priceCents,
+  }, quantity);
 
   if (!item) {
     return false;
+  }
+
+  if (product.productType === 'standard' && variant) {
+    item.item_variant = variant.name;
   }
 
   return sendEvent('add_to_cart', {
@@ -353,7 +384,7 @@ export function trackBeginCheckout(items: ICartItem[]): boolean {
 export function isAnalyticsPurchaseOrder(order: IOrderDetail): boolean {
   return Boolean(
     order.paidAt
-    && ['paid', 'packed', 'shipped'].includes(order.status)
+    && ['paid', 'paid_needs_attention', 'packed', 'shipped'].includes(order.status)
     && order.publicId?.trim(),
   );
 }

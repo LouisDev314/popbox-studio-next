@@ -56,6 +56,31 @@ const ACCOUNT_API_ERROR_CODES = new Set<AccountApiErrorCode>([
   'EMAIL_NOT_VERIFIED',
 ]);
 
+export type ProductVariantErrorCode =
+  | 'PRODUCT_VARIANT_DEFAULT_REQUIRED'
+  | 'PRODUCT_VARIANT_DUPLICATE_NAME'
+  | 'PRODUCT_VARIANT_DUPLICATE_SKU'
+  | 'PRODUCT_VARIANT_HAS_ACTIVE_RESERVATIONS'
+  | 'PRODUCT_VARIANT_HAS_HISTORY'
+  | 'PRODUCT_VARIANT_INACTIVE'
+  | 'PRODUCT_VARIANT_MISMATCH'
+  | 'PRODUCT_VARIANT_NOT_FOUND'
+  | 'PRODUCT_VARIANT_OUT_OF_STOCK'
+  | 'PRODUCT_VARIANT_REQUIRED';
+
+const PRODUCT_VARIANT_ERROR_MESSAGES: Record<ProductVariantErrorCode, string> = {
+  PRODUCT_VARIANT_DEFAULT_REQUIRED: 'A standard product must keep one active default variant. Select another default first.',
+  PRODUCT_VARIANT_DUPLICATE_NAME: 'Variant names must be unique for this product.',
+  PRODUCT_VARIANT_DUPLICATE_SKU: 'This SKU is already used by another product or variant.',
+  PRODUCT_VARIANT_HAS_ACTIVE_RESERVATIONS: 'This variant has active reservations and cannot be deleted. Deactivate it instead or retry later.',
+  PRODUCT_VARIANT_HAS_HISTORY: 'This variant has order or reservation history and must be deactivated instead of deleted.',
+  PRODUCT_VARIANT_INACTIVE: 'A selected variant is no longer active. Remove it and choose an available variant.',
+  PRODUCT_VARIANT_MISMATCH: 'The selected variant does not belong to this product. Refresh and try again.',
+  PRODUCT_VARIANT_NOT_FOUND: 'This variant no longer exists. Refresh and choose another variant.',
+  PRODUCT_VARIANT_OUT_OF_STOCK: 'This variant does not have enough inventory available.',
+  PRODUCT_VARIANT_REQUIRED: 'Choose a concrete product variant before continuing.',
+};
+
 export function getApiErrorCode(error: unknown): string | null {
   if (!axios.isAxiosError(error)) {
     return null;
@@ -73,6 +98,29 @@ export function getAccountApiErrorCode(error: unknown): AccountApiErrorCode | nu
   const code = getApiErrorCode(error);
   return code && ACCOUNT_API_ERROR_CODES.has(code as AccountApiErrorCode)
     ? code as AccountApiErrorCode
+    : null;
+}
+
+export function getProductVariantErrorMessage(
+  error: unknown,
+  fallbackMessage: string,
+): string {
+  const code = getApiErrorCode(error);
+
+  if (code && Object.prototype.hasOwnProperty.call(PRODUCT_VARIANT_ERROR_MESSAGES, code)) {
+    return PRODUCT_VARIANT_ERROR_MESSAGES[code as ProductVariantErrorCode];
+  }
+
+  return getFriendlyErrorMessage(error, fallbackMessage);
+}
+
+export function getProductVariantErrorCode(
+  error: unknown,
+): ProductVariantErrorCode | null {
+  const code = getApiErrorCode(error);
+
+  return code && Object.prototype.hasOwnProperty.call(PRODUCT_VARIANT_ERROR_MESSAGES, code)
+    ? code as ProductVariantErrorCode
     : null;
 }
 
@@ -165,6 +213,13 @@ export function getCheckoutQuoteErrorMessage(
 
   if (checkoutAddressError) {
     return checkoutAddressError.message;
+  }
+
+  if (getProductVariantErrorCode(error)) {
+    return getProductVariantErrorMessage(
+      error,
+      'A selected variant is no longer available. Review your cart and try again.',
+    );
   }
 
   return 'We couldn’t estimate tax for this address. Review your shipping details and try again.';

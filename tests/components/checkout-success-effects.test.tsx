@@ -18,6 +18,7 @@ import {
   createCartItem,
   createWishlistItem,
   VALID_PRODUCT_ID,
+  VALID_VARIANT_ID,
 } from '../fixtures';
 import { renderWithProviders } from '../test-utils';
 
@@ -47,10 +48,20 @@ function createOrderItem(
     productId,
     productName: overrides.productName ?? 'Ichiban Figure',
     productType: 'standard',
+    variantId: VALID_VARIANT_ID,
+    variantName: 'Default',
+    variantSku: null,
     quantity,
     unitPriceCents: 4999,
     ...overrides,
   };
+}
+
+function addCartItem(
+  item = createCartItem(),
+  quantity = item.quantity,
+) {
+  return useCartStore.getState().addItem(item.product, quantity, item.variant);
 }
 
 function createOrder(
@@ -232,7 +243,7 @@ describe('CheckoutSuccessEffects', () => {
 
   it('keeps confirmation content hidden until local cart and wishlist cleanup completes', async () => {
     act(() => {
-      useCartStore.getState().addItem(createCartItem().product);
+      addCartItem();
       useWishlistStore.getState().addWishlistItem(createWishlistItem());
       useCartStore.getState().setHasHydrated(false);
       useWishlistStore.getState().setHasHydrated(false);
@@ -261,15 +272,15 @@ describe('CheckoutSuccessEffects', () => {
 
   it('removes only purchased cart and wishlist items for paid orders', async () => {
     act(() => {
-      useCartStore.getState().addItem(createCartItem().product);
-      useCartStore.getState().addItem(
+      addCartItem();
+      addCartItem(
         createCartItem({
           product: {
             id: OTHER_PRODUCT_ID,
             name: 'Unrelated Figure',
             slug: 'unrelated-figure',
           },
-        }).product,
+        }),
       );
       useWishlistStore.getState().addWishlistItem(createWishlistItem());
       useWishlistStore.getState().addWishlistItem(
@@ -308,7 +319,7 @@ describe('CheckoutSuccessEffects', () => {
 
   it('removes purchased cart products even when local quantity is higher than the order', async () => {
     act(() => {
-      useCartStore.getState().addItem(createCartItem().product, 3);
+      addCartItem(createCartItem(), 3);
     });
 
     renderWithProviders(
@@ -325,7 +336,7 @@ describe('CheckoutSuccessEffects', () => {
     vi.mocked(QueryConfigs.fetchCheckoutSuccess).mockRejectedValueOnce(new Error('bootstrap failed'));
 
     act(() => {
-      useCartStore.getState().addItem(createCartItem().product);
+      addCartItem();
       useWishlistStore.getState().addWishlistItem(createWishlistItem());
     });
 
@@ -346,7 +357,7 @@ describe('CheckoutSuccessEffects', () => {
     'removes purchased cart items for finalized %s orders',
     async (status) => {
       act(() => {
-        useCartStore.getState().addItem(createCartItem().product);
+        addCartItem();
       });
 
       renderWithProviders(
@@ -363,7 +374,7 @@ describe('CheckoutSuccessEffects', () => {
     'does not modify cart or wishlist for non-finalized %s orders',
     async (status) => {
       act(() => {
-        useCartStore.getState().addItem(createCartItem().product);
+        addCartItem();
         useWishlistStore.getState().addWishlistItem(createWishlistItem());
       });
 
@@ -383,7 +394,7 @@ describe('CheckoutSuccessEffects', () => {
 
   it('ends a stale checkout lock before removing purchased cart items', async () => {
     act(() => {
-      useCartStore.getState().addItem(createCartItem().product);
+      addCartItem();
       useCheckoutUiStore.getState().beginCheckout();
     });
 
@@ -398,29 +409,29 @@ describe('CheckoutSuccessEffects', () => {
   });
 
   it('runs targeted cleanup only once for the same successful order effect', async () => {
-    const originalRemovePurchasedProductIds = useCartStore.getState().removePurchasedProductIds;
-    const removePurchasedProductIds = vi.fn(originalRemovePurchasedProductIds);
+    const originalRemovePurchasedLines = useCartStore.getState().removePurchasedLines;
+    const removePurchasedLines = vi.fn(originalRemovePurchasedLines);
 
     act(() => {
-      useCartStore.setState({ removePurchasedProductIds });
-      useCartStore.getState().addItem(createCartItem().product);
+      useCartStore.setState({ removePurchasedLines });
+      addCartItem();
     });
 
     try {
       renderWithProviders(<CheckoutSuccessEffectsHarness initialOrder={createOrder('paid')} />);
 
       await waitFor(() => {
-        expect(removePurchasedProductIds).toHaveBeenCalledTimes(1);
+        expect(removePurchasedLines).toHaveBeenCalledTimes(1);
       });
 
       await userEvent.click(screen.getByRole('button', { name: 'Refresh order' }));
 
       await waitFor(() => {
-        expect(removePurchasedProductIds).toHaveBeenCalledTimes(1);
+        expect(removePurchasedLines).toHaveBeenCalledTimes(1);
       });
     } finally {
       act(() => {
-        useCartStore.setState({ removePurchasedProductIds: originalRemovePurchasedProductIds });
+        useCartStore.setState({ removePurchasedLines: originalRemovePurchasedLines });
       });
     }
   });

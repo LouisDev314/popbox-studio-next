@@ -20,6 +20,12 @@ function createProduct(overrides: Partial<IProduct> = {}): IProduct {
     productType: 'standard',
     status: 'active',
     priceCents: 4999,
+    minPriceCents: 4999,
+    maxPriceCents: 4999,
+    hasPriceRange: false,
+    isSoldOut: false,
+    defaultVariantId: 'variant-default',
+    hasVariantChoices: false,
     currency: 'CAD',
     sku: 'PB-001',
     collections: [
@@ -52,7 +58,7 @@ function createProduct(overrides: Partial<IProduct> = {}): IProduct {
     createdAt: '2026-04-01T10:00:00.000Z',
     updatedAt: '2026-04-02T10:00:00.000Z',
     ...overrides,
-  };
+  } as IProduct;
 }
 
 describe('getProductsListingSeoState', () => {

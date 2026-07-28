@@ -649,7 +649,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
 
       createCheckoutQuote(request, {
         onSuccess: (response) => {
-          if (checkoutSessionSucceededRef.current) {
+          if (isCancelled || checkoutSessionSucceededRef.current) {
             return;
           }
 
@@ -691,7 +691,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
           }
         },
         onError: (error) => {
-          if (checkoutSessionSucceededRef.current) {
+          if (isCancelled || checkoutSessionSucceededRef.current) {
             return;
           }
 
@@ -868,6 +868,9 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   const quote = quoteState.status === 'success' && isQuoteCurrent ? quoteState.data : null;
   const summary = props.summary ?? getCartSummary();
   const isQuotePending = quoteState.status === 'pending' && isQuoteCurrent;
+  const didQuoteRefreshPrices = Boolean(
+    quote && quote.subtotalCents !== summary.subtotalCents,
+  );
 
   return (
     <>
@@ -1152,6 +1155,15 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
             quote={quote}
             isQuotePending={isQuotePending}
           />
+
+          {didQuoteRefreshPrices ? (
+            <p
+              className="rounded-2xl border border-border/60 bg-muted/40 px-4 py-3 text-sm text-muted-foreground"
+              role="status"
+            >
+              Prices were refreshed to the current total.
+            </p>
+          ) : null}
 
           <ErrorAlert message={blockingMessage} />
 

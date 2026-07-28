@@ -144,8 +144,14 @@ export default function NewProductPage() {
             <h2 className="mb-4 text-sm font-semibold text-foreground uppercase tracking-wider">Core Information</h2>
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Name</label>
+                <label
+                  htmlFor="new-product-name"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  Name
+                </label>
                 <Input
+                  id="new-product-name"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -153,8 +159,14 @@ export default function NewProductPage() {
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
+                <label
+                  htmlFor="new-product-description"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  Description
+                </label>
                 <textarea
+                  id="new-product-description"
                   className={inputClasses + ' min-h-[120px] resize-y py-3'}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -165,13 +177,26 @@ export default function NewProductPage() {
           </div>
 
           <div className="rounded-xl border border-border/30 bg-card p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-foreground uppercase tracking-wider">Pricing & Inventory</h2>
+            <h2 className="mb-1 text-sm font-semibold text-foreground uppercase tracking-wider">
+              {formData.productType === 'standard' ? 'Default Variant' : 'Pricing'}
+            </h2>
+            {formData.productType === 'standard' ? (
+              <p className="mb-4 text-sm text-muted-foreground">
+                This creates the required hidden Default variant. Add named choices after saving the product.
+              </p>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Price (CAD)</label>
+                <label
+                  htmlFor="new-product-price"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  {formData.productType === 'standard' ? 'Default variant price (CAD)' : 'Price (CAD)'}
+                </label>
                 <div className="relative">
                   <span className="absolute left-3 top-2.5 text-sm text-muted-foreground">$</span>
                   <Input
+                    id="new-product-price"
                     type="text"
                     inputMode="decimal"
                     required
@@ -193,8 +218,14 @@ export default function NewProductPage() {
                 </div>
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">SKU (Optional)</label>
+                <label
+                  htmlFor="new-product-sku"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  {formData.productType === 'standard' ? 'Default variant SKU (Optional)' : 'SKU (Optional)'}
+                </label>
                 <Input
+                  id="new-product-sku"
                   value={formData.sku}
                   onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                   placeholder="e.g. PB-MB-01"
@@ -204,8 +235,14 @@ export default function NewProductPage() {
               {formData.productType === 'standard' && (
                 <>
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Stock on Hand</label>
+                    <label
+                      htmlFor="new-product-on-hand"
+                      className="mb-1.5 block text-sm font-medium text-foreground"
+                    >
+                      Stock on Hand
+                    </label>
                     <NumericInput
+                      id="new-product-on-hand"
                       required
                       value={formData.onHand}
                       onValueChange={(value) => setFormData((prev) => ({ ...prev, onHand: value }))}
@@ -213,8 +250,14 @@ export default function NewProductPage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-foreground">Low Stock Threshold</label>
+                    <label
+                      htmlFor="new-product-low-stock-threshold"
+                      className="mb-1.5 block text-sm font-medium text-foreground"
+                    >
+                      Low Stock Threshold
+                    </label>
                     <NumericInput
+                      id="new-product-low-stock-threshold"
                       required
                       value={formData.lowStockThreshold}
                       onValueChange={(value) => setFormData((prev) => ({ ...prev, lowStockThreshold: value }))}
@@ -250,8 +293,14 @@ export default function NewProductPage() {
             <h2 className="mb-4 text-sm font-semibold text-foreground uppercase tracking-wider">Organization</h2>
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Status</label>
+                <label
+                  htmlFor="new-product-status"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  Status
+                </label>
                 <select
+                  id="new-product-status"
                   className={inputClasses}
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as productStatus })}
@@ -263,8 +312,14 @@ export default function NewProductPage() {
               </div>
               
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Product Type</label>
+                <label
+                  htmlFor="new-product-type"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  Product Type
+                </label>
                 <select
+                  id="new-product-type"
                   className={inputClasses}
                   value={formData.productType}
                   onChange={(e) => setFormData({ ...formData, productType: e.target.value as productType })}

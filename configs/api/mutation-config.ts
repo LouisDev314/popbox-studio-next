@@ -19,7 +19,11 @@ import {
   IAdminProductStatusUpdate,
   IAdminProductCreate,
   IAdminProductUpdate,
-  IAdminProductInventoryUpdate,
+  IAdminProductVariant,
+  IAdminProductVariantCreate,
+  IAdminProductVariantUpdate,
+  IAdminProductVariantInventoryUpdate,
+  IAdminProductVariantInventoryResponse,
   IKujiPrize,
   ICollection,
   ITag,
@@ -123,8 +127,56 @@ const MutationConfigs = {
   updateAdminProduct: async ({ productId, data }: { productId: string; data: IAdminProductUpdate }): Promise<AxiosResponse<IBaseApiResponse<IAdminProduct>>> => {
     return httpClient.patch(`/api/v1/admin/products/${productId}`, data, await withAdminAuth());
   },
-  updateAdminProductInventory: async ({ productId, data }: { productId: string; data: IAdminProductInventoryUpdate }): Promise<AxiosResponse<IBaseApiResponse<IAdminProduct>>> => {
-    return httpClient.patch(`/api/v1/admin/products/${productId}/inventory`, data, await withAdminAuth());
+  createAdminProductVariant: async ({
+    productId,
+    data,
+  }: {
+    productId: string;
+    data: IAdminProductVariantCreate;
+  }): Promise<AxiosResponse<IBaseApiResponse<IAdminProductVariant>>> => {
+    return httpClient.post(`/api/v1/admin/products/${productId}/variants`, data, await withAdminAuth());
+  },
+  updateAdminProductVariant: async ({
+    productId,
+    variantId,
+    data,
+  }: {
+    productId: string;
+    variantId: string;
+    data: IAdminProductVariantUpdate;
+  }): Promise<AxiosResponse<IBaseApiResponse<IAdminProductVariant>>> => {
+    return httpClient.patch(
+      `/api/v1/admin/products/${productId}/variants/${variantId}`,
+      data,
+      await withAdminAuth(),
+    );
+  },
+  updateAdminProductVariantInventory: async ({
+    productId,
+    variantId,
+    data,
+  }: {
+    productId: string;
+    variantId: string;
+    data: IAdminProductVariantInventoryUpdate;
+  }): Promise<AxiosResponse<IBaseApiResponse<IAdminProductVariantInventoryResponse>>> => {
+    return httpClient.patch(
+      `/api/v1/admin/products/${productId}/variants/${variantId}/inventory`,
+      data,
+      await withAdminAuth(),
+    );
+  },
+  deleteAdminProductVariant: async ({
+    productId,
+    variantId,
+  }: {
+    productId: string;
+    variantId: string;
+  }): Promise<AxiosResponse<IBaseApiResponse<{ id: string; deleted: boolean }>>> => {
+    return httpClient.delete(
+      `/api/v1/admin/products/${productId}/variants/${variantId}`,
+      await withAdminAuth(),
+    );
   },
   uploadAdminProductImage: async ({ productId, formData }: { productId: string; formData: FormData }): Promise<AxiosResponse<IBaseApiResponse<IAdminProductImageUploadResponse>>> => {
     return httpClient.post(`/api/v1/admin/products/${productId}/images`, formData, await withAdminAuth());

@@ -163,11 +163,12 @@ test('signup confirmation callback reconciles the customer and restores the prot
 
 test('a successful callback cannot restore an external next destination', async ({ page }) => {
   await page.goto('/account/sign-up');
+  const expectedOrigin = new URL(page.url()).origin;
   await page.getByLabel('Email').fill('confirmed@example.com');
   await page.getByLabel('Password', { exact: true }).fill('valid123');
   await page.getByRole('button', { name: 'Sign up' }).click();
   await page.goto('/auth/callback?code=confirmed-code&next=https%3A%2F%2Fevil.example');
 
   await expect(page).toHaveURL(/\/account$/);
-  expect(new URL(page.url()).origin).toBe('http://localhost:3001');
+  expect(new URL(page.url()).origin).toBe(expectedOrigin);
 });

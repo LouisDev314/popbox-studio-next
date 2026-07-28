@@ -8,7 +8,10 @@ import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { useCartStore } from '@/hooks/use-cart';
 import { useStorefrontAlert } from '@/hooks/use-storefront-alert';
 import { useWishlistStore } from '@/hooks/use-wishlist';
-import { type IProduct } from '@/interfaces/product';
+import {
+  type IProduct,
+  type IStorefrontProductVariant,
+} from '@/interfaces/product';
 import { shareProduct } from '@/lib/share-product';
 import { flyProductImageToTarget } from '@/lib/ui/fly-to-target';
 import { cn } from '@/lib/utils';
@@ -26,6 +29,7 @@ import {
 
 interface IProductActionsProps {
   product: IProduct;
+  selectedVariant?: IStorefrontProductVariant | null;
 }
 
 type TStorefrontAction = 'cart' | 'share' | 'wishlist';
@@ -47,8 +51,27 @@ interface IProductActionState {
   quantityCap: number;
 }
 
-function getProductQuantityState(product: IProduct, currentCartQuantity: number): IProductQuantityState {
+function getProductQuantityState(
+  product: IProduct,
+  currentCartQuantity: number,
+  selectedVariant?: IStorefrontProductVariant | null,
+): IProductQuantityState {
   const isKuji = isKujiProduct(product);
+  if (!isKuji) {
+    const sellableQuantity = selectedVariant?.isAvailable ? 20 : 0;
+    const maxAddableQuantity = Math.max(0, sellableQuantity - currentCartQuantity);
+
+    return {
+      availabilityLabel: selectedVariant
+        ? selectedVariant.isAvailable ? 'Stock Available' : 'Sold Out'
+        : 'Select a variant',
+      isAddDisabled: !selectedVariant?.isAvailable || maxAddableQuantity <= 0,
+      isSoldOut: Boolean(selectedVariant && !selectedVariant.isAvailable),
+      maxAddableQuantity,
+      quantityCap: Math.max(1, maxAddableQuantity),
+    };
+  }
+
   const inventoryState = getProductInventoryState(product);
   const sellableQuantity = getProductSellableQuantity(product);
   const maxAddableQuantity = Math.max(0, sellableQuantity - currentCartQuantity);
@@ -99,9 +122,25 @@ function getIncreaseLimitMessage(
   return getRemainingQuantityMessage({ productType: isKuji ? 'kuji' : 'standard' }, maxAddableQuantity);
 }
 
-function getProductActionState(product: IProduct, currentCartQuantity: number): IProductActionState {
+function getProductActionState(
+  product: IProduct,
+  currentCartQuantity: number,
+  selectedVariant?: IStorefrontProductVariant | null,
+): IProductActionState {
   const isKuji = isKujiProduct(product);
-  const quantityState = getProductQuantityState(product, currentCartQuantity);
+
+  if (!isKuji && !selectedVariant) {
+    return {
+      addButtonLabel: 'Select a Variant',
+      availabilityLabel: 'Select a variant',
+      hasReachedCartLimit: false,
+      increaseLimitMessage: 'Select a product variant before choosing a quantity.',
+      isAddDisabled: true,
+      quantityCap: 1,
+    };
+  }
+
+  const quantityState = getProductQuantityState(product, currentCartQuantity, selectedVariant);
   const hasReachedCartLimit = quantityState.maxAddableQuantity <= 0 && !quantityState.isSoldOut;
 
   return {
@@ -227,10 +266,25 @@ export function ProductActions(props: IProductActionsProps) {
     wishlist: null,
   });
   const { showSuccess } = useStorefrontAlert();
+  const selectedVariant = props.selectedVariant ?? (
+    props.product.productType === 'standard' && props.product.variants?.length === 1
+      ? props.product.variants[0]
+      : null
+  );
 
   const flyImage = getProductCoverImage(props.product) ?? props.product.images[0] ?? null;
-  const currentCartQuantity = cartItems.find((item) => item.product.id === props.product.id)?.quantity ?? 0;
-  const actionState = getProductActionState(props.product, currentCartQuantity);
+  const currentCartQuantity = cartItems.find((item) => (
+    item.product.id === props.product.id
+    && (
+      props.product.productType === 'kuji'
+      || item.variant?.id === selectedVariant?.id
+    )
+  ))?.quantity ?? 0;
+  const actionState = getProductActionState(
+    props.product,
+    currentCartQuantity,
+    selectedVariant,
+  );
   const quantityCap = actionState.quantityCap;
   const clampedQuantity = Math.min(quantity, quantityCap);
   const isCartBusy = disabledActions.cart;
@@ -357,7 +411,17 @@ export function ProductActions(props: IProductActionsProps) {
     const sourceElement = event.currentTarget;
 
     void runGuardedAction('cart', () => {
-      const result = addItem(props.product, clampedQuantity);
+      const result = addItem(
+        props.product,
+        clampedQuantity,
+        props.product.productType === 'standard' && selectedVariant
+          ? {
+            id: selectedVariant.id,
+            name: selectedVariant.name,
+            priceCents: selectedVariant.priceCents,
+          }
+          : null,
+      );
 
       if (!result.success) {
         setCartFeedback(null);

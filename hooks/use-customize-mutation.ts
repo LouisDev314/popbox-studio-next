@@ -36,6 +36,7 @@ const useCustomizeMutation = <ApiResponse, ApiRequest>(config: ICustomizeMutatio
       ? getApiErrorDetails(mutation.error as AxiosError<IBaseApiResponse>).message
       : null,
     mutation: mutation.mutate,
+    mutationAsync: mutation.mutateAsync,
     isPending: mutation.isPending,
     isSuccess: mutation.isSuccess,
     isError: mutation.isError,

@@ -5,10 +5,17 @@ import {
   type CartIssueCode,
   type ICartInvalidItem,
   type ICartItem,
+  type ICartLineIdentity,
+  type ICartMigrationNotice,
   type ICartProduct,
   type ICartSummary,
+  type ICartVariantSnapshot,
 } from '@/interfaces/cart';
-import { buildCartSummary } from '@/utils/cart';
+import {
+  buildCartSummary,
+  getCartItemKey,
+  getCartLineKey,
+} from '@/utils/cart';
 import {
   CART_STORAGE_KEY,
   CART_STORAGE_VERSION_NUMBER,
@@ -46,12 +53,18 @@ function clearCheckoutError(): void {
 interface ICartStore {
   invalidItems: ICartInvalidItem[];
   items: ICartItem[];
+  migrationNotice: ICartMigrationNotice | null;
   hasHydrated: boolean;
   setHasHydrated: (value: boolean) => void;
-  addItem: (product: ICartProduct, quantity?: number) => ICartActionResult;
+  addItem: (
+    product: ICartProduct,
+    quantity?: number,
+    variant?: ICartVariantSnapshot | null,
+  ) => ICartActionResult;
+  dismissMigrationNotice: () => void;
   removeItem: (cartItemId: string) => void;
   removeInvalidItem: (cartItemId: string) => void;
-  removePurchasedProductIds: (productIds: string[]) => void;
+  removePurchasedLines: (identities: ICartLineIdentity[]) => void;
   updateQuantity: (cartItemId: string, quantity: number) => ICartActionResult;
   clearCart: () => void;
   getCartSummary: () => ICartSummary;
@@ -105,20 +118,21 @@ function inferProductIssueCode(product: unknown): CartIssueCode {
     : 'missing_product_data';
 }
 
-type ICartPersistedState = Pick<ICartStore, 'invalidItems' | 'items'>;
+type ICartPersistedState = Pick<ICartStore, 'invalidItems' | 'items' | 'migrationNotice'>;
 
 export const useCartStore = create<ICartStore>()(
   persist(
     (set, get) => ({
       invalidItems: [],
       items: [],
+      migrationNotice: null,
       hasHydrated: false,
 
       setHasHydrated: (value) => {
         set({ hasHydrated: value });
       },
 
-      addItem: (product, quantity = 1) => {
+      addItem: (product, quantity = 1, variant = null) => {
         const normalizedQuantity = normalizeQuantity(quantity);
         let result: ICartActionResult = { message: null, success: true };
         const parsedProduct = validateCartProduct(product);
@@ -130,11 +144,29 @@ export const useCartStore = create<ICartStore>()(
           };
         }
 
+        if (parsedProduct.data.productType === 'standard' && !variant) {
+          return {
+            message: 'Select a product variant before adding this item to your cart.',
+            success: false,
+          };
+        }
+
+        if (parsedProduct.data.productType === 'kuji' && variant) {
+          return {
+            message: 'Kuji products do not use product variants.',
+            success: false,
+          };
+        }
+
         set((state) => {
           clearCheckoutError();
 
+          const nextIdentityKey = getCartLineKey({
+            productId: parsedProduct.data.id,
+            variantId: parsedProduct.data.productType === 'standard' ? variant?.id ?? null : null,
+          });
           const existingItemIndex = state.items.findIndex(
-            (item) => item.product.id === parsedProduct.data.id,
+            (item) => getCartItemKey(item) === nextIdentityKey,
           );
 
           const currentQuantity = existingItemIndex > -1 ? state.items[existingItemIndex].quantity : 0;
@@ -152,6 +184,7 @@ export const useCartStore = create<ICartStore>()(
           if (existingItemIndex > -1) {
             const newItems = [...state.items];
             newItems[existingItemIndex].product = parsedProduct.data;
+            newItems[existingItemIndex].variant = variant;
             newItems[existingItemIndex].quantity += normalizedQuantity;
             return { items: newItems };
           }
@@ -162,6 +195,7 @@ export const useCartStore = create<ICartStore>()(
               {
                 id: crypto.randomUUID(),
                 product: parsedProduct.data,
+                variant,
                 quantity: normalizedQuantity,
               },
             ],
@@ -169,10 +203,14 @@ export const useCartStore = create<ICartStore>()(
         });
 
         if (result.success) {
-          trackAddToCart(parsedProduct.data, normalizedQuantity);
+          trackAddToCart(parsedProduct.data, normalizedQuantity, variant);
         }
 
         return result;
+      },
+
+      dismissMigrationNotice: () => {
+        set({ migrationNotice: null });
       },
 
       removeItem: (cartItemId) => {
@@ -205,17 +243,15 @@ export const useCartStore = create<ICartStore>()(
         }));
       },
 
-      removePurchasedProductIds: (productIds) => {
-        if (isCartInteractionLocked() || productIds.length === 0) {
+      removePurchasedLines: (identities) => {
+        if (isCartInteractionLocked() || identities.length === 0) {
           return;
         }
 
-        const purchasedProductIdSet = new Set(productIds);
-
+        const purchasedKeys = new Set(identities.map(getCartLineKey));
         clearCheckoutError();
-
         set((state) => ({
-          items: state.items.filter((item) => !purchasedProductIdSet.has(item.product.id)),
+          items: state.items.filter((item) => !purchasedKeys.has(getCartItemKey(item))),
         }));
       },
 
@@ -236,7 +272,9 @@ export const useCartStore = create<ICartStore>()(
               return item;
             }
 
-            const sellableQuantity = getProductSellableQuantity(item.product);
+            const sellableQuantity = item.product.productType === 'standard'
+              ? 20
+              : getProductSellableQuantity(item.product);
 
             if (normalizedQuantity > sellableQuantity && normalizedQuantity > item.quantity) {
               result = {
@@ -256,7 +294,7 @@ export const useCartStore = create<ICartStore>()(
           const quantityDelta = updatedItem.quantity - previousItem.quantity;
 
           if (quantityDelta > 0) {
-            trackAddToCart(updatedItem.product, quantityDelta);
+            trackAddToCart(updatedItem.product, quantityDelta, updatedItem.variant);
           } else if (quantityDelta < 0) {
             trackRemoveFromCart([{ ...previousItem, quantity: Math.abs(quantityDelta) }]);
           }
@@ -274,7 +312,7 @@ export const useCartStore = create<ICartStore>()(
 
         clearCheckoutError();
 
-        set({ items: [], invalidItems: [] });
+        set({ items: [], invalidItems: [], migrationNotice: null });
 
         if (removedItems.length > 0) {
           trackRemoveFromCart(removedItems);
@@ -291,8 +329,9 @@ export const useCartStore = create<ICartStore>()(
       partialize: (state) => ({
         items: state.items,
         invalidItems: state.invalidItems,
+        migrationNotice: state.migrationNotice,
       }),
-      migrate: (persistedState) => normalizeCartPersistedState(persistedState),
+      migrate: (persistedState, version) => normalizeCartPersistedState(persistedState, version),
       version: CART_STORAGE_VERSION_NUMBER,
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

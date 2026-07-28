@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ShoppingBag } from 'lucide-react';
 import { InvalidCartItems } from '@/components/cart/invalid-cart-items';
 import { CartPageItem } from '@/components/cart/cart-page-item';
+import { CartMigrationNotice } from '@/components/cart/cart-migration-notice';
 import { CartCheckoutPanel } from '@/components/cart/cart-checkout-panel';
 import { CartPageSkeleton } from '@/components/store/storefront-page-skeletons';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,8 @@ export default function CartPageClient() {
   const removeItem = useCartStore((state) => state.removeItem);
   const removeInvalidItem = useCartStore((state) => state.removeInvalidItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const migrationNotice = useCartStore((state) => state.migrationNotice);
+  const dismissMigrationNotice = useCartStore((state) => state.dismissMigrationNotice);
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
   const isHydrated = useCartStore((state) => state.hasHydrated);
   const summary = getCartSummary();
@@ -35,8 +38,16 @@ export default function CartPageClient() {
 
   if (items.length === 0 && invalidItems.length === 0) {
     return (
-      <div className="container mx-auto flex flex-1 px-4 py-20 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-xl flex-col items-center rounded-2xl border border-dashed border-border/70 bg-card px-8 py-14 text-center shadow-sm">
+      <div className="container mx-auto flex flex-1 flex-col px-4 py-20 sm:px-6 lg:px-8">
+        {migrationNotice ? (
+          <div className="mx-auto mb-5 w-full max-w-xl">
+            <CartMigrationNotice
+              notice={migrationNotice}
+              onDismiss={dismissMigrationNotice}
+            />
+          </div>
+        ) : null}
+        <div className="mx-auto flex w-full max-w-xl flex-col items-center rounded-2xl border border-dashed border-border/70 bg-card px-8 py-14 text-center shadow-sm">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted/60">
             <ShoppingBag className="h-7 w-7 text-muted-foreground" />
           </div>
@@ -82,6 +93,12 @@ export default function CartPageClient() {
             )}
           >
             <section className="space-y-4" aria-label="Cart items">
+              {migrationNotice ? (
+                <CartMigrationNotice
+                  notice={migrationNotice}
+                  onDismiss={dismissMigrationNotice}
+                />
+              ) : null}
               <InvalidCartItems
                 disabled={isCheckingOut}
                 items={invalidItems}
@@ -89,8 +106,14 @@ export default function CartPageClient() {
               />
               {items.map((item) => (
                 (() => {
-                  const quantityLimit = getProductSellableQuantity(item.product);
-                  const limitMessage = getProductCartLimitMessage(item.product, item.quantity);
+                  const quantityLimit = item.product.productType === 'standard'
+                    ? 20
+                    : getProductSellableQuantity(item.product);
+                  const limitMessage = item.product.productType === 'standard'
+                    ? item.quantity >= 20
+                      ? 'Maximum quantity reached. Exact availability is confirmed at checkout.'
+                      : null
+                    : getProductCartLimitMessage(item.product, item.quantity);
 
                   return (
                     <CartPageItem

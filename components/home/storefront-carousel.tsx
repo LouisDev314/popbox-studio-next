@@ -8,8 +8,9 @@ import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { StorefrontImage } from '@/components/ui/storefront-image';
-import { cn, formatPrice } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { IProductCard } from '@/interfaces/product';
+import { getProductPricePresentation } from '@/utils/product-pricing';
 
 interface IStorefrontCarouselProps {
   featuredProducts: IProductCard[];
@@ -165,6 +166,7 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
         <div className="flex touch-pan-y">
           {featuredProducts.map((product, index) => {
             const isFirstSlide = index === 0;
+            const pricePresentation = getProductPricePresentation(product);
 
             return (
               <div
@@ -203,7 +205,12 @@ export function StorefrontCarousel(props: IStorefrontCarouselProps) {
                             {product.name}
                           </p>
                           <p className="mt-1.5 text-sm font-medium text-white/78 sm:mt-2 sm:text-base">
-                            {formatPrice(product.priceCents, product.currency)}
+                            {pricePresentation.availabilityLabel
+                              ? [
+                                pricePresentation.availabilityLabel,
+                                pricePresentation.priceLabel,
+                              ].filter(Boolean).join(' · ')
+                              : pricePresentation.priceLabel}
                           </p>
                         </div>
                       </div>

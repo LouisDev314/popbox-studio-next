@@ -1,5 +1,4 @@
-// This file is auto-generated based on the OpenAPI specification
-// DO NOT EDIT MANUALLY unless you know what you are doing.
+// Handwritten frontend DTOs kept in sync with the backend OpenAPI contract.
 
 export interface ICollection {
   id: string;
@@ -73,6 +72,20 @@ export interface IKujiTicketSummary {
   totalTickets: number;
 }
 
+export interface IStorefrontProductVariant {
+  id: string;
+  name: string;
+  priceCents: number;
+  sortOrder: number;
+  isAvailable: boolean;
+}
+
+export interface IProductPriceRange {
+  minCents: number;
+  maxCents: number;
+  isRange: boolean;
+}
+
 export interface IProductCard {
   id: string;
   name: string;
@@ -82,6 +95,12 @@ export interface IProductCard {
   productType: 'standard' | 'kuji';
   status: 'draft' | 'active' | 'archived';
   priceCents: number;
+  minPriceCents: number;
+  maxPriceCents: number;
+  hasPriceRange: boolean;
+  isSoldOut: boolean;
+  defaultVariantId: string | null;
+  hasVariantChoices: boolean;
   currency: string;
   collections: IProductCollection[];
   images: IProductImage[];
@@ -93,6 +112,8 @@ export interface IProduct extends IProductCard {
   sku: string | null;
   tags: ITag[];
   kujiPrizes: IKujiPrize[];
+  variants?: IStorefrontProductVariant[];
+  priceRange?: IProductPriceRange;
   createdAt: string;
   updatedAt: string;
 }
@@ -180,6 +201,7 @@ export interface IAdminProductDetail {
   tags: ITag[];
   images: IAdminProductImage[];
   kujiPrizes: IKujiPrize[];
+  variants?: IAdminProductVariant[];
   createdAt: string;
   updatedAt: string;
 }
@@ -247,8 +269,43 @@ export interface IAdminProductUpdate {
   lowStockThreshold?: number;
 }
 
-export interface IAdminProductInventoryUpdate {
+export interface IAdminProductVariant {
+  id: string;
+  productId: string;
+  name: string;
+  sku: string | null;
+  priceCents: number;
+  isActive: boolean;
+  isDefault: boolean;
+  sortOrder: number;
+  inventory: IProductInventory;
+}
+
+export interface IAdminProductVariantCreate {
+  name: string;
+  sku?: string | null;
+  priceCents: number;
+  isActive?: boolean;
+  isDefault?: boolean;
+  sortOrder?: number;
+  inventory?: Partial<Pick<IProductInventory, 'onHand' | 'lowStockThreshold'>>;
+}
+
+export type IAdminProductVariantUpdate = Partial<
+  Pick<
+    IAdminProductVariant,
+    'name' | 'sku' | 'priceCents' | 'isActive' | 'isDefault' | 'sortOrder'
+  >
+>;
+
+export type IAdminProductVariantInventoryUpdate = Partial<
+  Pick<IProductInventory, 'onHand' | 'lowStockThreshold'>
+>;
+
+export interface IAdminProductVariantInventoryResponse {
+  productVariantId: string;
   onHand: number;
+  reserved: number;
   lowStockThreshold: number;
 }
 

@@ -8,10 +8,12 @@ import {
   type ICartHydrationResult,
   type ICartItem,
   type ICartInvalidItem,
+  type ICartMigrationNotice,
   type ICartProduct,
 } from '@/interfaces/cart';
+import { getCartItemKey } from '@/utils/cart';
 
-const CART_STORAGE_VERSION = 2;
+const CART_STORAGE_VERSION = 3;
 
 const cartCollectionSchema = z.object({
   id: z.string().min(1),
@@ -34,7 +36,7 @@ const cartInventorySchema = z.object({
   lowStockThreshold: z.number().int().nonnegative(),
 });
 
-const cartProductSchema = z.object({
+const rawCartProductSchema = z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(1),
   slug: z.string().trim().min(1),
@@ -42,16 +44,59 @@ const cartProductSchema = z.object({
   productType: z.enum(['standard', 'kuji']),
   status: z.enum(['draft', 'active', 'archived']),
   priceCents: z.number().int().nonnegative(),
+  minPriceCents: z.number().int().nonnegative().optional(),
+  maxPriceCents: z.number().int().nonnegative().optional(),
+  hasPriceRange: z.boolean().optional(),
+  isSoldOut: z.boolean().optional(),
+  defaultVariantId: z.string().uuid().nullable().optional(),
+  hasVariantChoices: z.boolean().optional(),
   currency: z.string().trim().min(1),
   collections: z.array(cartCollectionSchema).catch([]),
   images: z.array(cartImageSchema),
   inventory: cartInventorySchema.nullable(),
-}).passthrough() satisfies z.ZodType<ICartProduct>;
+  ticketSummary: z.object({
+    remainingTickets: z.number().int().nonnegative(),
+    totalTickets: z.number().int().nonnegative(),
+  }).optional(),
+}).passthrough();
+
+const cartProductSchema = rawCartProductSchema.transform((product): ICartProduct => ({
+  ...product,
+  minPriceCents: product.minPriceCents ?? product.priceCents,
+  maxPriceCents: product.maxPriceCents ?? product.priceCents,
+  hasPriceRange: product.hasPriceRange ?? false,
+  isSoldOut: product.isSoldOut ?? false,
+  defaultVariantId: product.defaultVariantId ?? null,
+  hasVariantChoices: product.hasVariantChoices ?? false,
+}));
+
+const cartVariantSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(1),
+  priceCents: z.number().int().nonnegative(),
+});
 
 const cartItemSchema = z.object({
   id: z.string().trim().min(1),
   product: cartProductSchema,
-  quantity: z.number().int().positive(),
+  variant: cartVariantSchema.nullable(),
+  quantity: z.number().int().positive().max(20),
+}).superRefine((item, context) => {
+  if (item.product.productType === 'standard' && !item.variant) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Standard cart items require a product variant.',
+      path: ['variant'],
+    });
+  }
+
+  if (item.product.productType === 'kuji' && item.variant) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Kuji cart items cannot include a product variant.',
+      path: ['variant'],
+    });
+  }
 });
 
 const invalidCartItemSchema = z.object({
@@ -74,9 +119,15 @@ const invalidCartItemSchema = z.object({
   }),
 });
 
-type CartPersistedState = {
+const migrationNoticeSchema = z.object({
+  code: z.literal('legacy_standard_variants_removed'),
+  removedCount: z.number().int().positive(),
+});
+
+export type CartPersistedState = {
   invalidItems: ICartInvalidItem[];
   items: ICartItem[];
+  migrationNotice: ICartMigrationNotice | null;
 };
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -107,7 +158,9 @@ export function getCartIssueMessage(issueCode: CartIssueCode): string {
 }
 
 function inferCartIssueCode(error: z.ZodError): CartIssueCode {
-  if (error.issues.some((issue) => issue.path.join('.') === 'product.id')) {
+  if (error.issues.some((issue) => (
+    issue.path.join('.') === 'product.id' || issue.path.join('.') === 'id'
+  ))) {
     return 'invalid_product_id';
   }
 
@@ -122,7 +175,11 @@ function inferCartIssueCode(error: z.ZodError): CartIssueCode {
   return 'invalid_cart_item';
 }
 
-function buildInvalidCartItem(value: unknown, fallbackId: string, issueCode: CartIssueCode): ICartInvalidItem {
+function buildInvalidCartItem(
+  value: unknown,
+  fallbackId: string,
+  issueCode: CartIssueCode,
+): ICartInvalidItem {
   const item = isObject(value) ? value : {};
   const product = isObject(item.product) ? item.product : {};
   const images = Array.isArray(product.images) ? product.images : [];
@@ -157,11 +214,9 @@ function parsePersistedInvalidItems(value: unknown): ICartInvalidItem[] {
   return value.map((entry, index) => {
     const parsedEntry = invalidCartItemSchema.safeParse(entry);
 
-    if (parsedEntry.success) {
-      return parsedEntry.data;
-    }
-
-    return buildInvalidCartItem(entry, `invalid-cart-item-${index + 1}`, 'invalid_cart_item');
+    return parsedEntry.success
+      ? parsedEntry.data
+      : buildInvalidCartItem(entry, `invalid-cart-item-${index + 1}`, 'invalid_cart_item');
   });
 }
 
@@ -169,46 +224,133 @@ export function validateCartProduct(product: unknown) {
   return cartProductSchema.safeParse(product);
 }
 
-export function normalizeCartPersistedState(value: unknown): CartPersistedState {
-  const state = isObject(value) ? value : {};
-  const hydratedItems = hydrateCartItems(state.items);
-  const persistedInvalidItems = parsePersistedInvalidItems(state.invalidItems);
+function mergeCartItems(items: ICartItem[]): ICartItem[] {
+  const byKey = new Map<string, ICartItem>();
 
-  return {
-    items: hydratedItems.items,
-    invalidItems: [...persistedInvalidItems, ...hydratedItems.invalidItems],
-  };
+  for (const item of items) {
+    const key = getCartItemKey(item);
+    const existing = byKey.get(key);
+
+    if (existing) {
+      existing.quantity = Math.min(20, existing.quantity + item.quantity);
+      existing.product = item.product;
+      existing.variant = item.variant;
+    } else {
+      byKey.set(key, { ...item });
+    }
+  }
+
+  return [...byKey.values()];
 }
 
-export function hydrateCartItems(value: unknown): ICartHydrationResult {
+export function hydrateCartItems(
+  value: unknown,
+  version = CART_STORAGE_VERSION,
+): ICartHydrationResult {
   if (!Array.isArray(value)) {
     return {
       items: [],
       invalidItems: [],
+      migrationNotice: null,
     };
   }
 
-  return value.reduce<ICartHydrationResult>((accumulator, entry, index) => {
+  if (version < CART_STORAGE_VERSION) {
+    let removedStandardCount = 0;
+    const retainedKujiItems: ICartItem[] = [];
+    const invalidItems: ICartInvalidItem[] = [];
+
+    value.forEach((entry, index) => {
+      const rawEntry = isObject(entry) ? entry : {};
+      const parsedProduct = cartProductSchema.safeParse(rawEntry.product);
+
+      if (!parsedProduct.success) {
+        invalidItems.push(buildInvalidCartItem(
+          entry,
+          `invalid-cart-item-${index + 1}`,
+          inferCartIssueCode(parsedProduct.error),
+        ));
+        return;
+      }
+
+      if (parsedProduct.data.productType === 'standard') {
+        removedStandardCount += 1;
+        return;
+      }
+
+      const parsedEntry = cartItemSchema.safeParse({
+        ...rawEntry,
+        product: parsedProduct.data,
+        variant: null,
+      });
+
+      if (parsedEntry.success) {
+        retainedKujiItems.push(parsedEntry.data);
+      } else {
+        invalidItems.push(buildInvalidCartItem(
+          entry,
+          `invalid-cart-item-${index + 1}`,
+          inferCartIssueCode(parsedEntry.error),
+        ));
+      }
+    });
+
+    return {
+      items: mergeCartItems(retainedKujiItems),
+      invalidItems,
+      migrationNotice: removedStandardCount > 0
+        ? {
+          code: 'legacy_standard_variants_removed',
+          removedCount: removedStandardCount,
+        }
+        : null,
+    };
+  }
+
+  const result = value.reduce<ICartHydrationResult>((accumulator, entry, index) => {
     const parsedEntry = cartItemSchema.safeParse(entry);
 
     if (parsedEntry.success) {
       accumulator.items.push(parsedEntry.data);
-      return accumulator;
+    } else {
+      accumulator.invalidItems.push(
+        buildInvalidCartItem(entry, `invalid-cart-item-${index + 1}`, inferCartIssueCode(parsedEntry.error)),
+      );
     }
-
-    const issueCode = inferCartIssueCode(parsedEntry.error);
-    accumulator.invalidItems.push(
-      buildInvalidCartItem(entry, `invalid-cart-item-${index + 1}`, issueCode),
-    );
 
     return accumulator;
   }, {
     items: [],
     invalidItems: [],
+    migrationNotice: null,
   });
+
+  return {
+    ...result,
+    items: mergeCartItems(result.items),
+  };
 }
 
-export function parseCartStorageValue(storedValue: string): StorageValue<CartPersistedState> | null {
+export function normalizeCartPersistedState(
+  value: unknown,
+  version = CART_STORAGE_VERSION,
+): CartPersistedState {
+  const state = isObject(value) ? value : {};
+  const hydratedItems = hydrateCartItems(state.items, version);
+  const persistedInvalidItems = parsePersistedInvalidItems(state.invalidItems);
+  const parsedNotice = migrationNoticeSchema.safeParse(state.migrationNotice);
+
+  return {
+    items: hydratedItems.items,
+    invalidItems: [...persistedInvalidItems, ...hydratedItems.invalidItems],
+    migrationNotice: hydratedItems.migrationNotice
+      ?? (parsedNotice.success ? parsedNotice.data : null),
+  };
+}
+
+export function parseCartStorageValue(
+  storedValue: string,
+): StorageValue<CartPersistedState> | null {
   const parsedValue: unknown = JSON.parse(storedValue);
 
   if (!isObject(parsedValue)) {
@@ -218,23 +360,25 @@ export function parseCartStorageValue(storedValue: string): StorageValue<CartPer
   const state = isObject(parsedValue.state) ? parsedValue.state : null;
   const version = parsedValue.version;
 
-  if (!state) {
+  if (!state || (version !== undefined && typeof version !== 'number')) {
     return null;
   }
 
-  if (version !== undefined && typeof version !== 'number') {
-    return null;
-  }
+  const storedVersion = typeof version === 'number' ? version : 0;
 
   return {
-    state: normalizeCartPersistedState(state),
-    version: typeof version === 'number' ? version : 0,
+    state: normalizeCartPersistedState(state, storedVersion),
+    version: storedVersion,
   };
 }
 
-export function createCartStorage<State extends { items: unknown; invalidItems: unknown }>(
-  _storageKey: string,
-): PersistStorage<State> {
+export function createCartStorage<
+  State extends {
+    items: unknown;
+    invalidItems: unknown;
+    migrationNotice: unknown;
+  },
+>(_storageKey: string): PersistStorage<State> {
   return {
     getItem: (name) => {
       if (typeof window === 'undefined') {
@@ -254,18 +398,14 @@ export function createCartStorage<State extends { items: unknown; invalidItems: 
       }
     },
     setItem: (name, value) => {
-      if (typeof window === 'undefined') {
-        return;
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(name, JSON.stringify(value));
       }
-
-      window.localStorage.setItem(name, JSON.stringify(value));
     },
     removeItem: (name) => {
-      if (typeof window === 'undefined') {
-        return;
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(name);
       }
-
-      window.localStorage.removeItem(name);
     },
   };
 }

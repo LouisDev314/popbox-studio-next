@@ -4,6 +4,17 @@ export interface ICartProduct extends Omit<IProductCard, 'updatedAt'> {
   kujiPrizes?: IKujiPrize[];
 }
 
+export interface ICartVariantSnapshot {
+  id: string;
+  name: string;
+  priceCents: number;
+}
+
+export interface ICartMigrationNotice {
+  code: 'legacy_standard_variants_removed';
+  removedCount: number;
+}
+
 export type CartIssueCode =
   | 'invalid_product_id'
   | 'missing_product_data'
@@ -13,6 +24,7 @@ export type CartIssueCode =
 export interface ICartItem {
   id: string;
   product: ICartProduct;
+  variant: ICartVariantSnapshot | null;
   quantity: number;
 }
 
@@ -36,6 +48,12 @@ export interface ICartInvalidItem {
 export interface ICartHydrationResult {
   invalidItems: ICartInvalidItem[];
   items: ICartItem[];
+  migrationNotice: ICartMigrationNotice | null;
+}
+
+export interface ICartLineIdentity {
+  productId: string;
+  variantId: string | null;
 }
 
 export interface ICartTotals {

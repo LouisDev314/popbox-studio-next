@@ -2,6 +2,7 @@ import { type IKujiPrize, type IKujiTicketSummary, type IProductCard } from '@/i
 import { isLastOnePrizeTier } from '@/lib/kuji-prize-codes';
 
 type TProductStockLike = Pick<IProductCard, 'inventory' | 'productType' | 'ticketSummary'> & {
+  isSoldOut?: boolean;
   kujiPrizes?: IKujiPrize[];
 };
 
@@ -54,8 +55,21 @@ export function getAvailableStock(product: Pick<IProductCard, 'inventory'>): num
   return Math.max(0, product.inventory.onHand - product.inventory.reserved);
 }
 
-export function getProductInventoryState(product: Pick<IProductCard, 'inventory' | 'productType'>): IProductInventoryState {
+export function getProductInventoryState(
+  product: Pick<IProductCard, 'inventory' | 'productType'> & { isSoldOut?: boolean },
+): IProductInventoryState {
   const isKuji = isKujiProduct(product);
+
+  if (!isKuji) {
+    const isSoldOut = product.isSoldOut === true;
+
+    return {
+      availableStock: isSoldOut ? 0 : 20,
+      hasInventoryData: true,
+      isKuji: false,
+      status: isSoldOut ? 'sold_out' : 'in_stock',
+    };
+  }
 
   if (!product.inventory) {
     return {
@@ -170,7 +184,7 @@ export function getProductSellableQuantity(product: TProductStockLike): number {
     return getKujiSellableQuantity(product) ?? 0;
   }
 
-  return getAvailableStock(product);
+  return product.isSoldOut ? 0 : 20;
 }
 
 export function getRemainingQuantityMessage(product: Pick<IProductCard, 'productType'>, quantity: number): string {

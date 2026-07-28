@@ -157,6 +157,23 @@ describe('StorefrontCarousel', () => {
     );
   });
 
+  it('exposes sold-out featured products while retaining their price context', () => {
+    renderWithProviders(
+      <StorefrontCarousel
+        featuredProducts={[
+          createProductCard({
+            isSoldOut: true,
+            minPriceCents: 2499,
+            maxPriceCents: 4999,
+            hasPriceRange: true,
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Sold out · From $24.99')).toBeInTheDocument();
+  });
+
   it('keeps looping, one-slide navigation, and autoplay enabled for ten slides', () => {
     const products = Array.from({ length: 10 }, (_, index) => createProductCard({
       id: `product-${index + 1}`,

@@ -25,6 +25,15 @@ function createProduct(overrides: Partial<IProduct> = {}): IProduct {
     kujiPrizes: overrides.kujiPrizes ?? [],
     sku: overrides.sku ?? 'SKU-001',
     tags: overrides.tags ?? [],
+    variants: overrides.productType === 'kuji'
+      ? []
+      : overrides.variants ?? [{
+        id: '33333333-3333-4333-8333-333333333333',
+        name: 'Default',
+        priceCents: overrides.priceCents ?? 4999,
+        sortOrder: 0,
+        isAvailable: true,
+      }],
     updatedAt: overrides.updatedAt ?? '2026-01-01T00:00:00.000Z',
   };
 }

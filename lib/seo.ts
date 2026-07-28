@@ -226,6 +226,12 @@ export function buildBreadcrumbListJsonLd(items: TBreadcrumbJsonLdItem[]): JsonL
 }
 
 function getProductOfferAvailability(product: IProduct | IProductCard): string | undefined {
+  if (product.productType === 'standard') {
+    return product.isSoldOut
+      ? 'https://schema.org/OutOfStock'
+      : 'https://schema.org/InStock';
+  }
+
   const inventoryState = getProductInventoryState(product);
 
   if (!inventoryState.hasInventoryData) {
@@ -302,27 +308,33 @@ export function buildProductJsonLd(
         sku,
       }
       : {}),
-    offers: {
-      '@type': 'Offer',
-      url: canonicalUrl,
-      price: (product.priceCents / 100).toFixed(2),
-      priceCurrency: product.currency,
-      itemCondition: 'https://schema.org/NewCondition',
-      seller: {
-        '@type': 'Organization',
-        name: BRAND_NAME,
+    offers: product.productType === 'standard' && product.hasPriceRange
+      ? {
+        '@type': 'AggregateOffer',
+        url: canonicalUrl,
+        lowPrice: (product.minPriceCents / 100).toFixed(2),
+        highPrice: (product.maxPriceCents / 100).toFixed(2),
+        offerCount: product.variants?.length ?? 1,
+        priceCurrency: product.currency,
+        ...(offerAvailability ? { availability: offerAvailability } : {}),
+      }
+      : {
+        '@type': 'Offer',
+        url: canonicalUrl,
+        price: (
+          (product.productType === 'standard'
+            ? product.minPriceCents
+            : product.priceCents) / 100
+        ).toFixed(2),
+        priceCurrency: product.currency,
+        itemCondition: 'https://schema.org/NewCondition',
+        seller: {
+          '@type': 'Organization',
+          name: BRAND_NAME,
+        },
+        ...(offerAvailability ? { availability: offerAvailability } : {}),
+        ...(shippingDetails ? { shippingDetails } : {}),
       },
-      ...(offerAvailability
-        ? {
-          availability: offerAvailability,
-        }
-        : {}),
-      ...(shippingDetails
-        ? {
-          shippingDetails,
-        }
-        : {}),
-    },
   };
 }
 

@@ -8,6 +8,7 @@ import { QuantityStepper } from '@/components/ui/quantity-stepper';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { type ICartItem } from '@/interfaces/cart';
 import { formatPrice } from '@/lib/utils';
+import { getCartItemUnitPrice } from '@/utils/cart';
 
 interface ICartPageItemProps {
   disabled?: boolean;
@@ -20,7 +21,8 @@ interface ICartPageItemProps {
 }
 
 export function CartPageItem(props: ICartPageItemProps) {
-  const lineTotalCents = props.item.product.priceCents * props.item.quantity;
+  const unitPriceCents = getCartItemUnitPrice(props.item);
+  const lineTotalCents = unitPriceCents * props.item.quantity;
 
   return (
     <article
@@ -74,6 +76,11 @@ export function CartPageItem(props: ICartPageItemProps) {
                     </Badge>
                   ))}
                 </div>
+              ) : null}
+              {props.item.variant ? (
+                <p className="mt-2 text-sm font-medium text-muted-foreground">
+                  Variant: {props.item.variant.name}
+                </p>
               ) : null}
             </div>
           </div>

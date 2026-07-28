@@ -13,6 +13,7 @@ import {
   createCartItem,
   createCartProduct,
   VALID_PRODUCT_ID,
+  VALID_VARIANT_ID,
 } from '../fixtures';
 
 function createCheckoutOrderWithProductIds(productIds: string[]): IOrderDetail {
@@ -87,6 +88,7 @@ describe('buildCheckoutRequest', () => {
         items: [
           {
             productId: VALID_PRODUCT_ID,
+            productVariantId: VALID_VARIANT_ID,
             quantity: 2,
           },
         ],

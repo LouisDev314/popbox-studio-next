@@ -88,8 +88,12 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
           name: formData.name,
           description: toNullableText(formData.description),
           status: formData.status,
-          priceCents: nextPriceCents,
-          sku: toNullableText(formData.sku),
+          ...(product.productType === 'kuji'
+            ? {
+              priceCents: nextPriceCents,
+              sku: toNullableText(formData.sku),
+            }
+            : {}),
           collections: selectedCollections,
           collectionIds: nextCollectionIds,
           tags: selectedTags,
@@ -117,9 +121,13 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         name: formData.name,
         description: toNullableText(formData.description),
         status: formData.status,
-        priceCents,
-        currency: product.currency,
-        sku: toNullableText(formData.sku),
+        ...(product.productType === 'kuji'
+          ? {
+            priceCents,
+            currency: product.currency,
+            sku: toNullableText(formData.sku),
+          }
+          : {}),
         collectionIds: formData.collectionIds,
         tagIds: formData.tagIds,
       },
@@ -157,8 +165,14 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-sm font-medium text-foreground">Name</label>
+          <label
+            htmlFor="admin-product-name"
+            className="mb-1.5 block text-sm font-medium text-foreground"
+          >
+            Name
+          </label>
           <Input
+            id="admin-product-name"
             required
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -166,8 +180,14 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         </div>
 
         <div className="sm:col-span-2">
-          <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
+          <label
+            htmlFor="admin-product-description"
+            className="mb-1.5 block text-sm font-medium text-foreground"
+          >
+            Description
+          </label>
           <textarea
+            id="admin-product-description"
             className={inputClasses + ' min-h-25 resize-y py-3'}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -175,8 +195,14 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-foreground">Status</label>
+          <label
+            htmlFor="admin-product-status"
+            className="mb-1.5 block text-sm font-medium text-foreground"
+          >
+            Status
+          </label>
           <select
+            id="admin-product-status"
             className={inputClasses}
             value={formData.status}
             onChange={(e) => setFormData({ ...formData, status: e.target.value as productStatus })}
@@ -187,39 +213,58 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
           </select>
         </div>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-foreground">Price (CAD)</label>
-          <div className="relative">
-            <span className="absolute left-3 top-2.5 text-sm text-muted-foreground">$</span>
-            <Input
-              type="text"
-              inputMode="decimal"
-              required
-              className="pl-7"
-              value={formData.priceStr}
-              onChange={(e) => {
-                const value = e.target.value;
+        {product.productType === 'kuji' ? (
+          <>
+            <div>
+              <label
+                htmlFor="admin-product-price"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Price (CAD)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-sm text-muted-foreground">$</span>
+                <Input
+                  id="admin-product-price"
+                  type="text"
+                  inputMode="decimal"
+                  required
+                  className="pl-7"
+                  value={formData.priceStr}
+                  onChange={(e) => {
+                    const value = e.target.value;
 
-                // allow numbers + optional decimal
-                if (!/^\d*\.?\d*$/.test(value)) return;
+                    if (!/^\d*\.?\d*$/.test(value)) return;
 
-                setFormData((prev) => ({
-                  ...prev,
-                  priceStr: value,
-                }));
-              }}
-              placeholder="0.00"
-            />
-          </div>
-        </div>
+                    setFormData((prev) => ({
+                      ...prev,
+                      priceStr: value,
+                    }));
+                  }}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-foreground">SKU</label>
-          <Input
-            value={formData.sku}
-            onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-          />
-        </div>
+            <div>
+              <label
+                htmlFor="admin-product-sku"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                SKU
+              </label>
+              <Input
+                id="admin-product-sku"
+                value={formData.sku}
+                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+              />
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground sm:col-span-2">
+            Standard-product prices and SKUs are managed per variant below.
+          </p>
+        )}
 
         <div className="sm:col-span-2">
           <ProductCollectionsField

@@ -117,7 +117,7 @@ async function exerciseHeaderOverlays(page: Page) {
 
 async function expectServerRedirect(request: APIRequestContext, path: string) {
   const response = await request.get(path, { maxRedirects: 0 });
-  const location = new URL(response.headers().location, 'http://localhost:3001');
+  const location = new URL(response.headers().location, response.url());
   const body = await response.text();
 
   expect(response.status()).toBe(307);
@@ -241,6 +241,7 @@ test('authenticated orders and Kuji history are prize-first and responsive', asy
   await expect(page.getByText(/Expired|Cancelled|Pending payment|Payment review/i)).toHaveCount(0);
 
   const mixedOrderRow = page.getByTestId('order-row-PBX-ACCOUNT-1');
+  await expect(mixedOrderRow).toHaveCount(1);
   await expect(mixedOrderRow).toHaveAttribute('href', '/account/orders/PBX-ACCOUNT-1');
   await expect(mixedOrderRow.locator('a')).toHaveCount(0);
   await expect(mixedOrderRow.getByText('Archived Kuji Snapshot')).toBeVisible();
@@ -273,7 +274,9 @@ test('authenticated orders and Kuji history are prize-first and responsive', asy
 
   await page.goto('/account/orders/PBX-KUJI-ONLY');
   await expect(page.getByRole('heading', { name: 'PBX-KUJI-ONLY' })).toBeVisible();
-  await expect(page.getByText('Hero Figure')).toBeVisible();
+  const heroFigureName = page.getByText('Hero Figure', { exact: true });
+  await expect(heroFigureName).toHaveCount(1);
+  await expect(heroFigureName).toBeVisible();
   await expect(page.getByText('Secret Prize')).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 

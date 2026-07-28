@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ShoppingBag, Trash2 } from 'lucide-react';
 import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-lock-overlay';
 import { InvalidCartItems } from '@/components/cart/invalid-cart-items';
+import { CartMigrationNotice } from '@/components/cart/cart-migration-notice';
 import { Button } from '@/components/ui/button';
 import { StorefrontDrawerEmptyState } from '@/components/ui/storefront-drawer-empty-state';
 import { QuantityStepper } from '@/components/ui/quantity-stepper';
@@ -15,6 +16,7 @@ import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { formatPrice } from '@/lib/utils';
 import { getProductCartLimitMessage, getProductSellableQuantity } from '@/utils/product-stock';
+import { getCartItemUnitPrice } from '@/utils/cart';
 
 interface ICartDrawerProps {
   isOpen: boolean;
@@ -54,6 +56,8 @@ export function CartDrawer(props: ICartDrawerProps) {
   const removeItem = useCartStore((state) => state.removeItem);
   const removeInvalidItem = useCartStore((state) => state.removeInvalidItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const migrationNotice = useCartStore((state) => state.migrationNotice);
+  const dismissMigrationNotice = useCartStore((state) => state.dismissMigrationNotice);
   const getCartSummary = useCartStore((state) => state.getCartSummary);
   const cartSummary = getCartSummary();
   const hasHydrated = useCartStore((state) => state.hasHydrated);
@@ -151,24 +155,38 @@ export function CartDrawer(props: ICartDrawerProps) {
               <CartDrawerItemSkeleton />
             </div>
           ) : items.length === 0 && invalidItems.length === 0 ? (
-            <StorefrontDrawerEmptyState
-              icon={<ShoppingBag className="h-7 w-7 text-muted-foreground" />}
-              title="Your cart is empty"
-              description="Pick a few things you like, then come back here to finish checkout."
-              action={(
-                <Button
-                  variant="outline"
-                  className="h-11 rounded-full px-5"
-                  onClick={() => {
-                    onClose();
-                  }}
-                >
-                  Continue Shopping
-                </Button>
-              )}
-            />
+            <div className="space-y-4">
+              {migrationNotice ? (
+                <CartMigrationNotice
+                  notice={migrationNotice}
+                  onDismiss={dismissMigrationNotice}
+                />
+              ) : null}
+              <StorefrontDrawerEmptyState
+                icon={<ShoppingBag className="h-7 w-7 text-muted-foreground" />}
+                title="Your cart is empty"
+                description="Pick a few things you like, then come back here to finish checkout."
+                action={(
+                  <Button
+                    variant="outline"
+                    className="h-11 rounded-full px-5"
+                    onClick={() => {
+                      onClose();
+                    }}
+                  >
+                    Continue Shopping
+                  </Button>
+                )}
+              />
+            </div>
           ) : (
             <div className="space-y-4">
+              {migrationNotice ? (
+                <CartMigrationNotice
+                  notice={migrationNotice}
+                  onDismiss={dismissMigrationNotice}
+                />
+              ) : null}
               <InvalidCartItems
                 compact={true}
                 disabled={isCheckingOut}
@@ -178,8 +196,14 @@ export function CartDrawer(props: ICartDrawerProps) {
               {items.map((item) => (
                 <article key={item.id} className="rounded-[1.75rem] border border-border/70 bg-card p-4">
                   {(() => {
-                    const quantityLimit = getProductSellableQuantity(item.product);
-                    const limitMessage = getProductCartLimitMessage(item.product, item.quantity);
+                    const quantityLimit = item.product.productType === 'standard'
+                      ? 20
+                      : getProductSellableQuantity(item.product);
+                    const limitMessage = item.product.productType === 'standard'
+                      ? item.quantity >= 20
+                        ? 'Maximum quantity reached. Exact availability is confirmed at checkout.'
+                        : null
+                      : getProductCartLimitMessage(item.product, item.quantity);
 
                     return (
                       <div className="flex gap-4">
@@ -196,8 +220,13 @@ export function CartDrawer(props: ICartDrawerProps) {
                             {item.product.name}
                           </p>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            {formatPrice(item.product.priceCents, item.product.currency)}
+                            {formatPrice(getCartItemUnitPrice(item), item.product.currency)}
                           </p>
+                          {item.variant ? (
+                            <p className="mt-1 text-xs font-medium text-muted-foreground">
+                              Variant: {item.variant.name}
+                            </p>
+                          ) : null}
                           <div className="mt-3 flex items-center justify-between gap-3">
                             <QuantityStepper
                               size="sm"

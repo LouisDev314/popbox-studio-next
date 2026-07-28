@@ -8,9 +8,15 @@ import {
   createCartItem,
   createCartProduct,
   VALID_PRODUCT_ID,
+  VALID_VARIANT_ID,
 } from '../fixtures';
 
 const OTHER_PRODUCT_ID = '22222222-2222-4222-8222-222222222222';
+const DEFAULT_VARIANT = {
+  id: VALID_VARIANT_ID,
+  name: 'Default',
+  priceCents: 4999,
+};
 
 async function importFreshCartStore() {
   vi.resetModules();
@@ -26,7 +32,7 @@ describe('useCartStore', () => {
     const useCartStore = await importFreshCartStore();
 
     const failedResult = useCartStore.getState().addItem(createCartProduct({ id: 'legacy-figure' }));
-    const successfulResult = useCartStore.getState().addItem(createCartProduct(), 2);
+    const successfulResult = useCartStore.getState().addItem(createCartProduct(), 2, DEFAULT_VARIANT);
 
     expect(failedResult.success).toBe(false);
     expect(successfulResult.success).toBe(true);
@@ -34,7 +40,10 @@ describe('useCartStore', () => {
     expect(window.gtag).toHaveBeenCalledWith('event', 'add_to_cart', expect.objectContaining({
       currency: 'CAD',
       value: 99.98,
-      items: [expect.objectContaining({ quantity: 2 })],
+      items: [expect.objectContaining({
+        item_variant: 'Default',
+        quantity: 2,
+      })],
     }));
 
     delete window.__popboxGaReady;
@@ -44,7 +53,7 @@ describe('useCartStore', () => {
 
   it('stores the backend UUID when adding an item', async () => {
     const useCartStore = await importFreshCartStore();
-    const result = useCartStore.getState().addItem(createCartProduct(), 2);
+    const result = useCartStore.getState().addItem(createCartProduct(), 2, DEFAULT_VARIANT);
 
     expect(result).toEqual({ message: null, success: true });
     expect(useCartStore.getState().items).toHaveLength(1);
@@ -106,7 +115,7 @@ describe('useCartStore', () => {
   it('writes persisted cart data using the current schema version', async () => {
     const useCartStore = await importFreshCartStore();
 
-    const result = useCartStore.getState().addItem(createCartProduct(), 2);
+    const result = useCartStore.getState().addItem(createCartProduct(), 2, DEFAULT_VARIANT);
     const storedValue = window.localStorage.getItem(CART_STORAGE_KEY);
 
     expect(result).toEqual({ message: null, success: true });
@@ -127,16 +136,22 @@ describe('useCartStore', () => {
     });
   });
 
-  it('removes purchased product ids from cart state and persisted storage', async () => {
+  it('removes purchased line identities from cart state and persisted storage', async () => {
     const useCartStore = await importFreshCartStore();
 
-    useCartStore.getState().addItem(createCartProduct(), 3);
+    useCartStore.getState().addItem(createCartProduct(), 3, DEFAULT_VARIANT);
     useCartStore.getState().addItem(createCartProduct({
       id: OTHER_PRODUCT_ID,
       name: 'Unrelated Figure',
       slug: 'unrelated-figure',
-    }));
-    useCartStore.getState().removePurchasedProductIds([VALID_PRODUCT_ID]);
+    }), 1, {
+      ...DEFAULT_VARIANT,
+      id: '44444444-4444-4444-8444-444444444444',
+    });
+    useCartStore.getState().removePurchasedLines([{
+      productId: VALID_PRODUCT_ID,
+      variantId: VALID_VARIANT_ID,
+    }]);
 
     expect(useCartStore.getState().items).toEqual([
       expect.objectContaining({

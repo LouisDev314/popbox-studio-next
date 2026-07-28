@@ -10,6 +10,8 @@ interface IAccountProductIdentityProps {
   productSlug: string | null;
   storefrontLinkEnabled?: boolean;
   size?: 'compact' | 'regular';
+  variantName?: string | null;
+  variantSku?: string | null;
 }
 
 export function AccountProductIdentity({
@@ -20,6 +22,8 @@ export function AccountProductIdentity({
   productSlug,
   storefrontLinkEnabled = true,
   size = 'regular',
+  variantName,
+  variantSku,
 }: IAccountProductIdentityProps) {
   const imageClassName = size === 'compact' ? 'h-12 w-12 rounded-md' : 'h-18 w-18 rounded-lg';
   const content = (
@@ -33,8 +37,15 @@ export function AccountProductIdentity({
           imageClassName="object-cover"
         />
       </span>
-      <span className={cn('min-w-0 font-medium', size === 'compact' ? 'line-clamp-2 text-sm' : 'line-clamp-2')}>
-        {name}
+      <span className="min-w-0">
+        <span className={cn('block font-medium', size === 'compact' ? 'line-clamp-2 text-sm' : 'line-clamp-2')}>
+          {name}
+        </span>
+        {variantName ? (
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            {variantName}{variantSku ? ` · ${variantSku}` : ''}
+          </span>
+        ) : null}
       </span>
     </>
   );

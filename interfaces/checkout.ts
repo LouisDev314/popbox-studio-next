@@ -19,6 +19,7 @@ export type CanadianProvinceCode =
 
 export interface CheckoutItem {
   productId: UUID;
+  productVariantId?: UUID;
   quantity: number;
 }
 

@@ -2,11 +2,13 @@ import {
   type ICartInvalidItem,
   type ICartItem,
   type ICartProduct,
+  type ICartVariantSnapshot,
 } from '@/interfaces/cart';
 import { type IProductCard, type IKujiTicketSummary } from '@/interfaces/product';
 import { type IWishlistItem } from '@/interfaces/wishlist';
 
 export const VALID_PRODUCT_ID = '11111111-1111-4111-8111-111111111111';
+export const VALID_VARIANT_ID = '33333333-3333-4333-8333-333333333333';
 
 export function createCartProduct(
   overrides: Partial<ICartProduct> = {},
@@ -19,6 +21,12 @@ export function createCartProduct(
     productType: 'standard',
     status: 'active',
     priceCents: 4999,
+    minPriceCents: 4999,
+    maxPriceCents: 4999,
+    hasPriceRange: false,
+    isSoldOut: false,
+    defaultVariantId: VALID_VARIANT_ID,
+    hasVariantChoices: false,
     currency: 'CAD',
     collections: [
       {
@@ -46,6 +54,8 @@ export function createCartProduct(
   };
 }
 
+// Test fixtures intentionally expose every backend card field as an override.
+// eslint-disable-next-line complexity
 export function createProductCard(
   overrides: Partial<IProductCard> & { ticketSummary?: IKujiTicketSummary } = {},
 ): IProductCard {
@@ -58,6 +68,13 @@ export function createProductCard(
     productType: overrides.productType ?? 'standard',
     status: overrides.status ?? 'active',
     priceCents: overrides.priceCents ?? 4999,
+    minPriceCents: overrides.minPriceCents ?? overrides.priceCents ?? 4999,
+    maxPriceCents: overrides.maxPriceCents ?? overrides.priceCents ?? 4999,
+    hasPriceRange: overrides.hasPriceRange ?? false,
+    isSoldOut: overrides.isSoldOut ?? false,
+    defaultVariantId: overrides.defaultVariantId
+      ?? (overrides.productType === 'kuji' ? null : VALID_VARIANT_ID),
+    hasVariantChoices: overrides.hasVariantChoices ?? false,
     currency: overrides.currency ?? 'CAD',
     collections: overrides.collections ?? [
       {
@@ -90,11 +107,23 @@ export function createCartItem(
     id?: string;
     product?: Partial<ICartProduct>;
     quantity?: number;
+    variant?: ICartVariantSnapshot | null;
   } = {},
 ): ICartItem {
+  const product = createCartProduct(overrides.product ?? {});
+
   return {
     id: overrides.id ?? 'cart-item-1',
-    product: createCartProduct(overrides.product ?? {}),
+    product,
+    variant: overrides.variant === undefined
+      ? product.productType === 'standard'
+        ? {
+          id: product.defaultVariantId ?? VALID_VARIANT_ID,
+          name: 'Default',
+          priceCents: product.priceCents,
+        }
+        : null
+      : overrides.variant,
     quantity: overrides.quantity ?? 1,
   };
 }

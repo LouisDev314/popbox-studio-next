@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ProductInventoryStatus } from '@/components/product/product-inventory-status';
 import { KujiPrizesView } from '@/components/product/kuji-prizes-view';
 import { ProductActions } from '@/components/product/product-actions';
+import { StandardProductPurchasePanel } from '@/components/product/standard-product-purchase-panel';
 import { ProductGallery } from '@/components/product/product-gallery';
 import {
   ProductRecommendations,
@@ -208,18 +209,20 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
             {product.name}
           </h1>
 
-          <div className="mt-5 flex flex-wrap items-end gap-2">
-            <span className="text-2xl font-semibold text-primary">
-              {formatPrice(product.priceCents, product.currency)}
-            </span>
-            {product.productType === 'kuji' && (
-              <span className="text-sm text-muted-foreground">per ticket</span>
-            )}
-          </div>
-
-          <ProductInventoryStatus product={product} variant="detail" />
-
-          <ProductActions product={product} />
+          {product.productType === 'kuji' ? (
+            <>
+              <div className="mt-5 flex flex-wrap items-end gap-2">
+                <span className="text-2xl font-semibold text-primary">
+                  {formatPrice(product.priceCents, product.currency)}
+                </span>
+                <span className="text-sm text-muted-foreground">per ticket</span>
+              </div>
+              <ProductInventoryStatus product={product} variant="detail" />
+              <ProductActions product={product} />
+            </>
+          ) : (
+            <StandardProductPurchasePanel product={product} />
+          )}
         </div>
       </div>
 

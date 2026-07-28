@@ -11,6 +11,7 @@ import {
   trackViewItem,
   trackViewItemList,
 } from '@/lib/analytics';
+import { getCartItemKey } from '@/utils/cart';
 
 function subscribeToAnalyticsReady(onStoreChange: () => void) {
   window.addEventListener(ANALYTICS_READY_EVENT, onStoreChange);
@@ -70,7 +71,7 @@ export function CartViewTracker(props: { items: ICartItem[] }) {
   const isReady = useAnalyticsReady();
   const trackedCartKey = useRef<string | null>(null);
   const cartKey = useMemo(
-    () => props.items.map((item) => `${item.product.id}:${item.quantity}`).join(','),
+    () => props.items.map((item) => `${getCartItemKey(item)}:${item.quantity}`).join(','),
     [props.items],
   );
 

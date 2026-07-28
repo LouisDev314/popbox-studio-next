@@ -44,6 +44,7 @@ export function resetStores() {
     hasHydrated: true,
     invalidItems: [],
     items: [],
+    migrationNotice: null,
   });
   useCheckoutUiStore.setState({
     checkoutErrorMessage: null,

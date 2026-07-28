@@ -117,6 +117,21 @@ describe('CheckoutSuccessPage', () => {
     expect(screen.getByRole('link', { name: 'Reveal My Tickets!' })).toHaveAttribute('href', '/orders/pbs-ORDER/tickets');
   });
 
+  it('renders a customer-safe paid-needs-attention confirmation', async () => {
+    vi.mocked(getPublicCheckoutSuccess).mockResolvedValue({
+      pending: false,
+      needsAttention: true,
+      publicId: 'pbs-ORDER',
+      order: createOrder({ status: 'paid_needs_attention' }),
+    });
+
+    await renderPage();
+
+    expect(screen.getByRole('heading', { name: 'Payment Received' })).toBeInTheDocument();
+    expect(screen.getByText('paid needs attention')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Contact Support' })).toHaveAttribute('href', '/contact');
+  });
+
   it('shows a finalizing state while the paid checkout is awaiting webhook finalization', async () => {
     vi.mocked(getPublicCheckoutSuccess).mockResolvedValue({
       pending: true,

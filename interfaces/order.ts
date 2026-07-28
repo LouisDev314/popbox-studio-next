@@ -23,6 +23,9 @@ export interface IOrderItem {
   productId: string;
   productName: string;
   productType: string;
+  variantId?: string | null;
+  variantName?: string | null;
+  variantSku?: string | null;
   unitPriceCents: number;
   quantity: number;
   lineTotalCents: number;
@@ -67,7 +70,8 @@ export interface IOrderDetail {
   id: string;
   publicId: string;
   status: IOrderStatus;
-  attention: IOrderAttention | null;
+  attention?: IOrderAttention | null;
+  customerNote?: string | null;
   includesLastOnePrize?: boolean;
   currency: string;
   subtotalCents: number;

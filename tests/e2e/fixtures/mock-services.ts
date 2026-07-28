@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { createHash, generateKeyPairSync, sign } from 'node:crypto';
+import { createHash, sign } from 'node:crypto';
 import { expect, test as base } from '@playwright/test';
 
 interface IAuthMockState {
@@ -14,9 +14,16 @@ interface IAuthMockState {
 
 const confirmedAt = '2026-07-15T18:00:00.000Z';
 const playwrightOrigin = `http://localhost:${process.env.PLAYWRIGHT_PORT ?? '3001'}`;
-const jwtKeyPair = generateKeyPairSync('rsa', { modulusLength: 2048 });
+const jwtPrivateKey = process.env.PLAYWRIGHT_JWT_PRIVATE_KEY;
+const jwtPublicJwk = process.env.PLAYWRIGHT_JWT_PUBLIC_JWK;
+
+if (!jwtPrivateKey || !jwtPublicJwk) {
+  throw new Error('Playwright JWT keys must be initialized by playwright.config.ts.');
+}
+
+const jwtSigningKey: string = jwtPrivateKey;
 const jwtPublicKey = {
-  ...jwtKeyPair.publicKey.export({ format: 'jwk' }),
+  ...(JSON.parse(jwtPublicJwk) as JsonWebKey),
   alg: 'RS256',
   kid: 'e2e-account-key',
   use: 'sig',
@@ -59,7 +66,7 @@ function createAccessToken() {
     }),
   ].join('.');
 
-  return `${signingInput}.${sign('RSA-SHA256', Buffer.from(signingInput), jwtKeyPair.privateKey).toString('base64url')}`;
+  return `${signingInput}.${sign('RSA-SHA256', Buffer.from(signingInput), jwtSigningKey).toString('base64url')}`;
 }
 
 function createSession() {
@@ -91,6 +98,7 @@ function sendJson(response: ServerResponse, data: unknown, status = 200) {
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Headers': 'authorization, content-type, idempotency-key, apikey, x-client-info, x-supabase-api-version',
     'Access-Control-Allow-Origin': playwrightOrigin,
+    Connection: 'close',
     'Content-Type': 'application/json',
   });
   response.end(JSON.stringify(data));
@@ -186,12 +194,59 @@ function storefrontProductCard(productId: string) {
     productType: product.productType,
     status: 'active',
     priceCents: 4999,
+    minPriceCents: 4999,
+    maxPriceCents: 4999,
+    hasPriceRange: false,
+    isSoldOut: false,
+    defaultVariantId: product.productType === 'standard'
+      ? '00000000-0000-4000-8000-000000000301'
+      : null,
+    hasVariantChoices: false,
     currency: 'CAD',
     collections: [{ id: featuredCollection.id, name: featuredCollection.name, slug: featuredCollection.slug }],
     images: [],
     inventory: null,
   };
 }
+
+const standardVariantProduct = {
+  ...storefrontProductCard(adminFeaturedProducts[0].id)!,
+  description: 'A figure with two customer-selectable sizes.',
+  sku: null,
+  tags: [],
+  kujiPrizes: [],
+  createdAt: confirmedAt,
+  priceCents: 2499,
+  minPriceCents: 2499,
+  maxPriceCents: 4499,
+  hasPriceRange: true,
+  defaultVariantId: '00000000-0000-4000-8000-000000000301',
+  hasVariantChoices: true,
+  priceRange: { minCents: 2499, maxCents: 4499, isRange: true },
+  variants: [
+    {
+      id: '00000000-0000-4000-8000-000000000301',
+      name: 'Small',
+      priceCents: 2499,
+      sortOrder: 0,
+      isAvailable: true,
+    },
+    {
+      id: '00000000-0000-4000-8000-000000000302',
+      name: 'Large',
+      priceCents: 3499,
+      sortOrder: 1,
+      isAvailable: true,
+    },
+    {
+      id: '00000000-0000-4000-8000-000000000303',
+      name: 'Collector',
+      priceCents: 4499,
+      sortOrder: 2,
+      isAvailable: false,
+    },
+  ],
+};
 
 function accountKujiResult(id: string, revealed: boolean) {
   return {
@@ -217,6 +272,7 @@ function accountOrderDetail(state: IAuthMockState) {
     items: [
       {
         productId: 'standard-1', productName: 'Active Figure', productType: 'standard', productSlug: 'active-figure',
+        variantId: '00000000-0000-4000-8000-000000000301', variantName: 'Small', variantSku: 'FIG-S',
         isStorefrontAccessible: true, unitPriceCents: 2000, quantity: 1, lineTotalCents: 2000, imageUrl: null,
         imageAltText: null, kujiResults: [],
       },
@@ -277,6 +333,7 @@ function createRequestHandler(state: IAuthMockState) {
         'Access-Control-Allow-Headers': 'authorization, content-type, idempotency-key, apikey, x-client-info, x-supabase-api-version',
         'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
         'Access-Control-Allow-Origin': playwrightOrigin,
+        Connection: 'close',
       });
       response.end();
       return;
@@ -336,6 +393,7 @@ function createRequestHandler(state: IAuthMockState) {
       response.writeHead(204, {
         'Access-Control-Allow-Credentials': 'true',
         'Access-Control-Allow-Origin': playwrightOrigin,
+        Connection: 'close',
       });
       response.end();
       return;
@@ -514,6 +572,11 @@ function createRequestHandler(state: IAuthMockState) {
       return;
     }
 
+    if (pathname === `/api/v1/products/${standardVariantProduct.slug}` && request.method === 'GET') {
+      sendJson(response, apiData(standardVariantProduct));
+      return;
+    }
+
     if (pathname === '/api/v1/collections') {
       sendJson(response, apiData([]));
       return;
@@ -568,6 +631,7 @@ export const test = base.extend<{ authMock: IAuthMockState; mockServices: void }
   mockServices: [async ({ authMock }, applyFixture) => {
     const server = await startMockServices(authMock);
     await applyFixture();
+    server.closeAllConnections();
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }, { auto: true }],
 });

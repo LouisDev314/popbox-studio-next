@@ -159,10 +159,14 @@ describe('GA4 analytics helpers', () => {
     expect(getEventCalls()).toHaveLength(0);
   });
 
-  it('does not record pending, incomplete, or paid-needs-attention orders as purchases', () => {
+  it('does not record unpaid or incomplete orders as purchases', () => {
     expect(trackPurchaseOnce(createOrder({ paidAt: null, status: 'pending_payment' }))).toBe(false);
-    expect(trackPurchaseOnce(createOrder({ status: 'paid_needs_attention' }))).toBe(false);
     expect(getEventCalls()).toHaveLength(0);
+  });
+
+  it('records paid-needs-attention orders because payment was received', () => {
+    expect(trackPurchaseOnce(createOrder({ status: 'paid_needs_attention' }))).toBe(true);
+    expect(getEventCalls()).toHaveLength(1);
   });
 
   it('records a finalized paid purchase exactly once across rerenders and refresh storage', () => {

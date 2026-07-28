@@ -6,13 +6,13 @@ import { Heart } from 'lucide-react';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { useWishlistStore } from '@/hooks/use-wishlist';
 import type { IProductCard } from '@/interfaces/product';
-import { cn, formatPrice } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import {
   getProductCoverImage,
   getProductImageAltText,
   getSortedProductImages,
 } from '@/utils/product-images';
-import { getProductInventoryState } from '@/utils/product-stock';
+import { getProductPricePresentation } from '@/utils/product-pricing';
 import { mapProductToWishlistItem } from '@/utils/wishlist';
 import { type IAnalyticsListContext, trackSelectItem } from '@/lib/analytics';
 
@@ -32,8 +32,8 @@ export function ProductTileDense(props: IProductTileDenseProps) {
   const hasWishlistHydrated = useWishlistStore((state) => state.hasHydrated);
   const isWishlisted = useWishlistStore((state) => state.isProductWishlisted(product.id));
   const toggleWishlistItem = useWishlistStore((state) => state.toggleWishlistItem);
-  const inventoryState = getProductInventoryState(product);
-  const isSoldOut = inventoryState.hasInventoryData && inventoryState.status === 'sold_out';
+  const pricePresentation = getProductPricePresentation(product);
+  const isSoldOut = pricePresentation.availabilityLabel === 'Sold out';
   const sortedImages = getSortedProductImages(product);
   const coverImage = getProductCoverImage(product);
   const fallbackImage = sortedImages[0]?.url !== coverImage?.url ? sortedImages[0] : undefined;
@@ -85,7 +85,7 @@ export function ProductTileDense(props: IProductTileDenseProps) {
           </p>
 
           <span className="text-sm font-semibold text-primary">
-            {formatPrice(product.priceCents, product.currency)}
+            {pricePresentation.priceLabel ?? pricePresentation.availabilityLabel}
           </span>
         </div>
       </Link>

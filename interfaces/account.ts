@@ -27,6 +27,9 @@ export interface IAccountOrderProduct {
   productId: string;
   productName: string;
   productType: 'standard' | 'kuji';
+  variantId?: string | null;
+  variantName?: string | null;
+  variantSku?: string | null;
   productSlug: string | null;
   isStorefrontAccessible: boolean;
   quantity: number;
@@ -106,6 +109,9 @@ export interface ICustomerOrderDetail {
     productId: string;
     productName: string;
     productType: 'standard' | 'kuji';
+    variantId?: string | null;
+    variantName?: string | null;
+    variantSku?: string | null;
     productSlug: string | null;
     isStorefrontAccessible: boolean;
     unitPriceCents: number;

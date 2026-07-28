@@ -23,6 +23,7 @@ export function BrandLogo({ className, variant = 'nav' }: IBrandLogoProps) {
         height={56}
         sizes="56px"
         className="h-full w-full object-contain"
+        loading="eager"
         priority={variant === 'nav'}
       />
     </span>

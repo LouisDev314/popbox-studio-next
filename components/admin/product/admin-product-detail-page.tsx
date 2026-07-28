@@ -10,19 +10,21 @@ import { IAdminProductDetail, IAdminProductEditor } from '@/interfaces/product';
 import { mapAdminProductDetailToEditor } from '@/utils/admin';
 
 import { ProductCoreForm } from './product-core-form';
-import { ProductInventoryForm } from './product-inventory-form';
+import { ProductVariantsForm } from './product-variants-form';
 import { ProductMediaForm } from './product-media-form';
 import { ProductKujiPrizes } from './product-kuji-prizes';
 
 export default function AdminProductDetailPageClient({ productId }: { productId: string }) {
-  const [productOverride, setProductOverride] = useState<IAdminProductEditor | null>(null);
-
   const { data: productRes, isPending, isError } = useCustomizeQuery<IAdminProductDetail>({
     queryKey: ['admin', 'product', productId],
     queryFn: () => QueryConfigs.fetchAdminProduct(productId),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
+  const [productOverride, setProductOverride] = useState<{
+    product: IAdminProductEditor;
+    source: typeof productRes;
+  } | null>(null);
   const hydratedProduct = useMemo(() => {
     const detail = productRes?.data?.data;
 
@@ -31,14 +33,24 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
 
   const handleProductChange: Dispatch<SetStateAction<IAdminProductEditor | null>> = (value) => {
     setProductOverride((currentProduct) => {
-      const scopedCurrentProduct = currentProduct?.id === productId ? currentProduct : null;
+      const scopedCurrentProduct = currentProduct
+        && currentProduct.source === productRes
+        && currentProduct.product.id === productId
+        ? currentProduct.product
+        : hydratedProduct;
       const nextProduct = typeof value === 'function' ? value(scopedCurrentProduct) : value;
 
-      return nextProduct?.id === productId ? nextProduct : null;
+      return nextProduct?.id === productId
+        ? { product: nextProduct, source: productRes }
+        : null;
     });
   };
 
-  const product = productOverride?.id === productId ? productOverride : hydratedProduct;
+  const product = productOverride
+    && productOverride.source === productRes
+    && productOverride.product.id === productId
+    ? productOverride.product
+    : hydratedProduct;
 
   if (isPending) return <div className="p-12 text-center text-muted-foreground">Loading product details...</div>;
   if (isError) return <div className="p-12 text-center text-red-500">Failed to load product.</div>;
@@ -58,9 +70,7 @@ export default function AdminProductDetailPageClient({ productId }: { productId:
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
           <ProductCoreForm product={product} onProductChange={handleProductChange} />
-          {product.productType === 'standard' && (
-            <ProductInventoryForm product={product} onProductChange={handleProductChange} />
-          )}
+          {product.productType === 'standard' && <ProductVariantsForm product={product} />}
           <ProductMediaForm product={product} onProductChange={handleProductChange} />
           {product.productType === 'kuji' && (
             <ProductKujiPrizes product={product} />
