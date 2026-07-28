@@ -387,6 +387,7 @@ export function ProductVariantsForm({ product }: { product: IAdminProductEditor 
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isReordering, setIsReordering] = useState(false);
   const feedbackId = useId();
+  const addVariantFormId = useId();
 
   const createMutation = useCustomizeMutation({
     mutationFn: MutationConfigs.createAdminProductVariant,
@@ -526,50 +527,122 @@ export function ProductVariantsForm({ product }: { product: IAdminProductEditor 
       <ErrorAlert id={feedbackId} className="mt-4" message={feedback} />
 
       {showAddForm ? (
-        <div className="mt-5 rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4">
-          <h3 className="font-semibold">Unsaved variant</h3>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Input
-              aria-label="New variant name"
-              aria-describedby={feedback ? feedbackId : undefined}
-              placeholder="Variant name"
-              value={newDraft.name}
-              onChange={(event) => setNewDraft((current) => ({ ...current, name: event.target.value }))}
-            />
-            <Input
-              aria-label="New variant SKU"
-              aria-describedby={feedback ? feedbackId : undefined}
-              placeholder="SKU"
-              value={newDraft.sku}
-              onChange={(event) => setNewDraft((current) => ({ ...current, sku: event.target.value }))}
-            />
-            <Input
-              aria-label="New variant price"
-              aria-describedby={feedback ? feedbackId : undefined}
-              placeholder="Price in CAD"
-              inputMode="decimal"
-              value={newDraft.price}
-              onChange={(event) => {
-                if (/^\d*\.?\d*$/.test(event.target.value)) {
-                  setNewDraft((current) => ({ ...current, price: event.target.value }));
-                }
-              }}
-            />
-            <NumericInput
-              aria-label="New variant on hand"
-              aria-describedby={feedback ? feedbackId : undefined}
-              placeholder="On hand"
-              value={newDraft.onHand}
-              onValueChange={(value) => setNewDraft((current) => ({ ...current, onHand: value }))}
-            />
-            <NumericInput
-              aria-label="New variant low stock threshold"
-              aria-describedby={feedback ? feedbackId : undefined}
-              placeholder="Low-stock threshold"
-              value={newDraft.lowStockThreshold}
-              onValueChange={(value) => setNewDraft((current) => ({ ...current, lowStockThreshold: value }))}
-            />
-            <label className="flex min-h-10 items-center gap-3 rounded-lg border border-border/60 px-3 py-2 text-sm font-medium">
+        <section
+          aria-labelledby={`${addVariantFormId}-title`}
+          className="mt-5 rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4"
+        >
+          <h3 id={`${addVariantFormId}-title`} className="font-semibold">
+            Unsaved variant
+          </h3>
+          <div className="mt-4 grid gap-x-4 gap-y-5 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor={`${addVariantFormId}-name`}
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Variant Name
+              </label>
+              <Input
+                id={`${addVariantFormId}-name`}
+                aria-describedby={feedback ? feedbackId : undefined}
+                value={newDraft.name}
+                onChange={(event) => setNewDraft((current) => ({ ...current, name: event.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor={`${addVariantFormId}-sku`}
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                SKU (Optional)
+              </label>
+              <Input
+                id={`${addVariantFormId}-sku`}
+                aria-describedby={feedback ? feedbackId : undefined}
+                value={newDraft.sku}
+                onChange={(event) => setNewDraft((current) => ({ ...current, sku: event.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor={`${addVariantFormId}-price`}
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Price (CAD)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-sm text-muted-foreground" aria-hidden="true">
+                  $
+                </span>
+                <Input
+                  id={`${addVariantFormId}-price`}
+                  aria-describedby={`${addVariantFormId}-price-help${feedback ? ` ${feedbackId}` : ''}`}
+                  className="pl-7"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={newDraft.price}
+                  onChange={(event) => {
+                    if (/^\d*\.?\d*$/.test(event.target.value)) {
+                      setNewDraft((current) => ({ ...current, price: event.target.value }));
+                    }
+                  }}
+                />
+              </div>
+              <p
+                id={`${addVariantFormId}-price-help`}
+                className="mt-1.5 text-xs text-muted-foreground"
+              >
+                Customer purchase price.
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor={`${addVariantFormId}-on-hand`}
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                On Hand Inventory
+              </label>
+              <NumericInput
+                id={`${addVariantFormId}-on-hand`}
+                aria-describedby={`${addVariantFormId}-on-hand-help${feedback ? ` ${feedbackId}` : ''}`}
+                placeholder="0"
+                value={newDraft.onHand}
+                onValueChange={(value) => setNewDraft((current) => ({ ...current, onHand: value }))}
+              />
+              <p
+                id={`${addVariantFormId}-on-hand-help`}
+                className="mt-1.5 text-xs text-muted-foreground"
+              >
+                Physical units currently in stock.
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor={`${addVariantFormId}-low-stock-threshold`}
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Low Stock Threshold
+              </label>
+              <NumericInput
+                id={`${addVariantFormId}-low-stock-threshold`}
+                aria-describedby={`${addVariantFormId}-low-stock-threshold-help${feedback ? ` ${feedbackId}` : ''}`}
+                placeholder="0"
+                value={newDraft.lowStockThreshold}
+                onValueChange={(value) => setNewDraft((current) => ({ ...current, lowStockThreshold: value }))}
+              />
+              <p
+                id={`${addVariantFormId}-low-stock-threshold-help`}
+                className="mt-1.5 text-xs text-muted-foreground"
+              >
+                Warning shown when inventory falls below this value.
+              </p>
+            </div>
+
+            <label className="flex min-h-10 items-center gap-3 self-start rounded-lg border border-border/60 px-3 py-2 text-sm font-medium sm:mt-7">
               <input
                 type="checkbox"
                 checked={newDraft.isActive}
@@ -597,7 +670,7 @@ export function ProductVariantsForm({ product }: { product: IAdminProductEditor 
               Cancel
             </Button>
           </div>
-        </div>
+        </section>
       ) : null}
 
       <div className="mt-5 space-y-4" aria-busy={isReordering}>

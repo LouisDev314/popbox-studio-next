@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProductVariantsForm } from '@/components/admin/product/product-variants-form';
 import type { IAdminProductEditor } from '@/interfaces/product';
@@ -63,16 +63,28 @@ describe('ProductVariantsForm', () => {
 
     expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
     fireEvent.click(screen.getAllByRole('button', { name: 'Add variant' }).at(-1)!);
-    fireEvent.change(screen.getByLabelText('New variant name'), {
+    const addVariantForm = within(screen.getByRole('region', { name: 'Unsaved variant' }));
+
+    expect(addVariantForm.getByLabelText('Price (CAD)')).toHaveAccessibleDescription(
+      'Customer purchase price.',
+    );
+    expect(addVariantForm.getByLabelText('On Hand Inventory')).toHaveAccessibleDescription(
+      'Physical units currently in stock.',
+    );
+    expect(addVariantForm.getByLabelText('Low Stock Threshold')).toHaveAccessibleDescription(
+      'Warning shown when inventory falls below this value.',
+    );
+    expect(addVariantForm.getByRole('checkbox', { name: 'Active' })).toBeChecked();
+    fireEvent.change(addVariantForm.getByLabelText('Variant Name'), {
       target: { value: 'Blue' },
     });
-    fireEvent.change(screen.getByLabelText('New variant SKU'), {
+    fireEvent.change(addVariantForm.getByLabelText('SKU (Optional)'), {
       target: { value: 'FIG-BLUE' },
     });
-    fireEvent.change(screen.getByLabelText('New variant price'), {
+    fireEvent.change(addVariantForm.getByLabelText('Price (CAD)'), {
       target: { value: '34.99' },
     });
-    fireEvent.change(screen.getByLabelText('New variant on hand'), {
+    fireEvent.change(addVariantForm.getByLabelText('On Hand Inventory'), {
       target: { value: '8' },
     });
     fireEvent.click(screen.getAllByRole('button', { name: 'Add variant' }).at(-1)!);
@@ -96,7 +108,7 @@ describe('ProductVariantsForm', () => {
   it('rejects duplicate names using trimmed case-insensitive comparison', () => {
     renderWithProviders(<ProductVariantsForm product={product} />);
     fireEvent.click(screen.getAllByRole('button', { name: 'Add variant' }).at(-1)!);
-    fireEvent.change(screen.getByLabelText('New variant name'), {
+    fireEvent.change(screen.getByLabelText('Variant Name'), {
       target: { value: ' default ' },
     });
     fireEvent.click(screen.getAllByRole('button', { name: 'Add variant' }).at(-1)!);
