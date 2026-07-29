@@ -38,8 +38,8 @@ export function StandardProductPurchasePanel({ product }: { product: IProduct })
 
       {showSelector ? (
         <fieldset className="mt-6">
-          <legend className="text-sm font-semibold text-foreground">Choose a variant</legend>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <legend className="text-sm font-semibold text-foreground">Variants</legend>
+          <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {variants.map((variant) => {
               const isSelected = variant.id === selectedVariantId;
 
@@ -47,32 +47,27 @@ export function StandardProductPurchasePanel({ product }: { product: IProduct })
                 <label
                   key={variant.id}
                   className={cn(
-                    'flex min-h-12 items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm transition-colors',
-                    'focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2',
+                    'flex min-h-12 items-center rounded-xl border px-4 py-3 text-sm transition-colors duration-150',
                     variant.isAvailable
-                      ? 'cursor-pointer border-border/70 bg-card hover:border-primary/40'
-                      : 'cursor-not-allowed border-border/40 bg-muted/40 text-muted-foreground',
-                    isSelected && 'border-primary bg-primary/5',
+                      ? isSelected
+                        ? 'cursor-pointer ring-1 ring-primary ring-offset-0 bg-card hover:bg-primary/10 font-semibold text-primary'
+                        : 'cursor-pointer bg-card font-normal hover:bg-primary/10'
+                      : 'cursor-not-allowed border-border/40 bg-muted/40 font-normal text-muted-foreground',
                   )}
                 >
-                  <span className="flex min-w-0 items-center gap-3">
-                    <input
-                      type="radio"
-                      name="product-variant"
-                      value={variant.id}
-                      checked={isSelected}
-                      disabled={!variant.isAvailable}
-                      onChange={() => setSelectedVariantId(variant.id)}
-                      className="size-4 accent-primary"
-                    />
-                    <span className="truncate font-medium">{variant.name}</span>
-                  </span>
-                  <span className="shrink-0 text-right">
-                    <span className="block font-semibold">
-                      {formatPrice(variant.priceCents, product.currency)}
-                    </span>
+                  <input
+                    type="radio"
+                    name="product-variant"
+                    value={variant.id}
+                    checked={isSelected}
+                    disabled={!variant.isAvailable}
+                    onChange={() => setSelectedVariantId(variant.id)}
+                    className="sr-only"
+                  />
+                  <span className="min-w-0 break-words leading-snug">
+                    {variant.name}
                     {!variant.isAvailable ? (
-                      <span className="block text-xs">Sold out</span>
+                      <span className="ml-2 text-xs font-normal">Sold out</span>
                     ) : null}
                   </span>
                 </label>
