@@ -434,7 +434,7 @@ export function StoreHeaderClient(props: IStoreHeaderClientProps) {
                           <DropdownMenuItem
                             key={item.href}
                             className={cn(
-                              'rounded-xl px-3 py-2.5 text-sm font-medium text-foreground',
+                              'rounded-xl px-3 py-2.5 mb-1 text-sm font-medium text-foreground',
                               isActive && 'bg-accent text-foreground',
                             )}
                             render={<Link href={item.href} aria-current={isActive ? 'page' : undefined} />}
