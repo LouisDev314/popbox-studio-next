@@ -54,6 +54,7 @@ describe('admin query configs', () => {
     await QueryConfigs.fetchAdminProducts({
       collectionId: 'collection-1',
       cursor: 'cursor-2',
+      excludeCollectionId: 'collection-2',
       limit: 25,
       productType: 'kuji',
       search: 'hero',
@@ -69,6 +70,7 @@ describe('admin query configs', () => {
       params: {
         collectionId: 'collection-1',
         cursor: 'cursor-2',
+        excludeCollectionId: 'collection-2',
         limit: 25,
         productType: 'kuji',
         search: 'hero',

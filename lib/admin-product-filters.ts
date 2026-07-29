@@ -1,4 +1,4 @@
-import type { IAdminProductListItem, productStatus, productType } from '@/interfaces/product';
+import type { productStatus, productType } from '@/interfaces/product';
 
 type SearchParamValue = string | string[] | undefined;
 
@@ -22,6 +22,7 @@ export type AdminProductTypeFilter = productType | 'all';
 export interface IAdminProductListQueryParams {
   collectionId: string;
   cursor?: string;
+  excludeCollectionId?: string;
   limit?: number;
   productType: AdminProductTypeFilter;
   search?: string;
@@ -29,19 +30,6 @@ export interface IAdminProductListQueryParams {
   status: AdminProductStatusFilter;
   tagId: string;
 }
-
-export interface IAdminProductSearchState {
-  query?: string;
-}
-
-export interface IAdminProductSearchResult {
-  items: IAdminProductListItem[];
-}
-
-const hasOwn = <Key extends PropertyKey>(
-  value: object,
-  key: Key,
-): value is Record<Key, unknown> => Object.prototype.hasOwnProperty.call(value, key);
 
 export const ADMIN_PRODUCT_STATUS_TABS: { label: string; value: productStatus | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -132,6 +120,7 @@ export function buildAdminProductListQueryParams(
   return {
     collectionId: filters.collectionId?.trim() || ADMIN_PRODUCT_DEFAULT_COLLECTION_ID,
     cursor: filters.cursor?.trim() || undefined,
+    excludeCollectionId: filters.excludeCollectionId?.trim() || undefined,
     limit: filters.limit ?? ADMIN_PRODUCT_LIST_LIMIT,
     productType: filters.productType ?? ADMIN_PRODUCT_DEFAULT_TYPE,
     search: filters.search?.trim() || undefined,
@@ -149,6 +138,7 @@ export function buildAdminProductsQueryScopeKey(filters: IAdminProductListQueryP
     filters.status,
     filters.productType,
     filters.collectionId,
+    filters.excludeCollectionId ?? '',
     filters.tagId,
     filters.sort,
   ] as const;
@@ -191,57 +181,10 @@ export function buildAdminProductsRequestParams(filters: IAdminProductListQueryP
     status: filters.status,
     productType: filters.productType,
     collectionId: filters.collectionId,
+    ...(filters.excludeCollectionId ? { excludeCollectionId: filters.excludeCollectionId } : {}),
     tagId: filters.tagId,
     sort: filters.sort,
     ...(filters.cursor ? { cursor: filters.cursor } : {}),
     limit: filters.limit ?? ADMIN_PRODUCT_LIST_LIMIT,
-  };
-}
-
-function getAdminProductSearchFields(
-  product: IAdminProductListItem,
-): string[] {
-  const productRecord = product as unknown as Record<string, unknown>;
-  const collectionNames = hasOwn(productRecord, 'collections') && Array.isArray(product.collections)
-    ? product.collections.map((collection) => collection.name)
-    : [];
-  const tagNames = Array.isArray(productRecord.tags)
-    ? product.tags.map((tag) => tag.name)
-    : [];
-
-  return [
-    product.name,
-    product.slug,
-    product.sku ?? '',
-    ...collectionNames,
-    ...tagNames,
-  ].filter(Boolean);
-}
-
-function matchesAdminProductTextSearch(
-  product: IAdminProductListItem,
-  normalizedQuery: string,
-) {
-  return getAdminProductSearchFields(product).some((field) => (
-    field.toLocaleLowerCase().includes(normalizedQuery)
-  ));
-}
-
-export function filterAdminProductsBySearch(
-  products: IAdminProductListItem[],
-  searchState: IAdminProductSearchState,
-): IAdminProductSearchResult {
-  const query = searchState.query?.trim();
-
-  if (!query) {
-    return {
-      items: products,
-    };
-  }
-
-  return {
-    items: products.filter((product) => (
-      matchesAdminProductTextSearch(product, query.toLocaleLowerCase())
-    )),
   };
 }

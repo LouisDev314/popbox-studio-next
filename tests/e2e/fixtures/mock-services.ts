@@ -148,8 +148,23 @@ const adminFeaturedProducts = [
   { id: '00000000-0000-4000-8000-000000000210', name: 'Featured Anniversary Kuji', slug: 'featured-anniversary-kuji', productType: 'kuji' as const },
 ];
 
+const addableAdminProducts = Array.from({ length: 13 }, (_, index) => {
+  const position = index + 1;
+  const suffix = String(300 + position).padStart(12, '0');
+  const isFinalProduct = position === 13;
+
+  return {
+    id: `00000000-0000-4000-8000-${suffix}`,
+    name: isFinalProduct ? 'Beyond First Page Product' : `Addable Product ${String(position).padStart(2, '0')}`,
+    slug: isFinalProduct ? 'beyond-first-page-product' : `addable-product-${position}`,
+    productType: 'standard' as const,
+  };
+});
+
+const adminCatalogProducts = [...adminFeaturedProducts, ...addableAdminProducts];
+
 function adminFeaturedOrderItem(productId: string, sortOrder: number) {
-  const product = adminFeaturedProducts.find((candidate) => candidate.id === productId);
+  const product = adminCatalogProducts.find((candidate) => candidate.id === productId);
   if (!product) return null;
 
   return {
@@ -163,7 +178,7 @@ function adminFeaturedOrderItem(productId: string, sortOrder: number) {
   };
 }
 
-function adminProductListItem(product: typeof adminFeaturedProducts[number]) {
+function adminProductListItem(product: typeof adminCatalogProducts[number], isFeatured = true) {
   return {
     id: product.id,
     name: product.name,
@@ -173,7 +188,9 @@ function adminProductListItem(product: typeof adminFeaturedProducts[number]) {
     priceCents: 4999,
     currency: 'CAD',
     sku: null,
-    collections: [{ id: featuredCollection.id, name: featuredCollection.name, slug: featuredCollection.slug }],
+    collections: isFeatured
+      ? [{ id: featuredCollection.id, name: featuredCollection.name, slug: featuredCollection.slug }]
+      : [],
     inventory: null,
     tags: [],
     primaryImage: null,
@@ -182,7 +199,7 @@ function adminProductListItem(product: typeof adminFeaturedProducts[number]) {
 }
 
 function storefrontProductCard(productId: string) {
-  const product = adminFeaturedProducts.find((candidate) => candidate.id === productId);
+  const product = adminCatalogProducts.find((candidate) => candidate.id === productId);
   if (!product) return null;
 
   return {
@@ -504,11 +521,49 @@ function createRequestHandler(state: IAuthMockState) {
     }
 
     if (pathname === '/api/v1/admin/products' && request.method === 'GET') {
+      const excludedCollectionId = requestUrl.searchParams.get('excludeCollectionId');
+      const search = requestUrl.searchParams.get('search')?.trim().toLocaleLowerCase() ?? '';
+      const cursor = requestUrl.searchParams.get('cursor');
+
+      if (excludedCollectionId === featuredCollection.id) {
+        const eligibleProducts = addableAdminProducts.filter((product) => (
+          !state.featuredOrderIds.includes(product.id)
+          && (!search || product.name.toLocaleLowerCase().includes(search))
+        ));
+        const pageStart = cursor === 'addable-page-2' ? 12 : 0;
+        const pageItems = eligibleProducts.slice(pageStart, pageStart + 12);
+
+        sendJson(response, apiData({
+          items: pageItems.map((product) => adminProductListItem(product, false)),
+          nextCursor: pageStart === 0 && eligibleProducts.length > 12 ? 'addable-page-2' : null,
+          totalCount: eligibleProducts.length,
+        }));
+        return;
+      }
+
       sendJson(response, apiData({
-        items: adminFeaturedProducts.map(adminProductListItem),
+        items: adminCatalogProducts.map((product) => (
+          adminProductListItem(product, state.featuredOrderIds.includes(product.id))
+        )),
         nextCursor: null,
-        totalCount: adminFeaturedProducts.length,
+        totalCount: adminCatalogProducts.length,
       }));
+      return;
+    }
+
+    const adminProductMatch = pathname.match(/^\/api\/v1\/admin\/products\/([^/]+)$/);
+    if (adminProductMatch && request.method === 'PATCH') {
+      const productId = adminProductMatch[1];
+      const body = await readJson(request);
+      const collectionIds = Array.isArray(body.collectionIds)
+        ? body.collectionIds.filter((collectionId): collectionId is string => typeof collectionId === 'string')
+        : [];
+
+      if (collectionIds.includes(featuredCollection.id) && !state.featuredOrderIds.includes(productId)) {
+        state.featuredOrderIds.push(productId);
+      }
+
+      sendJson(response, apiData({ id: productId }));
       return;
     }
 

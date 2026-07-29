@@ -222,3 +222,31 @@ test('admin can sort Featured products with the keyboard', async ({ page }, test
   await expect(page.getByText('Unsaved changes')).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
+
+test('admin adds collection products from multiple infinite-scroll pages', async ({ page }) => {
+  await authenticateAdmin(page);
+  await page.goto('/admin/collections/00000000-0000-4000-8000-000000000100');
+  await page.getByRole('button', { name: 'Add products' }).click();
+
+  const dialog = page.getByRole('dialog', { name: 'Add products' });
+  const productList = dialog.getByLabel('Eligible products');
+  await expect(dialog.getByText('Addable Product 01')).toBeVisible();
+  await dialog.getByRole('checkbox', { name: /Select Addable Product 01/ }).click();
+
+  await productList.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+    element.dispatchEvent(new Event('scroll', { bubbles: true }));
+  });
+
+  await expect(dialog.getByText('Beyond First Page Product')).toBeVisible();
+  await dialog.getByRole('checkbox', { name: /Select Beyond First Page Product/ }).click();
+  await expect(dialog.getByText('2 selected')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Add 2 products' }).click();
+
+  await expect(dialog).toHaveCount(0);
+  const orderSection = page.locator('section').filter({
+    has: page.getByRole('heading', { name: 'Featured storefront order' }),
+  });
+  await expect(orderSection.getByText('Addable Product 01')).toBeVisible();
+  await expect(orderSection.getByText('Beyond First Page Product')).toBeVisible();
+});

@@ -1,7 +1,15 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AxiosResponse } from 'axios';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import AdminCollectionDetailPageClient from '@/components/admin/collections/admin-collection-detail-page';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
@@ -17,6 +25,50 @@ import { renderWithProviders } from '../test-utils';
 
 const toastSuccessMock = vi.hoisted(() => vi.fn());
 const toastErrorMock = vi.hoisted(() => vi.fn());
+let intersectionObservers: MockIntersectionObserver[] = [];
+
+class MockIntersectionObserver {
+  readonly root: Element | Document | null;
+  readonly rootMargin: string;
+  readonly thresholds: readonly number[] = [0];
+  private readonly callback: IntersectionObserverCallback;
+  private observedElement: Element | null = null;
+
+  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+    this.callback = callback;
+    this.root = options?.root ?? null;
+    this.rootMargin = options?.rootMargin ?? '0px';
+    intersectionObservers.push(this);
+  }
+
+  disconnect = vi.fn();
+
+  observe = vi.fn((element: Element) => {
+    this.observedElement = element;
+  });
+
+  takeRecords = vi.fn((): IntersectionObserverEntry[] => []);
+
+  unobserve = vi.fn();
+
+  trigger(isIntersecting = true) {
+    if (!this.observedElement) {
+      throw new Error('Cannot trigger an observer before an element is observed.');
+    }
+
+    this.callback([
+      {
+        boundingClientRect: this.observedElement.getBoundingClientRect(),
+        intersectionRatio: isIntersecting ? 1 : 0,
+        intersectionRect: this.observedElement.getBoundingClientRect(),
+        isIntersecting,
+        rootBounds: null,
+        target: this.observedElement,
+        time: 0,
+      },
+    ], this as unknown as IntersectionObserver);
+  }
+}
 
 vi.mock('sonner', () => ({
   toast: {
@@ -29,6 +81,15 @@ beforeAll(() => {
   if (!window.PointerEvent) {
     window.PointerEvent = MouseEvent as typeof PointerEvent;
   }
+});
+
+beforeEach(() => {
+  intersectionObservers = [];
+  vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 const collections: ICollection[] = [
@@ -116,11 +177,15 @@ function createAdminProduct(overrides: Partial<IAdminProduct> = {}): IAdminProdu
   };
 }
 
-function createProductListResponse(items: IAdminProductListItem[]): IAdminProductListResponse {
+function createProductListResponse(
+  items: IAdminProductListItem[],
+  nextCursor: string | null = null,
+  totalCount = items.length,
+): IAdminProductListResponse {
   return {
     items,
-    nextCursor: null,
-    totalCount: items.length,
+    nextCursor,
+    totalCount,
   };
 }
 
@@ -207,7 +272,7 @@ describe('AdminCollectionDetailPageClient', () => {
     expect(await screen.findByText('Kuji Set')).toBeInTheDocument();
   });
 
-  it('does not allow already-assigned products to be selected again', async () => {
+  it('excludes products that are already assigned to the collection', async () => {
     const assignedProduct = createProduct();
     mockCollectionDetailQueries({
       allProducts: [assignedProduct],
@@ -217,11 +282,202 @@ describe('AdminCollectionDetailPageClient', () => {
     renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
 
     await userEvent.click(await screen.findByRole('button', { name: /Add products/i }));
-    const checkbox = await screen.findByLabelText('Ichiban Figure already in collection');
 
-    expect(checkbox).toHaveAttribute('aria-disabled', 'true');
+    expect(await screen.findByText('No eligible products are available.')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Select Ichiban Figure')).not.toBeInTheDocument();
     expect(screen.getByText('0 selected')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add products' })).toBeDisabled();
+  });
+
+  it('loads and appends the next cursor once, deduplicates products, and preserves selection', async () => {
+    const firstProduct = createProduct({
+      id: 'product-page-1',
+      name: 'Page One Product',
+      collections: [],
+    });
+    const secondProduct = createProduct({
+      id: 'product-page-2',
+      name: 'Page Two Product',
+      collections: [],
+    });
+    mockCollectionDetailQueries({ allProducts: [firstProduct], assignedProducts: [] });
+    const fetchProducts = vi.mocked(QueryConfigs.fetchAdminProducts);
+    fetchProducts.mockImplementation((filters = {}) => Promise.resolve(createResponse(
+      filters.cursor === 'cursor-2'
+        ? createProductListResponse([firstProduct, secondProduct], null, 2)
+        : createProductListResponse([firstProduct], 'cursor-2', 2),
+    )));
+
+    renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Add products/i }));
+    await userEvent.click(await screen.findByLabelText('Select Page One Product'));
+    const productList = screen.getByLabelText('Eligible products');
+    await waitFor(() => expect(intersectionObservers).toHaveLength(1));
+
+    expect(intersectionObservers[0].root).toBe(productList);
+    expect(intersectionObservers[0].rootMargin).toBe('0px 0px 200px 0px');
+    intersectionObservers[0].trigger();
+    intersectionObservers[0].trigger();
+
+    expect(await screen.findByText('Page Two Product')).toBeInTheDocument();
+    expect(screen.getAllByText('Page One Product')).toHaveLength(1);
+    expect(screen.getByLabelText('Select Page One Product')).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+    expect(fetchProducts).toHaveBeenCalledWith(expect.objectContaining({
+      cursor: undefined,
+      excludeCollectionId: 'collection-1',
+      limit: 25,
+    }));
+    expect(fetchProducts.mock.calls.filter(([filters]) => filters.cursor === 'cursor-2')).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(await screen.findByRole('button', { name: /Add products/i }));
+
+    expect(await screen.findByText('Page Two Product')).toBeInTheDocument();
+    expect(screen.getByText('0 selected')).toBeInTheDocument();
+    expect(fetchProducts.mock.calls.filter(([filters]) => filters.cursor === 'cursor-2')).toHaveLength(1);
+  });
+
+  it('does not create a pagination observer after the final page', async () => {
+    const onlyProduct = createProduct({
+      id: 'only-product',
+      name: 'Only Product',
+      collections: [],
+    });
+    mockCollectionDetailQueries({ allProducts: [onlyProduct], assignedProducts: [] });
+
+    renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Add products/i }));
+
+    expect(await screen.findByText('Only Product')).toBeInTheDocument();
+    expect(intersectionObservers).toHaveLength(0);
+  });
+
+  it('restarts pagination for debounced search without appending a stale previous page', async () => {
+    const firstProduct = createProduct({
+      id: 'old-first',
+      name: 'Original Product',
+      collections: [],
+    });
+    const staleProduct = createProduct({
+      id: 'old-second',
+      name: 'Stale Product',
+      collections: [],
+    });
+    const searchProduct = createProduct({
+      id: 'search-result',
+      name: 'Hero Search Result',
+      collections: [],
+    });
+    let resolveStalePage: ((response: AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>) => void) | undefined;
+    const stalePage = new Promise<AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>>((resolve) => {
+      resolveStalePage = resolve;
+    });
+    mockCollectionDetailQueries({ allProducts: [firstProduct], assignedProducts: [] });
+    const fetchProducts = vi.mocked(QueryConfigs.fetchAdminProducts);
+    fetchProducts.mockImplementation((filters = {}) => {
+      if (filters.cursor === 'old-cursor') {
+        return stalePage;
+      }
+
+      if (filters.search === 'hero') {
+        return Promise.resolve(createResponse(createProductListResponse([searchProduct])));
+      }
+
+      return Promise.resolve(createResponse(createProductListResponse([firstProduct], 'old-cursor', 2)));
+    });
+
+    renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Add products/i }));
+    await userEvent.click(await screen.findByLabelText('Select Original Product'));
+    await waitFor(() => expect(intersectionObservers).toHaveLength(1));
+    intersectionObservers[0].trigger();
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search products' }), 'hero');
+
+    expect(await screen.findByText('Hero Search Result')).toBeInTheDocument();
+    expect(screen.queryByText('Original Product')).not.toBeInTheDocument();
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+    expect(fetchProducts).toHaveBeenCalledWith(expect.objectContaining({
+      cursor: undefined,
+      search: 'hero',
+    }));
+
+    resolveStalePage?.(createResponse(createProductListResponse([staleProduct])));
+    await waitFor(() => {
+      expect(screen.queryByText('Stale Product')).not.toBeInTheDocument();
+    });
+  });
+
+  it('lets the user retry a failed next page', async () => {
+    const firstProduct = createProduct({
+      id: 'retry-first',
+      name: 'Retry First Product',
+      collections: [],
+    });
+    const recoveredProduct = createProduct({
+      id: 'retry-second',
+      name: 'Recovered Product',
+      collections: [],
+    });
+    let cursorAttempts = 0;
+    mockCollectionDetailQueries({ allProducts: [firstProduct], assignedProducts: [] });
+    const fetchProducts = vi.mocked(QueryConfigs.fetchAdminProducts);
+    fetchProducts.mockImplementation((filters = {}) => {
+      if (filters.cursor === 'retry-cursor') {
+        cursorAttempts += 1;
+        return cursorAttempts === 1
+          ? Promise.reject(new Error('Next page failed'))
+          : Promise.resolve(createResponse(createProductListResponse([recoveredProduct])));
+      }
+
+      return Promise.resolve(createResponse(createProductListResponse([firstProduct], 'retry-cursor', 2)));
+    });
+
+    renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Add products/i }));
+    await waitFor(() => expect(intersectionObservers).toHaveLength(1));
+    intersectionObservers[0].trigger();
+
+    expect(await screen.findByText('More products could not be loaded.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByText('Recovered Product')).toBeInTheDocument();
+    expect(cursorAttempts).toBe(2);
+  });
+
+  it('shows an initial load error and retries from the first page', async () => {
+    const recoveredProduct = createProduct({
+      id: 'initial-recovered',
+      name: 'Initially Recovered Product',
+      collections: [],
+    });
+    let modalAttempts = 0;
+    mockCollectionDetailQueries({ allProducts: [], assignedProducts: [] });
+    const fetchProducts = vi.mocked(QueryConfigs.fetchAdminProducts);
+    fetchProducts.mockImplementation((filters = {}) => {
+      if (filters.limit === 25) {
+        modalAttempts += 1;
+        return modalAttempts === 1
+          ? Promise.reject(new Error('Initial page failed'))
+          : Promise.resolve(createResponse(createProductListResponse([recoveredProduct])));
+      }
+
+      return Promise.resolve(createResponse(createProductListResponse([])));
+    });
+
+    renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /Add products/i }));
+
+    expect(await screen.findByText('Unable to load products. Please try again.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByText('Initially Recovered Product')).toBeInTheDocument();
+    expect(modalAttempts).toBe(2);
   });
 
   it('adds selected products with preserved collection ids', async () => {

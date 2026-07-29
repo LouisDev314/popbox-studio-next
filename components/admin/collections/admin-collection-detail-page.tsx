@@ -1,14 +1,15 @@
 'use client';
 
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, Search, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
-import { filterAdminProductsBySearch } from '@/lib/admin-product-filters';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { ADMIN_PRODUCT_LIST_LIMIT } from '@/lib/admin-product-filters';
 import { cn } from '@/lib/utils';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
 import type {
@@ -31,6 +32,7 @@ import {
 } from '@/components/ui/dialog';
 import { ErrorAlert } from '@/components/ui/error-alert';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 
 function formatPrice(product: Pick<IAdminProductListItem, 'currency' | 'priceCents'>) {
@@ -117,52 +119,106 @@ function ProductRow({ collectionId, isBusy, onRemove, product }: IProductRowProp
 
 interface IAddProductsDialogProps {
   assignedProductIds: Set<string>;
+  collectionId: string;
   isOpen: boolean;
-  isProductsError: boolean;
   isSaving: boolean;
   onConfirm: (products: IAdminProductListItem[]) => void;
   onOpenChange: (isOpen: boolean) => void;
-  products: IAdminProductListItem[];
 }
 
 function AddProductsDialog({
   assignedProductIds,
+  collectionId,
   isOpen,
-  isProductsError,
   isSaving,
   onConfirm,
   onOpenChange,
-  products,
 }: IAddProductsDialogProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
-  const deferredSearchQuery = useDeferredValue(searchQuery.trim());
-  const selectedProductIdSet = useMemo(() => new Set(selectedProductIds), [selectedProductIds]);
-  const searchedProducts = useMemo(() => filterAdminProductsBySearch(
-    products,
-    { query: deferredSearchQuery },
-  ).items, [deferredSearchQuery, products]);
+  const [selectedProductsById, setSelectedProductsById] = useState<Record<string, IAdminProductListItem>>({});
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const nextPageRequestInFlightRef = useRef(false);
+  const normalizedSearchQuery = searchQuery.trim();
+  const debouncedSearchQuery = useDebouncedValue(normalizedSearchQuery, 300);
+  const effectiveSearchQuery = normalizedSearchQuery ? debouncedSearchQuery : '';
+  const productsQuery = useInfiniteQuery({
+    queryKey: ['admin', 'products', 'collection-add-dialog', collectionId, effectiveSearchQuery],
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => (
+      await QueryConfigs.fetchAdminProducts({
+        cursor: pageParam,
+        excludeCollectionId: collectionId,
+        limit: ADMIN_PRODUCT_LIST_LIMIT,
+        search: effectiveSearchQuery || undefined,
+      })
+    ).data.data,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: isOpen,
+    retry: false,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
+  const {
+    data: productPages,
+    fetchNextPage: fetchNextProductsPage,
+    hasNextPage,
+    isError: isProductsListError,
+    isFetchNextPageError,
+    isFetchingNextPage,
+    isPending: isProductsListPending,
+    refetch: refetchProducts,
+  } = productsQuery;
+  const products = useMemo(() => {
+    const uniqueProducts: IAdminProductListItem[] = [];
+    const seenProductIds = new Set<string>();
+
+    productPages?.pages.forEach((page) => {
+      page.items.forEach((product) => {
+        if (!seenProductIds.has(product.id)) {
+          seenProductIds.add(product.id);
+          uniqueProducts.push(product);
+        }
+      });
+    });
+
+    return uniqueProducts;
+  }, [productPages?.pages]);
+  const eligibleProducts = useMemo(() => products.filter((product) => (
+    !assignedProductIds.has(product.id)
+    && !getCollectionIds(product).includes(collectionId)
+  )), [assignedProductIds, collectionId, products]);
   const selectedProducts = useMemo(
-    () => products.filter((product) => selectedProductIdSet.has(product.id) && !assignedProductIds.has(product.id)),
-    [assignedProductIds, products, selectedProductIdSet],
+    () => Object.values(selectedProductsById).filter((product) => (
+      !assignedProductIds.has(product.id)
+      && !getCollectionIds(product).includes(collectionId)
+    )),
+    [assignedProductIds, collectionId, selectedProductsById],
   );
 
   const toggleProduct = (product: IAdminProductListItem) => {
-    if (assignedProductIds.has(product.id)) {
+    if (assignedProductIds.has(product.id) || getCollectionIds(product).includes(collectionId)) {
       return;
     }
 
-    setSelectedProductIds((currentIds) => (
-      currentIds.includes(product.id)
-        ? currentIds.filter((id) => id !== product.id)
-        : [...currentIds, product.id]
-    ));
+    setSelectedProductsById((currentProducts) => {
+      if (currentProducts[product.id]) {
+        const nextProducts = { ...currentProducts };
+        delete nextProducts[product.id];
+        return nextProducts;
+      }
+
+      return {
+        ...currentProducts,
+        [product.id]: product,
+      };
+    });
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       setSearchQuery('');
-      setSelectedProductIds([]);
+      setSelectedProductsById({});
     }
 
     onOpenChange(nextOpen);
@@ -171,6 +227,68 @@ function AddProductsDialog({
   const handleConfirm = () => {
     onConfirm(selectedProducts);
   };
+
+  const fetchNextPage = useCallback(async () => {
+    if (
+      nextPageRequestInFlightRef.current
+      || !hasNextPage
+      || isFetchingNextPage
+    ) {
+      return;
+    }
+
+    nextPageRequestInFlightRef.current = true;
+
+    try {
+      await fetchNextProductsPage();
+    } finally {
+      nextPageRequestInFlightRef.current = false;
+    }
+  }, [fetchNextProductsPage, hasNextPage, isFetchingNextPage]);
+
+  useEffect(() => {
+    nextPageRequestInFlightRef.current = false;
+  }, [collectionId, effectiveSearchQuery]);
+
+  useEffect(() => {
+    const root = scrollContainerRef.current;
+    const sentinel = sentinelRef.current;
+
+    if (
+      !isOpen
+      || !root
+      || !sentinel
+      || !hasNextPage
+      || isFetchingNextPage
+      || isFetchNextPageError
+      || typeof IntersectionObserver === 'undefined'
+    ) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        void fetchNextPage();
+      }
+    }, {
+      root,
+      rootMargin: '0px 0px 200px 0px',
+    });
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [
+    fetchNextPage,
+    hasNextPage,
+    isFetchNextPageError,
+    isFetchingNextPage,
+    isOpen,
+  ]);
+
+  const isInitialError = isProductsListError && !productPages;
+  const isFinalEmptyState = eligibleProducts.length === 0
+    && !hasNextPage
+    && !isFetchingNextPage;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -189,6 +307,7 @@ function AddProductsDialog({
               <Input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
+                aria-label="Search products"
                 className="h-10 pl-9 pr-9"
                 placeholder="Search products"
               />
@@ -208,59 +327,82 @@ function AddProductsDialog({
             </span>
           </div>
 
-          <div className="max-h-[52vh] overflow-y-auto rounded-xl border border-border/40">
-            {isProductsError ? (
-              <div className="p-4">
-                <ErrorAlert message="Unable to load products. Please close this dialog and try again." />
+          <div
+            ref={scrollContainerRef}
+            tabIndex={0}
+            aria-label="Eligible products"
+            className="max-h-[52vh] overflow-y-auto rounded-xl border border-border/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {isProductsListPending ? (
+              <div className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground" role="status" aria-live="polite">
+                <Spinner aria-hidden="true" />
+                Loading products...
               </div>
-            ) : searchedProducts.length === 0 ? (
-              <div className="p-8 text-center text-sm text-muted-foreground">No products match this search.</div>
+            ) : isInitialError ? (
+              <div className="space-y-3 p-4">
+                <ErrorAlert message="Unable to load products. Please try again." />
+                <Button type="button" variant="outline" size="sm" onClick={() => void refetchProducts()}>
+                  Try again
+                </Button>
+              </div>
+            ) : isFinalEmptyState ? (
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                {effectiveSearchQuery ? 'No products match this search.' : 'No eligible products are available.'}
+              </div>
             ) : (
-              <div className="divide-y divide-border/30">
-                {searchedProducts.map((product) => {
-                  const isAssigned = assignedProductIds.has(product.id);
-                  const isSelected = selectedProductIdSet.has(product.id);
+              <>
+                <div className="divide-y divide-border/30">
+                  {eligibleProducts.map((product) => {
+                    const isSelected = Boolean(selectedProductsById[product.id]);
 
-                  return (
-                    <label
-                      key={product.id}
-                      className={cn(
-                        'flex items-center gap-3 px-3 py-3 transition-colors',
-                        isAssigned ? 'bg-muted/35 text-muted-foreground' : 'cursor-pointer hover:bg-muted/35',
-                      )}
-                    >
-                      <Checkbox
-                        checked={isSelected || isAssigned}
-                        disabled={isAssigned || isSaving}
-                        onCheckedChange={() => toggleProduct(product)}
-                        aria-label={isAssigned ? `${product.name} already in collection` : `Select ${product.name}`}
-                      />
-                      <div className="h-11 w-11 overflow-hidden rounded-md border border-border/50 bg-muted">
-                        <StorefrontImage
-                          alt={product.primaryImage?.altText ?? product.name}
-                          src={getProductImageSrc(product)}
-                          label={product.name}
-                          sizes="44px"
-                          unoptimized
+                    return (
+                      <label
+                        key={product.id}
+                        className="flex cursor-pointer items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/35"
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          disabled={isSaving}
+                          onCheckedChange={() => toggleProduct(product)}
+                          aria-label={`Select ${product.name}`}
                         />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="truncate text-sm font-medium text-foreground">{product.name}</span>
-                          {isAssigned ? (
-                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                              Already in collection
-                            </span>
-                          ) : null}
+                        <div className="h-11 w-11 overflow-hidden rounded-md border border-border/50 bg-muted">
+                          <StorefrontImage
+                            alt={product.primaryImage?.altText ?? product.name}
+                            src={getProductImageSrc(product)}
+                            label={product.name}
+                            sizes="44px"
+                            unoptimized
+                          />
                         </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {product.sku || 'No SKU'} · {formatProductType(product.productType)} · {formatPrice(product)}
-                        </p>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="truncate text-sm font-medium text-foreground">{product.name}</span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {product.sku || 'No SKU'} · {formatProductType(product.productType)} · {formatPrice(product)}
+                          </p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+                <div ref={sentinelRef} className="h-px" aria-hidden="true" />
+                {isFetchingNextPage ? (
+                  <div className="flex items-center justify-center gap-2 px-4 py-3 text-xs text-muted-foreground" role="status" aria-live="polite">
+                    <Spinner aria-hidden="true" />
+                    Loading more products...
+                  </div>
+                ) : null}
+                {isFetchNextPageError ? (
+                  <div className="flex items-center justify-center gap-3 px-4 py-3 text-sm text-destructive">
+                    <span>More products could not be loaded.</span>
+                    <Button type="button" variant="outline" size="sm" onClick={() => void fetchNextPage()}>
+                      Try again
+                    </Button>
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
         </div>
@@ -456,7 +598,6 @@ function CollectionProductsSection({
   );
 }
 
-// eslint-disable-next-line complexity
 export default function AdminCollectionDetailPageClient({ collectionId }: { collectionId: string }) {
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -505,7 +646,6 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
     )),
     [collectionId, productsRes?.data?.data?.items],
   );
-  const allProducts = productsRes?.data?.data?.items ?? [];
   const assignedProductIds = useMemo(
     () => new Set((isFeaturedCollection ? featuredItems : assignedProducts).map((product) => product.id)),
     [assignedProducts, featuredItems, isFeaturedCollection],
@@ -645,13 +785,13 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
       )}
 
       <AddProductsDialog
+        key={collectionId}
         assignedProductIds={assignedProductIds}
+        collectionId={collectionId}
         isOpen={isAddDialogOpen}
-        isProductsError={isProductsError}
-        isSaving={isMutatingProducts || isProductsPending}
+        isSaving={isMutatingProducts}
         onConfirm={handleAddProducts}
         onOpenChange={setIsAddDialogOpen}
-        products={allProducts}
       />
     </div>
   );

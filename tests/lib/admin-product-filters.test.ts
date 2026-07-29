@@ -4,49 +4,11 @@ import {
   buildAdminProductsQueryKey,
   buildAdminProductsQueryScopeKey,
   buildAdminProductsRequestParams,
-  filterAdminProductsBySearch,
   isSameAdminProductsQueryScope,
   parseAdminProductSortParam,
   parseAdminProductTypeParam,
   parseAdminTagIdParam,
 } from '@/lib/admin-product-filters';
-import type { IAdminProductListItem } from '@/interfaces/product';
-
-const products: IAdminProductListItem[] = [
-  {
-    id: 'prod-1',
-    name: 'Hero (Limited)',
-    slug: 'hero-limited',
-    productType: 'standard',
-    status: 'active',
-    priceCents: 1999,
-    currency: 'CAD',
-    sku: 'HB-001',
-    collections: [
-      { id: 'collection-1', name: 'Hero Archive', slug: 'hero-archive' },
-      { id: 'collection-3', name: 'Featured', slug: 'featured' },
-    ],
-    tags: [{ id: 'tag-1', name: 'Chase', slug: 'chase', tagType: 'character' }],
-    inventory: null,
-    primaryImage: null,
-    updatedAt: '2026-04-01T00:00:00.000Z',
-  },
-  {
-    id: 'prod-2',
-    name: 'Kuji Hero Lottery',
-    slug: 'kuji-hero-lottery',
-    productType: 'kuji',
-    status: 'draft',
-    priceCents: 1600,
-    currency: 'CAD',
-    sku: 'KUJI-777',
-    collections: [{ id: 'collection-2', name: 'Ichiban Kuji', slug: 'ichiban-kuji' }],
-    tags: [{ id: 'tag-2', name: 'Lottery', slug: 'lottery', tagType: 'series' }],
-    inventory: null,
-    primaryImage: null,
-    updatedAt: '2026-04-02T00:00:00.000Z',
-  },
-];
 
 describe('admin product filters', () => {
   it('parses supported canonical product params', () => {
@@ -64,6 +26,7 @@ describe('admin product filters', () => {
     })).toEqual({
       collectionId: 'all',
       cursor: undefined,
+      excludeCollectionId: undefined,
       limit: 25,
       productType: 'all',
       search: 'hero',
@@ -91,6 +54,7 @@ describe('admin product filters', () => {
       'active',
       'kuji',
       'collection-1',
+      '',
       'tag-1',
       'price_desc',
       'cursor-1',
@@ -122,15 +86,5 @@ describe('admin product filters', () => {
       buildAdminProductsQueryKey(buildAdminProductListQueryParams({ search: 'villain' })),
       scopeKey,
     )).toBe(false);
-  });
-
-  it('keeps local product search available for collection assignment dialogs only', () => {
-    expect(filterAdminProductsBySearch(products, {
-      query: 'hero archive',
-    }).items.map((product) => product.id)).toEqual(['prod-1']);
-
-    expect(filterAdminProductsBySearch(products, {
-      query: 'hero.*',
-    }).items).toEqual([]);
   });
 });
