@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
+import * as Sentry from '@sentry/nextjs';
 import type { AxiosResponse } from 'axios';
 import {
   closestCenter,
@@ -27,15 +28,17 @@ import { GripVertical, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
+import { useFeaturedOrderEditor } from '@/hooks/use-featured-order-editor';
 import { getApiErrorCode, getFriendlyErrorMessage } from '@/utils/api-errors';
 import type { IBaseApiResponse } from '@/interfaces/api-response';
 import type {
   IAdminFeaturedOrderItem,
   IAdminFeaturedOrderResponse,
   IAdminFeaturedOrderUpdate,
-  IAdminProductListResponse,
   IProductCollection,
 } from '@/interfaces/product';
+import { patchAdminProductMembershipCache } from '@/lib/admin-query-cache';
+import { adminCollectionKeys, adminProductKeys } from '@/lib/admin-query-keys';
 import { AdminProductStatusBadge } from '@/components/admin/admin-product-status-badge';
 import { Button } from '@/components/ui/button';
 import { ErrorAlert } from '@/components/ui/error-alert';
@@ -48,15 +51,10 @@ interface IFeaturedOrderSectionProps {
   featuredOrder: IAdminFeaturedOrderResponse | null;
   isError: boolean;
   isLoading: boolean;
+  localMembershipSignature: string | null;
   isMembershipMutationPending: boolean;
   onAddProductsClick: () => void;
   onReload: () => Promise<IAdminFeaturedOrderResponse | null>;
-}
-
-const FEATURED_ORDER_QUERY_KEY = ['admin', 'featured-order'] as const;
-
-function idsMatch(left: string[], right: string[]) {
-  return left.length === right.length && left.every((id, index) => id === right[index]);
 }
 
 function synchronizeAdminProductMembershipCaches(
@@ -66,41 +64,32 @@ function synchronizeAdminProductMembershipCaches(
 ) {
   const featuredProductIds = new Set(featuredOrder.items.map((item) => item.id));
 
-  queryClient.setQueriesData<AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>>(
-    { queryKey: ['admin', 'products'] },
-    (cachedResponse) => {
-      if (!cachedResponse) return cachedResponse;
-
-      let didChange = false;
-      const items = cachedResponse.data.data.items.map((product) => {
-        const isFeatured = product.collections.some((collection) => collection.id === featuredCollection.id);
-        const shouldBeFeatured = featuredProductIds.has(product.id);
-
-        if (isFeatured === shouldBeFeatured) return product;
-        didChange = true;
-
-        return {
-          ...product,
-          collections: shouldBeFeatured
-            ? [...product.collections, featuredCollection]
-            : product.collections.filter((collection) => collection.id !== featuredCollection.id),
-        };
-      });
-
-      if (!didChange) return cachedResponse;
-
-      return {
-        ...cachedResponse,
-        data: {
-          ...cachedResponse.data,
-          data: {
-            ...cachedResponse.data.data,
-            items,
-          },
-        },
-      };
-    },
+  const updater = (oldData: unknown) => (
+    patchAdminProductMembershipCache(oldData, featuredCollection, featuredProductIds)
   );
+
+  queryClient.setQueriesData({ queryKey: adminProductKeys.lists() }, updater);
+  queryClient.setQueriesData({ queryKey: adminProductKeys.details() }, updater);
+}
+
+function reportCacheSynchronizationFailure(queryClient: QueryClient, error: unknown) {
+  Sentry.captureException(error, {
+    tags: {
+      feature: 'admin-featured-order',
+      operation: 'cache-synchronization',
+    },
+  });
+  void Promise.all([
+    queryClient.invalidateQueries({ queryKey: adminProductKeys.lists() }),
+    queryClient.invalidateQueries({ queryKey: adminProductKeys.details() }),
+  ]).catch((invalidationError) => {
+    Sentry.captureException(invalidationError, {
+      tags: {
+        feature: 'admin-featured-order',
+        operation: 'cache-recovery-invalidation',
+      },
+    });
+  });
 }
 
 function formatProductType(productType: IAdminFeaturedOrderItem['productType']) {
@@ -203,22 +192,23 @@ export function FeaturedOrderSection({
   featuredOrder,
   isError,
   isLoading,
+  localMembershipSignature,
   isMembershipMutationPending,
   onAddProductsClick,
   onReload,
 }: IFeaturedOrderSectionProps) {
   const queryClient = useQueryClient();
   const submissionGuard = useRef(false);
-  const observedOrderRef = useRef(featuredOrder);
-  const [persistedOrder, setPersistedOrder] = useState<IAdminFeaturedOrderResponse | null>(featuredOrder);
-  const [draftIds, setDraftIds] = useState<string[]>(featuredOrder?.items.map((item) => item.id) ?? []);
-  const [isInitialized, setIsInitialized] = useState(!isLoading && !isError && featuredOrder !== null);
-  const [hasMembershipConflict, setHasMembershipConflict] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const featuredOrderPropRef = useRef(featuredOrder);
+  const [isPreparingSave, setIsPreparingSave] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const editor = useFeaturedOrderEditor(featuredOrder, !isLoading && !isError);
+  const persistedOrder = editor.persistedOrder;
+  const draftIds = editor.draftIds;
   const persistedItems = useMemo(() => persistedOrder?.items ?? [], [persistedOrder]);
-  const persistedIds = useMemo(() => persistedItems.map((item) => item.id), [persistedItems]);
-  const isDirty = isInitialized && !idsMatch(draftIds, persistedIds);
+  const isDirty = editor.isDirty;
+  const hasMembershipConflict = editor.error?.kind === 'conflict' || editor.error?.kind === 'sync';
   const itemMap = useMemo(() => new Map(persistedItems.map((item) => [item.id, item])), [persistedItems]);
   const draftItems = useMemo(() => draftIds.flatMap((id) => {
     const item = itemMap.get(id);
@@ -237,45 +227,73 @@ export function FeaturedOrderSection({
     }),
   );
 
-  const resetOrder = useCallback((nextOrder: IAdminFeaturedOrderResponse) => {
-    setPersistedOrder(nextOrder);
-    setDraftIds(nextOrder.items.map((item) => item.id));
+  const resetActiveItem = useCallback(() => {
     setActiveId(null);
-    setHasMembershipConflict(false);
-    setErrorMessage(null);
-    setIsInitialized(true);
   }, []);
 
   const synchronizeCanonicalOrder = useCallback((response: AxiosResponse<IBaseApiResponse<IAdminFeaturedOrderResponse>>) => {
-    queryClient.setQueryData(FEATURED_ORDER_QUERY_KEY, response);
-    synchronizeAdminProductMembershipCaches(queryClient, featuredCollection, response.data.data);
-    resetOrder(response.data.data);
-  }, [featuredCollection, queryClient, resetOrder]);
+    try {
+      const nextOrder = response.data.data;
+      editor.commit(nextOrder);
+      resetActiveItem();
+      queryClient.setQueryData(adminCollectionKeys.featuredOrder(), response);
+
+      try {
+        synchronizeAdminProductMembershipCaches(queryClient, featuredCollection, nextOrder);
+      } catch (error) {
+        reportCacheSynchronizationFailure(queryClient, error);
+      }
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: {
+          feature: 'admin-featured-order',
+          operation: 'canonical-order-commit',
+        },
+      });
+      editor.setError({
+        kind: 'sync',
+        message: 'The order was saved, but the latest Featured state could not be synchronized. Reload and reconcile before continuing.',
+      });
+      void queryClient.invalidateQueries({
+        queryKey: adminCollectionKeys.featuredOrder(),
+        exact: true,
+      }).catch((invalidationError) => {
+        Sentry.captureException(invalidationError, {
+          tags: {
+            feature: 'admin-featured-order',
+            operation: 'featured-order-recovery-invalidation',
+          },
+        });
+      });
+    }
+  }, [editor, featuredCollection, queryClient, resetActiveItem]);
 
   useEffect(() => {
-    if (!featuredOrder || observedOrderRef.current === featuredOrder) return undefined;
-    observedOrderRef.current = featuredOrder;
+    if (!featuredOrder || featuredOrderPropRef.current === featuredOrder) return undefined;
+    featuredOrderPropRef.current = featuredOrder;
+    if (isRecovering) return undefined;
     let isCancelled = false;
 
-    if (!isInitialized || (!isDirty && persistedOrder !== featuredOrder)) {
-      queueMicrotask(() => {
-        if (!isCancelled) resetOrder(featuredOrder);
-      });
-      return () => {
-        isCancelled = true;
-      };
-    }
-
-    if (featuredOrder.membershipSignature !== persistedOrder?.membershipSignature) {
-      queueMicrotask(() => {
-        if (!isCancelled) setHasMembershipConflict(true);
-      });
-    }
+    queueMicrotask(() => {
+      if (!isCancelled) {
+        editor.observe(
+          featuredOrder,
+          isMembershipMutationPending
+            || featuredOrder.membershipSignature === localMembershipSignature,
+        );
+      }
+    });
 
     return () => {
       isCancelled = true;
     };
-  }, [featuredOrder, isDirty, isInitialized, persistedOrder, resetOrder]);
+  }, [
+    editor,
+    featuredOrder,
+    isMembershipMutationPending,
+    isRecovering,
+    localMembershipSignature,
+  ]);
 
   useEffect(() => {
     if (!isDirty) return undefined;
@@ -296,26 +314,31 @@ export function FeaturedOrderSection({
     mutationFn: MutationConfigs.updateAdminFeaturedOrder,
     onSuccess: (response) => {
       synchronizeCanonicalOrder(response);
-      submissionGuard.current = false;
       toast.success('Featured product order saved.');
     },
     onError: (error) => {
-      submissionGuard.current = false;
-
       if (getApiErrorCode(error) === 'FEATURED_MEMBERSHIP_CHANGED') {
-        setHasMembershipConflict(true);
-        setErrorMessage(null);
+        editor.setError({
+          kind: 'conflict',
+          message: 'Featured membership changed while you were editing. Your local draft is still available; reload and reconcile before saving.',
+        });
         return;
       }
 
-      setErrorMessage(getFriendlyErrorMessage(error, 'Unable to save Featured order. Please try again.'));
+      editor.setError({
+        kind: 'request',
+        message: getFriendlyErrorMessage(error, 'Unable to save Featured order. Please try again.'),
+      });
+    },
+    onSettled: () => {
+      submissionGuard.current = false;
     },
   });
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    setErrorMessage(null);
+    editor.clearError();
     setActiveId(String(event.active.id));
-  }, []);
+  }, [editor]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     setActiveId(null);
@@ -323,50 +346,111 @@ export function FeaturedOrderSection({
 
     if (!over || active.id === over.id) return;
 
-    setDraftIds((currentIds) => {
-      const currentIndex = currentIds.indexOf(String(active.id));
-      const nextIndex = currentIds.indexOf(String(over.id));
-      if (currentIndex < 0 || nextIndex < 0) return currentIds;
-      return arrayMove(currentIds, currentIndex, nextIndex);
-    });
-  }, []);
+    const currentIndex = draftIds.indexOf(String(active.id));
+    const nextIndex = draftIds.indexOf(String(over.id));
+    if (currentIndex < 0 || nextIndex < 0) return;
+    editor.replaceDraft(arrayMove(draftIds, currentIndex, nextIndex));
+  }, [draftIds, editor]);
 
   const handleDragCancel = useCallback(() => setActiveId(null), []);
 
   const handleRemove = useCallback((productId: string) => {
-    setErrorMessage(null);
-    setDraftIds((currentIds) => currentIds.filter((id) => id !== productId));
-  }, []);
+    editor.remove(productId);
+  }, [editor]);
 
   const handleSave = () => {
-    if (!isDirty || !persistedOrder || isSaving || hasMembershipConflict || submissionGuard.current) return;
+    if (
+      !isDirty
+      || !persistedOrder
+      || isSaving
+      || isPreparingSave
+      || isRecovering
+      || hasMembershipConflict
+      || submissionGuard.current
+    ) {
+      return;
+    }
+
     submissionGuard.current = true;
-    setErrorMessage(null);
-    saveOrder({
+    setIsPreparingSave(true);
+    editor.clearError();
+    const payload = {
       membershipSignature: persistedOrder.membershipSignature,
-      productIds: draftIds,
-    });
+      productIds: [...draftIds],
+    };
+
+    void (async () => {
+      try {
+        await queryClient.cancelQueries({
+          queryKey: adminCollectionKeys.featuredOrder(),
+          exact: true,
+        });
+        saveOrder(payload);
+      } catch (error) {
+        submissionGuard.current = false;
+        Sentry.captureException(error, {
+          tags: {
+            feature: 'admin-featured-order',
+            operation: 'save-preparation',
+          },
+        });
+        editor.setError({
+          kind: 'sync',
+          message: 'Featured products could not be prepared for saving. Reload and reconcile before trying again.',
+        });
+      } finally {
+        setIsPreparingSave(false);
+      }
+    })();
   };
 
   const handleDiscard = () => {
     if (!isDirty || window.confirm('Discard your unsaved Featured order changes?')) {
-      setDraftIds(persistedIds);
-      setErrorMessage(null);
+      editor.discard();
     }
   };
 
   const handleReload = async () => {
-    const nextOrder = await onReload();
-    if (!nextOrder) return;
+    if (isRecovering || isSaving || isMembershipMutationPending) return;
+    setIsRecovering(true);
 
-    synchronizeAdminProductMembershipCaches(queryClient, featuredCollection, nextOrder);
-    resetOrder(nextOrder);
+    try {
+      const nextOrder = await onReload();
+      if (!nextOrder) {
+        throw new Error('Featured order reload returned no data');
+      }
+
+      editor.reconcile(nextOrder);
+      resetActiveItem();
+
+      try {
+        synchronizeAdminProductMembershipCaches(queryClient, featuredCollection, nextOrder);
+      } catch (error) {
+        reportCacheSynchronizationFailure(queryClient, error);
+      }
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: {
+          feature: 'admin-featured-order',
+          operation: 'reload-and-reconcile',
+        },
+      });
+      editor.setError({
+        kind: 'sync',
+        message: 'Unable to reload Featured products. Your local draft is still available; try again.',
+      });
+    } finally {
+      setIsRecovering(false);
+    }
   };
 
   const controlsDisabled = isSaving
+    || isPreparingSave
+    || isRecovering
+    || isLoading
     || isMembershipMutationPending
     || hasMembershipConflict
-    || (isError && !isInitialized);
+    || (isError && !editor.isInitialized);
 
   const getProductName = useCallback((id: string | number) => itemMap.get(String(id))?.name ?? 'Product', [itemMap]);
   const getPosition = useCallback((id: string | number) => draftIds.indexOf(String(id)) + 1, [draftIds]);
@@ -406,31 +490,46 @@ export function FeaturedOrderSection({
             <Plus className="h-4 w-4" />
             Add products
           </Button>
-          <Button type="button" variant="outline" disabled={!isDirty || isSaving} onClick={handleDiscard}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!isDirty || isSaving || isPreparingSave || isRecovering || isMembershipMutationPending}
+            onClick={handleDiscard}
+          >
             Discard
           </Button>
           <Button type="button" disabled={!isDirty || controlsDisabled} onClick={handleSave}>
-            {isSaving ? 'Saving...' : 'Save order'}
+            {isSaving || isPreparingSave ? 'Saving...' : 'Save order'}
           </Button>
         </div>
       </div>
 
       {hasMembershipConflict ? (
         <div className="space-y-3 p-5">
-          <ErrorAlert message="Featured membership changed while you were editing. Your draft is preserved; reload the products before saving again." />
-          <Button type="button" variant="outline" onClick={handleReload} disabled={isLoading}>
+          <ErrorAlert message={editor.error?.message ?? null} />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void handleReload()}
+            disabled={isLoading || isRecovering || isSaving || isMembershipMutationPending}
+          >
             Reload Featured products
           </Button>
         </div>
       ) : null}
-      <ErrorAlert message={errorMessage} className="m-5" />
+      {editor.error?.kind === 'request' ? <ErrorAlert message={editor.error.message} className="m-5" /> : null}
+      {editor.notice ? (
+        <p className="mx-5 mt-5 rounded-lg border border-border/50 bg-muted/40 px-4 py-3 text-sm text-muted-foreground" role="status">
+          {editor.notice}
+        </p>
+      ) : null}
 
-      {isLoading && !isInitialized ? (
+      {isLoading && !editor.isInitialized ? (
         <div className="p-10 text-center text-sm text-muted-foreground">Loading Featured products...</div>
-      ) : isError && !isInitialized ? (
+      ) : isError && !editor.isInitialized ? (
         <div className="space-y-3 p-6">
           <ErrorAlert message="Unable to load Featured products. Please refresh and try again." />
-          <Button type="button" variant="outline" onClick={handleReload}>Try again</Button>
+          <Button type="button" variant="outline" onClick={() => void handleReload()}>Try again</Button>
         </div>
       ) : draftItems.length === 0 ? (
         <div className="p-12 text-center">

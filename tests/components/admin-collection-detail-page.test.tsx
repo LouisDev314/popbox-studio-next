@@ -22,6 +22,8 @@ import type {
   ICollection,
 } from '@/interfaces/product';
 import { renderWithProviders } from '../test-utils';
+import { buildAdminProductListKeyParams } from '@/lib/admin-product-filters';
+import { adminProductKeys } from '@/lib/admin-query-keys';
 
 const toastSuccessMock = vi.hoisted(() => vi.fn());
 const toastErrorMock = vi.hoisted(() => vi.fn());
@@ -316,7 +318,7 @@ describe('AdminCollectionDetailPageClient', () => {
     await waitFor(() => expect(intersectionObservers).toHaveLength(1));
 
     expect(intersectionObservers[0].root).toBe(productList);
-    expect(intersectionObservers[0].rootMargin).toBe('0px 0px 200px 0px');
+    expect(intersectionObservers[0].rootMargin).toBe('200px 0px');
     intersectionObservers[0].trigger();
     intersectionObservers[0].trigger();
 
@@ -329,14 +331,14 @@ describe('AdminCollectionDetailPageClient', () => {
       excludeCollectionId: 'collection-1',
       limit: 25,
     }));
-    expect(fetchProducts.mock.calls.filter(([filters]) => filters.cursor === 'cursor-2')).toHaveLength(1);
+    expect(fetchProducts.mock.calls.filter(([filters]) => filters?.cursor === 'cursor-2')).toHaveLength(1);
 
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     await userEvent.click(await screen.findByRole('button', { name: /Add products/i }));
 
     expect(await screen.findByText('Page Two Product')).toBeInTheDocument();
     expect(screen.getByText('0 selected')).toBeInTheDocument();
-    expect(fetchProducts.mock.calls.filter(([filters]) => filters.cursor === 'cursor-2')).toHaveLength(1);
+    expect(fetchProducts.mock.calls.filter(([filters]) => filters?.cursor === 'cursor-2')).toHaveLength(1);
   });
 
   it('does not create a pagination observer after the final page', async () => {
@@ -353,6 +355,39 @@ describe('AdminCollectionDetailPageClient', () => {
 
     expect(await screen.findByText('Only Product')).toBeInTheDocument();
     expect(intersectionObservers).toHaveLength(0);
+  });
+
+  it('automatically appends every page of a non-Featured collection against the viewport', async () => {
+    const firstProduct = createProduct({
+      id: 'member-page-1',
+      name: 'First Collection Member',
+      collections: [collections[1]],
+    });
+    const secondProduct = createProduct({
+      id: 'member-page-2',
+      name: 'Second Collection Member',
+      collections: [collections[1]],
+    });
+    mockCollectionDetailQueries({ assignedProducts: [firstProduct] });
+    const fetchProducts = vi.mocked(QueryConfigs.fetchAdminProducts);
+    fetchProducts.mockImplementation((filters = {}) => Promise.resolve(createResponse(
+      filters.cursor === 'member-cursor'
+        ? createProductListResponse([secondProduct], null, 2)
+        : createProductListResponse([firstProduct], 'member-cursor', 2),
+    )));
+
+    renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-2" />);
+
+    expect(await screen.findAllByText('First Collection Member')).not.toHaveLength(0);
+    await waitFor(() => expect(intersectionObservers).toHaveLength(1));
+    expect(intersectionObservers[0].root).toBeNull();
+    intersectionObservers[0].trigger();
+
+    expect(await screen.findAllByText('Second Collection Member')).not.toHaveLength(0);
+    expect(fetchProducts).toHaveBeenCalledWith(expect.objectContaining({
+      collectionId: 'collection-2',
+      cursor: 'member-cursor',
+    }));
   });
 
   it('restarts pagination for debounced search without appending a stale previous page', async () => {
@@ -545,6 +580,11 @@ describe('AdminCollectionDetailPageClient', () => {
     );
 
     const { queryClient } = renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
+    const cachedProductKey = adminProductKeys.list(buildAdminProductListKeyParams({}));
+    queryClient.setQueryData(cachedProductKey, {
+      pages: [createProductListResponse([product])],
+      pageParams: [undefined],
+    });
 
     await userEvent.click(await screen.findByRole('button', { name: 'Remove Ichiban Figure from Featured' }));
 
@@ -556,13 +596,69 @@ describe('AdminCollectionDetailPageClient', () => {
       productIds: [],
     }));
     await waitFor(() => {
-      const cachedProducts = queryClient.getQueryData<AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>>(
-        ['admin', 'products', 'collection-membership'],
-      );
-      expect(cachedProducts?.data.data.items[0]?.collections).toEqual([
+      const cachedProducts = queryClient.getQueryData<{
+        pages: IAdminProductListResponse[];
+        pageParams: unknown[];
+      }>(cachedProductKey);
+      expect(cachedProducts?.pages[0]?.items[0]?.collections).toEqual([
         { id: 'collection-2', name: 'Kuji Picks', slug: 'kuji-picks' },
       ]);
     });
+  });
+
+  it('reconciles a locally added Featured product and saves with the confirmed signature', async () => {
+    const currentProduct = createProduct();
+    const addedProduct = createProduct({
+      id: 'product-2',
+      name: 'Prize Plush',
+      slug: 'prize-plush',
+      collections: [],
+    });
+    mockCollectionDetailQueries({
+      allProducts: [addedProduct],
+      assignedProducts: [currentProduct],
+    });
+    vi.mocked(QueryConfigs.fetchAdminFeaturedOrder)
+      .mockResolvedValueOnce(createResponse({
+        items: [toFeaturedOrderItem(currentProduct, 0)],
+        membershipSignature: 'a'.repeat(64),
+      }))
+      .mockResolvedValue(createResponse({
+        items: [
+          toFeaturedOrderItem(currentProduct, 0),
+          toFeaturedOrderItem({
+            ...addedProduct,
+            collections: [collections[0]],
+          }, 1),
+        ],
+        membershipSignature: 'b'.repeat(64),
+      }));
+    vi.spyOn(MutationConfigs, 'updateAdminProduct').mockResolvedValue(
+      createResponse(createAdminProduct({ id: addedProduct.id })),
+    );
+    const updateOrder = vi.spyOn(MutationConfigs, 'updateAdminFeaturedOrder').mockResolvedValue(
+      createResponse({
+        items: [toFeaturedOrderItem(addedProduct, 0)],
+        membershipSignature: 'c'.repeat(64),
+      }),
+    );
+
+    renderWithProviders(<AdminCollectionDetailPageClient collectionId="collection-1" />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove Ichiban Figure from Featured' }));
+    await userEvent.click(screen.getByRole('button', { name: /Add products/i }));
+    await userEvent.click(await screen.findByLabelText('Select Prize Plush'));
+    await userEvent.click(screen.getByRole('button', { name: 'Add 1 products' }));
+
+    await waitFor(() => expect(screen.queryByText(/membership changed while you were editing/i)).not.toBeInTheDocument());
+    expect(await screen.findByText('Prize Plush')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
+
+    await waitFor(() => expect(updateOrder.mock.calls[0]?.[0]).toEqual({
+      membershipSignature: 'b'.repeat(64),
+      productIds: ['product-2'],
+    }));
+    expect(screen.queryByText(/membership changed while you were editing/i)).not.toBeInTheDocument();
   });
 
   it('shows a friendly error when an add partially fails', async () => {

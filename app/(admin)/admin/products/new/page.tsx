@@ -17,6 +17,7 @@ import { ProductCollectionsField } from '@/components/admin/product/product-coll
 import { ICollection, ITag, productStatus, productType, IAdminProduct } from '@/interfaces/product';
 import { normalizeTagId, parsePriceToCents, parseWholeNumber, toNullableText } from '@/utils/admin';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
+import { adminCollectionKeys, adminProductKeys, adminTagKeys } from '@/lib/admin-query-keys';
 
 const DEFAULT_CURRENCY = 'CAD';
 
@@ -39,12 +40,12 @@ export default function NewProductPage() {
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null);
 
   const { data: collectionsRes } = useCustomizeQuery<ICollection[]>({
-    queryKey: ['admin', 'collections'],
+    queryKey: adminCollectionKeys.list(),
     queryFn: QueryConfigs.fetchAdminCollections,
   });
 
   const { data: tagsRes } = useCustomizeQuery<ITag[]>({
-    queryKey: ['admin', 'tags'],
+    queryKey: adminTagKeys.list(),
     queryFn: QueryConfigs.fetchAdminTags,
   });
 
@@ -58,7 +59,7 @@ export default function NewProductPage() {
     mutationFn: MutationConfigs.createAdminProduct,
     onSuccess: (res) => {
       setRequestErrorMessage(null);
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.lists() });
 
       if (res?.data?.data?.id) {
         router.push(`/admin/products/${res.data.data.id}`);

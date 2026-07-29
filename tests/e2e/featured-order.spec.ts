@@ -223,7 +223,8 @@ test('admin can sort Featured products with the keyboard', async ({ page }, test
   await expectNoHorizontalOverflow(page);
 });
 
-test('admin adds collection products from multiple infinite-scroll pages', async ({ page }) => {
+test('admin adds, reorders, removes, and saves after opening the infinite selector', async ({ page }, testInfo) => {
+  const console = recordUnexpectedConsoleErrors(page);
   await authenticateAdmin(page);
   await page.goto('/admin/collections/00000000-0000-4000-8000-000000000100');
   await page.getByRole('button', { name: 'Add products' }).click();
@@ -249,4 +250,31 @@ test('admin adds collection products from multiple infinite-scroll pages', async
   });
   await expect(orderSection.getByText('Addable Product 01')).toBeVisible();
   await expect(orderSection.getByText('Beyond First Page Product')).toBeVisible();
+
+  const orderList = orderSection.getByRole('list');
+  await dragProduct(
+    page,
+    'Final Featured Plush',
+    orderList.getByRole('listitem').first(),
+    testInfo.project.name === 'mobile',
+  );
+  await expect(orderList.getByRole('listitem').first()).toContainText('Final Featured Plush');
+  await page.getByRole('button', { name: 'Remove Addable Product 01 from Featured' }).click();
+  await Promise.all([
+    page.waitForResponse((response) => (
+      response.request().method() === 'PUT'
+      && response.url().endsWith('/api/v1/admin/collections/featured/order')
+    )),
+    page.getByRole('button', { name: 'Save order' }).click(),
+  ]);
+
+  await expect(page.getByText(/Featured membership changed while you were editing/i)).toHaveCount(0);
+  await expect(page.getByText('Unable to save Featured order. Please try again.')).toHaveCount(0);
+  await page.reload();
+  await expect(orderList.getByRole('listitem').first()).toContainText('Final Featured Plush');
+  await expect(orderSection.getByText('Beyond First Page Product')).toBeVisible();
+  await expect(orderSection.getByText('Addable Product 01')).toHaveCount(0);
+
+  console.stop();
+  expect(console.errors).toEqual([]);
 });

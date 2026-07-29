@@ -8,6 +8,7 @@ import useCustomizeQuery from '@/hooks/use-customize-query';
 import { Button } from '@/components/ui/button';
 import { IAdminProductDetail, IAdminProductEditor } from '@/interfaces/product';
 import { mapAdminProductDetailToEditor } from '@/utils/admin';
+import { adminProductKeys } from '@/lib/admin-query-keys';
 
 import { ProductCoreForm } from './product-core-form';
 import { ProductVariantsForm } from './product-variants-form';
@@ -16,7 +17,7 @@ import { ProductKujiPrizes } from './product-kuji-prizes';
 
 export default function AdminProductDetailPageClient({ productId }: { productId: string }) {
   const { data: productRes, isPending, isError } = useCustomizeQuery<IAdminProductDetail>({
-    queryKey: ['admin', 'product', productId],
+    queryKey: adminProductKeys.detail(productId),
     queryFn: () => QueryConfigs.fetchAdminProduct(productId),
     staleTime: 30_000,
     refetchOnWindowFocus: false,

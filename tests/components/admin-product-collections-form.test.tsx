@@ -15,6 +15,7 @@ import type {
   ITag,
 } from '@/interfaces/product';
 import { renderWithProviders } from '../test-utils';
+import { adminProductKeys } from '@/lib/admin-query-keys';
 
 const pushMock = vi.hoisted(() => vi.fn());
 
@@ -142,7 +143,7 @@ describe('admin product collection forms', () => {
 
     expect(payload.collectionIds).toEqual([]);
     expect(payload).not.toHaveProperty('collectionId');
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin', 'products'] });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: adminProductKeys.lists() });
   });
 
   it('prefills edit collections and saves multiple collectionIds without collectionId', async () => {

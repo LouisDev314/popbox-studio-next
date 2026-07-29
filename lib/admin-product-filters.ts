@@ -130,38 +130,21 @@ export function buildAdminProductListQueryParams(
   };
 }
 
-export function buildAdminProductsQueryScopeKey(filters: IAdminProductListQueryParams) {
-  return [
-    'admin',
-    'products',
-    filters.search ?? '',
-    filters.status,
-    filters.productType,
-    filters.collectionId,
-    filters.excludeCollectionId ?? '',
-    filters.tagId,
-    filters.sort,
-  ] as const;
-}
+export function buildAdminProductListKeyParams(
+  filters: Partial<IAdminProductListQueryParams>,
+): Omit<IAdminProductListQueryParams, 'cursor'> {
+  const normalized = buildAdminProductListQueryParams(filters);
 
-export type AdminProductsQueryScopeKey = ReturnType<typeof buildAdminProductsQueryScopeKey>;
-
-export function isSameAdminProductsQueryScope(
-  queryKey: readonly unknown[] | null | undefined,
-  scopeKey: AdminProductsQueryScopeKey,
-) {
-  return Boolean(
-    queryKey
-    && scopeKey.every((value, index) => queryKey[index] === value),
-  );
-}
-
-export function buildAdminProductsQueryKey(filters: IAdminProductListQueryParams) {
-  return [
-    ...buildAdminProductsQueryScopeKey(filters),
-    filters.cursor ?? '',
-    filters.limit ?? ADMIN_PRODUCT_LIST_LIMIT,
-  ] as const;
+  return {
+    collectionId: normalized.collectionId,
+    excludeCollectionId: normalized.excludeCollectionId,
+    limit: normalized.limit,
+    productType: normalized.productType,
+    search: normalized.search,
+    sort: normalized.sort,
+    status: normalized.status,
+    tagId: normalized.tagId,
+  };
 }
 
 export function hasActiveAdminProductRefinements(filters: IAdminProductListQueryParams): boolean {

@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAdminOrderListQueryParams,
-  buildAdminOrdersQueryKey,
+  buildAdminOrderListKeyParams,
   buildAdminOrdersRequestParams,
   parseAdminOrderSortParam,
   parseAdminOrderStatusParam,
 } from '@/lib/admin-order-filters';
+import { adminOrderKeys } from '@/lib/admin-query-keys';
 
 describe('admin order filters', () => {
   it('parses only supported order statuses and sorts from URL params', () => {
@@ -37,14 +38,16 @@ describe('admin order filters', () => {
       status: 'paid',
     });
 
-    expect(buildAdminOrdersQueryKey(filters)).toEqual([
+    expect(adminOrderKeys.list(buildAdminOrderListKeyParams(filters))).toEqual([
       'admin',
       'orders',
-      'PBX-1001',
-      'paid',
-      'total_asc',
-      'cursor-1',
-      25,
+      'list',
+      {
+        limit: 25,
+        search: 'PBX-1001',
+        sort: 'total_asc',
+        status: 'paid',
+      },
     ]);
     expect(buildAdminOrdersRequestParams(filters)).toEqual({
       cursor: 'cursor-1',

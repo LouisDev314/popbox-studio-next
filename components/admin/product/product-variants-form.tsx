@@ -19,6 +19,7 @@ import {
   toNullableText,
 } from '@/utils/admin';
 import { getProductVariantErrorMessage } from '@/utils/api-errors';
+import { adminProductKeys } from '@/lib/admin-query-keys';
 
 type VariantDraft = {
   name: string;
@@ -49,8 +50,8 @@ async function invalidateVariantQueries(
   productId: string,
 ) {
   await Promise.all([
-    queryClient.invalidateQueries({ queryKey: ['admin', 'product', productId] }),
-    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
+    queryClient.invalidateQueries({ queryKey: adminProductKeys.detail(productId) }),
+    queryClient.invalidateQueries({ queryKey: adminProductKeys.lists() }),
   ]);
 }
 
@@ -494,7 +495,7 @@ export function ProductVariantsForm({ product }: { product: IAdminProductEditor 
           type="button"
           variant="outline"
           className="mt-4"
-          onClick={() => void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] })}
+          onClick={() => void queryClient.invalidateQueries({ queryKey: adminProductKeys.detail(product.id) })}
         >
           Refresh variants
         </Button>

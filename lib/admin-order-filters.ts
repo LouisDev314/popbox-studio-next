@@ -97,16 +97,17 @@ export function buildAdminOrderListQueryParams(filters: {
   };
 }
 
-export function buildAdminOrdersQueryKey(filters: IAdminOrderListQueryParams) {
-  return [
-    'admin',
-    'orders',
-    filters.search ?? '',
-    filters.status,
-    filters.sort,
-    filters.cursor ?? '',
-    filters.limit ?? ADMIN_ORDER_LIST_LIMIT,
-  ] as const;
+export function buildAdminOrderListKeyParams(
+  filters: Parameters<typeof buildAdminOrderListQueryParams>[0],
+): Omit<IAdminOrderListQueryParams, 'cursor'> {
+  const normalized = buildAdminOrderListQueryParams(filters);
+
+  return {
+    limit: normalized.limit,
+    search: normalized.search,
+    sort: normalized.sort,
+    status: normalized.status,
+  };
 }
 
 export function buildAdminOrdersRequestParams(filters: IAdminOrderListQueryParams) {

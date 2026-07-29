@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, Search, Trash2, X } from 'lucide-react';
@@ -9,14 +9,22 @@ import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { ADMIN_PRODUCT_LIST_LIMIT } from '@/lib/admin-product-filters';
+import { useInfiniteScrollSentinel } from '@/hooks/use-infinite-scroll-sentinel';
+import {
+  ADMIN_PRODUCT_LIST_LIMIT,
+  buildAdminProductListKeyParams,
+} from '@/lib/admin-product-filters';
+import { flattenUniquePages, getProductListTotalCount } from '@/lib/admin-query-cache';
+import {
+  adminCollectionKeys,
+  adminProductKeys,
+} from '@/lib/admin-query-keys';
 import { cn } from '@/lib/utils';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
 import type {
   IAdminFeaturedOrderItem,
   IAdminFeaturedOrderResponse,
   IAdminProductListItem,
-  IAdminProductListResponse,
   ICollection,
 } from '@/interfaces/product';
 import { AdminProductStatusBadge } from '@/components/admin/admin-product-status-badge';
@@ -136,20 +144,21 @@ function AddProductsDialog({
 }: IAddProductsDialogProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProductsById, setSelectedProductsById] = useState<Record<string, IAdminProductListItem>>({});
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const nextPageRequestInFlightRef = useRef(false);
+  const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const normalizedSearchQuery = searchQuery.trim();
   const debouncedSearchQuery = useDebouncedValue(normalizedSearchQuery, 300);
   const effectiveSearchQuery = normalizedSearchQuery ? debouncedSearchQuery : '';
+  const productQueryFilters = useMemo(() => buildAdminProductListKeyParams({
+    excludeCollectionId: collectionId,
+    limit: ADMIN_PRODUCT_LIST_LIMIT,
+    search: effectiveSearchQuery || undefined,
+  }), [collectionId, effectiveSearchQuery]);
   const productsQuery = useInfiniteQuery({
-    queryKey: ['admin', 'products', 'collection-add-dialog', collectionId, effectiveSearchQuery],
+    queryKey: adminProductKeys.list(productQueryFilters),
     queryFn: async ({ pageParam }: { pageParam: string | undefined }) => (
       await QueryConfigs.fetchAdminProducts({
+        ...productQueryFilters,
         cursor: pageParam,
-        excludeCollectionId: collectionId,
-        limit: ADMIN_PRODUCT_LIST_LIMIT,
-        search: effectiveSearchQuery || undefined,
       })
     ).data.data,
     initialPageParam: undefined as string | undefined,
@@ -169,21 +178,10 @@ function AddProductsDialog({
     isPending: isProductsListPending,
     refetch: refetchProducts,
   } = productsQuery;
-  const products = useMemo(() => {
-    const uniqueProducts: IAdminProductListItem[] = [];
-    const seenProductIds = new Set<string>();
-
-    productPages?.pages.forEach((page) => {
-      page.items.forEach((product) => {
-        if (!seenProductIds.has(product.id)) {
-          seenProductIds.add(product.id);
-          uniqueProducts.push(product);
-        }
-      });
-    });
-
-    return uniqueProducts;
-  }, [productPages?.pages]);
+  const products = useMemo(
+    () => flattenUniquePages<IAdminProductListItem>(productPages?.pages),
+    [productPages?.pages],
+  );
   const eligibleProducts = useMemo(() => products.filter((product) => (
     !assignedProductIds.has(product.id)
     && !getCollectionIds(product).includes(collectionId)
@@ -228,67 +226,18 @@ function AddProductsDialog({
     onConfirm(selectedProducts);
   };
 
-  const fetchNextPage = useCallback(async () => {
-    if (
-      nextPageRequestInFlightRef.current
-      || !hasNextPage
-      || isFetchingNextPage
-    ) {
-      return;
-    }
-
-    nextPageRequestInFlightRef.current = true;
-
-    try {
-      await fetchNextProductsPage();
-    } finally {
-      nextPageRequestInFlightRef.current = false;
-    }
-  }, [fetchNextProductsPage, hasNextPage, isFetchingNextPage]);
-
-  useEffect(() => {
-    nextPageRequestInFlightRef.current = false;
-  }, [collectionId, effectiveSearchQuery]);
-
-  useEffect(() => {
-    const root = scrollContainerRef.current;
-    const sentinel = sentinelRef.current;
-
-    if (
-      !isOpen
-      || !root
-      || !sentinel
-      || !hasNextPage
-      || isFetchingNextPage
-      || isFetchNextPageError
-      || typeof IntersectionObserver === 'undefined'
-    ) {
-      return undefined;
-    }
-
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        void fetchNextPage();
-      }
-    }, {
-      root,
-      rootMargin: '0px 0px 200px 0px',
-    });
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [
-    fetchNextPage,
-    hasNextPage,
-    isFetchNextPageError,
-    isFetchingNextPage,
-    isOpen,
-  ]);
-
   const isInitialError = isProductsListError && !productPages;
   const isFinalEmptyState = eligibleProducts.length === 0
     && !hasNextPage
     && !isFetchingNextPage;
+  const sentinelRef = useInfiniteScrollSentinel({
+    enabled: isOpen && !isInitialError && !isFetchNextPageError && !isProductsListPending,
+    fetchNextPage: fetchNextProductsPage,
+    hasNextPage,
+    isError: isInitialError,
+    isFetchingNextPage,
+    root: scrollContainer,
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -328,7 +277,7 @@ function AddProductsDialog({
           </div>
 
           <div
-            ref={scrollContainerRef}
+            ref={setScrollContainer}
             tabIndex={0}
             aria-label="Eligible products"
             className="max-h-[52vh] overflow-y-auto rounded-xl border border-border/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -397,7 +346,12 @@ function AddProductsDialog({
                 {isFetchNextPageError ? (
                   <div className="flex items-center justify-center gap-3 px-4 py-3 text-sm text-destructive">
                     <span>More products could not be loaded.</span>
-                    <Button type="button" variant="outline" size="sm" onClick={() => void fetchNextPage()}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void fetchNextProductsPage().catch(() => undefined)}
+                    >
                       Try again
                     </Button>
                   </div>
@@ -479,10 +433,16 @@ function CollectionMetadataCard({
 interface ICollectionProductsSectionProps {
   assignedProducts: IAdminProductListItem[];
   collection: ICollection;
+  hasNextPage: boolean;
   isAssignedProductsError: boolean;
   isAssignedProductsPending: boolean;
+  isFetchNextPageError: boolean;
+  isFetchingNextPage: boolean;
   isMutatingProducts: boolean;
+  loadMoreRef: (node: Element | null) => void;
   onAddProductsClick: () => void;
+  onRetryInitial: () => void;
+  onRetryNextPage: () => void;
   onRemoveProduct: (product: IAdminProductListItem) => void;
   pendingProductIds: string[];
 }
@@ -490,10 +450,16 @@ interface ICollectionProductsSectionProps {
 function CollectionProductsSection({
   assignedProducts,
   collection,
+  hasNextPage,
   isAssignedProductsError,
   isAssignedProductsPending,
+  isFetchNextPageError,
+  isFetchingNextPage,
   isMutatingProducts,
+  loadMoreRef,
   onAddProductsClick,
+  onRetryInitial,
+  onRetryNextPage,
   onRemoveProduct,
   pendingProductIds,
 }: ICollectionProductsSectionProps) {
@@ -516,8 +482,11 @@ function CollectionProductsSection({
       {isAssignedProductsPending ? (
         <div className="p-10 text-center text-sm text-muted-foreground">Loading products...</div>
       ) : isAssignedProductsError ? (
-        <div className="p-6">
+        <div className="space-y-3 p-6">
           <ErrorAlert message="Unable to load products for this collection. Please refresh and try again." />
+          <Button type="button" variant="outline" size="sm" onClick={onRetryInitial}>
+            Try again
+          </Button>
         </div>
       ) : assignedProducts.length === 0 ? (
         <div className="p-12 text-center">
@@ -592,15 +561,33 @@ function CollectionProductsSection({
               </tbody>
             </table>
           </div>
+          {hasNextPage ? <div ref={loadMoreRef} className="h-px" aria-hidden="true" /> : null}
+          {isFetchingNextPage ? (
+            <div className="flex items-center justify-center gap-2 px-4 py-4 text-sm text-muted-foreground" role="status" aria-live="polite">
+              <Spinner aria-hidden="true" />
+              Loading more products...
+            </div>
+          ) : null}
+          {isFetchNextPageError ? (
+            <div className="flex flex-col items-center justify-center gap-3 px-4 py-4 text-sm text-destructive sm:flex-row">
+              <span>More collection products could not be loaded.</span>
+              <Button type="button" variant="outline" size="sm" onClick={onRetryNextPage}>
+                Try again
+              </Button>
+            </div>
+          ) : null}
         </>
       )}
     </section>
   );
 }
 
+// eslint-disable-next-line complexity
 export default function AdminCollectionDetailPageClient({ collectionId }: { collectionId: string }) {
   const queryClient = useQueryClient();
+  const membershipMutationGuard = useRef(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [localMembershipSignature, setLocalMembershipSignature] = useState<string | null>(null);
   const [pendingProductIds, setPendingProductIds] = useState<string[]>([]);
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null);
 
@@ -609,20 +596,9 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
     isPending: isCollectionPending,
     isError: isCollectionError,
   } = useCustomizeQuery<ICollection[]>({
-    queryKey: ['admin', 'collections'],
+    queryKey: adminCollectionKeys.list(),
     queryFn: QueryConfigs.fetchAdminCollections,
     staleTime: 300_000,
-    refetchOnWindowFocus: false,
-  });
-
-  const {
-    data: productsRes,
-    isError: isProductsError,
-    isPending: isProductsPending,
-  } = useCustomizeQuery<IAdminProductListResponse>({
-    queryKey: ['admin', 'products', 'collection-membership'],
-    queryFn: () => QueryConfigs.fetchAdminProducts({}),
-    staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
 
@@ -631,8 +607,29 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
     [collectionId, collectionsRes?.data?.data],
   );
   const isFeaturedCollection = collection?.slug === 'featured';
+  const assignedProductFilters = useMemo(
+    () => buildAdminProductListKeyParams({
+      collectionId,
+      limit: ADMIN_PRODUCT_LIST_LIMIT,
+    }),
+    [collectionId],
+  );
+  const assignedProductsQuery = useInfiniteQuery({
+    queryKey: adminProductKeys.list(assignedProductFilters),
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => (
+      await QueryConfigs.fetchAdminProducts({
+        ...assignedProductFilters,
+        cursor: pageParam,
+      })
+    ).data.data,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: Boolean(collection && !isFeaturedCollection),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
   const featuredOrderQuery = useCustomizeQuery<IAdminFeaturedOrderResponse>({
-    queryKey: ['admin', 'featured-order'],
+    queryKey: adminCollectionKeys.featuredOrder(),
     queryFn: QueryConfigs.fetchAdminFeaturedOrder,
     enabled: isFeaturedCollection,
     staleTime: 30_000,
@@ -641,64 +638,112 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
   const featuredOrder = featuredOrderQuery.data?.data?.data ?? null;
   const featuredItems = useMemo(() => featuredOrder?.items ?? [], [featuredOrder]);
   const assignedProducts = useMemo(
-    () => (productsRes?.data?.data?.items ?? []).filter((product) => (
-      getCollectionIds(product).includes(collectionId)
-    )),
-    [collectionId, productsRes?.data?.data?.items],
+    () => flattenUniquePages<IAdminProductListItem>(assignedProductsQuery.data?.pages),
+    [assignedProductsQuery.data?.pages],
   );
   const assignedProductIds = useMemo(
     () => new Set((isFeaturedCollection ? featuredItems : assignedProducts).map((product) => product.id)),
     [assignedProducts, featuredItems, isFeaturedCollection],
   );
   const isMutatingProducts = pendingProductIds.length > 0;
+  const isAssignedProductsInitialError = assignedProductsQuery.isError && !assignedProductsQuery.data;
+  const assignedProductsSentinelRef = useInfiniteScrollSentinel({
+    enabled: !isFeaturedCollection
+      && !isAssignedProductsInitialError
+      && !assignedProductsQuery.isFetchNextPageError
+      && !assignedProductsQuery.isPending,
+    fetchNextPage: assignedProductsQuery.fetchNextPage,
+    hasNextPage: assignedProductsQuery.hasNextPage,
+    isError: isAssignedProductsInitialError,
+    isFetchingNextPage: assignedProductsQuery.isFetchingNextPage,
+  });
 
-  const refreshProductQueries = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin', 'collections'] }),
-      queryClient.invalidateQueries({ queryKey: ['admin', 'featured-order'] }),
+  const refreshProductQueries = async (
+    refreshFeaturedOrder: boolean,
+    affectedProductIds: readonly string[],
+  ) => {
+    const [featuredRefetchResult] = await Promise.all([
+      refreshFeaturedOrder
+        ? featuredOrderQuery.refetch()
+        : Promise.resolve(null),
+      queryClient.invalidateQueries({ queryKey: adminProductKeys.lists() }),
+      queryClient.invalidateQueries({ queryKey: adminCollectionKeys.list() }),
+      ...affectedProductIds.map((productId) => queryClient.invalidateQueries({
+        queryKey: adminProductKeys.detail(productId),
+        exact: true,
+      })),
     ]);
+
+    return featuredRefetchResult && 'data' in featuredRefetchResult
+      ? featuredRefetchResult.data?.data.data ?? null
+      : null;
   };
 
   const handleAddProducts = async (products: IAdminProductListItem[]) => {
-    if (!collection || products.length === 0) {
+    if (!collection || products.length === 0 || membershipMutationGuard.current) {
       return;
     }
 
+    membershipMutationGuard.current = true;
     setRequestErrorMessage(null);
     setPendingProductIds(products.map((product) => product.id));
 
-    const results = await Promise.allSettled(
-      products.map((product) => MutationConfigs.updateAdminProduct({
-        productId: product.id,
-        data: {
-          collectionIds: mergeCollectionIds(product, collection.id),
-        },
-      })),
-    );
-    const failureCount = results.filter((result) => result.status === 'rejected').length;
-    const successCount = products.length - failureCount;
+    try {
+      if (isFeaturedCollection) {
+        await queryClient.cancelQueries({
+          queryKey: adminCollectionKeys.featuredOrder(),
+          exact: true,
+        });
+      }
 
-    await refreshProductQueries();
-    setPendingProductIds([]);
+      const results = await Promise.allSettled(
+        products.map((product) => MutationConfigs.updateAdminProduct({
+          productId: product.id,
+          data: {
+            collectionIds: mergeCollectionIds(product, collection.id),
+          },
+        })),
+      );
+      const failureCount = results.filter((result) => result.status === 'rejected').length;
+      const successfulProducts = products.filter((_, index) => results[index]?.status === 'fulfilled');
+      const successCount = successfulProducts.length;
 
-    if (successCount > 0) {
-      toast.success(`${successCount} product${successCount === 1 ? '' : 's'} added to ${collection.name}.`);
-      setIsAddDialogOpen(false);
-    }
+      if (successCount > 0) {
+        const confirmedFeaturedOrder = await refreshProductQueries(
+          Boolean(isFeaturedCollection),
+          successfulProducts.map((product) => product.id),
+        );
+        if (confirmedFeaturedOrder) {
+          setLocalMembershipSignature(confirmedFeaturedOrder.membershipSignature);
+        }
+        toast.success(`${successCount} product${successCount === 1 ? '' : 's'} added to ${collection.name}.`);
+        setIsAddDialogOpen(false);
+      }
 
-    if (failureCount > 0) {
-      const message = `${failureCount} product${failureCount === 1 ? '' : 's'} could not be added. Please try again.`;
+      if (failureCount > 0) {
+        const message = `${failureCount} product${failureCount === 1 ? '' : 's'} could not be added. Please try again.`;
+        setRequestErrorMessage(message);
+        toast.error(message);
+      }
+    } catch (error) {
+      const message = getFriendlyErrorMessage(
+        error,
+        'Products were updated, but the collection could not be refreshed. Reload this page before continuing.',
+      );
       setRequestErrorMessage(message);
       toast.error(message);
+    } finally {
+      membershipMutationGuard.current = false;
+      setPendingProductIds([]);
     }
   };
 
   const handleRemoveProduct = async (product: IAdminProductListItem | IAdminFeaturedOrderItem) => {
-    if (!collection) {
+    if (!collection || membershipMutationGuard.current) {
       return;
     }
 
+    membershipMutationGuard.current = true;
     setRequestErrorMessage(null);
     setPendingProductIds([product.id]);
 
@@ -709,20 +754,21 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
           collectionIds: removeCollectionId(product, collection.id),
         },
       });
-      await refreshProductQueries();
+      await refreshProductQueries(false, [product.id]);
       toast.success(`${product.name} removed from ${collection.name}.`);
     } catch (error) {
       const message = getFriendlyErrorMessage(error, 'Unable to remove product from this collection. Please try again.');
       setRequestErrorMessage(message);
       toast.error(message);
     } finally {
+      membershipMutationGuard.current = false;
       setPendingProductIds([]);
     }
   };
 
   const reloadFeaturedProducts = async () => {
     const response = await featuredOrderQuery.refetch();
-    return response.data?.data?.data ?? null;
+    return response.isError ? null : response.data?.data?.data ?? null;
   };
 
   if (isCollectionPending) {
@@ -758,7 +804,9 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
 
       <CollectionMetadataCard
         collection={collection}
-        productCount={isFeaturedCollection ? featuredItems.length : assignedProducts.length}
+        productCount={isFeaturedCollection
+          ? featuredItems.length
+          : getProductListTotalCount(assignedProductsQuery.data?.pages) ?? assignedProducts.length}
       />
 
       {isFeaturedCollection ? (
@@ -767,6 +815,7 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
           featuredOrder={featuredOrder}
           isError={featuredOrderQuery.isError}
           isLoading={featuredOrderQuery.isPending || featuredOrderQuery.isFetching}
+          localMembershipSignature={localMembershipSignature}
           isMembershipMutationPending={isMutatingProducts}
           onAddProductsClick={() => setIsAddDialogOpen(true)}
           onReload={reloadFeaturedProducts}
@@ -775,10 +824,16 @@ export default function AdminCollectionDetailPageClient({ collectionId }: { coll
         <CollectionProductsSection
           assignedProducts={assignedProducts}
           collection={collection}
-          isAssignedProductsError={isProductsError}
-          isAssignedProductsPending={isProductsPending}
+          hasNextPage={assignedProductsQuery.hasNextPage}
+          isAssignedProductsError={isAssignedProductsInitialError}
+          isAssignedProductsPending={assignedProductsQuery.isPending}
+          isFetchNextPageError={assignedProductsQuery.isFetchNextPageError}
+          isFetchingNextPage={assignedProductsQuery.isFetchingNextPage}
           isMutatingProducts={isMutatingProducts}
+          loadMoreRef={assignedProductsSentinelRef}
           onAddProductsClick={() => setIsAddDialogOpen(true)}
+          onRetryInitial={() => void assignedProductsQuery.refetch().catch(() => undefined)}
+          onRetryNextPage={() => void assignedProductsQuery.fetchNextPage().catch(() => undefined)}
           onRemoveProduct={handleRemoveProduct}
           pendingProductIds={pendingProductIds}
         />

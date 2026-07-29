@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { ListOrdered, Plus } from 'lucide-react';
 import { AdminPageLoadingOverlay } from '@/components/admin/admin-page-loading-overlay';
 import QueryConfigs from '@/configs/api/query-config';
@@ -16,21 +16,26 @@ import {
 import { Button } from '@/components/ui/button';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
 import useCustomizeQuery from '@/hooks/use-customize-query';
+import { useInfiniteScrollSentinel } from '@/hooks/use-infinite-scroll-sentinel';
 import { useAdminProductFilters } from '@/hooks/use-admin-product-filters';
 import {
   ADMIN_PRODUCT_DEFAULT_STATUS,
+  ADMIN_PRODUCT_LIST_LIMIT,
   ADMIN_PRODUCT_STATUS_TABS,
-  type AdminProductsQueryScopeKey,
-  buildAdminProductsQueryKey,
-  buildAdminProductsQueryScopeKey,
-  isSameAdminProductsQueryScope,
 } from '@/lib/admin-product-filters';
+import { flattenUniquePages, getProductListTotalCount } from '@/lib/admin-query-cache';
+import {
+  adminCollectionKeys,
+  adminProductKeys,
+  adminTagKeys,
+  type AdminProductListKeyParams,
+} from '@/lib/admin-query-keys';
 import { cn } from '@/lib/utils';
 import { AdminSearchForm } from '@/components/admin/admin-search-form';
+import { Spinner } from '@/components/ui/spinner';
 import type {
   IAdminProduct,
   IAdminProductListItem,
-  IAdminProductListResponse,
   ICollection,
   ITag,
   productStatus,
@@ -41,17 +46,6 @@ export default function AdminProductsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const [pageState, setPageState] = useState<{
-    cursor?: string;
-    products: IAdminProductListItem[];
-    nextCursor: string | null;
-    queryScopeKey: AdminProductsQueryScopeKey | null;
-  }>({
-    cursor: undefined,
-    products: [],
-    nextCursor: null,
-    queryScopeKey: null,
-  });
   const {
     activeTab,
     clearRefinements,
@@ -69,50 +63,50 @@ export default function AdminProductsPage() {
   });
   const searchQuery = searchState.urlSearch === (filters.search ?? '') ? searchState.value : filters.search ?? '';
   const hasActiveSearch = Boolean(filters.search);
-  const queryScopeKey = useMemo(() => buildAdminProductsQueryScopeKey(filters), [filters]);
-  const isSameQueryScope = isSameAdminProductsQueryScope(pageState.queryScopeKey, queryScopeKey);
-  const products = isSameQueryScope ? pageState.products : [];
-  const nextCursor = isSameQueryScope ? pageState.nextCursor : null;
-  const queryFilters = useMemo(() => ({
-    ...filters,
-    cursor: isSameQueryScope ? pageState.cursor : undefined,
-  }), [filters, isSameQueryScope, pageState.cursor]);
-  const queryKey = useMemo(() => buildAdminProductsQueryKey(queryFilters), [queryFilters]);
-
-  const keepPreviousCursorPage = useCallback((
-    previousData: Awaited<ReturnType<typeof QueryConfigs.fetchAdminProducts>> | undefined,
-    previousQuery: { queryKey: readonly unknown[] } | undefined,
-  ) => (
-    isSameAdminProductsQueryScope(previousQuery?.queryKey, queryScopeKey)
-      ? previousData
-      : undefined
-  ), [queryScopeKey]);
-
-  const handleProductsSuccess = useCallback((response: Awaited<ReturnType<typeof QueryConfigs.fetchAdminProducts>>) => {
-    const page = response.data.data;
-    setPageState((currentState) => ({
-      cursor: queryFilters.cursor,
-      products: queryFilters.cursor
-        && isSameAdminProductsQueryScope(currentState.queryScopeKey, queryScopeKey)
-        ? [...currentState.products, ...page.items]
-        : page.items,
-      nextCursor: page.nextCursor,
-      queryScopeKey,
-    }));
-  }, [queryFilters.cursor, queryScopeKey]);
+  const queryFilters = useMemo<AdminProductListKeyParams>(() => ({
+    collectionId: filters.collectionId,
+    excludeCollectionId: filters.excludeCollectionId,
+    limit: filters.limit ?? ADMIN_PRODUCT_LIST_LIMIT,
+    productType: filters.productType,
+    search: filters.search,
+    sort: filters.sort,
+    status: filters.status,
+    tagId: filters.tagId,
+  }), [filters]);
 
   const {
-    data: productsRes,
-    isPending,
-    isFetching,
+    data: productPages,
+    fetchNextPage,
+    hasNextPage,
     isError,
-  } = useCustomizeQuery<IAdminProductListResponse>({
-    queryKey,
-    queryFn: () => QueryConfigs.fetchAdminProducts(queryFilters),
-    onSuccess: handleProductsSuccess,
-    placeholderData: keepPreviousCursorPage,
+    isFetchNextPageError,
+    isFetchingNextPage,
+    isPending,
+    refetch: refetchProducts,
+  } = useInfiniteQuery({
+    queryKey: adminProductKeys.list(queryFilters),
+    queryFn: async ({ pageParam }) => (
+      await QueryConfigs.fetchAdminProducts({
+        ...queryFilters,
+        cursor: pageParam,
+      })
+    ).data.data,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+  });
+  const products = useMemo(
+    () => flattenUniquePages<IAdminProductListItem>(productPages?.pages),
+    [productPages?.pages],
+  );
+  const isInitialProductsError = isError && !productPages;
+  const sentinelRef = useInfiniteScrollSentinel({
+    enabled: !isInitialProductsError && !isFetchNextPageError && !isPending,
+    fetchNextPage,
+    hasNextPage,
+    isError: isInitialProductsError,
+    isFetchingNextPage,
   });
 
   const {
@@ -121,7 +115,7 @@ export default function AdminProductsPage() {
     isFetching: isCollectionsFetching,
     isError: isCollectionsError,
   } = useCustomizeQuery<ICollection[]>({
-    queryKey: ['admin', 'collections'],
+    queryKey: adminCollectionKeys.list(),
     queryFn: QueryConfigs.fetchAdminCollections,
     staleTime: 300_000,
     refetchOnWindowFocus: false,
@@ -133,7 +127,7 @@ export default function AdminProductsPage() {
     isFetching: isTagsFetching,
     isError: isTagsError,
   } = useCustomizeQuery<ITag[]>({
-    queryKey: ['admin', 'tags'],
+    queryKey: adminTagKeys.list(),
     queryFn: QueryConfigs.fetchAdminTags,
     staleTime: 300_000,
     refetchOnWindowFocus: false,
@@ -145,7 +139,7 @@ export default function AdminProductsPage() {
   >({
     mutationFn: MutationConfigs.patchAdminProductStatus,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.lists() });
     },
   });
 
@@ -175,7 +169,7 @@ export default function AdminProductsPage() {
   const tableStatusFilter = filters.status === ADMIN_PRODUCT_DEFAULT_STATUS
     ? undefined
     : filters.status as productStatus;
-  const totalCount = productsRes?.data.data.totalCount;
+  const totalCount = getProductListTotalCount(productPages?.pages);
   const productCountLabel = totalCount !== undefined
     ? `${totalCount} ${totalCount === 1 ? 'product' : 'products'}`
     : isPending
@@ -315,11 +309,19 @@ export default function AdminProductsPage() {
           <div className="mt-6">
             {isPending && products.length === 0 ? (
               <AdminProductsLoadingSkeleton />
-            ) : isError ? (
+            ) : isInitialProductsError ? (
               <div className="rounded-[24px] border border-[#f0d2d2] bg-[#fff7f7] py-16 text-center">
                 <p className="font-medium text-[#b42318]">
                   Failed to load products. Please try again.
                 </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => void refetchProducts()}
+                >
+                  Try again
+                </Button>
               </div>
             ) : (
               <AdminProductsTable
@@ -332,22 +334,23 @@ export default function AdminProductsPage() {
                 statusFilter={tableStatusFilter}
               />
             )}
-            {nextCursor ? (
-              <div className="mt-5 flex justify-center">
+            {hasNextPage ? <div ref={sentinelRef} className="h-px" aria-hidden="true" /> : null}
+            {isFetchingNextPage ? (
+              <div className="mt-5 flex items-center justify-center gap-2 text-sm text-[#6b7280]" role="status" aria-live="polite">
+                <Spinner aria-hidden="true" />
+                Loading more products...
+              </div>
+            ) : null}
+            {isFetchNextPageError ? (
+              <div className="mt-5 flex flex-col items-center justify-center gap-3 text-sm text-[#b42318] sm:flex-row">
+                <span>More products could not be loaded.</span>
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-10 rounded-full border-[#dfd5c5] bg-white px-5 text-sm text-[#111827] hover:bg-[#f8f4eb]"
-                  disabled={isFetching}
-                  onClick={() => {
-                    setPageState((currentState) => ({
-                      ...currentState,
-                      cursor: nextCursor,
-                      queryScopeKey,
-                    }));
-                  }}
+                  size="sm"
+                  onClick={() => void fetchNextPage().catch(() => undefined)}
                 >
-                  {isFetching ? 'Loading...' : 'Load More'}
+                  Try again
                 </Button>
               </div>
             ) : null}

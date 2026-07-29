@@ -14,6 +14,7 @@ import { IAdminProductEditor, ICollection, ITag, productStatus } from '@/interfa
 import { mergeAdminProductIntoEditor, normalizeTagId, parsePriceToCents, toNullableText } from '@/utils/admin';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
 import { ProductCollectionsField } from './product-collections-field';
+import { adminCollectionKeys, adminProductKeys, adminTagKeys } from '@/lib/admin-query-keys';
 
 type ProductCoreFormData = {
   name: string;
@@ -48,12 +49,12 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null);
 
   const { data: collectionsRes } = useCustomizeQuery<ICollection[]>({
-    queryKey: ['admin', 'collections'],
+    queryKey: adminCollectionKeys.list(),
     queryFn: QueryConfigs.fetchAdminCollections,
   });
 
   const { data: tagsRes } = useCustomizeQuery<ITag[]>({
-    queryKey: ['admin', 'tags'],
+    queryKey: adminTagKeys.list(),
     queryFn: QueryConfigs.fetchAdminTags,
   });
 
@@ -101,8 +102,8 @@ export function ProductCoreForm({ product, onProductChange }: IProductCoreFormPr
         };
       });
 
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.detail(product.id) });
     },
     onError: (error) => {
       setRequestErrorMessage(getFriendlyErrorMessage(error, 'Unable to save product details. Please try again.'));

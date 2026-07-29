@@ -45,6 +45,7 @@ import {
 } from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
+import { adminPrizeKeys, adminProductKeys } from '@/lib/admin-query-keys';
 
 import { EditKujiPrizeModal } from './edit-kuji-prize-modal';
 import {
@@ -284,7 +285,7 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
   );
 
   const { data: prizesRes, isPending, refetch } = useCustomizeQuery({
-    queryKey: ['admin', 'prizes', product.id],
+    queryKey: adminPrizeKeys.byProduct(product.id),
     queryFn: () => QueryConfigs.fetchAdminProductKujiPrizes(product.id),
   });
 
@@ -305,8 +306,8 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
       const nextSortOrder = sortedPrizes.length + 1;
 
       setOptimisticPrizeIds(null);
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.detail(product.id) });
+      void queryClient.invalidateQueries({ queryKey: adminPrizeKeys.byProduct(product.id) });
       setNewPrize(createNewPrizeFormData(nextSortOrder));
       setCreateImageFile(null);
       setCreateImageInputKey((currentKey) => currentKey + 1);
@@ -345,8 +346,8 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
     mutationFn: MutationConfigs.deleteAdminProductKujiPrize,
     onSuccess: () => {
       setOptimisticPrizeIds(null);
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.detail(product.id) });
+      void queryClient.invalidateQueries({ queryKey: adminPrizeKeys.byProduct(product.id) });
     },
   });
 
@@ -367,15 +368,15 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
       return responses[responses.length - 1];
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.detail(product.id) });
+      void queryClient.invalidateQueries({ queryKey: adminPrizeKeys.byProduct(product.id) });
       showToast('success', 'Prize order saved.');
     },
     onError: (error: AxiosError<IBaseApiResponse>) => {
       setOptimisticPrizeIds(prizeOrderRollbackRef.current);
 
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', product.id] });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.detail(product.id) });
+      void queryClient.invalidateQueries({ queryKey: adminPrizeKeys.byProduct(product.id) });
 
       showToast('error', error.response?.data?.message ?? 'Failed to save prize order.');
     },

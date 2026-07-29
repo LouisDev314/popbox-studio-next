@@ -2,9 +2,10 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { AlertCircle, AlertTriangle, Package } from 'lucide-react';
 import QueryConfigs from '@/configs/api/query-config';
-import useCustomizeQuery from '@/hooks/use-customize-query';
+import { useInfiniteScrollSentinel } from '@/hooks/use-infinite-scroll-sentinel';
 import { IAdminOrderListItem, IAdminOrderListResponse, IOrderStatus } from '@/interfaces/order';
 import {
   ADMIN_ORDER_DEFAULT_SORT,
@@ -12,19 +13,20 @@ import {
   ADMIN_ORDER_LIST_LIMIT,
   ADMIN_ORDER_SORT_OPTIONS,
   ADMIN_ORDER_STATUS_OPTIONS,
-  buildAdminOrderListQueryParams,
-  buildAdminOrdersQueryKey,
   getAdminOrderCustomerName,
   parseAdminOrderSortParam,
   parseAdminOrderStatusParam,
   type AdminOrderStatusFilter,
 } from '@/lib/admin-order-filters';
+import { flattenUniquePages } from '@/lib/admin-query-cache';
+import { adminOrderKeys, type AdminOrderListKeyParams } from '@/lib/admin-query-keys';
 import { formatPrice } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import LastOnePrizeBadge from '@/components/admin/orders/last-one-prize-badge';
 import { buildAdminOrderPath } from '@/utils/admin-order';
 import { AdminSearchForm } from '@/components/admin/admin-search-form';
 import { AdminFilterSelect } from '@/components/admin/admin-filter-select';
+import { Spinner } from '@/components/ui/spinner';
 
 const STATUS_BADGE_CONFIG: Record<IOrderStatus, { label: string; className: string }> = {
   pending_payment: {
@@ -191,30 +193,13 @@ export default function AdminOrdersPageClient() {
     urlSearch: currentQuery,
     value: currentQuery,
   });
-  const [pageState, setPageState] = useState<{
-    cursor?: string;
-    nextCursor: string | null;
-    orders: IAdminOrderListItem[];
-    signature: string;
-  }>({
-    cursor: undefined,
-    nextCursor: null,
-    orders: [],
-    signature: '',
-  });
   const searchInput = searchState.urlSearch === currentQuery ? searchState.value : currentQuery;
-  const querySignature = `${currentQuery}|${activeStatus}|${activeSort}`;
-  const isSameQuerySignature = pageState.signature === querySignature;
-  const orders = isSameQuerySignature ? pageState.orders : [];
-  const nextCursor = isSameQuerySignature ? pageState.nextCursor : null;
-  const queryParams = useMemo(() => buildAdminOrderListQueryParams({
-    cursor: isSameQuerySignature ? pageState.cursor : undefined,
+  const queryParams = useMemo<AdminOrderListKeyParams>(() => ({
     limit: ADMIN_ORDER_LIST_LIMIT,
-    search: currentQuery,
+    search: currentQuery || undefined,
     sort: activeSort,
     status: activeStatus,
-  }), [activeSort, activeStatus, currentQuery, isSameQuerySignature, pageState.cursor]);
-  const queryKey = useMemo(() => buildAdminOrdersQueryKey(queryParams), [queryParams]);
+  }), [activeSort, activeStatus, currentQuery]);
 
   const replaceSearchParams = useCallback((mutator: (params: URLSearchParams) => void) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -226,26 +211,37 @@ export default function AdminOrdersPageClient() {
     router.replace(nextUrl, { scroll: false });
   }, [router, searchParams]);
 
-  const handleOrdersSuccess = useCallback((response: Awaited<ReturnType<typeof QueryConfigs.fetchAdminOrders>>) => {
-    const page = response.data.data;
-    setPageState((currentState) => ({
-      cursor: queryParams.cursor,
-      nextCursor: page.nextCursor,
-      orders: queryParams.cursor && currentState.signature === querySignature
-        ? [...currentState.orders, ...page.items]
-        : page.items,
-      signature: querySignature,
-    }));
-  }, [queryParams.cursor, querySignature]);
-
   const {
+    data: orderPages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchNextPageError,
+    isFetchingNextPage,
     isPending,
-    isFetching,
     isError,
-  } = useCustomizeQuery<IAdminOrderListResponse>({
-    queryKey,
-    queryFn: () => QueryConfigs.fetchAdminOrders(queryParams),
-    onSuccess: handleOrdersSuccess,
+    refetch: refetchOrders,
+  } = useInfiniteQuery({
+    queryKey: adminOrderKeys.list(queryParams),
+    queryFn: async ({ pageParam }) => (
+      await QueryConfigs.fetchAdminOrders({
+        ...queryParams,
+        cursor: pageParam,
+      })
+    ).data.data,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  });
+  const orders = useMemo(
+    () => flattenUniquePages(orderPages?.pages),
+    [orderPages?.pages],
+  );
+  const isInitialOrdersError = isError && !orderPages;
+  const sentinelRef = useInfiniteScrollSentinel({
+    enabled: !isInitialOrdersError && !isFetchNextPageError && !isPending,
+    fetchNextPage,
+    hasNextPage,
+    isError: isInitialOrdersError,
+    isFetchingNextPage,
   });
 
   const hasActiveSearch = currentQuery.length > 0;
@@ -374,12 +370,15 @@ export default function AdminOrdersPageClient() {
           <div className="mt-5">
             {isPending && orders.length === 0 ? (
               <div className="p-8 text-center text-sm text-[#6b7280]">Loading orders...</div>
-            ) : isError ? (
+            ) : isInitialOrdersError ? (
               <div className="rounded-3xl border border-[#f0d2d2] bg-[#fff7f7] py-16 text-center">
                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#fdecec] text-[#b42318]">
                   <AlertCircle className="h-6 w-6" />
                 </div>
                 <p className="font-medium text-[#b42318]">Failed to load orders. Please try again.</p>
+                <Button type="button" variant="outline" className="mt-4" onClick={() => void refetchOrders()}>
+                  Try again
+                </Button>
               </div>
             ) : orders.length === 0 ? (
               <EmptyOrdersState
@@ -454,20 +453,23 @@ export default function AdminOrdersPageClient() {
                     </tbody>
                   </table>
                 </div>
-                {nextCursor ? (
-                  <div className="mt-5 flex justify-center">
+                {hasNextPage ? <div ref={sentinelRef} className="h-px" aria-hidden="true" /> : null}
+                {isFetchingNextPage ? (
+                  <div className="mt-5 flex items-center justify-center gap-2 text-sm text-[#6b7280]" role="status" aria-live="polite">
+                    <Spinner aria-hidden="true" />
+                    Loading more orders...
+                  </div>
+                ) : null}
+                {isFetchNextPageError ? (
+                  <div className="mt-5 flex flex-col items-center justify-center gap-3 text-sm text-[#b42318] sm:flex-row">
+                    <span>More orders could not be loaded.</span>
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-10 rounded-full border-[#dfd5c5] bg-white px-5 text-sm text-[#111827] hover:bg-[#f8f4eb]"
-                      disabled={isFetching}
-                      onClick={() => setPageState((currentState) => ({
-                        ...currentState,
-                        cursor: nextCursor,
-                        signature: querySignature,
-                      }))}
+                      size="sm"
+                      onClick={() => void fetchNextPage().catch(() => undefined)}
                     >
-                      {isFetching ? 'Loading...' : 'Load More'}
+                      Try again
                     </Button>
                   </div>
                 ) : null}

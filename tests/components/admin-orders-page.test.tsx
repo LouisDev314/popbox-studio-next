@@ -1,12 +1,16 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AxiosResponse } from 'axios';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminOrdersPageClient from '@/components/admin/orders/admin-orders-page';
 import QueryConfigs from '@/configs/api/query-config';
 import type { IBaseApiResponse } from '@/interfaces/api-response';
 import type { IAdminOrderListItem, IAdminOrderListResponse } from '@/interfaces/order';
 import { renderWithProviders } from '../test-utils';
+import {
+  installMockIntersectionObserver,
+  mockIntersectionObservers,
+} from '../mock-intersection-observer';
 
 const replace = vi.fn();
 const push = vi.fn();
@@ -76,6 +80,11 @@ describe('AdminOrdersPageClient', () => {
       currentSearchParams = url.split('?')[1] ?? '';
     });
     push.mockReset();
+    installMockIntersectionObserver();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('sends search, status, sort, cursor, and limit to the backend', async () => {
@@ -199,7 +208,7 @@ describe('AdminOrdersPageClient', () => {
     });
   });
 
-  it('load more appends rows using nextCursor', async () => {
+  it('automatically appends rows using nextCursor when the sentinel intersects', async () => {
     const fetchOrders = vi.spyOn(QueryConfigs, 'fetchAdminOrders').mockImplementation((filters) => (
       Promise.resolve(createResponse(createOrdersResponse(
         filters.cursor
@@ -212,7 +221,10 @@ describe('AdminOrdersPageClient', () => {
     renderWithProviders(<AdminOrdersPageClient />);
 
     expect(await screen.findAllByText('PBX-1001')).not.toHaveLength(0);
-    await userEvent.click(screen.getByRole('button', { name: 'Load More' }));
+    await waitFor(() => expect(mockIntersectionObservers).toHaveLength(1));
+    expect(mockIntersectionObservers[0].root).toBeNull();
+    mockIntersectionObservers[0].trigger();
+    mockIntersectionObservers[0].trigger();
 
     await waitFor(() => {
       expect(fetchOrders).toHaveBeenLastCalledWith({
@@ -225,6 +237,40 @@ describe('AdminOrdersPageClient', () => {
     });
     expect(await screen.findAllByText('PBX-1002')).not.toHaveLength(0);
     expect(screen.getAllByText('PBX-1001')).not.toHaveLength(0);
+    expect(fetchOrders.mock.calls.filter(([filters]) => filters.cursor === 'cursor-2')).toHaveLength(1);
+  });
+
+  it('keeps existing orders visible and retries a failed next page', async () => {
+    let cursorAttempts = 0;
+    vi.spyOn(QueryConfigs, 'fetchAdminOrders').mockImplementation((filters) => {
+      if (filters.cursor === 'retry-cursor') {
+        cursorAttempts += 1;
+        return cursorAttempts === 1
+          ? Promise.reject(new Error('next page failed'))
+          : Promise.resolve(createResponse(createOrdersResponse([
+            createOrder({ id: 'order-2', publicId: 'PBX-RECOVERED' }),
+          ])));
+      }
+
+      return Promise.resolve(createResponse(createOrdersResponse(
+        [createOrder()],
+        'retry-cursor',
+      )));
+    });
+
+    renderWithProviders(<AdminOrdersPageClient />);
+
+    expect(await screen.findAllByText('PBX-1001')).not.toHaveLength(0);
+    await waitFor(() => expect(mockIntersectionObservers).toHaveLength(1));
+    mockIntersectionObservers[0].trigger();
+
+    expect(await screen.findByText('More orders could not be loaded.')).toBeInTheDocument();
+    expect(screen.getAllByText('PBX-1001')).not.toHaveLength(0);
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findAllByText('PBX-RECOVERED')).not.toHaveLength(0);
+    expect(screen.getAllByText('PBX-1001')).not.toHaveLength(0);
+    expect(cursorAttempts).toBe(2);
   });
 
   it('does not render loaded-row status counts', async () => {

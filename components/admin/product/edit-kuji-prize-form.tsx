@@ -28,6 +28,7 @@ import {
 } from '@/lib/kuji-prize-codes';
 import { cn } from '@/lib/utils';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
+import { adminPrizeKeys, adminProductKeys } from '@/lib/admin-query-keys';
 import {
   EditableKujiPrizeField,
   EditableKujiPrizeTextField,
@@ -165,8 +166,8 @@ export function EditKujiPrizeForm({ productId, prize, prizes, onCancel, onSucces
   const { mutation: updatePrize, isPending } = useCustomizeMutation({
     mutationFn: MutationConfigs.updateAdminProductKujiPrize,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', productId] });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'prizes', productId] });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.detail(productId) });
+      void queryClient.invalidateQueries({ queryKey: adminPrizeKeys.byProduct(productId) });
       onNotify({ type: 'success', message: 'Prize updated successfully.' });
       onSuccess();
     },

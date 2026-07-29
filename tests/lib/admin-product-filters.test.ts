@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAdminProductListQueryParams,
-  buildAdminProductsQueryKey,
-  buildAdminProductsQueryScopeKey,
+  buildAdminProductListKeyParams,
   buildAdminProductsRequestParams,
-  isSameAdminProductsQueryScope,
   parseAdminProductSortParam,
   parseAdminProductTypeParam,
   parseAdminTagIdParam,
 } from '@/lib/admin-product-filters';
+import { adminProductKeys } from '@/lib/admin-query-keys';
 
 describe('admin product filters', () => {
   it('parses supported canonical product params', () => {
@@ -47,18 +46,20 @@ describe('admin product filters', () => {
       tagId: 'tag-1',
     });
 
-    expect(buildAdminProductsQueryKey(filters)).toEqual([
+    expect(adminProductKeys.list(buildAdminProductListKeyParams(filters))).toEqual([
       'admin',
       'products',
-      'hero',
-      'active',
-      'kuji',
-      'collection-1',
-      '',
-      'tag-1',
-      'price_desc',
-      'cursor-1',
-      25,
+      'list',
+      {
+        collectionId: 'collection-1',
+        excludeCollectionId: undefined,
+        limit: 25,
+        productType: 'kuji',
+        search: 'hero',
+        sort: 'price_desc',
+        status: 'active',
+        tagId: 'tag-1',
+      },
     ]);
     expect(buildAdminProductsRequestParams(filters)).toEqual({
       collectionId: 'collection-1',
@@ -78,13 +79,13 @@ describe('admin product filters', () => {
       ...firstPageFilters,
       cursor: 'cursor-2',
     });
-    const scopeKey = buildAdminProductsQueryScopeKey(firstPageFilters);
+    const firstPageKey = adminProductKeys.list(buildAdminProductListKeyParams(firstPageFilters));
+    const nextPageKey = adminProductKeys.list(buildAdminProductListKeyParams(nextPageFilters));
+    const differentSearchKey = adminProductKeys.list(buildAdminProductListKeyParams(
+      buildAdminProductListQueryParams({ search: 'villain' }),
+    ));
 
-    expect(isSameAdminProductsQueryScope(buildAdminProductsQueryKey(firstPageFilters), scopeKey)).toBe(true);
-    expect(isSameAdminProductsQueryScope(buildAdminProductsQueryKey(nextPageFilters), scopeKey)).toBe(true);
-    expect(isSameAdminProductsQueryScope(
-      buildAdminProductsQueryKey(buildAdminProductListQueryParams({ search: 'villain' })),
-      scopeKey,
-    )).toBe(false);
+    expect(nextPageKey).toEqual(firstPageKey);
+    expect(differentSearchKey).not.toEqual(firstPageKey);
   });
 });

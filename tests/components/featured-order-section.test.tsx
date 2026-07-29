@@ -7,6 +7,8 @@ import MutationConfigs from '@/configs/api/mutation-config';
 import type { IBaseApiResponse } from '@/interfaces/api-response';
 import type { IAdminFeaturedOrderItem, IAdminFeaturedOrderResponse } from '@/interfaces/product';
 import { renderWithProviders } from '../test-utils';
+import { buildAdminProductListKeyParams } from '@/lib/admin-product-filters';
+import { adminCollectionKeys, adminProductKeys } from '@/lib/admin-query-keys';
 
 const toastSuccessMock = vi.hoisted(() => vi.fn());
 const dndHarness = vi.hoisted(() => ({
@@ -117,6 +119,7 @@ function renderSection(overrides: Partial<React.ComponentProps<typeof FeaturedOr
     featuredOrder: featuredOrder(items),
     isError: false,
     isLoading: false,
+    localMembershipSignature: null,
     isMembershipMutationPending: false,
     onAddProductsClick: vi.fn(),
     onReload: vi.fn().mockResolvedValue(featuredOrder(items)),
@@ -187,6 +190,41 @@ describe('FeaturedOrderSection', () => {
     expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument();
   });
 
+  it('saves safely when an opened product selector left an infinite cache behind', async () => {
+    const updateOrder = vi.spyOn(MutationConfigs, 'updateAdminFeaturedOrder').mockResolvedValue(
+      response([items[2], items[0], items[1]], 'b'.repeat(64)),
+    );
+    const { queryClient } = renderSection();
+    const selectorKey = adminProductKeys.list(buildAdminProductListKeyParams({
+      excludeCollectionId: 'featured',
+    }));
+    const pageParams = [undefined, 'cursor-2'];
+    queryClient.setQueryData(selectorKey, {
+      pages: [
+        {
+          items: [{ id: 'product-1', collections: items[0].collections }],
+          nextCursor: 'cursor-2',
+          totalCount: 2,
+        },
+        {
+          items: [{ id: 'other-product', collections: [] }],
+          nextCursor: null,
+          totalCount: 2,
+        },
+      ],
+      pageParams,
+    });
+
+    dragProduct('product-3', 'product-1');
+    await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
+
+    await waitFor(() => expect(updateOrder).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(toastSuccessMock).toHaveBeenCalledWith('Featured product order saved.'));
+    expect(screen.queryByText(/membership changed while you were editing/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Unable to save Featured order. Please try again.')).not.toBeInTheDocument();
+    expect(queryClient.getQueryData<{ pageParams: unknown[] }>(selectorKey)?.pageParams).toBe(pageParams);
+  });
+
   it('confirms discard and restores the persisted order', async () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderSection();
@@ -226,6 +264,7 @@ describe('FeaturedOrderSection', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
 
     expect(await screen.findByText(/membership changed while you were editing/i)).toBeInTheDocument();
+    expect(screen.queryByText('Unable to save Featured order. Please try again.')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save order' })).toBeDisabled();
     await userEvent.click(screen.getByRole('button', { name: 'Reload Featured products' }));
     expect(onReload).toHaveBeenCalledTimes(1);
@@ -251,6 +290,8 @@ describe('FeaturedOrderSection', () => {
     dragProduct('product-2', 'product-1');
     await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
     expect(await screen.findByText('Unable to save Featured order. Please try again.')).toBeInTheDocument();
+    expect(screen.queryByText(/membership changed while you were editing/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reload Featured products' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('listitem')[0]).toHaveTextContent('Second Product');
     expect(screen.getByRole('button', { name: 'Save order' })).toBeEnabled();
 
@@ -337,7 +378,7 @@ describe('FeaturedOrderSection', () => {
     expect(props.onReload).not.toHaveBeenCalled();
     expect(
       queryClient.getQueryData<AxiosResponse<IBaseApiResponse<IAdminFeaturedOrderResponse>>>(
-        ['admin', 'featured-order'],
+        adminCollectionKeys.featuredOrder(),
       )?.data.data.membershipSignature,
     ).toBe(removedSignature);
   });
@@ -381,5 +422,31 @@ describe('FeaturedOrderSection', () => {
     expect(await screen.findByText('Unable to load Featured products. Please refresh and try again.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Add products' })).toBeDisabled();
+  });
+
+  it('keeps recovery retryable when reload rejects without leaking the event promise', async () => {
+    const onReload = vi.fn().mockRejectedValue(new Error('reload failed'));
+    renderSection({ onReload });
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove Second Product from Featured' }));
+    vi.spyOn(MutationConfigs, 'updateAdminFeaturedOrder').mockRejectedValue({
+      isAxiosError: true,
+      response: {
+        status: 409,
+        data: {
+          code: 409,
+          success: false,
+          message: 'Conflict',
+          data: null,
+          errors: { code: 'FEATURED_MEMBERSHIP_CHANGED' },
+        },
+      },
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Save order' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Reload Featured products' }));
+
+    expect(await screen.findByText(/Unable to reload Featured products/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reload Featured products' })).toBeEnabled();
+    expect(screen.queryByText('Unable to save Featured order. Please try again.')).not.toBeInTheDocument();
   });
 });

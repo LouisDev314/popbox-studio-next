@@ -12,6 +12,7 @@ import { ICollection } from '@/interfaces/product';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { NumericInput } from '@/components/ui/numeric-input';
+import { adminCollectionKeys } from '@/lib/admin-query-keys';
 
 type FormState = {
   id?: string;
@@ -30,7 +31,7 @@ export default function AdminCollectionsPageClient() {
   const [formData, setFormData] = useState<FormState>(DEFAULT_FORM);
 
   const { data: fetchRes, isPending } = useCustomizeQuery<ICollection[]>({
-    queryKey: ['admin', 'collections'],
+    queryKey: adminCollectionKeys.list(),
     queryFn: QueryConfigs.fetchAdminCollections,
   });
 
@@ -40,7 +41,7 @@ export default function AdminCollectionsPageClient() {
   const { mutation: createCollection, isPending: isCreating } = useCustomizeMutation({
     mutationFn: MutationConfigs.createAdminCollection,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'collections'] });
+      void queryClient.invalidateQueries({ queryKey: adminCollectionKeys.list() });
       setIsDialogOpen(false);
     },
   });
@@ -48,7 +49,7 @@ export default function AdminCollectionsPageClient() {
   const { mutation: updateCollection, isPending: isUpdating } = useCustomizeMutation({
     mutationFn: MutationConfigs.updateAdminCollection,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'collections'] });
+      void queryClient.invalidateQueries({ queryKey: adminCollectionKeys.list() });
       setIsDialogOpen(false);
     },
   });

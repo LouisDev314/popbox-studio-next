@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { getTagTypeLabel, isTagType, TAG_TYPE_OPTIONS, TagType } from '@/lib/tag-types';
+import { adminTagKeys } from '@/lib/admin-query-keys';
 
 type FormState = {
   id?: string;
@@ -28,7 +29,7 @@ export default function AdminTagsPageClient() {
   const [formData, setFormData] = useState<FormState>(DEFAULT_FORM);
 
   const { data: fetchRes, isPending } = useCustomizeQuery<ITag[]>({
-    queryKey: ['admin', 'tags'],
+    queryKey: adminTagKeys.list(),
     queryFn: QueryConfigs.fetchAdminTags,
   });
 
@@ -38,7 +39,7 @@ export default function AdminTagsPageClient() {
   const { mutation: createTag, isPending: isCreating } = useCustomizeMutation({
     mutationFn: MutationConfigs.createAdminTag,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'tags'] });
+      void queryClient.invalidateQueries({ queryKey: adminTagKeys.list() });
       setIsDialogOpen(false);
     },
   });
@@ -46,7 +47,7 @@ export default function AdminTagsPageClient() {
   const { mutation: updateTag, isPending: isUpdating } = useCustomizeMutation({
     mutationFn: MutationConfigs.updateAdminTag,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'tags'] });
+      void queryClient.invalidateQueries({ queryKey: adminTagKeys.list() });
       setIsDialogOpen(false);
     },
   });

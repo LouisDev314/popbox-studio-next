@@ -162,6 +162,29 @@ const addableAdminProducts = Array.from({ length: 13 }, (_, index) => {
 });
 
 const adminCatalogProducts = [...adminFeaturedProducts, ...addableAdminProducts];
+const adminOrders = Array.from({ length: 26 }, (_, index) => {
+  const position = index + 1;
+  const paddedPosition = String(position).padStart(3, '0');
+
+  return {
+    id: `10000000-0000-4000-8000-${String(position).padStart(12, '0')}`,
+    publicId: `PBX-ADMIN-${paddedPosition}`,
+    status: position % 2 === 0 ? 'paid' : 'pending_payment',
+    attention: null,
+    customerNote: null,
+    includesLastOnePrize: false,
+    totalCents: 2000 + position * 100,
+    currency: 'CAD',
+    placedAt: `2026-07-${String(Math.min(position, 28)).padStart(2, '0')}T18:00:00.000Z`,
+    createdAt: `2026-07-${String(Math.min(position, 28)).padStart(2, '0')}T18:00:00.000Z`,
+    customer: {
+      id: `20000000-0000-4000-8000-${String(position).padStart(12, '0')}`,
+      email: `admin-customer-${position}@example.com`,
+      firstName: 'Admin',
+      lastName: `Customer ${position}`,
+    },
+  };
+});
 
 function adminFeaturedOrderItem(productId: string, sortOrder: number) {
   const product = adminCatalogProducts.find((candidate) => candidate.id === productId);
@@ -541,12 +564,42 @@ function createRequestHandler(state: IAuthMockState) {
         return;
       }
 
+      const visibleProducts = adminCatalogProducts.filter((product) => (
+        !search || product.name.toLocaleLowerCase().includes(search)
+      ));
+      const pageStart = cursor === 'catalog-page-2' ? 12 : 0;
+
       sendJson(response, apiData({
-        items: adminCatalogProducts.map((product) => (
+        items: visibleProducts.slice(pageStart, pageStart + 12).map((product) => (
           adminProductListItem(product, state.featuredOrderIds.includes(product.id))
         )),
-        nextCursor: null,
-        totalCount: adminCatalogProducts.length,
+        nextCursor: pageStart === 0 && visibleProducts.length > 12 ? 'catalog-page-2' : null,
+        totalCount: visibleProducts.length,
+      }));
+      return;
+    }
+
+    if (pathname === '/api/v1/admin/orders' && request.method === 'GET') {
+      const search = requestUrl.searchParams.get('search')?.trim().toLocaleLowerCase() ?? '';
+      const status = requestUrl.searchParams.get('status');
+      const cursor = requestUrl.searchParams.get('cursor');
+      const visibleOrders = adminOrders.filter((order) => {
+        const matchesSearch = !search || [
+          order.publicId,
+          order.customer.email,
+          order.customer.firstName,
+          order.customer.lastName,
+        ].some((value) => value.toLocaleLowerCase().includes(search));
+        const matchesStatus = !status || status === 'all' || order.status === status;
+        return matchesSearch && matchesStatus;
+      });
+      const pageStart = cursor === 'orders-page-2' ? 12 : 0;
+
+      sendJson(response, apiData({
+        items: pageStart === 0
+          ? visibleOrders.slice(0, 12)
+          : visibleOrders.slice(pageStart),
+        nextCursor: pageStart === 0 && visibleOrders.length > 12 ? 'orders-page-2' : null,
       }));
       return;
     }

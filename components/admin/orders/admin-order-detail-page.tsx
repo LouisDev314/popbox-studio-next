@@ -31,6 +31,7 @@ import {
   normalizeTrackingUrl,
   type IShipmentFormValues,
 } from '@/utils/admin-order';
+import { adminOrderKeys } from '@/lib/admin-query-keys';
 
 const STATUS_CONFIG: Record<IOrderStatus, { label: string; bg: string; text: string }> = {
   pending_payment: { label: 'Pending Payment', bg: 'bg-accent', text: 'text-foreground' },
@@ -582,7 +583,7 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
   const [actionFeedback, setActionFeedback] = useState<OrderActionFeedback | null>(null);
 
   const { data: fetchRes, isPending } = useCustomizeQuery<IAdminOrderDetail>({
-    queryKey: ['admin', 'orders', adminOrderId],
+    queryKey: adminOrderKeys.detail(adminOrderId),
     queryFn: () => QueryConfigs.fetchAdminOrder(adminOrderId),
   });
 
@@ -591,8 +592,8 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
 
   const refreshOrderQueries = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['admin', 'orders'], exact: true }),
-      queryClient.invalidateQueries({ queryKey: ['admin', 'orders', adminOrderId], exact: true }),
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.lists() }),
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.detail(adminOrderId), exact: true }),
     ]);
   };
 

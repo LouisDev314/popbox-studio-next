@@ -25,6 +25,7 @@ import { FileUpload } from '@/components/ui/file-upload';
 import { Button } from '@/components/ui/button';
 import { mergeAdminImages, resolveAdminImageSrc } from '@/utils/admin';
 import { cn } from '@/lib/utils';
+import { adminProductKeys } from '@/lib/admin-query-keys';
 
 import { buildSortOrderUpdates, moveSortableItems } from './reorder-utils';
 import { SortableHandle, useAdminSortable } from './sortable-admin-item';
@@ -158,8 +159,8 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
         };
       });
 
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.detail(product.id) });
     },
     onSettled: () => {
       setUploadingCount((currentCount) => Math.max(currentCount - 1, 0));
@@ -169,8 +170,8 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
   const { mutation: deleteImage, isPending: isDeleting } = useCustomizeMutation({
     mutationFn: MutationConfigs.deleteAdminProductImage,
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.detail(product.id) });
     },
   });
 
@@ -188,8 +189,8 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
         };
       });
 
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.detail(product.id) });
     },
     onError: () => {
       const previousImages = reorderRollbackRef.current;
@@ -207,7 +208,7 @@ export function ProductMediaForm({ product, onProductChange }: IProductMediaForm
         });
       }
 
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'product', product.id] });
+      void queryClient.invalidateQueries({ queryKey: adminProductKeys.detail(product.id) });
     },
     onSettled: () => {
       reorderRollbackRef.current = null;

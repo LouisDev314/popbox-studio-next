@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AxiosResponse } from 'axios';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminProductsPage from '@/components/admin/admin-products-page';
 import QueryConfigs from '@/configs/api/query-config';
 import type { IBaseApiResponse } from '@/interfaces/api-response';
@@ -13,6 +13,10 @@ import type {
   ITag,
 } from '@/interfaces/product';
 import { renderWithProviders } from '../test-utils';
+import {
+  installMockIntersectionObserver,
+  mockIntersectionObservers,
+} from '../mock-intersection-observer';
 
 const replace = vi.fn();
 const push = vi.fn();
@@ -137,6 +141,11 @@ describe('AdminProductsPage', () => {
     push.mockReset();
     vi.spyOn(QueryConfigs, 'fetchAdminCollections').mockResolvedValue(createResponse(collections));
     vi.spyOn(QueryConfigs, 'fetchAdminTags').mockResolvedValue(createResponse(tags));
+    installMockIntersectionObserver();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('links to the focused Featured ordering surface', async () => {
@@ -285,7 +294,7 @@ describe('AdminProductsPage', () => {
 
     expect(await screen.findByText('26 products')).toBeInTheDocument();
 
-    void view.queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+    void view.queryClient.invalidateQueries({ queryKey: ['admin', 'products', 'list'] });
 
     await waitFor(() => {
       expect(fetchProducts).toHaveBeenCalledTimes(2);
@@ -467,7 +476,7 @@ describe('AdminProductsPage', () => {
     view.unmount();
   });
 
-  it('load more appends rows using nextCursor', async () => {
+  it('automatically appends rows using nextCursor when the sentinel intersects', async () => {
     let resolveNextPage: (
       response: AxiosResponse<IBaseApiResponse<IAdminProductListResponse>>,
     ) => void = () => undefined;
@@ -483,7 +492,11 @@ describe('AdminProductsPage', () => {
     renderWithProviders(<AdminProductsPage />);
 
     expect(await screen.findAllByText('Hero Figure')).not.toHaveLength(0);
-    await userEvent.click(screen.getByRole('button', { name: 'Load More' }));
+    await waitFor(() => expect(mockIntersectionObservers).toHaveLength(1));
+    expect(mockIntersectionObservers[0].root).toBeNull();
+    expect(mockIntersectionObservers[0].rootMargin).toBe('200px 0px');
+    mockIntersectionObservers[0].trigger();
+    mockIntersectionObservers[0].trigger();
 
     await waitFor(() => {
       expect(fetchProducts).toHaveBeenLastCalledWith({
@@ -507,6 +520,42 @@ describe('AdminProductsPage', () => {
     expect(await screen.findAllByText('Second Figure')).not.toHaveLength(0);
     expect(screen.getAllByText('Hero Figure')).not.toHaveLength(0);
     expect(screen.getByTestId('admin-product-count')).toHaveTextContent('26 products');
+    expect(fetchProducts.mock.calls.filter(([filters]) => filters?.cursor === 'cursor-2')).toHaveLength(1);
+    await waitFor(() => expect(mockIntersectionObservers.at(-1)?.disconnect).toHaveBeenCalled());
+  });
+
+  it('keeps existing products visible and retries a failed next page', async () => {
+    let cursorAttempts = 0;
+    vi.spyOn(QueryConfigs, 'fetchAdminProducts').mockImplementation((filters) => {
+      if (filters?.cursor === 'retry-cursor') {
+        cursorAttempts += 1;
+        return cursorAttempts === 1
+          ? Promise.reject(new Error('next page failed'))
+          : Promise.resolve(createResponse(createProductListResponse([
+            createProduct({ id: 'product-2', name: 'Recovered Figure' }),
+          ])));
+      }
+
+      return Promise.resolve(createResponse(createProductListResponse(
+        [createProduct()],
+        'retry-cursor',
+        2,
+      )));
+    });
+
+    renderWithProviders(<AdminProductsPage />);
+
+    expect(await screen.findAllByText('Hero Figure')).not.toHaveLength(0);
+    await waitFor(() => expect(mockIntersectionObservers).toHaveLength(1));
+    mockIntersectionObservers[0].trigger();
+
+    expect(await screen.findByText('More products could not be loaded.')).toBeInTheDocument();
+    expect(screen.getAllByText('Hero Figure')).not.toHaveLength(0);
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findAllByText('Recovered Figure')).not.toHaveLength(0);
+    expect(screen.getAllByText('Hero Figure')).not.toHaveLength(0);
+    expect(cursorAttempts).toBe(2);
   });
 
   it('does not locally filter loaded product rows', async () => {
