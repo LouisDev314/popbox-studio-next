@@ -15,12 +15,26 @@ const PRODUCT_ID = '11111111-1111-4111-8111-111111111111';
 
 describe('SEO product images', () => {
   it('builds an absolute stable Supabase URL from a validated product storage key', () => {
-    expect(buildSupabaseProductImageUrl(
-      `products/${PRODUCT_ID}/front image.webp`,
+    const storageKey = `products/${PRODUCT_ID}/front image.webp`;
+    const supabaseImageUrl = buildSupabaseProductImageUrl(
+      storageKey,
       imageConfig,
-    )).toBe(
+    );
+    const repeatedSupabaseImageUrl = buildSupabaseProductImageUrl(
+      storageKey,
+      imageConfig,
+    );
+
+    expect(supabaseImageUrl).toBe(
       'https://project-ref.supabase.co/storage/v1/object/public/product-images/products/11111111-1111-4111-8111-111111111111/front%20image.webp',
     );
+    expect(repeatedSupabaseImageUrl).toBe(supabaseImageUrl);
+    expect(new URL(supabaseImageUrl ?? '').search).toBe('');
+    expect(new URL(supabaseImageUrl ?? '').hash).toBe('');
+    expect(buildSupabaseProductImageUrl(
+      `/${storageKey}`,
+      imageConfig,
+    )).toBe(supabaseImageUrl);
     expect(buildSeoProductImageUrl(
       `products/${PRODUCT_ID}/front image.webp`,
       imageConfig,

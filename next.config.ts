@@ -15,6 +15,15 @@ const shouldApplySentryConfig = shouldEnableSentryBuild && hasRequiredSentryBuil
 const configuredSupabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
   : undefined;
+const configuredSupabaseStorageBucket = getPublicEnvConfig().supabaseStorageBucket;
+
+if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(configuredSupabaseStorageBucket)) {
+  throw new Error('NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET must be a valid Supabase Storage bucket name.');
+}
+
+const supabaseProductImagePathname = (
+  `/storage/v1/object/public/${configuredSupabaseStorageBucket}/products/**`
+);
 
 const supabaseImageHostnames = Array.from(
   new Set(
@@ -92,12 +101,14 @@ const nextConfig: NextConfig = {
   },
   images: {
     deviceSizes: [414, 640, 768, 828, 1024, 1280, 1536, 1920],
+    formats: ['image/webp'],
     imageSizes: [32, 48, 64, 96, 128, 256],
     minimumCacheTTL: 2678400,
+    qualities: [75],
     remotePatterns: supabaseImageHostnames.map((hostname) => ({
       protocol: 'https',
       hostname,
-      pathname: '/storage/v1/object/public/**',
+      pathname: supabaseProductImagePathname,
     })),
   },
   typescript: {
