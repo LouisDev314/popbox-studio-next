@@ -13,6 +13,7 @@ import {
   IAdminProductImagePatch,
   IAdminProductImageUploadResponse,
   IAdminCollectionCreateRequest,
+  IAdminCollectionReorderRequest,
   IAdminCollectionUpdateRequest,
   IAdminKujiPrizeCreateRequest,
   IAdminKujiPrizeUpdateRequest,
@@ -201,6 +202,9 @@ const MutationConfigs = {
   },
   updateAdminCollection: async ({ id, data }: { id: string; data: IAdminCollectionUpdateRequest }): Promise<AxiosResponse<IBaseApiResponse<ICollection>>> => {
     return httpClient.patch(`/api/v1/admin/collections/${id}`, data, await withAdminAuth());
+  },
+  reorderAdminCollections: async (data: IAdminCollectionReorderRequest): Promise<AxiosResponse<IBaseApiResponse<ICollection[]>>> => {
+    return httpClient.patch('/api/v1/admin/collections/reorder', data, await withAdminAuth());
   },
   updateAdminFeaturedOrder: async (data: IAdminFeaturedOrderUpdate): Promise<AxiosResponse<IBaseApiResponse<IAdminFeaturedOrderResponse>>> => {
     return httpClient.put('/api/v1/admin/collections/featured/order', data, await withAdminAuth());

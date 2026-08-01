@@ -313,11 +313,15 @@ export interface IAdminCollectionCreateRequest {
   name: string;
   slug: string;
   description: string | null;
-  sortOrder: number;
+  sortOrder?: number;
   isActive: boolean;
 }
 
 export type IAdminCollectionUpdateRequest = Partial<IAdminCollectionCreateRequest>;
+
+export interface IAdminCollectionReorderRequest {
+  collectionIds: string[];
+}
 
 export interface IAdminTagCreateRequest {
   name: string;

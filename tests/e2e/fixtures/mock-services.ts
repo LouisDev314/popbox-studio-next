@@ -4,6 +4,7 @@ import { expect, test as base } from '@playwright/test';
 
 interface IAuthMockState {
   accessToken: () => string;
+  collectionOrderIds: string[];
   featuredOrderIds: string[];
   profileRequests: number;
   revealedResultIds: Set<string>;
@@ -134,6 +135,33 @@ const featuredCollection = {
   sortOrder: 0,
   isActive: true,
 };
+
+const adminCollections = [
+  featuredCollection,
+  {
+    id: '00000000-0000-4000-8000-000000000101',
+    name: 'Kuji Picks',
+    slug: 'kuji-picks',
+    description: 'Curated kuji products',
+    sortOrder: 1,
+    isActive: true,
+  },
+  {
+    id: '00000000-0000-4000-8000-000000000102',
+    name: 'New Arrivals',
+    slug: 'new-arrivals',
+    description: 'Recently added products',
+    sortOrder: 2,
+    isActive: true,
+  },
+];
+
+function orderedAdminCollections(collectionOrderIds: string[]) {
+  return collectionOrderIds.flatMap((collectionId, sortOrder) => {
+    const collection = adminCollections.find(({ id }) => id === collectionId);
+    return collection ? [{ ...collection, sortOrder }] : [];
+  });
+}
 
 const adminFeaturedProducts = [
   { id: '00000000-0000-4000-8000-000000000201', name: 'First Featured Figure', slug: 'first-featured-figure', productType: 'standard' as const },
@@ -539,7 +567,35 @@ function createRequestHandler(state: IAuthMockState) {
     }
 
     if (pathname === '/api/v1/admin/collections' && request.method === 'GET') {
-      sendJson(response, apiData([featuredCollection]));
+      sendJson(response, apiData(orderedAdminCollections(state.collectionOrderIds)));
+      return;
+    }
+
+    if (pathname === '/api/v1/admin/collections/reorder' && request.method === 'PATCH') {
+      const body = await readJson(request);
+      const collectionIds = Array.isArray(body.collectionIds)
+        ? body.collectionIds.filter((collectionId): collectionId is string => typeof collectionId === 'string')
+        : [];
+      const submittedMembership = [...collectionIds].sort();
+      const currentMembership = [...state.collectionOrderIds].sort();
+
+      if (
+        new Set(collectionIds).size !== collectionIds.length
+        || JSON.stringify(submittedMembership) !== JSON.stringify(currentMembership)
+      ) {
+        sendJson(response, {
+          status: 'error',
+          code: 409,
+          success: false,
+          message: 'Collection membership changed',
+          data: null,
+          errors: { code: 'COLLECTION_MEMBERSHIP_CHANGED' },
+        }, 409);
+        return;
+      }
+
+      state.collectionOrderIds = collectionIds;
+      sendJson(response, apiData(orderedAdminCollections(state.collectionOrderIds)));
       return;
     }
 
@@ -686,7 +742,7 @@ function createRequestHandler(state: IAuthMockState) {
     }
 
     if (pathname === '/api/v1/collections') {
-      sendJson(response, apiData([]));
+      sendJson(response, apiData(orderedAdminCollections(state.collectionOrderIds)));
       return;
     }
 
@@ -719,10 +775,12 @@ export const test = base.extend<{ authMock: IAuthMockState; mockServices: void }
       accessToken() {
         return createAccessToken();
       },
+      collectionOrderIds: adminCollections.map((collection) => collection.id),
       featuredOrderIds: adminFeaturedProducts.map((product) => product.id),
       profileRequests: 0,
       revealedResultIds: new Set<string>(),
       reset() {
+        this.collectionOrderIds = adminCollections.map((collection) => collection.id);
         this.featuredOrderIds = adminFeaturedProducts.map((product) => product.id);
         this.profileRequests = 0;
         this.revealedResultIds.clear();
