@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShoppingBag, Trash2 } from 'lucide-react';
 import { CartInteractionLockOverlay } from '@/components/cart/cart-interaction-lock-overlay';
+import { FreeShippingStatus } from '@/components/cart/free-shipping-status';
 import { InvalidCartItems } from '@/components/cart/invalid-cart-items';
 import { CartMigrationNotice } from '@/components/cart/cart-migration-notice';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import { StorefrontDrawer } from '@/components/ui/storefront-drawer';
 import { StorefrontImage } from '@/components/ui/storefront-image';
 import { useCartStore } from '@/hooks/use-cart';
 import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
+import { usePublicShippingSettings } from '@/hooks/use-public-shipping-settings';
 import { formatPrice } from '@/lib/utils';
 import { getProductCartLimitMessage, getProductSellableQuantity } from '@/utils/product-stock';
 import { getCartItemUnitPrice } from '@/utils/cart';
@@ -62,18 +64,9 @@ export function CartDrawer(props: ICartDrawerProps) {
   const cartSummary = getCartSummary();
   const hasHydrated = useCartStore((state) => state.hasHydrated);
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
+  const shippingSettings = usePublicShippingSettings();
   const totalItems = cartSummary.totalItems + invalidItems.reduce((count, item) => count + item.quantity, 0);
   const hasKujiItems = items.some((item) => item.product.productType === 'kuji');
-  const shippingLabel =
-    cartSummary.shippingCents === 0 && cartSummary.subtotalCents > 0
-      ? 'FREE'
-      : formatPrice(cartSummary.shippingCents, cartSummary.currency);
-  const freeShippingMessage =
-    cartSummary.subtotalCents === 0
-      ? null
-      : cartSummary.amountUntilFreeShippingCents > 0
-        ? `You are ${formatPrice(cartSummary.amountUntilFreeShippingCents, cartSummary.currency)} away from free shipping.`
-        : 'You qualify for free shipping.';
 
   const handleRemoveItem = (cartItemId: string) => {
     removeItem(cartItemId);
@@ -105,13 +98,13 @@ export function CartDrawer(props: ICartDrawerProps) {
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium text-muted-foreground">Shipping</span>
-              <span className="font-semibold text-foreground">{shippingLabel}</span>
+              <span className="font-semibold text-foreground">Calculated at checkout</span>
             </div>
-            {freeShippingMessage ? (
-              <p className="rounded-2xl bg-accent/45 px-3 py-2 text-xs font-medium leading-5 text-foreground">
-                {freeShippingMessage}
-              </p>
-            ) : null}
+            <FreeShippingStatus
+              mode="generic"
+              settings={shippingSettings.settings}
+              className="rounded-2xl bg-accent/45 px-3 py-2 text-xs leading-5"
+            />
           </div>
           <p className="mb-4 text-xs leading-5 text-muted-foreground">
             {hasKujiItems ? 'Kuji items are random draw and final sale. ' : ''}

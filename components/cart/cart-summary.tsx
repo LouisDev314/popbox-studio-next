@@ -2,11 +2,14 @@
 
 import { type ReactNode } from 'react';
 import Link from 'next/link';
+import { FreeShippingStatus } from '@/components/cart/free-shipping-status';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { usePublicShippingSettings } from '@/hooks/use-public-shipping-settings';
 import { type ICartSummary } from '@/interfaces/cart';
 import { type CheckoutQuoteData } from '@/interfaces/checkout';
 import { cn, formatPrice } from '@/lib/utils';
+import { calculateFreeShippingProgress } from '@/utils/shipping';
 // TEMP: Tax disabled (not collecting tax yet)
 // import { Tooltip } from '@/components/ui/tooltip-card';
 // import { CircleQuestionMark } from 'lucide-react';
@@ -138,60 +141,48 @@ function getResolvedNote(props: ICartSummaryProps): ReactNode {
     return props.note;
   }
 
-  // TEMP: Tax disabled (not collecting tax yet)
-  // return 'Shipping and tax are estimated on the storefront and should be replaced by backend-authoritative totals at checkout confirmation.';
-  return 'Shipping is estimated on the storefront and should be replaced by backend-authoritative totals at checkout confirmation.';
+  return 'Shipping and checkout totals are calculated after you enter your delivery address.';
 }
 
 function getShippingLabel(params: {
   currency: string;
+  isQuotePending: boolean;
   quote: CheckoutQuoteData | null;
-  summary: ICartSummary;
 }): string {
   if (params.quote) {
+    if (params.quote.shippingCents === 0) {
+      return 'Free';
+    }
+
     return formatPrice(params.quote.shippingCents, params.currency);
   }
 
-  if (params.summary.shippingCents === 0 && params.summary.subtotalCents > 0) {
-    return 'FREE';
+  if (params.isQuotePending) {
+    return 'Updating…';
   }
 
-  return formatPrice(params.summary.shippingCents, params.currency);
-}
-
-function getFreeShippingMessage(params: {
-  currency: string;
-  quote: CheckoutQuoteData | null;
-  summary: ICartSummary;
-}): string | null {
-  if (params.quote || params.summary.subtotalCents === 0) {
-    return null;
-  }
-
-  if (params.summary.amountUntilFreeShippingCents > 0) {
-    return `You are ${formatPrice(params.summary.amountUntilFreeShippingCents, params.currency)} away from free shipping.`;
-  }
-
-  return 'You qualify for free shipping.';
+  return 'Calculated after address';
 }
 
 export function CartSummary(props: ICartSummaryProps) {
+  const shippingSettings = usePublicShippingSettings();
   const resolvedHeading = props.heading === undefined ? 'Order summary' : props.heading;
   const resolvedNote = getResolvedNote(props);
   const hasHeaderContent = resolvedHeading !== null || Boolean(resolvedNote);
   const quote = props.quote ?? null;
   const shippingLabel = getShippingLabel({
     currency: props.summary.currency,
+    isQuotePending: Boolean(props.isQuotePending),
     quote,
-    summary: props.summary,
   });
-  const freeShippingMessage = getFreeShippingMessage({
-    currency: props.summary.currency,
-    quote,
-    summary: props.summary,
-  });
+  const freeShippingProgress = quote
+    ? calculateFreeShippingProgress({
+      eligibleSubtotalCents: quote.subtotalCents,
+      region: quote.shippingRegion,
+      thresholdCents: quote.appliedFreeShippingThresholdCents,
+    })
+    : null;
   const subtotalCents = quote?.subtotalCents ?? props.summary.subtotalCents;
-  const totalCents = quote?.totalCents ?? props.summary.totalCents;
 
   return (
     <div className={cn('rounded-4xl border border-border/60 bg-card p-6 shadow-sm', props.className)} data-testid="cart-summary">
@@ -219,11 +210,20 @@ export function CartSummary(props: ICartSummaryProps) {
           <span className="font-medium text-foreground">{shippingLabel}</span>
         </div>
 
-        {freeShippingMessage ? (
-          <p className="rounded-2xl bg-accent/45 px-4 py-3 text-sm font-medium text-foreground">
-            {freeShippingMessage}
-          </p>
-        ) : null}
+        {quote ? (
+          <FreeShippingStatus
+            mode="contextual"
+            isFree={quote.shippingCents === 0}
+            progress={freeShippingProgress}
+            className="rounded-2xl bg-accent/45 px-4 py-3 text-sm"
+          />
+        ) : (
+          <FreeShippingStatus
+            mode="generic"
+            settings={shippingSettings.settings}
+            className="rounded-2xl bg-accent/45 px-4 py-3 text-sm"
+          />
+        )}
 
         <BackendQuoteTotals currency={props.summary.currency} quote={quote} />
 
@@ -231,7 +231,7 @@ export function CartSummary(props: ICartSummaryProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center justify-center gap-2">
               <span className="text-base font-semibold text-foreground">
-                {quote ? 'Total' : 'Estimated total'}
+                {quote ? 'Total' : 'Checkout total'}
               </span>
               {/* TEMP: Tax disabled (not collecting tax yet) */}
               {/* <Tooltip
@@ -242,7 +242,9 @@ export function CartSummary(props: ICartSummaryProps) {
               </Tooltip> */}
             </div>
             <span className="text-xl font-bold text-foreground">
-              {formatPrice(totalCents, props.summary.currency)}
+              {quote
+                ? formatPrice(quote.totalCents, props.summary.currency)
+                : 'Calculated after address'}
             </span>
           </div>
         </div>

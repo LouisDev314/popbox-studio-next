@@ -158,6 +158,8 @@ describe('JSON-LD helpers', () => {
       shippingSettings: {
         currency: 'CAD',
         flatShippingCents: 1200,
+        calgaryFreeShippingThresholdCents: 7500,
+        albertaFreeShippingThresholdCents: 8500,
         freeShippingThresholdCents: 10000,
       },
     });

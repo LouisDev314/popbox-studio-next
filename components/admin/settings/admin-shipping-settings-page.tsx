@@ -8,12 +8,14 @@ import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import useCustomizeQuery from '@/hooks/use-customize-query';
 import useCustomizeMutation from '@/hooks/use-customize-mutation';
+import { PUBLIC_SHIPPING_SETTINGS_QUERY_KEY } from '@/hooks/use-public-shipping-settings';
 import { Button } from '@/components/ui/button';
 import { ErrorAlert } from '@/components/ui/error-alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn, formatPrice } from '@/lib/utils';
 import { getFriendlyErrorMessage } from '@/utils/api-errors';
+import { isValidShippingSettings } from '@/utils/shipping';
 import type { IShippingSettings, IUpdateShippingSettingsPayload } from '@/interfaces/shipping';
 
 const SHIPPING_SETTINGS_QUERY_KEY = ['admin', 'settings', 'shipping'] as const;
@@ -21,6 +23,8 @@ const MONEY_PATTERN = /^\d+(?:\.\d{1,2})?$/;
 
 type ShippingFormState = {
   flatShipping: string;
+  calgaryFreeShippingThreshold: string;
+  albertaFreeShippingThreshold: string;
   freeShippingThreshold: string;
   currency: IShippingSettings['currency'];
 };
@@ -42,6 +46,8 @@ function isValidMoney(value: string): boolean {
 function settingsToForm(settings: IShippingSettings): ShippingFormState {
   return {
     flatShipping: centsToDollarInput(settings.flatShippingCents),
+    calgaryFreeShippingThreshold: centsToDollarInput(settings.calgaryFreeShippingThresholdCents),
+    albertaFreeShippingThreshold: centsToDollarInput(settings.albertaFreeShippingThresholdCents),
     freeShippingThreshold: centsToDollarInput(settings.freeShippingThresholdCents),
     currency: settings.currency,
   };
@@ -58,6 +64,36 @@ function validateForm(form: ShippingFormState): ShippingFormErrors {
     errors.freeShippingThreshold = 'Enter a valid amount with up to 2 decimal places.';
   }
 
+  if (!isValidMoney(form.calgaryFreeShippingThreshold)) {
+    errors.calgaryFreeShippingThreshold = 'Enter a valid amount with up to 2 decimal places.';
+  }
+
+  if (!isValidMoney(form.albertaFreeShippingThreshold)) {
+    errors.albertaFreeShippingThreshold = 'Enter a valid amount with up to 2 decimal places.';
+  }
+
+  const hasValidThresholdAmounts = [
+    form.calgaryFreeShippingThreshold,
+    form.albertaFreeShippingThreshold,
+    form.freeShippingThreshold,
+  ].every(isValidMoney);
+
+  if (hasValidThresholdAmounts) {
+    const calgaryThreshold = dollarsToCents(form.calgaryFreeShippingThreshold);
+    const albertaThreshold = dollarsToCents(form.albertaFreeShippingThreshold);
+    const canadaThreshold = dollarsToCents(form.freeShippingThreshold);
+
+    if (calgaryThreshold > albertaThreshold) {
+      errors.calgaryFreeShippingThreshold = 'Calgary threshold must be less than or equal to Alberta.';
+      errors.albertaFreeShippingThreshold = 'Alberta threshold must be greater than or equal to Calgary.';
+    }
+
+    if (albertaThreshold > canadaThreshold) {
+      errors.albertaFreeShippingThreshold = 'Alberta threshold must be less than or equal to Canada.';
+      errors.freeShippingThreshold = 'Canada threshold must be greater than or equal to Alberta.';
+    }
+  }
+
   if (form.currency !== 'CAD') {
     errors.currency = 'Currency must stay CAD.';
   }
@@ -72,6 +108,8 @@ function hasErrors(errors: ShippingFormErrors): boolean {
 function buildPayload(form: ShippingFormState): IUpdateShippingSettingsPayload {
   return {
     flatShippingCents: dollarsToCents(form.flatShipping),
+    calgaryFreeShippingThresholdCents: dollarsToCents(form.calgaryFreeShippingThreshold),
+    albertaFreeShippingThresholdCents: dollarsToCents(form.albertaFreeShippingThreshold),
     freeShippingThresholdCents: dollarsToCents(form.freeShippingThreshold),
     currency: 'CAD',
   };
@@ -81,6 +119,8 @@ export function AdminShippingSettingsPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<ShippingFormState>({
     flatShipping: '',
+    calgaryFreeShippingThreshold: '',
+    albertaFreeShippingThreshold: '',
     freeShippingThreshold: '',
     currency: 'CAD',
   });
@@ -96,6 +136,11 @@ export function AdminShippingSettingsPage() {
   }, []);
 
   const handleQuerySuccess = useCallback((response: { data: { data: IShippingSettings } }) => {
+    if (!isValidShippingSettings(response.data.data)) {
+      setRequestErrorMessage('Shipping settings are invalid. Please refresh or contact support.');
+      return;
+    }
+
     syncSettings(response.data.data);
   }, [syncSettings]);
 
@@ -122,6 +167,7 @@ export function AdminShippingSettingsPage() {
       syncSettings(savedSettings);
       toast.success('Shipping settings saved.');
       void queryClient.invalidateQueries({ queryKey: SHIPPING_SETTINGS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: PUBLIC_SHIPPING_SETTINGS_QUERY_KEY });
     },
     onError: (error) => {
       const friendlyMessage = getFriendlyErrorMessage(error);
@@ -145,7 +191,11 @@ export function AdminShippingSettingsPage() {
   };
 
   const activePolicy = currentPolicy ?? (
-    !hasErrors(validateForm(form)) && form.flatShipping && form.freeShippingThreshold
+    !hasErrors(validateForm(form))
+      && form.flatShipping
+      && form.calgaryFreeShippingThreshold
+      && form.albertaFreeShippingThreshold
+      && form.freeShippingThreshold
       ? buildPayload(form)
       : null
   );
@@ -179,8 +229,20 @@ export function AdminShippingSettingsPage() {
                 value={form.flatShipping}
               />
               <MoneyField
+                error={errors.calgaryFreeShippingThreshold}
+                label="Calgary free shipping threshold"
+                onChange={(value) => setForm((previous) => ({ ...previous, calgaryFreeShippingThreshold: value }))}
+                value={form.calgaryFreeShippingThreshold}
+              />
+              <MoneyField
+                error={errors.albertaFreeShippingThreshold}
+                label="Alberta free shipping threshold"
+                onChange={(value) => setForm((previous) => ({ ...previous, albertaFreeShippingThreshold: value }))}
+                value={form.albertaFreeShippingThreshold}
+              />
+              <MoneyField
                 error={errors.freeShippingThreshold}
-                label="Free shipping threshold"
+                label="Canada free shipping threshold"
                 onChange={(value) => setForm((previous) => ({ ...previous, freeShippingThreshold: value }))}
                 value={form.freeShippingThreshold}
               />
@@ -202,7 +264,8 @@ export function AdminShippingSettingsPage() {
             </div>
 
             <div className="mt-6 space-y-2 rounded-xl border border-[#e4dccf] bg-white p-4 text-sm text-[#6b7280]">
-              <p>Orders at or above the threshold qualify for free shipping before tax.</p>
+              <p>Thresholds use the merchandise subtotal before tax and shipping.</p>
+              <p>Calgary eligibility is determined from the shipping postal code.</p>
               <p>Existing orders are not recalculated.</p>
             </div>
 
@@ -284,7 +347,21 @@ function CurrentPolicyCard({
       {settings ? (
         <div className="mt-4 space-y-3 text-sm leading-6 text-[#4b5563]">
           <p>
-            Free shipping{' '}
+            Calgary free shipping{' '}
+            <span className="font-semibold text-[#111827]">
+              {formatPrice(settings.calgaryFreeShippingThresholdCents, settings.currency)} CAD
+            </span>{' '}
+            or more.
+          </p>
+          <p>
+            Alberta free shipping{' '}
+            <span className="font-semibold text-[#111827]">
+              {formatPrice(settings.albertaFreeShippingThresholdCents, settings.currency)} CAD
+            </span>{' '}
+            or more.
+          </p>
+          <p>
+            Canada free shipping{' '}
             <span className="font-semibold text-[#111827]">
               {formatPrice(settings.freeShippingThresholdCents, settings.currency)} CAD
             </span>{' '}

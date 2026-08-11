@@ -220,7 +220,7 @@ describe('CartDrawer', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it('shows compact flat shipping progress in the drawer footer', async () => {
+  it('shows compact generic regional policy in the drawer footer', async () => {
     act(() => {
       useCartStore.setState({
         hasHydrated: true,
@@ -233,8 +233,11 @@ describe('CartDrawer', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
 
-    expect(screen.getByText('$15.99')).toBeInTheDocument();
-    expect(screen.getByText('You are $0.01 away from free shipping.')).toBeInTheDocument();
+    expect(screen.getByText('Calculated at checkout')).toBeInTheDocument();
+    expect(await screen.findByText(/\$77\.00 in Calgary/)).toBeInTheDocument();
+    expect(screen.getByText(/\$88\.00 in Alberta/)).toBeInTheDocument();
+    expect(screen.getByText(/\$149\.00 across Canada/)).toBeInTheDocument();
+    expect(screen.queryByText('$15.99')).not.toBeInTheDocument();
     expect(screen.queryByText(/tax/i)).not.toBeInTheDocument();
   });
 
@@ -257,7 +260,7 @@ describe('CartDrawer', () => {
     expect(push).toHaveBeenCalledWith('/cart');
   });
 
-  it('shows compact free shipping confirmation in the drawer footer', async () => {
+  it('does not infer free shipping in the drawer from the client subtotal', async () => {
     act(() => {
       useCartStore.setState({
         hasHydrated: true,
@@ -270,8 +273,10 @@ describe('CartDrawer', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
 
-    expect(screen.getByText('FREE')).toBeInTheDocument();
-    expect(screen.getByText('You qualify for free shipping.')).toBeInTheDocument();
+    expect(screen.getByText('Calculated at checkout')).toBeInTheDocument();
+    expect(await screen.findByText(/\$77\.00 in Calgary/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Free$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Free shipping unlocked/)).not.toBeInTheDocument();
   });
 
   it('shows a kuji-specific reminder in the drawer when kuji items are present', async () => {

@@ -6,14 +6,8 @@ import { type CheckoutQuoteData, type TaxBreakdown } from '@/interfaces/checkout
 import { renderWithProviders } from '../test-utils';
 
 const summary: ICartSummary = {
-  amountUntilFreeShippingCents: 0,
   currency: 'CAD',
-  estimatedTaxCents: 0,
-  hasPhysicalItems: true,
-  isEstimated: true,
-  shippingCents: 1200,
   subtotalCents: 4999,
-  totalCents: 6199,
   totalItems: 1,
 };
 
@@ -32,7 +26,11 @@ const emptyTaxBreakdown: TaxBreakdown = {
   totalTaxCents: 0,
 };
 
-function createQuote(taxBreakdown: Partial<TaxBreakdown>, taxCents = 500): CheckoutQuoteData {
+function createQuote(
+  taxBreakdown: Partial<TaxBreakdown>,
+  taxCents = 500,
+  overrides: Partial<CheckoutQuoteData> = {},
+): CheckoutQuoteData {
   return {
     subtotalCents: 4999,
     shippingCents: 1200,
@@ -43,6 +41,7 @@ function createQuote(taxBreakdown: Partial<TaxBreakdown>, taxCents = 500): Check
       totalTaxCents: taxCents,
       ...taxBreakdown,
     },
+    ...overrides,
   };
 }
 
@@ -127,5 +126,52 @@ describe('CartSummary tax display', () => {
     expect(screen.getByText('$12.00')).toBeInTheDocument();
     expect(screen.getByText('$7.20')).toBeInTheDocument();
     expect(screen.getByText('$69.19')).toBeInTheDocument();
+  });
+
+  it('does not show client-calculated shipping or a numeric total before a quote', async () => {
+    renderWithProviders(<CartSummary summary={summary} />);
+
+    expect(screen.getByText('Calculated after address', { selector: 'span.font-medium' })).toBeInTheDocument();
+    expect(screen.getByText('Checkout total')).toBeInTheDocument();
+    expect(await screen.findByText(/Free shipping from \$77\.00 in Calgary/)).toBeInTheDocument();
+    expect(screen.queryByText('$15.99')).not.toBeInTheDocument();
+    expect(screen.queryByText('Free')).not.toBeInTheDocument();
+  });
+
+  it('displays authoritative paid and free quote shipping values', () => {
+    const paid = renderWithProviders(<CartSummary
+      summary={summary}
+      quote={createQuote({}, 500, { shippingCents: 1599, totalCents: 7098 })}
+    />);
+
+    expect(screen.getByText('$15.99')).toBeInTheDocument();
+
+    paid.unmount();
+    renderWithProviders(<CartSummary
+      summary={summary}
+      quote={createQuote({}, 500, { shippingCents: 0, totalCents: 5499 })}
+    />);
+
+    expect(screen.getByText('Free')).toBeInTheDocument();
+    expect(screen.getByText('Free shipping unlocked.')).toBeInTheDocument();
+  });
+
+  it('uses only quote-provided regional context for remaining-amount messaging', () => {
+    renderWithProviders(<CartSummary
+      summary={summary}
+      quote={createQuote({}, 500, {
+        appliedFreeShippingThresholdCents: 7700,
+        shippingRegion: 'calgary',
+      })}
+    />);
+
+    expect(screen.getByText('You’re $27.01 away from free shipping in Calgary.')).toBeInTheDocument();
+  });
+
+  it('omits remaining-amount messaging for a paid legacy quote without policy context', () => {
+    renderWithProviders(<CartSummary summary={summary} quote={createQuote({})} />);
+
+    expect(screen.queryByText(/away from free shipping/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Free shipping from/i)).not.toBeInTheDocument();
   });
 });

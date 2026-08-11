@@ -62,13 +62,7 @@ export interface ICartTotals {
 }
 
 export interface ICartSummary {
-  amountUntilFreeShippingCents: number;
   currency: string;
-  estimatedTaxCents: number;
-  hasPhysicalItems: boolean;
-  isEstimated: boolean;
-  shippingCents: number;
   subtotalCents: number;
-  totalCents: number;
   totalItems: number;
 }

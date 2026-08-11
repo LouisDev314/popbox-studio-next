@@ -80,6 +80,8 @@ vi.mock('@/lib/api/public-storefront', () => ({
   getPublicShippingSettings: vi.fn(async () => ({
     currency: 'CAD',
     flatShippingCents: 1200,
+    calgaryFreeShippingThresholdCents: 7500,
+    albertaFreeShippingThresholdCents: 8500,
     freeShippingThresholdCents: 10000,
   })),
   isPublicApiNotFoundError: vi.fn(() => false),

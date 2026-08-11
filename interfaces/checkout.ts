@@ -1,4 +1,5 @@
 import { IOrderDetail } from './order';
+import type { ShippingRegion } from './shipping';
 
 export type UUID = string;
 
@@ -81,6 +82,8 @@ export interface CheckoutQuoteData {
   taxCents: number;
   totalCents: number;
   taxBreakdown: TaxBreakdown;
+  shippingRegion?: ShippingRegion;
+  appliedFreeShippingThresholdCents?: number;
 }
 
 export interface CheckoutSessionData {

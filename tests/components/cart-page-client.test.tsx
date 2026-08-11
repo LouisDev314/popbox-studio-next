@@ -90,7 +90,7 @@ describe('CartPageClient', () => {
     expect(screen.queryByText('Featured +1')).not.toBeInTheDocument();
   });
 
-  it('shows flat shipping and the amount away from free shipping below the threshold', () => {
+  it('shows generic regional shipping policy before an address is known', async () => {
     resetStores();
 
     act(() => {
@@ -103,8 +103,11 @@ describe('CartPageClient', () => {
 
     renderWithProviders(<CartPageClient />);
 
-    expect(screen.getByText('$15.99')).toBeInTheDocument();
-    expect(screen.getByText('You are $0.01 away from free shipping.')).toBeInTheDocument();
+    expect(screen.getAllByText('Calculated after address').length).toBeGreaterThan(0);
+    expect(await screen.findByText(/\$77\.00 in Calgary/)).toBeInTheDocument();
+    expect(screen.getByText(/\$88\.00 in Alberta/)).toBeInTheDocument();
+    expect(screen.getByText(/\$149\.00 across Canada/)).toBeInTheDocument();
+    expect(screen.queryByText('$15.99')).not.toBeInTheDocument();
     expect(screen.queryByText(/Backend quote/i)).not.toBeInTheDocument();
   });
 
@@ -130,7 +133,7 @@ describe('CartPageClient', () => {
     expect(screen.getByTestId('cart-summary-column')).toHaveClass('lg:sticky', 'lg:top-24');
   });
 
-  it('shows free shipping at the threshold', () => {
+  it('does not infer free shipping from a client cart subtotal', async () => {
     resetStores();
 
     act(() => {
@@ -143,8 +146,9 @@ describe('CartPageClient', () => {
 
     renderWithProviders(<CartPageClient />);
 
-    expect(screen.getByText('FREE')).toBeInTheDocument();
-    expect(screen.getByText('You qualify for free shipping.')).toBeInTheDocument();
+    expect(await screen.findByText(/\$77\.00 in Calgary/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Free$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Free shipping unlocked/)).not.toBeInTheDocument();
   });
 
   it('shows a kuji-specific reminder when the cart contains kuji items', () => {

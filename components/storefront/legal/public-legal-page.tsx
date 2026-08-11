@@ -1,11 +1,7 @@
 import type { IPublicLegalDocument } from '@/interfaces/legal';
 import type { IShippingSettings } from '@/interfaces/shipping';
 import { formatPrice } from '@/lib/utils';
-import {
-  FLAT_SHIPPING_CENTS,
-  FREE_SHIPPING_THRESHOLD_CENTS,
-  SHIPPING_CURRENCY,
-} from '@/utils/shipping';
+import { normalizePublicShippingSettings } from '@/utils/shipping';
 
 const CANONICAL_LABELS: Record<string, string> = {
   shipping_returns: 'Shipping & Returns',
@@ -30,57 +26,67 @@ function formatUpdatedDate(value: string): string | null {
 }
 
 function ShippingRatesSection({ settings }: { settings: IShippingSettings | null }) {
-  const shippingSettings = settings ?? {
-    flatShippingCents: FLAT_SHIPPING_CENTS,
-    freeShippingThresholdCents: FREE_SHIPPING_THRESHOLD_CENTS,
-    currency: SHIPPING_CURRENCY,
-  };
-  const freeShippingThreshold = `${formatPrice(shippingSettings.freeShippingThresholdCents, shippingSettings.currency)} ${shippingSettings.currency}`;
+  const shippingSettings = normalizePublicShippingSettings(settings);
+  const flatShipping = `${formatPrice(shippingSettings.flatShippingCents, shippingSettings.currency)} ${shippingSettings.currency}`;
+  const regions = [
+    {
+      area: 'Calgary',
+      detail: 'Based on the shipping postal code',
+      thresholdCents: shippingSettings.calgaryFreeShippingThresholdCents,
+    },
+    {
+      area: 'Alberta outside Calgary',
+      detail: 'All other Alberta destinations',
+      thresholdCents: shippingSettings.albertaFreeShippingThresholdCents,
+    },
+    {
+      area: 'Rest of Canada',
+      detail: 'All other Canadian provinces and territories',
+      thresholdCents: shippingSettings.freeShippingThresholdCents,
+    },
+  ];
 
   return (
     <section className="mb-10 rounded-3xl border border-border/60 bg-card p-5 shadow-sm sm:p-6">
       <h2 className="text-xl font-semibold tracking-tight text-foreground">
-        Shipping Rates Across Canada
+        Shipping rates across Canada
       </h2>
+      <p className="mt-3 text-sm leading-6 text-muted-foreground">
+        We currently ship within Canada. Standard shipping is {flatShipping} for orders below the applicable free-shipping threshold.
+      </p>
       <div className="mt-5 overflow-x-auto">
-        <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+        <table className="w-full min-w-[34rem] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-border/70 text-muted-foreground">
-              <th className="py-3 pr-4 font-medium">Shipping Method</th>
-              <th className="px-4 py-3 font-medium">Requirement</th>
-              <th className="px-4 py-3 text-right font-medium">Cost</th>
-              <th className="py-3 pl-4 font-medium">Area</th>
+              <th className="py-3 pr-4 font-medium">Destination</th>
+              <th className="px-4 py-3 font-medium">Free shipping</th>
+              <th className="py-3 pl-4 text-right font-medium">Below threshold</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            <tr>
-              <td className="py-4 pr-4 font-medium text-foreground text-nowrap">Standard Shipping</td>
-              <td className="px-4 py-4 text-muted-foreground">
-                {/* TEMP: Tax disabled (not collecting tax yet) */}
-                {/* Orders below {freeShippingThreshold} before shipping and tax */}
-                Orders below {freeShippingThreshold} before shipping
-              </td>
-              <td className="px-4 py-4 text-right font-semibold text-foreground text-nowrap">
-                {formatPrice(shippingSettings.flatShippingCents, shippingSettings.currency)} {shippingSettings.currency}
-              </td>
-              <td className="py-4 pl-4 text-muted-foreground">Canada</td>
-            </tr>
-            <tr>
-              <td className="py-4 pr-4 font-medium text-foreground text-nowrap">Free Shipping</td>
-              <td className="px-4 py-4 text-muted-foreground">
-                {/* TEMP: Tax disabled (not collecting tax yet) */}
-                {/* Orders {freeShippingThreshold} or above before shipping and tax */}
-                Orders {freeShippingThreshold} or above before shipping
-              </td>
-              <td className="px-4 py-4 text-right font-semibold text-foreground">FREE</td>
-              <td className="py-4 pl-4 text-muted-foreground">Canada</td>
-            </tr>
+            {regions.map((region) => (
+              <tr key={region.area}>
+                <td className="py-4 pr-4">
+                  <span className="block font-medium text-foreground">{region.area}</span>
+                  <span className="mt-1 block text-xs leading-5 text-muted-foreground">{region.detail}</span>
+                </td>
+                <td className="px-4 py-4 font-semibold text-foreground text-nowrap">
+                  {formatPrice(region.thresholdCents, shippingSettings.currency)} {shippingSettings.currency}+
+                </td>
+                <td className="py-4 pl-4 text-right font-semibold text-foreground text-nowrap">
+                  {flatShipping}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
-      <p className="mt-4 text-sm leading-6 text-muted-foreground">
-        **Free shipping applies to a single order subtotal and cannot be combined across multiple orders.
-      </p>
+      <div className="mt-5 space-y-2 text-sm leading-6 text-muted-foreground">
+        <p>Free-shipping thresholds use the merchandise subtotal before tax and shipping.</p>
+        <p>Calgary eligibility is determined from the shipping postal code.</p>
+        <p>Free-shipping eligibility is determined when your checkout total is calculated. Promotional discounts applied afterward do not change the shipping rate already quoted.</p>
+        <p>Free shipping applies to a single order subtotal and cannot be combined across multiple orders.</p>
+      </div>
     </section>
   );
 }

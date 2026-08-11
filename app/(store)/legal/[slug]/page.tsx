@@ -5,6 +5,7 @@ import { PublicLegalPage } from '@/components/storefront/legal/public-legal-page
 import { getPublicLegalDocument, getPublicShippingSettings, isPublicApiNotFoundError } from '@/lib/api/public-storefront';
 import type { LegalDocumentType } from '@/interfaces/legal';
 import type { IShippingSettings } from '@/interfaces/shipping';
+import { formatPrice } from '@/lib/utils';
 import {
   buildExcerpt,
   createPageMetadata,
@@ -25,6 +26,14 @@ const CANONICAL_LABELS: Record<LegalDocumentType, string> = {
 type Props = {
   params: Promise<{ slug: string }>;
 };
+
+function buildShippingMetadataDescription(settings: IShippingSettings | null): string {
+  if (!settings) {
+    return 'Review PopBox Studio shipping rates, free-shipping eligibility, and returns information for orders shipped within Canada.';
+  }
+
+  return `Canada shipping: ${formatPrice(settings.flatShippingCents, settings.currency)} CAD flat rate, with free shipping from ${formatPrice(settings.calgaryFreeShippingThresholdCents, settings.currency)} in Calgary, ${formatPrice(settings.albertaFreeShippingThresholdCents, settings.currency)} in Alberta, and ${formatPrice(settings.freeShippingThresholdCents, settings.currency)} nationwide.`;
+}
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params;
@@ -49,14 +58,21 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   }
 
   try {
-    const document = await getPublicLegalDocument(type);
+    const [document, shippingSettings] = await Promise.all([
+      getPublicLegalDocument(type),
+      type === 'shipping_returns'
+        ? getPublicShippingSettings().catch(() => null)
+        : Promise.resolve(null),
+    ]);
 
     return createPageMetadata({
       title: document.title || CANONICAL_LABELS[type],
-      description: buildExcerpt(
-        document.content,
-        `${CANONICAL_LABELS[type]} for shopping at PopBox Studio.`,
-      ),
+      description: type === 'shipping_returns'
+        ? buildShippingMetadataDescription(shippingSettings)
+        : buildExcerpt(
+          document.content,
+          `${CANONICAL_LABELS[type]} for shopping at PopBox Studio.`,
+        ),
       path: `/legal/${params.slug}`,
     });
   } catch {

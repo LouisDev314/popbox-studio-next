@@ -21,6 +21,8 @@ vi.mock('sonner', () => ({
 function createShippingSettings(overrides: Partial<IShippingSettings> = {}): IShippingSettings {
   return {
     flatShippingCents: 1599,
+    calgaryFreeShippingThresholdCents: 7700,
+    albertaFreeShippingThresholdCents: 8800,
     freeShippingThresholdCents: 14900,
     currency: 'CAD',
     ...overrides,
@@ -65,16 +67,28 @@ function getCurrentPolicyCard() {
 
 function expectPolicySummary({
   flatShipping,
-  freeShippingThreshold,
+  calgaryThreshold,
+  albertaThreshold,
+  canadaThreshold,
 }: {
   flatShipping: string;
-  freeShippingThreshold: string;
+  calgaryThreshold: string;
+  albertaThreshold: string;
+  canadaThreshold: string;
 }) {
   const currentPolicy = within(getCurrentPolicyCard());
 
   expect(currentPolicy.getByText((_, element) => (
     element?.tagName.toLowerCase() === 'p'
-    && element.textContent?.replace(/\s+/g, ' ').trim() === `Free shipping ${freeShippingThreshold} CAD or more.`
+    && element.textContent?.replace(/\s+/g, ' ').trim() === `Calgary free shipping ${calgaryThreshold} CAD or more.`
+  ))).toBeInTheDocument();
+  expect(currentPolicy.getByText((_, element) => (
+    element?.tagName.toLowerCase() === 'p'
+    && element.textContent?.replace(/\s+/g, ' ').trim() === `Alberta free shipping ${albertaThreshold} CAD or more.`
+  ))).toBeInTheDocument();
+  expect(currentPolicy.getByText((_, element) => (
+    element?.tagName.toLowerCase() === 'p'
+    && element.textContent?.replace(/\s+/g, ' ').trim() === `Canada free shipping ${canadaThreshold} CAD or more.`
   ))).toBeInTheDocument();
   expect(currentPolicy.getByText((_, element) => (
     element?.tagName.toLowerCase() === 'p'
@@ -98,11 +112,15 @@ describe('AdminShippingSettingsPage', () => {
     renderWithProviders(<AdminShippingSettingsPage />);
 
     expect(await screen.findByLabelText('Flat shipping rate')).toHaveValue('15.99');
-    expect(screen.getByLabelText('Free shipping threshold')).toHaveValue('149.00');
+    expect(screen.getByLabelText('Calgary free shipping threshold')).toHaveValue('77.00');
+    expect(screen.getByLabelText('Alberta free shipping threshold')).toHaveValue('88.00');
+    expect(screen.getByLabelText('Canada free shipping threshold')).toHaveValue('149.00');
     expect(screen.getByLabelText('Currency')).toHaveValue('CAD');
     expectPolicySummary({
       flatShipping: '$15.99',
-      freeShippingThreshold: '$149.00',
+      calgaryThreshold: '$77.00',
+      albertaThreshold: '$88.00',
+      canadaThreshold: '$149.00',
     });
   });
 
@@ -119,18 +137,26 @@ describe('AdminShippingSettingsPage', () => {
     renderWithProviders(<AdminShippingSettingsPage />);
 
     const flatShippingInput = await screen.findByLabelText('Flat shipping rate');
-    const thresholdInput = screen.getByLabelText('Free shipping threshold');
+    const calgaryInput = screen.getByLabelText('Calgary free shipping threshold');
+    const albertaInput = screen.getByLabelText('Alberta free shipping threshold');
+    const canadaInput = screen.getByLabelText('Canada free shipping threshold');
 
     await userEvent.clear(flatShippingInput);
     await userEvent.type(flatShippingInput, '15.99');
-    await userEvent.clear(thresholdInput);
-    await userEvent.type(thresholdInput, '149.00');
+    await userEvent.clear(calgaryInput);
+    await userEvent.type(calgaryInput, '77.00');
+    await userEvent.clear(albertaInput);
+    await userEvent.type(albertaInput, '88.00');
+    await userEvent.clear(canadaInput);
+    await userEvent.type(canadaInput, '149.00');
     await userEvent.click(screen.getByRole('button', { name: /Save shipping settings/i }));
 
     await waitFor(() => {
       expect(MutationConfigs.updateAdminShippingSettings).toHaveBeenCalledWith(
         {
           flatShippingCents: 1599,
+          calgaryFreeShippingThresholdCents: 7700,
+          albertaFreeShippingThresholdCents: 8800,
           freeShippingThresholdCents: 14900,
           currency: 'CAD',
         },
@@ -159,11 +185,15 @@ describe('AdminShippingSettingsPage', () => {
       .mockResolvedValueOnce(createApiResponse(createShippingSettings()))
       .mockResolvedValue(createApiResponse(createShippingSettings({
         flatShippingCents: 1200,
+        calgaryFreeShippingThresholdCents: 8000,
+        albertaFreeShippingThresholdCents: 9000,
         freeShippingThresholdCents: 10000,
       })));
     vi.mocked(MutationConfigs.updateAdminShippingSettings).mockResolvedValueOnce(
       createApiResponse(createShippingSettings({
         flatShippingCents: 1200,
+        calgaryFreeShippingThresholdCents: 8000,
+        albertaFreeShippingThresholdCents: 9000,
         freeShippingThresholdCents: 10000,
       })),
     );
@@ -171,19 +201,68 @@ describe('AdminShippingSettingsPage', () => {
     renderWithProviders(<AdminShippingSettingsPage />);
 
     const flatShippingInput = await screen.findByLabelText('Flat shipping rate');
-    const thresholdInput = screen.getByLabelText('Free shipping threshold');
+    const calgaryInput = screen.getByLabelText('Calgary free shipping threshold');
+    const albertaInput = screen.getByLabelText('Alberta free shipping threshold');
+    const canadaInput = screen.getByLabelText('Canada free shipping threshold');
 
     await userEvent.clear(flatShippingInput);
     await userEvent.type(flatShippingInput, '12.00');
-    await userEvent.clear(thresholdInput);
-    await userEvent.type(thresholdInput, '100.00');
+    await userEvent.clear(calgaryInput);
+    await userEvent.type(calgaryInput, '80.00');
+    await userEvent.clear(albertaInput);
+    await userEvent.type(albertaInput, '90.00');
+    await userEvent.clear(canadaInput);
+    await userEvent.type(canadaInput, '100.00');
     await userEvent.click(screen.getByRole('button', { name: /Save shipping settings/i }));
 
     await waitFor(() => {
       expectPolicySummary({
         flatShipping: '$12.00',
-        freeShippingThreshold: '$100.00',
+        calgaryThreshold: '$80.00',
+        albertaThreshold: '$90.00',
+        canadaThreshold: '$100.00',
       });
+    });
+  });
+
+  it('blocks thresholds that are not ordered Calgary, Alberta, Canada', async () => {
+    renderWithProviders(<AdminShippingSettingsPage />);
+
+    const calgaryInput = await screen.findByLabelText('Calgary free shipping threshold');
+    const albertaInput = screen.getByLabelText('Alberta free shipping threshold');
+
+    await userEvent.clear(calgaryInput);
+    await userEvent.type(calgaryInput, '90.00');
+    await userEvent.clear(albertaInput);
+    await userEvent.type(albertaInput, '80.00');
+    await userEvent.click(screen.getByRole('button', { name: /Save shipping settings/i }));
+
+    expect(await screen.findByText('Calgary threshold must be less than or equal to Alberta.')).toBeInTheDocument();
+    expect(MutationConfigs.updateAdminShippingSettings).not.toHaveBeenCalled();
+  });
+
+  it('accepts equal regional thresholds', async () => {
+    renderWithProviders(<AdminShippingSettingsPage />);
+
+    const calgaryInput = await screen.findByLabelText('Calgary free shipping threshold');
+    const albertaInput = screen.getByLabelText('Alberta free shipping threshold');
+    const canadaInput = screen.getByLabelText('Canada free shipping threshold');
+
+    for (const input of [calgaryInput, albertaInput, canadaInput]) {
+      await userEvent.clear(input);
+      await userEvent.type(input, '100.00');
+    }
+    await userEvent.click(screen.getByRole('button', { name: /Save shipping settings/i }));
+
+    await waitFor(() => {
+      expect(MutationConfigs.updateAdminShippingSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          calgaryFreeShippingThresholdCents: 10000,
+          albertaFreeShippingThresholdCents: 10000,
+          freeShippingThresholdCents: 10000,
+        }),
+        expect.anything(),
+      );
     });
   });
 

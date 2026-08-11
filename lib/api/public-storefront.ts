@@ -18,6 +18,7 @@ import type {
   productType,
 } from '@/interfaces/product';
 import type { IShippingSettings } from '@/interfaces/shipping';
+import { normalizePublicShippingSettings } from '@/utils/shipping';
 
 export type PublicProductListFilters = {
   collection?: string;
@@ -121,7 +122,9 @@ export const getPublicLegalDocument = cache(
 );
 
 export const getPublicShippingSettings = cache(async (): Promise<IShippingSettings> => {
-  return readPublicData<IShippingSettings>('/api/v1/settings/shipping');
+  const settings = await readPublicData<unknown>('/api/v1/settings/shipping');
+
+  return normalizePublicShippingSettings(settings);
 });
 
 export const getPublicFaqItems = cache(async (): Promise<IPublicFaqItem[]> => {

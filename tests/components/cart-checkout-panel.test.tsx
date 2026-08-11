@@ -199,6 +199,8 @@ afterEach(() => {
 });
 
 function createQuoteResponse(overrides: Partial<{
+  appliedFreeShippingThresholdCents: number;
+  shippingRegion: 'calgary' | 'alberta' | 'canada';
   subtotalCents: number;
   shippingCents: number;
   taxCents: number;
@@ -651,7 +653,12 @@ describe('CartCheckoutPanel', () => {
     server.use(
       http.post(QUOTE_URL, async ({ request }) => {
         requestBody = await request.json();
-        return HttpResponse.json(createQuoteResponse());
+        return HttpResponse.json(createQuoteResponse({
+          appliedFreeShippingThresholdCents: 14900,
+          shippingCents: 1599,
+          shippingRegion: 'canada',
+          totalCents: 7342,
+        }));
       }),
     );
 
@@ -669,9 +676,10 @@ describe('CartCheckoutPanel', () => {
 
     await waitFor(() => {
       expect(screen.getByText('$49.99')).toBeInTheDocument();
-      expect(screen.getByText('$12.00')).toBeInTheDocument();
+      expect(screen.getByText('$15.99')).toBeInTheDocument();
       expect(screen.getByText('$7.44')).toBeInTheDocument();
-      expect(screen.getByText('$69.43')).toBeInTheDocument();
+      expect(screen.getByText('$73.42')).toBeInTheDocument();
+      expect(screen.getByText('You’re $99.01 away from free shipping.')).toBeInTheDocument();
     });
     expect(screen.getByText('GST 5%')).toBeInTheDocument();
     expect(screen.getByText('PST 7%')).toBeInTheDocument();
@@ -912,7 +920,7 @@ describe('CartCheckoutPanel', () => {
     expect(alert).not.toHaveTextContent('payment link');
   });
 
-  it('shows suggested address confirmation from quote and resubmits with confirmedAddress after acceptance', async () => {
+  it('uses the confirmed canonical address while displaying backend-provided regional context', async () => {
     resetStores();
     const quoteBodies: Array<Record<string, unknown>> = [];
 
@@ -923,7 +931,10 @@ describe('CartCheckoutPanel', () => {
         quoteBodies.push(body);
 
         if (body.confirmedAddress === true) {
-          return HttpResponse.json(createQuoteResponse());
+          return HttpResponse.json(createQuoteResponse({
+            appliedFreeShippingThresholdCents: 7700,
+            shippingRegion: 'calgary',
+          }));
         }
 
         return HttpResponse.json(createAddressNeedsConfirmationResponse(), { status: 422 });
@@ -950,6 +961,7 @@ describe('CartCheckoutPanel', () => {
 
     await waitFor(() => {
       expect(quoteBodies.some((body) => body.confirmedAddress === true)).toBe(true);
+      expect(screen.getByText('You’re $27.01 away from free shipping in Calgary.')).toBeInTheDocument();
     });
 
     const confirmedBody = quoteBodies.find((body) => body.confirmedAddress === true);
@@ -1356,10 +1368,15 @@ describe('CartCheckoutPanel', () => {
           });
 
           firstQuoteReturned = true;
-          return HttpResponse.json(createQuoteResponse());
+          return HttpResponse.json(createQuoteResponse({
+            appliedFreeShippingThresholdCents: 7700,
+            shippingRegion: 'calgary',
+          }));
         }
 
         return HttpResponse.json(createQuoteResponse({
+          appliedFreeShippingThresholdCents: 14900,
+          shippingRegion: 'canada',
           subtotalCents: 9998,
           totalCents: 12542,
         }));
@@ -1388,6 +1405,7 @@ describe('CartCheckoutPanel', () => {
 
     await waitFor(() => {
       expect(screen.getByText('$125.42')).toBeInTheDocument();
+      expect(screen.getByText('You’re $49.02 away from free shipping.')).toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
 
@@ -1399,6 +1417,8 @@ describe('CartCheckoutPanel', () => {
       expect(firstQuoteReturned).toBe(true);
     });
     expect(screen.getByText('$125.42')).toBeInTheDocument();
+    expect(screen.getByText('You’re $49.02 away from free shipping.')).toBeInTheDocument();
+    expect(screen.queryByText(/free shipping in Calgary/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
   });
 
@@ -1457,6 +1477,8 @@ describe('CartCheckoutPanel', () => {
     expect(sessionBody).not.toHaveProperty('lastName');
     expect(sessionBody).not.toHaveProperty('subtotalCents');
     expect(sessionBody).not.toHaveProperty('shippingCents');
+    expect(sessionBody).not.toHaveProperty('shippingRegion');
+    expect(sessionBody).not.toHaveProperty('appliedFreeShippingThresholdCents');
     expect(sessionBody).not.toHaveProperty('taxCents');
     expect(sessionBody).not.toHaveProperty('totalCents');
     expect(sessionBody).not.toHaveProperty('taxBreakdown');

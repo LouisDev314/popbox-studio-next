@@ -867,7 +867,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
 
   const quote = quoteState.status === 'success' && isQuoteCurrent ? quoteState.data : null;
   const summary = props.summary ?? getCartSummary();
-  const isQuotePending = quoteState.status === 'pending' && isQuoteCurrent;
+  const isQuotePending = Boolean(
+    currentRequestKey
+    && (!isQuoteCurrent || quoteState.status === 'pending'),
+  );
   const didQuoteRefreshPrices = Boolean(
     quote && quote.subtotalCents !== summary.subtotalCents,
   );

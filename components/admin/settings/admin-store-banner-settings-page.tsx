@@ -474,7 +474,7 @@ function BannerItemEditor(props: {
               'mt-2 rounded-xl border-[#dfd5c5] bg-white text-[#111827]',
               props.errors.message && 'border-red-300 focus-visible:ring-red-200',
             )}
-            placeholder="Free shipping across Canada on orders $149+ CAD"
+            placeholder="Free shipping from $77 in Calgary, $88 in Alberta, or $149 across Canada"
           />
           <FieldHelp error={props.errors.message} text={`${props.item.message.trim().length}/${MESSAGE_MAX_LENGTH} characters`} />
         </div>

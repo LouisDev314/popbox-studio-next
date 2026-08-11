@@ -3,40 +3,28 @@ import { buildCartSummary } from '@/utils/cart';
 import { createCartItem } from '../fixtures';
 
 describe('buildCartSummary', () => {
-  it('charges flat shipping one cent below the free shipping threshold', () => {
+  it('returns merchandise-only totals without client shipping calculations', () => {
     const summary = buildCartSummary([
       createCartItem({ product: { priceCents: 14899 } }),
     ]);
 
-    expect(summary.shippingCents).toBe(1599);
-    expect(summary.amountUntilFreeShippingCents).toBe(1);
-    expect(summary.estimatedTaxCents).toBe(0);
-    expect(summary.totalCents).toBe(summary.subtotalCents + summary.shippingCents);
+    expect(summary).toEqual({
+      currency: 'CAD',
+      subtotalCents: 14899,
+      totalItems: 1,
+    });
+    expect(summary).not.toHaveProperty('shippingCents');
+    expect(summary).not.toHaveProperty('totalCents');
+    expect(summary).not.toHaveProperty('amountUntilFreeShippingCents');
   });
 
-  it('uses free shipping at the threshold', () => {
-    const summary = buildCartSummary([
-      createCartItem({ product: { priceCents: 14900 } }),
-    ]);
-
-    expect(summary.shippingCents).toBe(0);
-    expect(summary.amountUntilFreeShippingCents).toBe(0);
-  });
-
-  it('uses free shipping above the threshold', () => {
-    const summary = buildCartSummary([
-      createCartItem({ product: { priceCents: 15000 } }),
-    ]);
-
-    expect(summary.shippingCents).toBe(0);
-    expect(summary.amountUntilFreeShippingCents).toBe(0);
-  });
-
-  it('does not show shipping cost for an empty cart', () => {
+  it('returns an empty merchandise summary for an empty cart', () => {
     const summary = buildCartSummary([]);
 
-    expect(summary.shippingCents).toBe(0);
-    expect(summary.amountUntilFreeShippingCents).toBe(14900);
-    expect(summary.subtotalCents).toBe(0);
+    expect(summary).toEqual({
+      currency: 'CAD',
+      subtotalCents: 0,
+      totalItems: 0,
+    });
   });
 });

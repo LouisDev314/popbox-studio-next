@@ -752,7 +752,13 @@ function createRequestHandler(state: IAuthMockState) {
     }
 
     if (pathname === '/api/v1/settings/shipping') {
-      sendJson(response, apiData({ freeShippingThresholdCents: 15000, flatRateCents: 1500 }));
+      sendJson(response, apiData({
+        flatShippingCents: 1500,
+        calgaryFreeShippingThresholdCents: 7500,
+        albertaFreeShippingThresholdCents: 8500,
+        freeShippingThresholdCents: 15000,
+        currency: 'CAD',
+      }));
       return;
     }
 
