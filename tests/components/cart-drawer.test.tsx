@@ -233,7 +233,7 @@ describe('CartDrawer', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
 
-    expect(screen.getByText('Calculated at checkout')).toBeInTheDocument();
+    expect(screen.getByText('Calculated after details are provided')).toBeInTheDocument();
     expect(await screen.findByText(/\$77\.00 in Calgary/)).toBeInTheDocument();
     expect(screen.getByText(/\$88\.00 in Alberta/)).toBeInTheDocument();
     expect(screen.getByText(/\$149\.00 across Canada/)).toBeInTheDocument();
@@ -273,7 +273,7 @@ describe('CartDrawer', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
 
-    expect(screen.getByText('Calculated at checkout')).toBeInTheDocument();
+    expect(screen.getByText('Calculated after details are provided')).toBeInTheDocument();
     expect(await screen.findByText(/\$77\.00 in Calgary/)).toBeInTheDocument();
     expect(screen.queryByText(/^Free$/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Free shipping unlocked/)).not.toBeInTheDocument();

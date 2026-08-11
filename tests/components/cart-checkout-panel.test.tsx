@@ -679,7 +679,7 @@ describe('CartCheckoutPanel', () => {
       expect(screen.getByText('$15.99')).toBeInTheDocument();
       expect(screen.getByText('$7.44')).toBeInTheDocument();
       expect(screen.getByText('$73.42')).toBeInTheDocument();
-      expect(screen.getByText('You’re $99.01 away from free shipping.')).toBeInTheDocument();
+      expect(screen.getByText('Free shipping from $77.00 in Calgary, $88.00 in Alberta, or $149.00 across Canada.')).toBeInTheDocument();
     });
     expect(screen.getByText('GST 5%')).toBeInTheDocument();
     expect(screen.getByText('PST 7%')).toBeInTheDocument();
@@ -961,7 +961,7 @@ describe('CartCheckoutPanel', () => {
 
     await waitFor(() => {
       expect(quoteBodies.some((body) => body.confirmedAddress === true)).toBe(true);
-      expect(screen.getByText('You’re $27.01 away from free shipping in Calgary.')).toBeInTheDocument();
+      expect(screen.getByText('Free shipping from $77.00 in Calgary, $88.00 in Alberta, or $149.00 across Canada.')).toBeInTheDocument();
     });
 
     const confirmedBody = quoteBodies.find((body) => body.confirmedAddress === true);
@@ -1405,7 +1405,7 @@ describe('CartCheckoutPanel', () => {
 
     await waitFor(() => {
       expect(screen.getByText('$125.42')).toBeInTheDocument();
-      expect(screen.getByText('You’re $49.02 away from free shipping.')).toBeInTheDocument();
+      expect(screen.getByText('Free shipping from $77.00 in Calgary, $88.00 in Alberta, or $149.00 across Canada.')).toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
 
@@ -1417,8 +1417,8 @@ describe('CartCheckoutPanel', () => {
       expect(firstQuoteReturned).toBe(true);
     });
     expect(screen.getByText('$125.42')).toBeInTheDocument();
-    expect(screen.getByText('You’re $49.02 away from free shipping.')).toBeInTheDocument();
-    expect(screen.queryByText(/free shipping in Calgary/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Free shipping from $77.00 in Calgary, $88.00 in Alberta, or $149.00 across Canada.')).toBeInTheDocument();
+    expect(screen.queryByText(/away from free shipping/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled();
   });
 

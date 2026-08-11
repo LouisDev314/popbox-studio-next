@@ -9,7 +9,6 @@ import { usePublicShippingSettings } from '@/hooks/use-public-shipping-settings'
 import { type ICartSummary } from '@/interfaces/cart';
 import { type CheckoutQuoteData } from '@/interfaces/checkout';
 import { cn, formatPrice } from '@/lib/utils';
-import { calculateFreeShippingProgress } from '@/utils/shipping';
 // TEMP: Tax disabled (not collecting tax yet)
 // import { Tooltip } from '@/components/ui/tooltip-card';
 // import { CircleQuestionMark } from 'lucide-react';
@@ -141,7 +140,7 @@ function getResolvedNote(props: ICartSummaryProps): ReactNode {
     return props.note;
   }
 
-  return 'Shipping and checkout totals are calculated after you enter your delivery address.';
+  return 'Shipping and checkout totals are calculated after details are provided.';
 }
 
 function getShippingLabel(params: {
@@ -161,7 +160,7 @@ function getShippingLabel(params: {
     return 'Updating…';
   }
 
-  return 'Calculated after address';
+  return 'Calculated after details are provided';
 }
 
 export function CartSummary(props: ICartSummaryProps) {
@@ -175,13 +174,6 @@ export function CartSummary(props: ICartSummaryProps) {
     isQuotePending: Boolean(props.isQuotePending),
     quote,
   });
-  const freeShippingProgress = quote
-    ? calculateFreeShippingProgress({
-      eligibleSubtotalCents: quote.subtotalCents,
-      region: quote.shippingRegion,
-      thresholdCents: quote.appliedFreeShippingThresholdCents,
-    })
-    : null;
   const subtotalCents = quote?.subtotalCents ?? props.summary.subtotalCents;
 
   return (
@@ -214,7 +206,7 @@ export function CartSummary(props: ICartSummaryProps) {
           <FreeShippingStatus
             mode="contextual"
             isFree={quote.shippingCents === 0}
-            progress={freeShippingProgress}
+            settings={shippingSettings.settings}
             className="rounded-2xl bg-accent/45 px-4 py-3 text-sm"
           />
         ) : (
@@ -244,7 +236,7 @@ export function CartSummary(props: ICartSummaryProps) {
             <span className="text-xl font-bold text-foreground">
               {quote
                 ? formatPrice(quote.totalCents, props.summary.currency)
-                : 'Calculated after address'}
+                : 'Calculated after details are provided'}
             </span>
           </div>
         </div>

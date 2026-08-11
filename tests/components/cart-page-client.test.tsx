@@ -103,7 +103,7 @@ describe('CartPageClient', () => {
 
     renderWithProviders(<CartPageClient />);
 
-    expect(screen.getAllByText('Calculated after address').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Calculated after details are provided').length).toBeGreaterThan(0);
     expect(await screen.findByText(/\$77\.00 in Calgary/)).toBeInTheDocument();
     expect(screen.getByText(/\$88\.00 in Alberta/)).toBeInTheDocument();
     expect(screen.getByText(/\$149\.00 across Canada/)).toBeInTheDocument();

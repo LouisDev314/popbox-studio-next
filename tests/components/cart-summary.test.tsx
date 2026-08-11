@@ -131,7 +131,7 @@ describe('CartSummary tax display', () => {
   it('does not show client-calculated shipping or a numeric total before a quote', async () => {
     renderWithProviders(<CartSummary summary={summary} />);
 
-    expect(screen.getByText('Calculated after address', { selector: 'span.font-medium' })).toBeInTheDocument();
+    expect(screen.getByText('Calculated after details are provided', { selector: 'span.font-medium' })).toBeInTheDocument();
     expect(screen.getByText('Checkout total')).toBeInTheDocument();
     expect(await screen.findByText(/Free shipping from \$77\.00 in Calgary/)).toBeInTheDocument();
     expect(screen.queryByText('$15.99')).not.toBeInTheDocument();
@@ -156,7 +156,7 @@ describe('CartSummary tax display', () => {
     expect(screen.getByText('Free shipping unlocked.')).toBeInTheDocument();
   });
 
-  it('uses only quote-provided regional context for remaining-amount messaging', () => {
+  it('shows the complete regional policy for a paid quote with regional context', async () => {
     renderWithProviders(<CartSummary
       summary={summary}
       quote={createQuote({}, 500, {
@@ -165,13 +165,18 @@ describe('CartSummary tax display', () => {
       })}
     />);
 
-    expect(screen.getByText('You’re $27.01 away from free shipping in Calgary.')).toBeInTheDocument();
+    expect(await screen.findByText(
+      'Free shipping from $77.00 in Calgary, $88.00 in Alberta, or $149.00 across Canada.',
+    )).toBeInTheDocument();
+    expect(screen.queryByText(/away from free shipping/i)).not.toBeInTheDocument();
   });
 
-  it('omits remaining-amount messaging for a paid legacy quote without policy context', () => {
+  it('shows the complete regional policy for a paid legacy quote without policy context', async () => {
     renderWithProviders(<CartSummary summary={summary} quote={createQuote({})} />);
 
+    expect(await screen.findByText(
+      'Free shipping from $77.00 in Calgary, $88.00 in Alberta, or $149.00 across Canada.',
+    )).toBeInTheDocument();
     expect(screen.queryByText(/away from free shipping/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Free shipping from/i)).not.toBeInTheDocument();
   });
 });

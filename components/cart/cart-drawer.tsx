@@ -98,7 +98,7 @@ export function CartDrawer(props: ICartDrawerProps) {
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium text-muted-foreground">Shipping</span>
-              <span className="font-semibold text-foreground">Calculated at checkout</span>
+              <span className="font-semibold text-foreground">Calculated after details are provided</span>
             </div>
             <FreeShippingStatus
               mode="generic"
