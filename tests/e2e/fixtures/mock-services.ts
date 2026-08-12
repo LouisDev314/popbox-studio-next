@@ -446,7 +446,7 @@ function createRequestHandler(state: IAuthMockState) {
         return;
       }
 
-      if (grantType === 'pkce' || grantType === 'refresh_token') {
+      if (grantType === 'id_token' || grantType === 'pkce' || grantType === 'refresh_token') {
         sendJson(response, createSession());
         return;
       }
@@ -775,7 +775,7 @@ async function startMockServices(state: IAuthMockState) {
   return server;
 }
 
-export const test = base.extend<{ authMock: IAuthMockState; mockServices: void }>({
+export const test = base.extend<{ authMock: IAuthMockState; googleIdentity: void; mockServices: void }>({
   authMock: async ({}, applyFixture) => {
     const state: IAuthMockState = {
       accessToken() {
@@ -800,6 +800,41 @@ export const test = base.extend<{ authMock: IAuthMockState; mockServices: void }
     };
     await applyFixture(state);
   },
+  googleIdentity: [async ({ page }, applyFixture) => {
+    await page.route('https://accounts.google.com/gsi/client', async (route) => {
+      await route.fulfill({
+        contentType: 'application/javascript',
+        body: `
+          (() => {
+            let configuration;
+            window.google = window.google || {};
+            window.google.accounts = window.google.accounts || {};
+            window.google.accounts.id = {
+              initialize(nextConfiguration) {
+                configuration = nextConfiguration;
+              },
+              renderButton(parent, options) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.setAttribute('aria-label', 'Continue with Google');
+                button.textContent = 'Continue with Google';
+                Object.assign(button.style, {
+                  background: '#ffffff', border: '1px solid #747775', borderRadius: '4px',
+                  color: '#1f1f1f', cursor: 'pointer', font: '500 14px Arial, sans-serif',
+                  height: '40px', width: options.width + 'px'
+                });
+                button.addEventListener('click', () => configuration.callback({
+                  credential: 'e2e-google-id-token', select_by: 'btn'
+                }));
+                parent.replaceChildren(button);
+              }
+            };
+          })();
+        `,
+      });
+    });
+    await applyFixture();
+  }, { auto: true }],
   mockServices: [async ({ authMock }, applyFixture) => {
     const server = await startMockServices(authMock);
     await applyFixture();

@@ -34,6 +34,17 @@ test('sign-in keeps Google first and exposes accessible password visibility', as
   await expect(password).toHaveAttribute('type', 'text');
 });
 
+test('Google GIS exchanges an ID token without navigating through the Supabase project', async ({ page }) => {
+  await page.goto('/account/sign-in?next=%2Faccount');
+  const storefrontOrigin = new URL(page.url()).origin;
+
+  await page.getByRole('button', { name: 'Continue with Google' }).click();
+
+  await expect(page).toHaveURL(/\/account$/);
+  expect(new URL(page.url()).origin).toBe(storefrontOrigin);
+  await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
+});
+
 test('sign-in uses only generic submitted validation without native browser validation', async ({ page }) => {
   await page.goto('/account/sign-in');
   const form = page.locator('form[novalidate]');
@@ -86,6 +97,7 @@ test('clear service failures use the availability message', async ({ page }) => 
 
 test('sign-up has one password input and a live password checklist', async ({ page }) => {
   await page.goto('/account/sign-up');
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
   await expect(page.locator('input[type="password"]')).toHaveCount(1);
   await expect(page.getByLabel(/confirm password/i)).toHaveCount(0);
   const checklist = page.getByRole('list', { name: 'Password requirements' });

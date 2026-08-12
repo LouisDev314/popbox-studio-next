@@ -172,6 +172,7 @@ Use `.env.local` locally. `.env.example` shows the required public configuration
 | `NEXT_PUBLIC_API_BASE_URL` | Backend origin for `/api/v1`; required in production, defaults to `http://localhost:3000` in dev |
 | `NEXT_PUBLIC_SITE_URL` | Canonical site URL for metadata and absolute URLs |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Public Google OAuth web client ID used by Google Identity Services |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key used by browser and SSR auth clients |
 | `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET` | Public product-image bucket; defaults to `product-images` |
@@ -180,7 +181,11 @@ Use `.env.local` locally. `.env.example` shows the required public configuration
 On Vercel, `VERCEL_PROJECT_PRODUCTION_URL` or `VERCEL_URL` can back `NEXT_PUBLIC_SITE_URL` when it is not explicitly set.
 
 Customer authentication also requires Supabase email confirmation, password recovery, and (when enabled) the Google
-provider. Allowlist `http://localhost:3001/auth/callback` plus the production `/auth/callback` URL in Supabase Auth.
+provider. `NEXT_PUBLIC_GOOGLE_CLIENT_ID` must be the same web client ID configured on the Supabase Google provider;
+never expose its client secret. Add `http://localhost:3001`, `https://popboxstudio.com`, and
+`https://www.popboxstudio.com` as Authorized JavaScript origins on that Google OAuth web client. Keep
+`http://localhost:3001/auth/callback` plus the production `/auth/callback` URL allowlisted in Supabase Auth for email
+confirmation and password recovery.
 Configure a production SMTP provider before relying on confirmation and recovery email volume.
 
 ---

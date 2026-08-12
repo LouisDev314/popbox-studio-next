@@ -97,6 +97,7 @@ const publicEnvConfig = {
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
   supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '',
   supabaseStorageBucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET?.trim() || 'product-images',
+  googleClientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
   googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
   gaMeasurementId: resolveGaMeasurementId(),
   gaDebugMode: resolveGaDebugMode(),

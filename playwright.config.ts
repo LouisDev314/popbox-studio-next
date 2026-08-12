@@ -45,6 +45,7 @@ export default defineConfig({
       NEXT_DIST_DIR: '.next-playwright',
       NEXT_TYPESCRIPT_CONFIG: 'tsconfig.playwright.json',
       NEXT_PUBLIC_API_BASE_URL: 'http://127.0.0.1:4010',
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: 'google-e2e-client-id.apps.googleusercontent.com',
       NEXT_PUBLIC_SITE_URL: playwrightBaseUrl,
       NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:4010',
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e',

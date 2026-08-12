@@ -32,17 +32,15 @@ import {
   type SignInCredentialsAuthFormValues,
 } from '@/lib/auth/form-validation';
 import { validateInternalNext } from '@/lib/auth/redirects';
+import {
+  clearPendingConfirmationState,
+  PENDING_SIGNUP_KEY,
+  RESEND_COOLDOWN_KEY,
+} from '@/lib/auth/pending-confirmation';
 import { createClient } from '@/lib/supabase/client';
 import { getAccountApiErrorCode } from '@/utils/api-errors';
 
-const PENDING_SIGNUP_KEY = 'popbox:pending-signup';
-const RESEND_COOLDOWN_KEY = 'popbox:signup-resend-at';
 const PASSWORD_RECOVERY_KEY = 'popbox:password-recovery';
-
-function clearPendingConfirmationState() {
-  window.sessionStorage.removeItem(PENDING_SIGNUP_KEY);
-  window.localStorage.removeItem(RESEND_COOLDOWN_KEY);
-}
 
 interface IPendingSignup {
   email: string;

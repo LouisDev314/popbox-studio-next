@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +10,14 @@ import {
   SignInForm,
   SignUpForm,
 } from '@/components/auth/auth-forms';
+import { GoogleAuthButton } from '@/components/auth/google-auth-button';
+
+const googleIdentityMocks = vi.hoisted(() => ({
+  credentialHandler: null as ((response: { credential?: string }) => void) | null,
+  initialize: vi.fn(),
+  release: vi.fn(),
+  renderButton: vi.fn(),
+}));
 
 const authMocks = vi.hoisted(() => ({
   exchangeCodeForSession: vi.fn(),
@@ -17,7 +26,7 @@ const authMocks = vi.hoisted(() => ({
   refreshSession: vi.fn(),
   resend: vi.fn(),
   resetPasswordForEmail: vi.fn(),
-  signInWithOAuth: vi.fn(),
+  signInWithIdToken: vi.fn(),
   signInWithPassword: vi.fn(),
   signOut: vi.fn(),
   signUp: vi.fn(),
@@ -48,6 +57,16 @@ vi.mock('next/navigation', () => ({
   useRouter: () => navigationMocks,
 }));
 
+vi.mock('@/configs/public-env', () => ({
+  default: () => ({ googleClientId: 'google-client-id.apps.googleusercontent.com' }),
+}));
+
+vi.mock('@/lib/auth/google-identity', () => ({
+  initializeGoogleIdentityServices: googleIdentityMocks.initialize,
+  releaseGoogleCredentialHandler: googleIdentityMocks.release,
+  renderGoogleIdentityButton: googleIdentityMocks.renderButton,
+}));
+
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
     auth: authMocks,
@@ -71,7 +90,40 @@ describe('customer auth forms', () => {
     Object.values(authMocks).forEach((mock) => mock.mockReset());
     Object.values(navigationMocks).forEach((mock) => mock.mockReset());
     Object.values(accountMocks).forEach((mock) => mock.mockReset());
-    authMocks.signInWithOAuth.mockResolvedValue({ error: null });
+    googleIdentityMocks.credentialHandler = null;
+    googleIdentityMocks.initialize.mockReset();
+    googleIdentityMocks.release.mockReset();
+    googleIdentityMocks.renderButton.mockReset();
+    googleIdentityMocks.initialize.mockImplementation(async (_clientId, credentialHandler) => {
+      googleIdentityMocks.credentialHandler = credentialHandler;
+      return {};
+    });
+    googleIdentityMocks.renderButton.mockImplementation((_api, parent: HTMLElement) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.setAttribute('aria-label', 'Continue with Google');
+      button.textContent = 'Continue with Google';
+      button.addEventListener('click', () => {
+        googleIdentityMocks.credentialHandler?.({ credential: 'google-id-token' });
+      });
+      parent.replaceChildren(button);
+    });
+    authMocks.signInWithIdToken.mockResolvedValue({
+      data: {
+        session: {
+          access_token: 'google-session',
+          user: {
+            id: 'customer-user-id',
+            identities: [{
+              provider: 'google',
+              identity_data: { given_name: 'Google', family_name: 'Customer' },
+            }],
+          },
+        },
+        user: { id: 'customer-user-id' },
+      },
+      error: null,
+    });
     authMocks.signInWithPassword.mockResolvedValue({
       data: { session: { user: { id: 'customer-user-id' } } },
       error: null,
@@ -138,9 +190,9 @@ describe('customer auth forms', () => {
     window.history.replaceState({}, '', '/');
   });
 
-  it('keeps Google before the divider and email fields, with native validation disabled', () => {
+  it('keeps Google before the divider and email fields, with native validation disabled', async () => {
     const { container } = render(<SignInForm next="/account" />);
-    const google = screen.getByRole('button', { name: 'Continue with Google' });
+    const google = await screen.findByRole('button', { name: 'Continue with Google' });
     const divider = screen.getByText('or');
     const email = screen.getByLabelText('Email');
 
@@ -150,18 +202,97 @@ describe('customer auth forms', () => {
     expect(email).not.toHaveAttribute('required');
   });
 
-  it('keeps the Google OAuth trigger wired to the safe callback flow', async () => {
+  it('exchanges the Google credential with Supabase and follows normal post-login behavior', async () => {
     const user = userEvent.setup();
     render(<SignInForm next="/account/orders" />);
 
-    await user.click(screen.getByRole('button', { name: 'Continue with Google' }));
+    await user.click(await screen.findByRole('button', { name: 'Continue with Google' }));
 
-    expect(authMocks.signInWithOAuth).toHaveBeenCalledWith({
+    expect(authMocks.signInWithIdToken).toHaveBeenCalledWith({
       provider: 'google',
-      options: {
-        redirectTo: expect.stringMatching(/\/auth\/callback\?next=%2Faccount%2Forders$/),
-      },
+      token: 'google-id-token',
     });
+    await waitFor(() => expect(navigationMocks.replace).toHaveBeenCalledWith('/account/orders'));
+    expect(queryMocks.fetchQuery).toHaveBeenCalledTimes(1);
+    expect(navigationMocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the same native Google button on account registration', async () => {
+    render(<SignUpForm next="/account" />);
+
+    expect(await screen.findByRole('button', { name: 'Continue with Google' })).toBeVisible();
+    expect(googleIdentityMocks.initialize).toHaveBeenCalledWith(
+      'google-client-id.apps.googleusercontent.com',
+      expect.any(Function),
+    );
+  });
+
+  it('surfaces Supabase Google authentication failures without exposing provider details', async () => {
+    const user = userEvent.setup();
+    authMocks.signInWithIdToken.mockResolvedValue({
+      data: { session: null, user: null },
+      error: { message: 'raw Supabase provider failure' },
+    });
+    render(<SignInForm next="/account" />);
+
+    await user.click(await screen.findByRole('button', { name: 'Continue with Google' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Google sign-in is unavailable right now. Please try again.',
+    );
+    expect(screen.queryByText('raw Supabase provider failure')).not.toBeInTheDocument();
+  });
+
+  it('fails safely when the Google client ID is missing', async () => {
+    const onError = vi.fn();
+    render(<GoogleAuthButton clientId="" next="/account" onError={onError} />);
+
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(
+      'Google sign-in is not configured. Please use email and password.',
+    ));
+    expect(googleIdentityMocks.initialize).not.toHaveBeenCalled();
+    expect(authMocks.signInWithIdToken).not.toHaveBeenCalled();
+  });
+
+  it('does not render duplicate Google buttons during Strict Mode setup', async () => {
+    const onError = vi.fn();
+    const view = render(
+      <StrictMode>
+        <GoogleAuthButton
+          clientId="google-client-id.apps.googleusercontent.com"
+          next="/account"
+          onError={onError}
+        />
+      </StrictMode>,
+    );
+
+    await waitFor(() => expect(googleIdentityMocks.renderButton).toHaveBeenCalledTimes(1));
+    view.rerender(
+      <StrictMode>
+        <GoogleAuthButton
+          clientId="google-client-id.apps.googleusercontent.com"
+          next="/account"
+          onError={onError}
+        />
+      </StrictMode>,
+    );
+    expect(googleIdentityMocks.renderButton).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores duplicate Google credential callbacks while authentication is pending', async () => {
+    let finishSignIn: (result: unknown) => void = () => undefined;
+    authMocks.signInWithIdToken.mockImplementation(() => new Promise((resolve) => {
+      finishSignIn = resolve;
+    }));
+    render(<SignInForm next="/account" />);
+    await screen.findByRole('button', { name: 'Continue with Google' });
+
+    googleIdentityMocks.credentialHandler?.({ credential: 'google-id-token' });
+    googleIdentityMocks.credentialHandler?.({ credential: 'duplicate-token' });
+
+    expect(authMocks.signInWithIdToken).toHaveBeenCalledTimes(1);
+    finishSignIn({ data: { session: null, user: null }, error: { message: 'stop' } });
+    await screen.findByRole('alert');
   });
 
   it('does not validate email syntax or password requirements on blur or submit', async () => {
