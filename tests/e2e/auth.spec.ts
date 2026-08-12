@@ -24,17 +24,21 @@ test('sign-in keeps Google first and exposes accessible password visibility', as
   await expect(page.getByText('or', { exact: true })).toBeVisible();
   const password = page.locator('#sign-in-password');
   const googleBox = await googleButton.boundingBox();
+  const loginBox = await page.getByRole('button', { name: 'Login' }).boundingBox();
   const dividerBox = await page.getByText('or', { exact: true }).boundingBox();
   const emailBox = await page.getByLabel('Email').boundingBox();
   expect(googleBox?.y).toBeLessThan(dividerBox?.y ?? 0);
   expect(dividerBox?.y).toBeLessThan(emailBox?.y ?? 0);
   expect(googleBox?.y).toBeLessThan(emailBox?.y ?? 0);
+  expect(googleBox?.width).toBe(loginBox?.width);
+  await expect(googleButton).toHaveAttribute('data-google-shape', 'pill');
   await expect(password).toHaveAttribute('type', 'password');
   await page.getByRole('button', { name: 'Show password' }).click();
   await expect(password).toHaveAttribute('type', 'text');
 });
 
-test('Google GIS exchanges an ID token without navigating through the Supabase project', async ({ page }) => {
+test('Google GIS exchanges a nonce-bound ID token without leaving the storefront', async ({ page, authMock }) => {
+  authMock.reset();
   await page.goto('/account/sign-in?next=%2Faccount');
   const storefrontOrigin = new URL(page.url()).origin;
 
@@ -43,6 +47,8 @@ test('Google GIS exchanges an ID token without navigating through the Supabase p
   await expect(page).toHaveURL(/\/account$/);
   expect(new URL(page.url()).origin).toBe(storefrontOrigin);
   await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
+  expect(authMock.googleNonceValidated).toBe(true);
+  expect(authMock.profileRequests).toBeGreaterThan(0);
 });
 
 test('sign-in uses only generic submitted validation without native browser validation', async ({ page }) => {

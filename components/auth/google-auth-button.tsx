@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Spinner } from '@/components/ui/spinner';
@@ -16,11 +17,12 @@ import {
   type IGoogleIdentityApi,
 } from '@/lib/auth/google-identity';
 import { clearPendingConfirmationState } from '@/lib/auth/pending-confirmation';
-import { createClient } from '@/lib/supabase/client';
 import { validateInternalNext } from '@/lib/auth/redirects';
+import { createClient } from '@/lib/supabase/client';
 import { getAccountApiErrorCode } from '@/utils/api-errors';
 
 const GOOGLE_BUTTON_MAX_WIDTH = 400;
+const GOOGLE_AUTH_ERROR_MESSAGE = 'Google sign-in is unavailable right now. Please try again.';
 
 interface IGoogleAuthButtonProps {
   clientId?: string;
@@ -31,6 +33,20 @@ interface IGoogleAuthButtonProps {
 function getGoogleButtonWidth(container: HTMLElement): number {
   const measuredWidth = Math.floor(container.getBoundingClientRect().width || container.clientWidth);
   return Math.max(1, Math.min(measuredWidth || GOOGLE_BUTTON_MAX_WIDTH, GOOGLE_BUTTON_MAX_WIDTH));
+}
+
+function captureGoogleAuthFailure(stage: string, error: unknown): void {
+  const authError = error as { code?: unknown; status?: unknown } | null;
+  Sentry.captureException(error instanceof Error ? error : new Error('Google authentication failed.'), {
+    tags: {
+      auth_provider: 'google',
+      auth_stage: stage,
+    },
+    extra: {
+      authErrorCode: typeof authError?.code === 'string' ? authError.code : undefined,
+      authErrorStatus: typeof authError?.status === 'number' ? authError.status : undefined,
+    },
+  });
 }
 
 export function GoogleAuthButton({
@@ -50,13 +66,17 @@ export function GoogleAuthButton({
     onErrorRef.current = onError;
   }, [onError]);
 
-  const handleCredential = useCallback(async (response: IGoogleCredentialResponse) => {
+  const handleCredential = useCallback(async (
+    response: IGoogleCredentialResponse,
+    nonce: string,
+  ) => {
     if (isPendingRef.current) {
       return;
     }
 
     const googleIdToken = response.credential?.trim();
     if (!googleIdToken) {
+      captureGoogleAuthFailure('credential', new Error('Google returned an empty credential.'));
       onErrorRef.current('Google sign-in did not return a credential. Please try again.');
       return;
     }
@@ -72,19 +92,25 @@ export function GoogleAuthButton({
       signInResult = await supabase.auth.signInWithIdToken({
         provider: 'google',
         token: googleIdToken,
+        nonce,
       });
-    } catch {
+    } catch (error) {
+      captureGoogleAuthFailure('id_token_exchange', error);
       isPendingRef.current = false;
       setIsPending(false);
-      onErrorRef.current('Google sign-in is unavailable right now. Please try again.');
+      onErrorRef.current(GOOGLE_AUTH_ERROR_MESSAGE);
       return;
     }
 
     const authenticatedUser = signInResult.data.session?.user ?? signInResult.data.user;
     if (signInResult.error || !signInResult.data.session || !authenticatedUser?.id) {
+      captureGoogleAuthFailure(
+        'id_token_exchange',
+        signInResult.error ?? new Error('Supabase did not create a Google session.'),
+      );
       isPendingRef.current = false;
       setIsPending(false);
-      onErrorRef.current('Google sign-in is unavailable right now. Please try again.');
+      onErrorRef.current(GOOGLE_AUTH_ERROR_MESSAGE);
       return;
     }
 
@@ -99,8 +125,9 @@ export function GoogleAuthButton({
       if (Object.keys(patch).length > 0) {
         try {
           await MutationConfigs.patchAccountProfile(patch);
-        } catch {
-          // A successful login is not blocked by optional profile synchronization.
+        } catch (error) {
+          captureGoogleAuthFailure('profile_metadata_sync', error);
+          // Optional metadata synchronization must not block a successful login.
         }
       }
 
@@ -108,7 +135,13 @@ export function GoogleAuthButton({
       router.replace(validateInternalNext(next));
       router.refresh();
     } catch (accountError) {
-      if (getAccountApiErrorCode(accountError) === 'CUSTOMER_ACCOUNT_REQUIRED') {
+      captureGoogleAuthFailure('account_profile', accountError);
+      const accountErrorCode = getAccountApiErrorCode(accountError);
+      if (
+        accountErrorCode === 'CUSTOMER_ACCOUNT_REQUIRED'
+        || accountErrorCode === 'EMAIL_NOT_VERIFIED'
+        || accountErrorCode === 'ACCOUNT_OWNERSHIP_CONFLICT'
+      ) {
         await supabase.auth.signOut({ scope: 'local' });
         onErrorRef.current('This sign-in is not available for customer accounts.');
       } else {
@@ -161,11 +194,12 @@ export function GoogleAuthButton({
           resizeObserver.observe(buttonContainerRef.current);
         }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!isActive) {
           return;
         }
 
+        captureGoogleAuthFailure('gis_script', error);
         setIsLoadingScript(false);
         onErrorRef.current('Google sign-in could not load. Please use email and password or try again.');
       });
@@ -187,7 +221,7 @@ export function GoogleAuthButton({
         </div>
       ) : null}
       {isPending ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-sm border bg-background text-sm text-muted-foreground" role="status">
+        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-full border bg-background text-sm text-muted-foreground" role="status">
           <Spinner className="mr-2" />
           Signing in with Google…
         </div>

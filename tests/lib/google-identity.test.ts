@@ -1,3 +1,4 @@
+import { webcrypto } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface IMockGoogleGlobal {
@@ -20,11 +21,22 @@ function installGoogleApi() {
   return api;
 }
 
+async function sha256Hex(value: string) {
+  const digest = await webcrypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 describe('Google Identity Services browser boundary', () => {
   beforeEach(() => {
     vi.resetModules();
     document.head.replaceChildren();
     delete (window as unknown as IMockGoogleGlobal).google;
+    Object.defineProperty(globalThis, 'crypto', {
+      configurable: true,
+      value: webcrypto,
+    });
   });
 
   it('injects the current GIS script once for concurrent callers', async () => {
@@ -44,42 +56,86 @@ describe('Google Identity Services browser boundary', () => {
     await expect(secondLoad).resolves.toBe(api);
   });
 
-  it('initializes GIS once, enables the FedCM button flow, and renders through Google', async () => {
+  it('initializes once with a hashed nonce and returns the matching raw nonce to the callback', async () => {
     const api = installGoogleApi();
-    const {
-      initializeGoogleIdentityServices,
-      renderGoogleIdentityButton,
-    } = await import('@/lib/auth/google-identity');
+    const { initializeGoogleIdentityServices } = await import('@/lib/auth/google-identity');
     const firstCredentialHandler = vi.fn();
     const currentCredentialHandler = vi.fn();
 
-    await initializeGoogleIdentityServices('client-id.apps.googleusercontent.com', firstCredentialHandler);
-    await initializeGoogleIdentityServices('client-id.apps.googleusercontent.com', currentCredentialHandler);
+    await Promise.all([
+      initializeGoogleIdentityServices(
+        'client-id.apps.googleusercontent.com',
+        firstCredentialHandler,
+      ),
+      initializeGoogleIdentityServices(
+        'client-id.apps.googleusercontent.com',
+        currentCredentialHandler,
+      ),
+    ]);
 
     expect(api.initialize).toHaveBeenCalledTimes(1);
     expect(api.initialize).toHaveBeenCalledWith(expect.objectContaining({
       auto_select: false,
       button_auto_select: false,
       client_id: 'client-id.apps.googleusercontent.com',
+      nonce: expect.stringMatching(/^[a-f\d]{64}$/),
       use_fedcm_for_button: true,
       ux_mode: 'popup',
     }));
 
     const initializeConfig = api.initialize.mock.calls[0][0] as {
       callback: (response: { credential: string }) => void;
+      nonce: string;
     };
     initializeConfig.callback({ credential: 'credential' });
-    expect(firstCredentialHandler).not.toHaveBeenCalled();
-    expect(currentCredentialHandler).toHaveBeenCalledWith({ credential: 'credential' });
 
+    expect(firstCredentialHandler).not.toHaveBeenCalled();
+    expect(currentCredentialHandler).toHaveBeenCalledWith(
+      { credential: 'credential' },
+      expect.any(String),
+    );
+    const rawNonce = currentCredentialHandler.mock.calls[0][1] as string;
+    expect(await sha256Hex(rawNonce)).toBe(initializeConfig.nonce);
+  });
+
+  it('reuses the initialized nonce instead of generating a new one for rerenders', async () => {
+    const api = installGoogleApi();
+    const { initializeGoogleIdentityServices } = await import('@/lib/auth/google-identity');
+    const firstCredentialHandler = vi.fn();
+    const currentCredentialHandler = vi.fn();
+
+    await initializeGoogleIdentityServices(
+      'client-id.apps.googleusercontent.com',
+      firstCredentialHandler,
+    );
+    const originalConfiguration = api.initialize.mock.calls[0][0] as {
+      callback: (response: { credential: string }) => void;
+      nonce: string;
+    };
+    await initializeGoogleIdentityServices(
+      'client-id.apps.googleusercontent.com',
+      currentCredentialHandler,
+    );
+    originalConfiguration.callback({ credential: 'credential' });
+
+    expect(api.initialize).toHaveBeenCalledTimes(1);
+    expect(currentCredentialHandler.mock.calls[0][1]).toEqual(expect.any(String));
+    expect(await sha256Hex(currentCredentialHandler.mock.calls[0][1] as string))
+      .toBe(originalConfiguration.nonce);
+  });
+
+  it('renders a full-width official pill button through Google', async () => {
+    const api = installGoogleApi();
+    const { renderGoogleIdentityButton } = await import('@/lib/auth/google-identity');
     const parent = document.createElement('div');
     parent.appendChild(document.createElement('span'));
+
     renderGoogleIdentityButton(api, parent, 360);
 
     expect(parent.childElementCount).toBe(0);
     expect(api.renderButton).toHaveBeenCalledWith(parent, {
       logo_alignment: 'left',
-      shape: 'rectangular',
+      shape: 'pill',
       size: 'large',
       text: 'continue_with',
       theme: 'outline',

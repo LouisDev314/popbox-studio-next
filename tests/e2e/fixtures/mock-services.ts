@@ -6,6 +6,7 @@ interface IAuthMockState {
   accessToken: () => string;
   collectionOrderIds: string[];
   featuredOrderIds: string[];
+  googleNonceValidated: boolean;
   profileRequests: number;
   revealedResultIds: Set<string>;
   reset: () => void;
@@ -446,7 +447,26 @@ function createRequestHandler(state: IAuthMockState) {
         return;
       }
 
-      if (grantType === 'id_token' || grantType === 'pkce' || grantType === 'refresh_token') {
+      if (grantType === 'id_token') {
+        const nonce = typeof body.nonce === 'string' ? body.nonce : '';
+        const expectedToken = nonce
+          ? `e2e-google-id-token:${createHash('sha256').update(nonce).digest('hex')}`
+          : '';
+
+        if (body.provider !== 'google' || body.id_token !== expectedToken) {
+          sendJson(response, {
+            error: 'invalid request',
+            error_description: 'Passed nonce and nonce in id_token should either both exist or not.',
+          }, 400);
+          return;
+        }
+
+        state.googleNonceValidated = true;
+        sendJson(response, createSession());
+        return;
+      }
+
+      if (grantType === 'pkce' || grantType === 'refresh_token') {
         sendJson(response, createSession());
         return;
       }
@@ -783,11 +803,13 @@ export const test = base.extend<{ authMock: IAuthMockState; googleIdentity: void
       },
       collectionOrderIds: adminCollections.map((collection) => collection.id),
       featuredOrderIds: adminFeaturedProducts.map((product) => product.id),
+      googleNonceValidated: false,
       profileRequests: 0,
       revealedResultIds: new Set<string>(),
       reset() {
         this.collectionOrderIds = adminCollections.map((collection) => collection.id);
         this.featuredOrderIds = adminFeaturedProducts.map((product) => product.id);
+        this.googleNonceValidated = false;
         this.profileRequests = 0;
         this.revealedResultIds.clear();
       },
@@ -818,14 +840,19 @@ export const test = base.extend<{ authMock: IAuthMockState; googleIdentity: void
                 button.type = 'button';
                 button.setAttribute('aria-label', 'Continue with Google');
                 button.textContent = 'Continue with Google';
+                button.dataset.googleShape = options.shape;
                 Object.assign(button.style, {
-                  background: '#ffffff', border: '1px solid #747775', borderRadius: '4px',
+                  background: '#ffffff', border: '1px solid #747775',
+                  borderRadius: options.shape === 'pill' ? '9999px' : '4px',
                   color: '#1f1f1f', cursor: 'pointer', font: '500 14px Arial, sans-serif',
                   height: '40px', width: options.width + 'px'
                 });
-                button.addEventListener('click', () => configuration.callback({
-                  credential: 'e2e-google-id-token', select_by: 'btn'
-                }));
+                button.addEventListener('click', () => {
+                  configuration.callback({
+                    credential: 'e2e-google-id-token:' + configuration.nonce,
+                    select_by: 'btn'
+                  });
+                });
                 parent.replaceChildren(button);
               }
             };

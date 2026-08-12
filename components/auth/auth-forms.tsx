@@ -124,7 +124,7 @@ export function SignInForm({ next, showResetSuccess = false }: { next: string; s
   };
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-[400px] space-y-6">
       {showResetSuccess ? (
         <p role="status" className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-foreground">
           Your password has been updated. Sign in with your new password.
@@ -223,7 +223,7 @@ export function SignUpForm({ next }: { next: string }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-[400px] space-y-6">
       <GoogleAuthButton next={next} onError={handleGoogleError} />
       <AuthFormDivider />
       <form className="space-y-5" noValidate onSubmit={form.handleSubmit(handleSubmit)}>

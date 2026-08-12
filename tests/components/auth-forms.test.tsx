@@ -13,10 +13,14 @@ import {
 import { GoogleAuthButton } from '@/components/auth/google-auth-button';
 
 const googleIdentityMocks = vi.hoisted(() => ({
-  credentialHandler: null as ((response: { credential?: string }) => void) | null,
+  credentialHandler: null as ((response: { credential?: string }, nonce: string) => void) | null,
   initialize: vi.fn(),
   release: vi.fn(),
   renderButton: vi.fn(),
+}));
+
+const sentryMocks = vi.hoisted(() => ({
+  captureException: vi.fn(),
 }));
 
 const authMocks = vi.hoisted(() => ({
@@ -57,6 +61,10 @@ vi.mock('next/navigation', () => ({
   useRouter: () => navigationMocks,
 }));
 
+vi.mock('@sentry/nextjs', () => ({
+  captureException: sentryMocks.captureException,
+}));
+
 vi.mock('@/configs/public-env', () => ({
   default: () => ({ googleClientId: 'google-client-id.apps.googleusercontent.com' }),
 }));
@@ -94,6 +102,7 @@ describe('customer auth forms', () => {
     googleIdentityMocks.initialize.mockReset();
     googleIdentityMocks.release.mockReset();
     googleIdentityMocks.renderButton.mockReset();
+    sentryMocks.captureException.mockReset();
     googleIdentityMocks.initialize.mockImplementation(async (_clientId, credentialHandler) => {
       googleIdentityMocks.credentialHandler = credentialHandler;
       return {};
@@ -104,7 +113,7 @@ describe('customer auth forms', () => {
       button.setAttribute('aria-label', 'Continue with Google');
       button.textContent = 'Continue with Google';
       button.addEventListener('click', () => {
-        googleIdentityMocks.credentialHandler?.({ credential: 'google-id-token' });
+        googleIdentityMocks.credentialHandler?.({ credential: 'google-id-token' }, 'raw-auth-nonce');
       });
       parent.replaceChildren(button);
     });
@@ -202,7 +211,7 @@ describe('customer auth forms', () => {
     expect(email).not.toHaveAttribute('required');
   });
 
-  it('exchanges the Google credential with Supabase and follows normal post-login behavior', async () => {
+  it('exchanges the Google credential and matching raw nonce with Supabase', async () => {
     const user = userEvent.setup();
     render(<SignInForm next="/account/orders" />);
 
@@ -211,27 +220,40 @@ describe('customer auth forms', () => {
     expect(authMocks.signInWithIdToken).toHaveBeenCalledWith({
       provider: 'google',
       token: 'google-id-token',
+      nonce: 'raw-auth-nonce',
     });
     await waitFor(() => expect(navigationMocks.replace).toHaveBeenCalledWith('/account/orders'));
     expect(queryMocks.fetchQuery).toHaveBeenCalledTimes(1);
+    expect(accountMocks.patchAccountProfile).toHaveBeenCalledWith({
+      firstName: 'Google',
+      lastName: 'Customer',
+    });
     expect(navigationMocks.refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('renders the same native Google button on account registration', async () => {
+  it('renders the same corrected Google path on account registration', async () => {
+    const user = userEvent.setup();
     render(<SignUpForm next="/account" />);
 
-    expect(await screen.findByRole('button', { name: 'Continue with Google' })).toBeVisible();
+    await user.click(await screen.findByRole('button', { name: 'Continue with Google' }));
+
     expect(googleIdentityMocks.initialize).toHaveBeenCalledWith(
       'google-client-id.apps.googleusercontent.com',
       expect.any(Function),
     );
+    expect(authMocks.signInWithIdToken).toHaveBeenCalledWith({
+      provider: 'google',
+      token: 'google-id-token',
+      nonce: 'raw-auth-nonce',
+    });
   });
 
-  it('surfaces Supabase Google authentication failures without exposing provider details', async () => {
+  it('surfaces and reports Supabase Google authentication failures without provider details', async () => {
     const user = userEvent.setup();
+    const providerError = { code: 'bad_id_token', message: 'raw Supabase detail', status: 400 };
     authMocks.signInWithIdToken.mockResolvedValue({
       data: { session: null, user: null },
-      error: { message: 'raw Supabase provider failure' },
+      error: providerError,
     });
     render(<SignInForm next="/account" />);
 
@@ -240,7 +262,28 @@ describe('customer auth forms', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Google sign-in is unavailable right now. Please try again.',
     );
-    expect(screen.queryByText('raw Supabase provider failure')).not.toBeInTheDocument();
+    expect(screen.queryByText('raw Supabase detail')).not.toBeInTheDocument();
+    expect(sentryMocks.captureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        tags: { auth_provider: 'google', auth_stage: 'id_token_exchange' },
+      }),
+    );
+  });
+
+  it('surfaces and reports a Google script failure', async () => {
+    googleIdentityMocks.initialize.mockRejectedValueOnce(new Error('script blocked'));
+    render(<SignInForm next="/account" />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Google sign-in could not load. Please use email and password or try again.',
+    );
+    expect(sentryMocks.captureException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        tags: { auth_provider: 'google', auth_stage: 'gis_script' },
+      }),
+    );
   });
 
   it('fails safely when the Google client ID is missing', async () => {
@@ -279,7 +322,7 @@ describe('customer auth forms', () => {
     expect(googleIdentityMocks.renderButton).toHaveBeenCalledTimes(1);
   });
 
-  it('ignores duplicate Google credential callbacks while authentication is pending', async () => {
+  it('ignores duplicate credential callbacks while authentication is pending', async () => {
     let finishSignIn: (result: unknown) => void = () => undefined;
     authMocks.signInWithIdToken.mockImplementation(() => new Promise((resolve) => {
       finishSignIn = resolve;
@@ -287,10 +330,15 @@ describe('customer auth forms', () => {
     render(<SignInForm next="/account" />);
     await screen.findByRole('button', { name: 'Continue with Google' });
 
-    googleIdentityMocks.credentialHandler?.({ credential: 'google-id-token' });
-    googleIdentityMocks.credentialHandler?.({ credential: 'duplicate-token' });
+    googleIdentityMocks.credentialHandler?.({ credential: 'google-id-token' }, 'raw-auth-nonce');
+    googleIdentityMocks.credentialHandler?.({ credential: 'duplicate-token' }, 'different-nonce');
 
     expect(authMocks.signInWithIdToken).toHaveBeenCalledTimes(1);
+    expect(authMocks.signInWithIdToken).toHaveBeenCalledWith({
+      provider: 'google',
+      token: 'google-id-token',
+      nonce: 'raw-auth-nonce',
+    });
     finishSignIn({ data: { session: null, user: null }, error: { message: 'stop' } });
     await screen.findByRole('alert');
   });
