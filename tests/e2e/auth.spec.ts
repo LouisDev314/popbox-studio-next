@@ -1,4 +1,12 @@
+import type { Locator } from '@playwright/test';
 import { test, expect } from './fixtures/mock-services';
+
+async function getRequiredBoundingBox(locator: Locator) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) throw new Error('Expected a visible element with a bounding box.');
+  return box;
+}
 
 test('account header hydrates into the signed-out control without console errors', async ({ page }, testInfo) => {
   const consoleErrors: string[] = [];
@@ -23,24 +31,38 @@ test('sign-in keeps Google first and exposes accessible password visibility', as
   await expect(googleButton).toBeVisible();
   await expect(page.getByText('or', { exact: true })).toBeVisible();
   const password = page.locator('#sign-in-password');
-  const googleBox = await googleButton.boundingBox();
-  const loginBox = await page.getByRole('button', { name: 'Login' }).boundingBox();
-  const dividerBox = await page.getByText('or', { exact: true }).boundingBox();
-  const emailBox = await page.getByLabel('Email').boundingBox();
-  expect(googleBox?.y).toBeLessThan(dividerBox?.y ?? 0);
-  expect(dividerBox?.y).toBeLessThan(emailBox?.y ?? 0);
-  expect(googleBox?.y).toBeLessThan(emailBox?.y ?? 0);
-  expect(googleBox?.width).toBe(loginBox?.width);
+  const forgotPassword = page.getByRole('link', { name: 'Forgot password?' });
+  const googleBox = await getRequiredBoundingBox(googleButton);
+  const loginBox = await getRequiredBoundingBox(page.getByRole('button', { name: 'Login' }));
+  const dividerBox = await getRequiredBoundingBox(page.getByText('or', { exact: true }));
+  const emailBox = await getRequiredBoundingBox(page.getByLabel('Email'));
+  expect(googleBox.y).toBeLessThan(dividerBox.y);
+  expect(dividerBox.y).toBeLessThan(emailBox.y);
+  expect(googleBox.y).toBeLessThan(emailBox.y);
+  expect(googleBox.width).toBe(loginBox.width);
+  const passwordBox = await getRequiredBoundingBox(password);
+  const forgotPasswordBox = await getRequiredBoundingBox(forgotPassword);
+  expect(forgotPasswordBox.y).toBeGreaterThan(passwordBox.y + passwordBox.height);
+  expect(Math.abs(
+    forgotPasswordBox.x + forgotPasswordBox.width - (passwordBox.x + passwordBox.width),
+  )).toBeLessThan(1);
+  await expect(forgotPassword).toHaveAttribute('href', '/account/forgot-password?next=%2Faccount');
   await expect(googleButton).toHaveAttribute('data-google-shape', 'pill');
   await expect(password).toHaveAttribute('type', 'password');
   await page.getByRole('button', { name: 'Show password' }).click();
   await expect(password).toHaveAttribute('type', 'text');
 });
 
-test('Google GIS exchanges a nonce-bound ID token without leaving the storefront', async ({ page, authMock }) => {
+test('Google GIS keeps the nonce-bound session flow through logout and login again', async ({ page, authMock }, testInfo) => {
   authMock.reset();
   await page.goto('/account/sign-in?next=%2Faccount');
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
   const storefrontOrigin = new URL(page.url()).origin;
+  const googleConfiguration = await page.evaluate(() => (
+    window as Window & { __googleIdentityConfiguration?: Record<string, unknown> }
+  ).__googleIdentityConfiguration);
+
+  expect(googleConfiguration).not.toHaveProperty('use_fedcm_for_button');
 
   await page.getByRole('button', { name: 'Continue with Google' }).click();
 
@@ -49,6 +71,24 @@ test('Google GIS exchanges a nonce-bound ID token without leaving the storefront
   await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
   expect(authMock.googleNonceValidated).toBe(true);
   expect(authMock.profileRequests).toBeGreaterThan(0);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
+
+  if (testInfo.project.name === 'mobile') {
+    await page.getByRole('button', { name: 'Open menu' }).click();
+    await page.getByRole('dialog', { name: 'Store navigation menu' })
+      .getByRole('button', { name: 'Sign Out' })
+      .click();
+  } else {
+    await page.getByRole('button', { name: 'Open account menu' }).click();
+    await page.getByRole('menuitem', { name: 'Sign Out' }).click();
+  }
+
+  await page.goto('/account/sign-in?next=%2Faccount');
+  await expect(page.getByRole('heading', { name: 'Login to your account' })).toBeVisible();
+  await page.getByRole('button', { name: 'Continue with Google' }).click();
+  await expect(page).toHaveURL(/\/account$/);
+  await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
 });
 
 test('sign-in uses only generic submitted validation without native browser validation', async ({ page }) => {

@@ -834,6 +834,7 @@ export const test = base.extend<{ authMock: IAuthMockState; googleIdentity: void
             window.google.accounts.id = {
               initialize(nextConfiguration) {
                 configuration = nextConfiguration;
+                window.__googleIdentityConfiguration = nextConfiguration;
               },
               renderButton(parent, options) {
                 const button = document.createElement('button');

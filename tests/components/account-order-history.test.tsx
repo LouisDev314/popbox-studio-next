@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { forwardRef, type ImgHTMLAttributes, type ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
@@ -123,6 +123,56 @@ describe('account orders list', () => {
 
     row.focus();
     expect(row).toHaveFocus();
+  });
+
+  it('keeps every header and order value associated with the correct navigable row', () => {
+    const initialPage: IAccountOrderListPage = {
+      items: [
+        {
+          ...baseOrder,
+          publicId: 'PBX-LONG-ORDER-IDENTIFIER-1001',
+          totalCents: 105,
+          products: [
+            { productId: 'p1', productName: 'A Very Long Figure Name That Wraps Cleanly', productType: 'standard', productSlug: 'long-figure', isStorefrontAccessible: true, quantity: 1, imageUrl: null, imageAltText: 'Long figure thumbnail' },
+          ],
+        },
+        {
+          ...baseOrder,
+          publicId: 'PBX-1002',
+          status: 'refunded',
+          totalCents: 7979,
+          products: [
+            { productId: 'p2', productName: 'Kuji Set', productType: 'kuji', productSlug: 'kuji-set', isStorefrontAccessible: true, quantity: 12, imageUrl: null, imageAltText: 'Kuji thumbnail' },
+            { productId: 'p3', productName: 'Prize Figure', productType: 'standard', productSlug: 'prize-figure', isStorefrontAccessible: true, quantity: 2, imageUrl: null, imageAltText: 'Prize thumbnail' },
+            { productId: 'p4', productName: 'Bonus Keychain', productType: 'standard', productSlug: 'bonus-keychain', isStorefrontAccessible: true, quantity: 1, imageUrl: null, imageAltText: 'Keychain thumbnail' },
+          ],
+        },
+      ],
+      nextCursor: null,
+    };
+    renderWithQueryClient(<OrdersList initialPage={initialPage} />);
+
+    for (const header of ['Order', 'Products', 'Date', 'Status', 'Items', 'Total']) {
+      expect(screen.getByText(header, { exact: true })).toBeInTheDocument();
+    }
+
+    const firstRow = screen.getByTestId('order-row-PBX-LONG-ORDER-IDENTIFIER-1001');
+    expect(firstRow).toHaveAttribute(
+      'href',
+      '/account/orders/PBX-LONG-ORDER-IDENTIFIER-1001',
+    );
+    expect(within(firstRow).getByText('A Very Long Figure Name That Wraps Cleanly'))
+      .toBeInTheDocument();
+    expect(within(firstRow).getByText('$1.05')).toBeInTheDocument();
+    expect(within(firstRow).getByText('1', { exact: true })).toBeInTheDocument();
+
+    const secondRow = screen.getByTestId('order-row-PBX-1002');
+    expect(within(secondRow).getByText('Kuji Set')).toBeInTheDocument();
+    expect(within(secondRow).getByText('Prize Figure')).toBeInTheDocument();
+    expect(within(secondRow).getByText('+1 more')).toBeInTheDocument();
+    expect(within(secondRow).getByText('Refunded')).toBeInTheDocument();
+    expect(within(secondRow).getByText('15', { exact: true })).toBeInTheDocument();
+    expect(within(secondRow).getByText('$79.79')).toBeInTheDocument();
   });
 
   it('preserves the empty state', () => {

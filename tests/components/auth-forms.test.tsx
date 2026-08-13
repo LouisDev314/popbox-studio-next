@@ -211,6 +211,21 @@ describe('customer auth forms', () => {
     expect(email).not.toHaveAttribute('required');
   });
 
+  it('keeps password recovery below the labelled password input', async () => {
+    render(<SignInForm next="/account/orders" />);
+
+    const password = screen.getByLabelText('Password');
+    const recoveryLink = screen.getByRole('link', { name: 'Forgot password?' });
+
+    expect(password).toHaveAttribute('id', 'sign-in-password');
+    expect(recoveryLink).toHaveAttribute(
+      'href',
+      '/account/forgot-password?next=%2Faccount%2Forders',
+    );
+    expect(password.compareDocumentPosition(recoveryLink) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+  });
+
   it('exchanges the Google credential and matching raw nonce with Supabase', async () => {
     const user = userEvent.setup();
     render(<SignInForm next="/account/orders" />);
@@ -284,6 +299,9 @@ describe('customer auth forms', () => {
         tags: { auth_provider: 'google', auth_stage: 'gis_script' },
       }),
     );
+    expect(screen.getByLabelText('Email')).toBeEnabled();
+    expect(screen.getByLabelText('Password')).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Login' })).toBeEnabled();
   });
 
   it('fails safely when the Google client ID is missing', async () => {

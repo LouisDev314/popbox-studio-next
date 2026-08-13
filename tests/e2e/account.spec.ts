@@ -248,6 +248,31 @@ test('authenticated orders and Kuji history are prize-first and responsive', asy
   await expect(page.locator('a a')).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 
+  for (const width of [1440, 1280, 1024]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const layout = await page.evaluate(() => {
+      const header = document.querySelector<HTMLElement>('[data-testid="orders-header"]');
+      const row = document.querySelector<HTMLElement>('[data-testid="order-row-PBX-ACCOUNT-1"]');
+      const headerTotal = header?.lastElementChild?.getBoundingClientRect();
+      const rowTotal = row?.lastElementChild?.getBoundingClientRect();
+
+      return {
+        headerColumns: header ? getComputedStyle(header).gridTemplateColumns : null,
+        headerDisplay: header ? getComputedStyle(header).display : null,
+        rowColumns: row ? getComputedStyle(row).gridTemplateColumns : null,
+        totalRightDelta: headerTotal && rowTotal
+          ? Math.abs(headerTotal.right - rowTotal.right)
+          : null,
+      };
+    });
+
+    expect(layout.headerDisplay).toBe('grid');
+    expect(layout.rowColumns).toBe(layout.headerColumns);
+    expect(layout.totalRightDelta).not.toBeNull();
+    expect(layout.totalRightDelta ?? Number.POSITIVE_INFINITY).toBeLessThan(1);
+    await expectNoHorizontalOverflow(page);
+  }
+
   await mixedOrderRow.focus();
   await expect(mixedOrderRow).toBeFocused();
   await page.keyboard.press('Enter');

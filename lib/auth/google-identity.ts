@@ -16,7 +16,6 @@ interface IGoogleIdentityConfiguration {
   callback: (response: IGoogleCredentialResponse) => void;
   client_id: string;
   nonce: string;
-  use_fedcm_for_button: boolean;
   ux_mode: 'popup';
 }
 
@@ -165,7 +164,6 @@ export async function initializeGoogleIdentityServices(
         },
         client_id: clientId,
         nonce: noncePair.hashedNonce,
-        use_fedcm_for_button: true,
         ux_mode: 'popup',
       });
 

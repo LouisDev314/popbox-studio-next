@@ -155,18 +155,16 @@ export function SignInForm({ next, showResetSuccess = false }: { next: string; s
             control={form.control}
             render={({ field }) => (
               <Field>
-                <div className="flex items-center justify-between gap-3">
-                  <FieldLabel htmlFor="sign-in-password">Password</FieldLabel>
-                  <Link href={`/account/forgot-password?next=${encodeURIComponent(next)}`} className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-                    Forgot password?
-                  </Link>
-                </div>
+                <FieldLabel htmlFor="sign-in-password">Password</FieldLabel>
                 <PasswordInput
                   {...field}
                   id="sign-in-password"
                   autoComplete="current-password"
                   aria-invalid={undefined}
                 />
+                <Link href={`/account/forgot-password?next=${encodeURIComponent(next)}`} className="self-end text-right text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                  Forgot password?
+                </Link>
               </Field>
             )}
           />

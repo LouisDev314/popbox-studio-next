@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import QueryConfigs from '@/configs/api/query-config';
 import type { IAccountOrderListPage } from '@/interfaces/account';
-import { formatPrice } from '@/lib/utils';
+import { cn, formatPrice } from '@/lib/utils';
+
+const orderGridColumns = 'md:grid-cols-[minmax(9.5rem,1.15fr)_minmax(0,1.9fr)_minmax(7.5rem,.85fr)_minmax(6.75rem,.75fr)_minmax(3.5rem,.4fr)_minmax(6.5rem,.7fr)]';
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium' }).format(new Date(value));
@@ -33,7 +35,7 @@ export function OrdersList({ initialPage }: { initialPage: IAccountOrderListPage
 
   return (
     <div>
-      <div className="hidden grid-cols-[1fr_1.8fr_.9fr_.8fr_.5fr_.8fr] gap-4 border-b border-border px-4 pb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground md:grid">
+      <div data-testid="orders-header" className={cn('hidden gap-4 border-b border-border px-4 pb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground md:grid', orderGridColumns)}>
         <span>Order</span><span>Products</span><span>Date</span><span>Status</span><span>Items</span><span className="text-right">Total</span>
       </div>
       <div className="divide-y divide-border">
@@ -42,13 +44,16 @@ export function OrdersList({ initialPage }: { initialPage: IAccountOrderListPage
             key={order.publicId}
             data-testid={`order-row-${order.publicId}`}
             href={`/account/orders/${encodeURIComponent(order.publicId)}`}
-            className="group/order grid cursor-pointer gap-4 px-4 py-5 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:grid-cols-[1fr_1.8fr_.9fr_.8fr_.5fr_.8fr] md:items-center"
+            className={cn(
+              'group/order grid min-h-24 cursor-pointer grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-4 px-4 py-5 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:items-center md:gap-4 md:py-4',
+              orderGridColumns,
+            )}
           >
-            <span className="inline-flex text-nowrap items-center gap-1 font-semibold transition-colors group-hover/order:text-primary">
-              {order.publicId}
-              <ChevronRight className="h-4 w-4 transition-transform group-hover/order:translate-x-0.5" aria-hidden="true" />
+            <span className="col-start-1 row-start-1 flex min-w-0 items-center justify-between gap-2 font-semibold transition-colors group-hover/order:text-primary md:col-auto md:row-auto">
+              <span className="min-w-0 truncate">{order.publicId}</span>
+              <ChevronRight className="h-4 w-4 shrink-0 transition-transform group-hover/order:translate-x-0.5" aria-hidden="true" />
             </span>
-            <div className="space-y-2">
+            <div className="col-span-2 row-start-2 min-w-0 space-y-2 md:col-auto md:row-auto">
               {order.products.slice(0, 2).map((product) => (
                 <AccountProductIdentity
                   key={`${product.productId}:${product.variantId ?? 'product'}`}
@@ -67,10 +72,22 @@ export function OrdersList({ initialPage }: { initialPage: IAccountOrderListPage
                 <p className="text-xs text-muted-foreground">+{order.products.length - 2} more</p>
               ) : null}
             </div>
-            <span className="text-sm text-muted-foreground"><span className="mr-2 md:hidden">Date</span>{formatDate(order.placedAt ?? order.createdAt)}</span>
-            <span><OrderStatusBadge status={order.status} /></span>
-            <span className="text-sm text-muted-foreground"><span className="mr-2 md:hidden">Items</span>{getAccountOrderItemCount(order.products)}</span>
-            <span className="font-medium md:text-right">{formatPrice(order.totalCents, order.currency)}</span>
+            <span className="col-span-2 row-start-3 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-muted-foreground md:contents">
+              <span className="md:text-nowrap">
+                <span className="sr-only">Order date: </span>
+                {formatDate(order.placedAt ?? order.createdAt)}
+              </span>
+              <span aria-hidden="true" className="md:hidden">·</span>
+              <span className="flex items-center"><OrderStatusBadge status={order.status} /></span>
+              <span aria-hidden="true" className="md:hidden">·</span>
+              <span className="md:text-center">
+                {getAccountOrderItemCount(order.products)}<span className="md:sr-only"> items</span>
+              </span>
+            </span>
+            <span className="col-start-2 row-start-1 text-right font-medium tabular-nums md:col-auto md:row-auto">
+              <span className="sr-only">Total: </span>
+              {formatPrice(order.totalCents, order.currency)}
+            </span>
           </Link>
         ))}
       </div>

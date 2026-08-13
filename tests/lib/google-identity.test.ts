@@ -79,14 +79,15 @@ describe('Google Identity Services browser boundary', () => {
       button_auto_select: false,
       client_id: 'client-id.apps.googleusercontent.com',
       nonce: expect.stringMatching(/^[a-f\d]{64}$/),
-      use_fedcm_for_button: true,
       ux_mode: 'popup',
     }));
 
     const initializeConfig = api.initialize.mock.calls[0][0] as {
       callback: (response: { credential: string }) => void;
       nonce: string;
+      use_fedcm_for_button?: boolean;
     };
+    expect(initializeConfig).not.toHaveProperty('use_fedcm_for_button');
     initializeConfig.callback({ credential: 'credential' });
 
     expect(firstCredentialHandler).not.toHaveBeenCalled();
