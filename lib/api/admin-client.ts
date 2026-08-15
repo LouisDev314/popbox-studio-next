@@ -1,7 +1,7 @@
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import httpClient from '@/api/http-client';
 import { IBaseApiResponse } from '@/interfaces/api-response';
-import { createClient } from '@/lib/supabase/client';
+import { getAdminAccessToken } from '@/lib/auth/admin-session-client';
 
 export type AdminProductKujiPrizeImageUploadResponse = {
   imageUrl: string;
@@ -12,16 +12,8 @@ export async function getAdminAuthHeaders(): Promise<Record<string, string>> {
     return {};
   }
 
-  const {
-    data: { session },
-  } = await createClient().auth.getSession();
-
-  if (!session?.access_token) {
-    return {};
-  }
-
   return {
-    Authorization: `Bearer ${session.access_token}`,
+    Authorization: `Bearer ${await getAdminAccessToken()}`,
   };
 }
 

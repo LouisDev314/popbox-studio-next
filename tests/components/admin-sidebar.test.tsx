@@ -1,5 +1,5 @@
 import type { AnchorHTMLAttributes } from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 
@@ -29,7 +29,7 @@ describe('AdminSidebar', () => {
   it('renders grouped admin navigation with a store return link', () => {
     usePathname.mockReturnValue('/admin/products');
 
-    render(<AdminSidebar />);
+    render(<AdminSidebar isSigningOut={false} onLogout={vi.fn()} />);
 
     expect(screen.getByText('Catalog')).toBeInTheDocument();
     expect(screen.getByText('Sales')).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('AdminSidebar', () => {
   it('marks the matching section as active for nested admin routes', () => {
     usePathname.mockReturnValue('/admin/orders/order-123');
 
-    render(<AdminSidebar />);
+    render(<AdminSidebar isSigningOut={false} onLogout={vi.fn()} />);
 
     expect(screen.getByRole('link', { name: /Orders/i })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: /Products/i })).not.toHaveAttribute('aria-current');
@@ -55,7 +55,7 @@ describe('AdminSidebar', () => {
   it('marks settings routes as active for shipping settings', () => {
     usePathname.mockReturnValue('/admin/settings/shipping');
 
-    render(<AdminSidebar />);
+    render(<AdminSidebar isSigningOut={false} onLogout={vi.fn()} />);
 
     expect(screen.getByRole('link', { name: /Shipping/i })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: /Store Banner/i })).not.toHaveAttribute('aria-current');
@@ -65,9 +65,19 @@ describe('AdminSidebar', () => {
   it('marks only the store banner settings route as active', () => {
     usePathname.mockReturnValue('/admin/settings/store-banner');
 
-    render(<AdminSidebar />);
+    render(<AdminSidebar isSigningOut={false} onLogout={vi.fn()} />);
 
     expect(screen.getByRole('link', { name: /Store Banner/i })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: /Shipping/i })).not.toHaveAttribute('aria-current');
+  });
+
+  it('keeps an explicit logout action available in the admin shell', () => {
+    const onLogout = vi.fn();
+    usePathname.mockReturnValue('/admin/products');
+    render(<AdminSidebar isSigningOut={false} onLogout={onLogout} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
+
+    expect(onLogout).toHaveBeenCalledTimes(1);
   });
 });

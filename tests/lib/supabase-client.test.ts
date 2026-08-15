@@ -35,6 +35,13 @@ describe('Supabase browser client', () => {
     expect(supabaseMocks.createBrowserClient).toHaveBeenCalledWith(
       'https://project.supabase.co',
       'publishable-key',
+      {
+        auth: {
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          persistSession: true,
+        },
+      },
     );
   });
 });

@@ -79,6 +79,7 @@ test('Google GIS keeps the nonce-bound session flow through logout and login aga
     await page.getByRole('dialog', { name: 'Store navigation menu' })
       .getByRole('button', { name: 'Sign Out' })
       .click();
+    await page.waitForURL(/\/account\/sign-in/);
   } else {
     await page.getByRole('button', { name: 'Open account menu' }).click();
     await page.getByRole('menuitem', { name: 'Sign Out' }).click();

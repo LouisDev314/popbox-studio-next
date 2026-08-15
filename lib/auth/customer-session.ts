@@ -7,6 +7,11 @@ import { getAccountProfileServer } from '@/lib/api/account-server';
 import { buildSignInHref, validateInternalNext } from '@/lib/auth/redirects';
 import { createClient } from '@/lib/supabase/server';
 import { getAccountApiErrorCode } from '@/utils/api-errors';
+import {
+  evaluateCustomerSessionPolicy,
+  getAuthenticationTimeSeconds,
+  type SessionPolicyClaims,
+} from '@/lib/auth/session-policy';
 
 export type ServerCustomerAccess =
   | { status: 'signedOut' }
@@ -19,6 +24,21 @@ export const getServerCustomerAccess = cache(async (): Promise<ServerCustomerAcc
   const claimsResult = await supabase.auth.getClaims();
 
   if (claimsResult.error || !claimsResult.data?.claims) {
+    return { status: 'signedOut' };
+  }
+
+  const claims = claimsResult.data.claims as SessionPolicyClaims;
+  const authenticatedAtSeconds = getAuthenticationTimeSeconds(claims);
+
+  if (
+    authenticatedAtSeconds !== null
+    && typeof claims.iat === 'number'
+    && evaluateCustomerSessionPolicy({
+      authenticatedAtSeconds,
+      lastActivityAtSeconds: claims.iat,
+      nowSeconds: Math.floor(Date.now() / 1000),
+    }) !== 'valid'
+  ) {
     return { status: 'signedOut' };
   }
 

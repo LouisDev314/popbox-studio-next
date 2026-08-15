@@ -15,6 +15,13 @@ export function createClient() {
   browserClient ??= createBrowserClient(
     config.url,
     config.publishableKey,
+    {
+      auth: {
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        persistSession: true,
+      },
+    },
   );
 
   return browserClient;

@@ -19,6 +19,7 @@ import {
   getAccountProfileQueryOptions,
 } from '@/lib/auth/account-profile-query';
 import { getAccountApiErrorCode } from '@/utils/api-errors';
+import { signOutSupabaseSession } from '@/lib/auth/supabase-logout';
 
 export type CustomerAuthStatus =
   | 'resolving'
@@ -153,7 +154,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     setAuthState({ isHydrated: true, session: null });
     await queryClient.cancelQueries({ queryKey: ['account'] });
     queryClient.removeQueries({ queryKey: ['account'] });
-    await createClient().auth.signOut({ scope: 'local' });
+    await signOutSupabaseSession(createClient());
   }, [queryClient]);
 
   const accountProfile = profileQuery.data?.data.data ?? null;

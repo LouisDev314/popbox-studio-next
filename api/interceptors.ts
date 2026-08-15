@@ -5,6 +5,18 @@ import {
 } from 'axios';
 import { type IBaseApiResponse } from '@/interfaces/api-response';
 import { isBaseApiResponse } from '@/utils/api-errors';
+import {
+  getAdminAccessToken,
+  notifyAdminAuthFailure,
+} from '@/lib/auth/admin-session-client';
+
+type RetriableAdminRequestConfig = AxiosError['config'] & {
+  _adminAuthRetried?: boolean;
+};
+
+function isAdminApiRequest(url: string | undefined): boolean {
+  return Boolean(url && /^\/api\/v1\/admin(?:\/|$)/.test(url));
+}
 
 function normalizeParams(value: unknown): unknown {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -29,9 +41,30 @@ function createFallbackResponse(error: AxiosError): IBaseApiResponse<null> {
 export const responseInterceptor = (axios: AxiosInstance) => {
   axios.interceptors.response.use(
     (response) => response,
-    (error: AxiosError) => {
+    async (error: AxiosError) => {
       if (error.response && !isBaseApiResponse(error.response.data)) {
         error.response.data = createFallbackResponse(error);
+      }
+
+      const status = error.response?.status;
+      const config = error.config as RetriableAdminRequestConfig;
+
+      if (isAdminApiRequest(config?.url) && status === 401 && !config._adminAuthRetried) {
+        config._adminAuthRetried = true;
+
+        try {
+          const accessToken = await getAdminAccessToken(true);
+          config.headers.set('Authorization', `Bearer ${accessToken}`);
+          return await axios.request(config);
+        } catch {
+          return Promise.reject(error);
+        }
+      }
+
+      if (isAdminApiRequest(config?.url) && status === 401) {
+        notifyAdminAuthFailure('unauthenticated');
+      } else if (isAdminApiRequest(config?.url) && status === 403) {
+        notifyAdminAuthFailure('forbidden');
       }
 
       return Promise.reject(error);

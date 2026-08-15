@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, LogOut } from 'lucide-react';
 import { BrandLogo } from '@/components/layout/brand-logo';
 import { Sidebar, SidebarBody, useSidebar } from '@/components/ui/sidebar';
 import {
@@ -12,7 +12,12 @@ import {
 } from '@/lib/admin-navigation';
 import { cn } from '@/lib/utils';
 
-function AdminSidebarContent() {
+interface IAdminSidebarProps {
+  isSigningOut: boolean;
+  onLogout: () => void;
+}
+
+function AdminSidebarContent(props: IAdminSidebarProps) {
   const pathname = usePathname();
   const { setOpen } = useSidebar();
   const navGroups = getAdminNavGroups();
@@ -97,16 +102,28 @@ function AdminSidebarContent() {
           <span>Back to store</span>
           <ArrowUpRight className="h-4 w-4 shrink-0 text-primary-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
         </Link>
+        <button
+          type="button"
+          className="mt-2 flex w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-[13px] font-medium text-[#4b5563] transition-colors hover:bg-[#fbfaf7] hover:text-[#111827] disabled:cursor-wait disabled:opacity-60"
+          disabled={props.isSigningOut}
+          onClick={() => {
+            handleNavigate();
+            props.onLogout();
+          }}
+        >
+          <span>{props.isSigningOut ? 'Signing out…' : 'Sign out'}</span>
+          <LogOut className="h-4 w-4 shrink-0" />
+        </button>
       </div>
     </>
   );
 }
 
-export function AdminSidebar() {
+export function AdminSidebar(props: IAdminSidebarProps) {
   return (
     <Sidebar>
       <SidebarBody>
-        <AdminSidebarContent />
+        <AdminSidebarContent {...props} />
       </SidebarBody>
     </Sidebar>
   );

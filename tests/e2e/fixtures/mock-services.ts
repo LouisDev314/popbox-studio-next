@@ -10,6 +10,7 @@ interface IAuthMockState {
   profileRequests: number;
   revealedResultIds: Set<string>;
   reset: () => void;
+  expiredSessionCookieValue: () => string;
   sessionCookieValue: () => string;
   triggerFeaturedConflict: () => void;
 }
@@ -51,14 +52,16 @@ function encodeJwtPart(value: unknown) {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
 }
 
-function createAccessToken() {
+function createAccessToken(expiresAt?: number) {
+  const issuedAt = Math.floor(Date.now() / 1000);
   const signingInput = [
     encodeJwtPart({ alg: 'RS256', kid: 'e2e-account-key', typ: 'JWT' }),
     encodeJwtPart({
       aud: 'authenticated',
       email: customerUser.email,
-      exp: Math.floor(Date.now() / 1000) + 3600,
-      iat: Math.floor(Date.now() / 1000),
+      amr: [{ method: 'password', timestamp: issuedAt }],
+      exp: expiresAt ?? issuedAt + 3600,
+      iat: issuedAt,
       is_anonymous: false,
       role: 'authenticated',
       session_id: 'e2e-session',
@@ -71,12 +74,12 @@ function createAccessToken() {
   return `${signingInput}.${sign('RSA-SHA256', Buffer.from(signingInput), jwtSigningKey).toString('base64url')}`;
 }
 
-function createSession() {
+function createSession(expiresAt = Math.floor(Date.now() / 1000) + 3600) {
   return {
-    access_token: createAccessToken(),
+    access_token: createAccessToken(expiresAt),
     token_type: 'bearer',
     expires_in: 3600,
-    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    expires_at: expiresAt,
     refresh_token: 'e2e-refresh-token',
     user: customerUser,
   };
@@ -812,6 +815,10 @@ export const test = base.extend<{ authMock: IAuthMockState; googleIdentity: void
         this.googleNonceValidated = false;
         this.profileRequests = 0;
         this.revealedResultIds.clear();
+      },
+      expiredSessionCookieValue() {
+        const expiredAt = Math.floor(Date.now() / 1000) - 60;
+        return `base64-${Buffer.from(JSON.stringify(createSession(expiredAt))).toString('base64url')}`;
       },
       sessionCookieValue() {
         return `base64-${Buffer.from(JSON.stringify(createSession())).toString('base64url')}`;
