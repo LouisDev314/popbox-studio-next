@@ -1,6 +1,6 @@
 'use client';
 
-/* eslint-disable @next/next/no-img-element */
+ 
 
 import { useState } from 'react';
 import { StorefrontImage } from '@/components/ui/storefront-image';
@@ -32,15 +32,6 @@ export function ProductGallery(props: IProductGalleryProps) {
           sizes="(max-width: 639px) calc(100vw - 32px), (max-width: 767px) calc(100vw - 48px), (max-width: 1023px) 720px, (max-width: 1279px) calc(100vw - 672px), 608px"
           imageClassName="transition-transform duration-500 ease-out"
         />
-        {props.product.productType === 'kuji' && (
-          <img
-            src="/logo-kuji.png"
-            alt="Kuji"
-            width={40}
-            height={40}
-            className="absolute right-4 top-4 z-10 h-10 w-auto"
-          />
-        )}
         {images.length > 1 && (
           <div className="absolute right-4 bottom-4 rounded-full bg-background px-3 py-1 text-xs font-medium text-foreground shadow-sm">
             {activeImage + 1} / {images.length}
