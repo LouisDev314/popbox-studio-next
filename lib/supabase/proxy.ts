@@ -25,6 +25,7 @@ function isAdminApi(pathname: string): boolean {
 
 export async function refreshSupabaseSession(request: NextRequest) {
   const config = resolveSupabasePublicConfig();
+  const pathname = request.nextUrl.pathname;
   const pendingCookies: CookieToSet[] = [];
   const pendingHeaders = new Headers();
   const createPassThroughResponse = () => {
@@ -32,6 +33,16 @@ export async function refreshSupabaseSession(request: NextRequest) {
     requestHeaders.set(REQUEST_PATH_HEADER, `${request.nextUrl.pathname}${request.nextUrl.search}`);
     return NextResponse.next({ request: { headers: requestHeaders } });
   };
+  const storageKey = getSupabaseAuthStorageKey(config.url);
+  const hasAuthCookie = request.cookies.getAll().some(({ name }) => (
+    name === storageKey || name.startsWith(`${storageKey}.`)
+  ));
+
+  // Authenticated visitors still refresh on public pages. Protected routes always
+  // verify claims, including requests with missing or malformed session cookies.
+  if (!isAdminPage(pathname) && !isAdminApi(pathname) && !hasAuthCookie) {
+    return createPassThroughResponse();
+  }
   const finalizeResponse = (response: NextResponse) => {
     pendingCookies.forEach(({ name, options, value }) => {
       response.cookies.set(name, value, options);
@@ -53,7 +64,6 @@ export async function refreshSupabaseSession(request: NextRequest) {
   });
 
   const claimsResult = await supabase.auth.getClaims();
-  const pathname = request.nextUrl.pathname;
   const adminPage = isAdminPage(pathname) && pathname !== '/admin/login';
   const adminApi = isAdminApi(pathname);
 
@@ -82,7 +92,7 @@ export async function refreshSupabaseSession(request: NextRequest) {
         pendingCookies.push(...cookiesToSet);
       },
       scopes: [{ path: '/' }],
-      storageKey: getSupabaseAuthStorageKey(config.url),
+      storageKey,
     });
 
     if (adminApi) {

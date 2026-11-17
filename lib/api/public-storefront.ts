@@ -1,8 +1,10 @@
 import 'server-only';
 
 import axios, { type AxiosRequestConfig } from 'axios';
+import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 import getPublicEnvConfig from '@/configs/public-env';
+import { PUBLIC_COLLECTIONS_CACHE_TAG, PUBLIC_TAGS_CACHE_TAG } from '@/lib/api/public-cache-tags';
 import type { IBaseApiResponse } from '@/interfaces/api-response';
 import type { ICheckoutSuccess } from '@/interfaces/checkout';
 import type { IHomepageData } from '@/interfaces/home';
@@ -28,9 +30,13 @@ export type PublicProductListFilters = {
   type?: productType;
 };
 
+const publicApiBaseUrl = getPublicEnvConfig().apiBaseUrl.replace(/\/$/, '');
 const publicStorefrontClient = axios.create({
-  baseURL: getPublicEnvConfig().apiBaseUrl.replace(/\/$/, ''),
+  baseURL: publicApiBaseUrl,
+  timeout: 10_000,
 });
+
+type PublicRequestOptions = Pick<AxiosRequestConfig, 'signal' | 'timeout'>;
 
 function withCookieHeader(
   config: AxiosRequestConfig | undefined,
@@ -77,8 +83,10 @@ export const getPublicHomepageData = cache(async (): Promise<IHomepageData> => {
 
 export async function getPublicProductsPage(
   filters: PublicProductListFilters,
+  requestOptions?: PublicRequestOptions,
 ): Promise<IProductListPage> {
   return readPublicData<IProductListPage>('/api/v1/products', {
+    ...requestOptions,
     params: {
       collection: filters.collection,
       cursor: filters.cursor,
@@ -132,13 +140,41 @@ export const getPublicFaqItems = cache(async (): Promise<IPublicFaqItem[]> => {
   return normalizeFaqItems(payload);
 });
 
-export const getPublicCollections = cache(async (): Promise<ICollection[]> => {
-  return readPublicData<ICollection[]>('/api/v1/collections');
+async function readPublicCollections(requestOptions?: PublicRequestOptions): Promise<ICollection[]> {
+  const collections = await readPublicData<ICollection[]>('/api/v1/collections', requestOptions);
+  if (!Array.isArray(collections)) {
+    throw new Error('Invalid public collections response.');
+  }
+  return collections;
+}
+
+const getCachedCollections = unstable_cache(
+  () => readPublicCollections(),
+  ['storefront-collections-v1', publicApiBaseUrl],
+  { revalidate: 300, tags: [PUBLIC_COLLECTIONS_CACHE_TAG] },
+);
+
+export const getPublicCollections = cache(async (
+  requestOptions?: PublicRequestOptions,
+): Promise<ICollection[]> => {
+  // Explicit cancellation/timeout options are for the all-or-nothing sitemap traversal.
+  // They must not become part of a persistent cache key.
+  return requestOptions ? readPublicCollections(requestOptions) : getCachedCollections();
 });
 
-export const getPublicTags = cache(async (): Promise<ITag[]> => {
-  return readPublicData<ITag[]>('/api/v1/tags');
-});
+const getCachedTags = unstable_cache(
+  async (): Promise<ITag[]> => {
+    const tags = await readPublicData<ITag[]>('/api/v1/tags');
+    if (!Array.isArray(tags)) {
+      throw new Error('Invalid public tags response.');
+    }
+    return tags;
+  },
+  ['storefront-tags-v1', publicApiBaseUrl],
+  { revalidate: 300, tags: [PUBLIC_TAGS_CACHE_TAG] },
+);
+
+export const getPublicTags = cache(getCachedTags);
 
 export async function getPublicGuestOrder(
   publicId: string,

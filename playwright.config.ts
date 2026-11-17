@@ -35,10 +35,17 @@ export default defineConfig({
         viewport: { width: 390, height: 844 },
       },
     },
+    {
+      name: 'webkit-compatibility',
+      testMatch: 'compatibility.spec.ts',
+      use: { ...devices['Desktop Safari'], viewport: { width: 1440, height: 1000 } },
+    },
   ],
   webServer: {
     command: `pnpm exec next dev -p ${playwrightPort}`,
-    url: playwrightBaseUrl,
+    // The fake API starts in test fixtures, after Playwright verifies readiness.
+    // A static route avoids depending on a successful homepage origin request.
+    url: `${playwrightBaseUrl}/robots.txt`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {

@@ -2,14 +2,17 @@ import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 import getPublicEnvConfig from '@/configs/public-env';
 
-const isCiBuild = process.env.CI === 'true';
+const isCiBuild = process.env.CI === 'true' || process.env.CI === '1';
+const isVercelProductionBuild = process.env.VERCEL === '1' && process.env.VERCEL_ENV === 'production';
 const sentryBuildExplicitlyEnabled = process.env.SENTRY_ENABLE_BUILD === 'true';
 const sentryBuildExplicitlyDisabled = process.env.SENTRY_ENABLE_BUILD === 'false';
-const shouldEnableSentryBuild = !sentryBuildExplicitlyDisabled && (isCiBuild || sentryBuildExplicitlyEnabled);
+const shouldEnableSentryBuild = !sentryBuildExplicitlyDisabled
+  && (isCiBuild || isVercelProductionBuild || sentryBuildExplicitlyEnabled);
 
 const sentryOrg = process.env.SENTRY_ORG?.trim();
 const sentryProject = process.env.SENTRY_PROJECT?.trim();
 const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
+const sentryRelease = process.env.VERCEL_GIT_COMMIT_SHA?.trim() || process.env.SENTRY_RELEASE?.trim();
 const hasRequiredSentryBuildEnv = Boolean(sentryOrg && sentryProject && sentryAuthToken);
 const shouldApplySentryConfig = shouldEnableSentryBuild && hasRequiredSentryBuildEnv;
 const configuredSupabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -33,10 +36,18 @@ const supabaseImageHostnames = Array.from(
   ),
 );
 
-if (shouldEnableSentryBuild && !hasRequiredSentryBuildEnv) {
-  console.warn(
-    '[next.config] Skipping Sentry build integration because SENTRY_ORG, SENTRY_PROJECT, or SENTRY_AUTH_TOKEN is missing.',
+if (
+  shouldEnableSentryBuild
+  && (isVercelProductionBuild || sentryBuildExplicitlyEnabled)
+  && !hasRequiredSentryBuildEnv
+) {
+  throw new Error(
+    'Sentry production build integration requires SENTRY_ORG, SENTRY_PROJECT, and SENTRY_AUTH_TOKEN.',
   );
+}
+
+if (shouldApplySentryConfig && isVercelProductionBuild && !sentryRelease) {
+  throw new Error('Sentry production builds require VERCEL_GIT_COMMIT_SHA or SENTRY_RELEASE.');
 }
 
 const nextConfig: NextConfig = {
@@ -125,9 +136,9 @@ const sentryConfig = shouldApplySentryConfig
     sourcemaps: {
       disable: false,
     },
-    release: process.env.SENTRY_RELEASE?.trim()
+    release: sentryRelease
       ? {
-        name: process.env.SENTRY_RELEASE.trim(),
+        name: sentryRelease,
       }
       : undefined,
   })

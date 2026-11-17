@@ -57,6 +57,25 @@ function createWrapper(queryClient: QueryClient) {
 }
 
 describe('usePublicShippingSettings', () => {
+  it('waits until enabled before requesting settings and then reuses the successful query', async () => {
+    const fetchSettings = vi.spyOn(QueryConfigs, 'fetchPublicShippingSettings').mockResolvedValue(createApiResponse());
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result, rerender } = renderHook(({ enabled }) => usePublicShippingSettings({ enabled }), {
+      initialProps: { enabled: false },
+      wrapper: createWrapper(queryClient),
+    });
+
+    expect(fetchSettings).not.toHaveBeenCalled();
+    expect(result.current).toEqual({ settings: null, source: 'loading' });
+
+    rerender({ enabled: true });
+    await waitFor(() => expect(result.current.source).toBe('remote'));
+    rerender({ enabled: false });
+    rerender({ enabled: true });
+
+    expect(fetchSettings).toHaveBeenCalledOnce();
+    expect(result.current.settings).toEqual(remoteSettings);
+  });
   it('returns amount-free loading state before the first response', () => {
     vi.spyOn(QueryConfigs, 'fetchPublicShippingSettings').mockReturnValue(new Promise(() => undefined));
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

@@ -334,7 +334,6 @@ describe('shouldConfirmSuggestedAddress', () => {
     expect(areShippingAddressesEquivalent({
       city: ' toronto ',
       countryCode: 'CA',
-      fullName: 'Ada Lovelace',
       line1: ' 123 Queen St. W ',
       line2: '# 4',
       postalCode: 'm5h2m9',
@@ -353,7 +352,6 @@ describe('shouldConfirmSuggestedAddress', () => {
     expect(shouldConfirmSuggestedAddress({
       city: ' toronto ',
       countryCode: 'CA',
-      fullName: 'Ada Lovelace',
       line1: ' 123   Queen St W ',
       line2: '',
       postalCode: 'm5h2m9',
@@ -372,7 +370,6 @@ describe('shouldConfirmSuggestedAddress', () => {
     expect(shouldConfirmSuggestedAddress({
       city: 'Toronto',
       countryCode: 'CA',
-      fullName: 'Ada Lovelace',
       line1: '123 Queen St W',
       line2: '',
       postalCode: 'M5H 2M9',
@@ -391,7 +388,6 @@ describe('shouldConfirmSuggestedAddress', () => {
     expect(shouldConfirmSuggestedAddress({
       city: 'Vancouver',
       countryCode: 'CA',
-      fullName: 'Ada Lovelace',
       line1: '123 Maple St.',
       line2: '# 4',
       postalCode: 'V6B 1A1',

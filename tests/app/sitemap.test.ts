@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import sitemap from '@/app/sitemap';
 import type { IProductListPage } from '@/interfaces/product';
 import {
@@ -10,7 +10,12 @@ import { createProductCard } from '@/tests/fixtures';
 vi.mock('@/configs/public-env', () => ({
   default: () => ({
     siteUrl: 'https://www.popboxstudio.com',
+    apiBaseUrl: 'http://backend.example.com',
   }),
+}));
+
+vi.mock('next/cache', () => ({
+  unstable_cache: <T extends (...args: never[]) => unknown>(callback: T) => callback,
 }));
 
 vi.mock('@/lib/api/public-storefront', () => ({
@@ -25,6 +30,10 @@ function createSitemapProduct(
 }
 
 describe('sitemap', () => {
+  beforeEach(() => {
+    vi.mocked(getPublicCollections).mockReset();
+    vi.mocked(getPublicProductsPage).mockReset();
+  });
   it('includes core pages, active collections, active products, deduped urls, and product lastModified', async () => {
     vi.mocked(getPublicCollections).mockResolvedValue([
       {
@@ -105,7 +114,7 @@ describe('sitemap', () => {
     expect(collectionEntry).not.toHaveProperty('lastModified');
   });
 
-  it('still includes products when collections fail', async () => {
+  it('returns only core URLs on a cold collections failure rather than caching a partial catalog', async () => {
     vi.mocked(getPublicCollections).mockRejectedValue(new Error('collections unavailable'));
     vi.mocked(getPublicProductsPage).mockResolvedValue({
       items: [
@@ -121,7 +130,9 @@ describe('sitemap', () => {
 
     const entries = await sitemap();
 
-    expect(entries.map((entry) => entry.url)).toContain('https://www.popboxstudio.com/products/fallback-figure');
+    expect(entries.map((entry) => entry.url)).toContain('https://www.popboxstudio.com/products');
+    expect(entries.map((entry) => entry.url)).not.toContain('https://www.popboxstudio.com/products/fallback-figure');
+    expect(getPublicProductsPage).not.toHaveBeenCalled();
   });
 
   it('keeps an active product with an invalid timestamp without emitting lastModified', async () => {
@@ -145,5 +156,31 @@ describe('sitemap', () => {
 
     expect(productEntry).toBeDefined();
     expect(productEntry).not.toHaveProperty('lastModified');
+  });
+
+  it('cancels origin requests and discards partial traversal after a later page fails', async () => {
+    vi.mocked(getPublicCollections).mockResolvedValue([]);
+    vi.mocked(getPublicProductsPage)
+      .mockResolvedValueOnce({ items: [createSitemapProduct({ slug: 'partial' })], nextCursor: 'page-2' })
+      .mockRejectedValueOnce(new Error('origin timeout'));
+
+    const entries = await sitemap();
+
+    expect(entries.some(({ url }) => url.endsWith('/partial'))).toBe(false);
+    expect(getPublicCollections).toHaveBeenCalledWith({ signal: expect.any(AbortSignal), timeout: 5000 });
+    expect(getPublicProductsPage).toHaveBeenLastCalledWith(
+      { cursor: 'page-2' },
+      { signal: expect.any(AbortSignal), timeout: 5000 },
+    );
+  });
+
+  it('stops a repeated cursor without returning partial catalog entries', async () => {
+    vi.mocked(getPublicCollections).mockResolvedValue([]);
+    vi.mocked(getPublicProductsPage).mockResolvedValue({
+      items: [createSitemapProduct({ slug: 'partial' })], nextCursor: 'repeated',
+    });
+
+    expect((await sitemap()).some(({ url }) => url.endsWith('/partial'))).toBe(false);
+    expect(getPublicProductsPage).toHaveBeenCalledTimes(2);
   });
 });

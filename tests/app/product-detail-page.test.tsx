@@ -4,6 +4,8 @@ import ProductDetailPage, { generateMetadata } from '@/app/(store)/products/[slu
 import ProductDetailLayout from '@/app/(store)/products/[slug]/layout';
 import {
   getPublicProductBySlug,
+  getPublicProductRecommendations,
+  getPublicShippingSettings,
   isPublicApiNotFoundError,
 } from '@/lib/api/public-storefront';
 import type { IProduct } from '@/interfaces/product';
@@ -84,6 +86,7 @@ vi.mock('@/lib/api/public-storefront', () => ({
     albertaFreeShippingThresholdCents: 8500,
     freeShippingThresholdCents: 10000,
   })),
+  getPublicProductRecommendations: vi.fn(async () => ({ items: [], meta: { count: 0, limit: 4 } })),
   isPublicApiNotFoundError: vi.fn(() => false),
 }));
 
@@ -106,9 +109,45 @@ vi.mock('@/components/product/product-recommendations', () => ({
 
 describe('ProductDetailPage', () => {
   beforeEach(() => {
+    vi.mocked(getPublicProductRecommendations).mockClear();
+    vi.mocked(getPublicShippingSettings).mockClear();
     navigationMocks.notFound.mockClear();
     vi.mocked(isPublicApiNotFoundError).mockReset();
     vi.mocked(isPublicApiNotFoundError).mockReturnValue(false);
+  });
+
+  it('starts recommendations while shipping is pending after the product is validated', async () => {
+    let resolveShipping: (settings: Awaited<ReturnType<typeof getPublicShippingSettings>>) => void = () => undefined;
+    const shippingPromise = new Promise<Awaited<ReturnType<typeof getPublicShippingSettings>>>((resolve) => {
+      resolveShipping = resolve;
+    });
+    vi.mocked(getPublicShippingSettings).mockReturnValueOnce(shippingPromise);
+
+    const page = ProductDetailPage({ params: Promise.resolve({ slug: 'ichiban-figure' }) });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(getPublicProductRecommendations).toHaveBeenCalledWith('ichiban-figure');
+    expect(getPublicShippingSettings).toHaveBeenCalledOnce();
+    resolveShipping({ currency: 'CAD', flatShippingCents: 1200, calgaryFreeShippingThresholdCents: 7500, albertaFreeShippingThresholdCents: 8500, freeShippingThresholdCents: 10000 });
+    await expect(page).resolves.toBeDefined();
+  });
+
+  it('does not request shipping or recommendations for an unavailable product', async () => {
+    vi.mocked(getPublicProductBySlug).mockRejectedValueOnce(new Error('Unavailable'));
+
+    render(await ProductDetailPage({ params: Promise.resolve({ slug: 'missing' }) }));
+
+    expect(getPublicShippingSettings).not.toHaveBeenCalled();
+    expect(getPublicProductRecommendations).not.toHaveBeenCalled();
+  });
+
+  it('handles an early recommendation failure without failing product rendering', async () => {
+    vi.mocked(getPublicProductRecommendations).mockRejectedValueOnce(new Error('Recommendations unavailable'));
+
+    render(await ProductDetailPage({ params: Promise.resolve({ slug: 'ichiban-figure' }) }));
+
+    expect(screen.getByTestId('product-gallery')).toBeInTheDocument();
   });
 
   it('terminates metadata resolution for missing products before the page can stream', async () => {

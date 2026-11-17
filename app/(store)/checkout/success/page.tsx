@@ -31,7 +31,7 @@ function CheckoutSuccessRecoveryState(props: { sessionId: string }) {
       <CheckoutSuccessChromeReady sessionId={props.sessionId} />
       <h1 className="mb-4 text-3xl font-bold text-foreground">Order Details Unavailable</h1>
       <p className="mb-8 max-w-xl text-muted-foreground">
-        We received your payment, but could not load your order details.
+        We couldn’t confirm your checkout status yet. Please refresh this page or contact support before trying to pay again.
       </p>
       <div className="flex flex-col gap-4 sm:flex-row">
         <Button asChild size="lg" className="rounded-full">

@@ -56,4 +56,62 @@ describe('filterAndSanitizeSentryEvent', () => {
 
     expect(filterAndSanitizeSentryEvent(event)).toBe(event);
   });
+
+  it('records a failed link resource without queries, credentials, or fragments', () => {
+    const link = document.createElement('link');
+    link.href = 'https://user:password@example.com/_next/static/chunks/styles.css?token=private&customer=123#secret';
+    link.rel = 'stylesheet';
+    link.as = 'style';
+    const originalException = new window.Event('error');
+    link.dispatchEvent(originalException);
+    const event: Event = {
+      release: 'deployment-sha',
+      contexts: { existing: { value: 'preserved' } },
+      exception: { values: [{ type: 'Event', value: 'Event `Event` (type=error) captured as promise rejection' }] },
+    };
+
+    const captured = filterAndSanitizeSentryEvent(event, { originalException });
+
+    expect(captured?.contexts).toEqual({
+      existing: { value: 'preserved' },
+      failed_link_resource: {
+        url: 'https://example.com/_next/static/chunks/styles.css',
+        rel: 'stylesheet',
+        as: 'style',
+        online: true,
+      },
+    });
+    expect(captured?.release).toBe('deployment-sha');
+    expect(captured?.exception).toEqual(event.exception);
+    expect(event.contexts).toEqual({ existing: { value: 'preserved' } });
+  });
+
+  it('keeps generic rejections and JSON-LD errors without inventing resource context', () => {
+    for (const value of [
+      'Event `Event` (type=error) captured as promise rejection',
+      'undefined is not an object (evaluating \'r["@context"].toLowerCase\')',
+    ]) {
+      const event: Event = { exception: { values: [{ value }] } };
+
+      expect(filterAndSanitizeSentryEvent(event, { originalException: new window.Event('error') })).toBe(event);
+    }
+  });
+
+  it('does not enrich unrelated, empty, or non-HTTP resource events', () => {
+    const event: Event = { message: 'Resource failed' };
+
+    for (const href of ['', 'data:text/css,body{}', 'javascript:void(0)']) {
+      const link = document.createElement('link');
+      link.setAttribute('href', href);
+      const originalException = new window.Event('error');
+      link.dispatchEvent(originalException);
+
+      expect(filterAndSanitizeSentryEvent(event, { originalException })).toBe(event);
+    }
+
+    const image = document.createElement('img');
+    const imageError = new window.Event('error');
+    image.dispatchEvent(imageError);
+    expect(filterAndSanitizeSentryEvent(event, { originalException: imageError })).toBe(event);
+  });
 });

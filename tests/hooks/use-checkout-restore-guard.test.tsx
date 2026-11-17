@@ -12,9 +12,18 @@ import { useCheckoutUiStore } from '@/hooks/use-checkout-ui';
 import { resetStores } from '../test-utils';
 
 function mockNavigationType(type: PerformanceNavigationTiming['type']) {
+  const entry = {
+    name: window.location.href,
+    entryType: 'navigation',
+    startTime: 0,
+    duration: 0,
+    type,
+    toJSON: () => ({ type }),
+  };
+
   vi.spyOn(performance, 'getEntriesByType').mockImplementation((entryType) => (
     entryType === 'navigation'
-      ? [{ type }] as PerformanceEntryList
+      ? [entry]
       : []
   ));
 }

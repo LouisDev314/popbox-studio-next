@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
+    "test:production": "node tests/production/reliability.mjs",
     "check": "pnpm lint && pnpm test && pnpm build"
   },
   "dependencies": {

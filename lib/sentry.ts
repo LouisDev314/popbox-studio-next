@@ -1,4 +1,4 @@
-import type { Breadcrumb, Event } from '@sentry/nextjs';
+import type { Breadcrumb, Event, EventHint } from '@sentry/nextjs';
 
 const REDACTED_VALUE = '[REDACTED]';
 const BROWSER_EXTENSION_OBJECT_NOT_FOUND_PATTERN =
@@ -31,7 +31,7 @@ export function getServerSentryDsn(): string | undefined {
   return process.env.SENTRY_DSN?.trim() || process.env.NEXT_PUBLIC_SENTRY_DSN?.trim() || undefined;
 }
 
-export function filterAndSanitizeSentryEvent<T extends Event>(event: T): T | null {
+export function filterAndSanitizeSentryEvent<T extends Event>(event: T, hint?: EventHint): T | null {
   const exceptionValues = event.exception?.values;
   const matchesIgnoredException = exceptionValues?.some((exception) =>
     isBrowserExtensionObjectNotFoundRejection(exception.value),
@@ -41,7 +41,49 @@ export function filterAndSanitizeSentryEvent<T extends Event>(event: T): T | nul
     return null;
   }
 
-  return sanitizeSentryEvent(event);
+  return sanitizeSentryEvent(addFailedLinkContext(event, hint?.originalException));
+}
+
+function addFailedLinkContext<T extends Event>(event: T, originalException: unknown): T {
+  if (
+    typeof globalThis.Event === 'undefined'
+    || typeof HTMLLinkElement === 'undefined'
+    || !(originalException instanceof globalThis.Event)
+    || originalException.type !== 'error'
+    || !(originalException.target instanceof HTMLLinkElement)
+  ) {
+    return event;
+  }
+
+  const link = originalException.target;
+
+  if (!link.getAttribute('href')?.trim()) {
+    return event;
+  }
+
+  try {
+    const url = new URL(link.href);
+
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+      return event;
+    }
+
+    return {
+      ...event,
+      contexts: {
+        ...event.contexts,
+        failed_link_resource: {
+          // Resource queries can include credentials or user identifiers.
+          url: `${url.origin}${url.pathname}`,
+          rel: link.rel,
+          as: link.as,
+          online: typeof navigator === 'undefined' ? undefined : navigator.onLine,
+        },
+      },
+    };
+  } catch {
+    return event;
+  }
 }
 
 export function sanitizeSentryEvent<T extends Event>(event: T): T {

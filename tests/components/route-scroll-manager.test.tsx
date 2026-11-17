@@ -35,19 +35,19 @@ describe('RouteScrollManager', () => {
     if (originalDocumentScroller) {
       Object.defineProperty(document, 'scrollingElement', originalDocumentScroller);
     } else {
-      delete (document as Document & { scrollingElement?: Element | null }).scrollingElement;
+      Reflect.deleteProperty(document, 'scrollingElement');
     }
 
     if (originalDocumentScrollTo) {
       Object.defineProperty(document.documentElement, 'scrollTo', originalDocumentScrollTo);
     } else {
-      delete (document.documentElement as HTMLElement & { scrollTo?: HTMLElement['scrollTo'] }).scrollTo;
+      Reflect.deleteProperty(document.documentElement, 'scrollTo');
     }
 
     if (originalScrollRestoration) {
       Object.defineProperty(window.history, 'scrollRestoration', originalScrollRestoration);
     } else {
-      delete (window.history as History & { scrollRestoration?: ScrollRestoration }).scrollRestoration;
+      Reflect.deleteProperty(window.history, 'scrollRestoration');
     }
   });
 

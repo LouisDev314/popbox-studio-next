@@ -1,7 +1,8 @@
 import axios from 'axios';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveApiBaseUrl } from '@/configs/public-env';
+import { PUBLIC_COLLECTIONS_CACHE_TAG } from '@/lib/api/public-cache-tags';
 
 const COLLECTION_REORDER_PATH = '/api/v1/admin/collections/reorder';
 
@@ -44,6 +45,7 @@ export async function PATCH(request: NextRequest) {
       },
     );
 
+    revalidateTag(PUBLIC_COLLECTIONS_CACHE_TAG, { expire: 0 });
     revalidatePath('/', 'layout');
 
     return proxyResponse(response.status, response.data);

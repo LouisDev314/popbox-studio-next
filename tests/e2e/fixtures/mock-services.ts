@@ -320,6 +320,20 @@ const standardVariantProduct = {
   ],
 };
 
+const compatibilityKujiProduct = {
+  ...storefrontProductCard(adminFeaturedProducts[1].id)!,
+  description: 'A Kuji product for browser compatibility checks.',
+  sku: null,
+  tags: [],
+  ticketSummary: { remainingTickets: 8, totalTickets: 10 },
+  createdAt: confirmedAt,
+  kujiPrizes: [
+    { id: 'compat-lo', prizeCode: 'LO', prizeTier: 'LO', name: 'Last One Bonus', initialQuantity: 1, remainingQuantity: 1 },
+    { id: 'compat-a10', prizeCode: 'A10', prizeTier: 'A', name: 'Tenth Prize', initialQuantity: 5, remainingQuantity: 4 },
+    { id: 'compat-a2', prizeCode: 'A2', prizeTier: 'A', name: 'Second Prize', initialQuantity: 5, remainingQuantity: 4 },
+  ].map((prize) => ({ ...prize, description: null, imageUrl: null, sortOrder: 0 })),
+};
+
 function accountKujiResult(id: string, revealed: boolean) {
   return {
     id,
@@ -761,6 +775,16 @@ function createRequestHandler(state: IAuthMockState) {
 
     if (pathname === `/api/v1/products/${standardVariantProduct.slug}` && request.method === 'GET') {
       sendJson(response, apiData(standardVariantProduct));
+      return;
+    }
+
+    if (pathname === `/api/v1/products/${compatibilityKujiProduct.slug}` && request.method === 'GET') {
+      sendJson(response, apiData(compatibilityKujiProduct));
+      return;
+    }
+
+    if (pathname === `/api/v1/products/${compatibilityKujiProduct.slug}/recommendations` && request.method === 'GET') {
+      sendJson(response, apiData({ items: [], meta: { count: 0, limit: 4 } }));
       return;
     }
 

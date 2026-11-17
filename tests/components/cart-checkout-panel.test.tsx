@@ -760,7 +760,7 @@ describe('CartCheckoutPanel', () => {
     expect(screen.getByText('22 / 200')).toBeInTheDocument();
   });
 
-  it('prevents typing more than 200 order note characters', async () => {
+  it('limits pasted order notes to 200 characters', async () => {
     resetStores();
 
     act(() => {
@@ -775,7 +775,9 @@ describe('CartCheckoutPanel', () => {
 
     const noteField = screen.getByLabelText('Order Note (Optional)');
 
-    await userEvent.type(noteField, 'a'.repeat(205));
+    const user = userEvent.setup();
+    await user.click(noteField);
+    await user.paste('a'.repeat(205));
 
     expect(noteField).toHaveValue('a'.repeat(200));
     expect(screen.getByText('200 / 200')).toBeInTheDocument();
@@ -1592,12 +1594,12 @@ describe('CartCheckoutPanel', () => {
 
   it('sends a trimmed order note with checkout session requests', async () => {
     resetStores();
-    let sessionBody: Record<string, unknown> | null = null;
+    const sessionBodies: Array<Record<string, unknown>> = [];
 
     server.use(
       http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
       http.post(SESSION_URL, async ({ request }) => {
-        sessionBody = await request.json() as Record<string, unknown>;
+        sessionBodies.push(await request.json() as Record<string, unknown>);
         return HttpResponse.json(createCheckoutSessionResponse(), { status: 201 });
       }),
     );
@@ -1624,17 +1626,17 @@ describe('CartCheckoutPanel', () => {
     await waitFor(() => {
       expect(redirectToCheckout).toHaveBeenCalledWith('https://checkout.stripe.com/pay/cs_test_123');
     });
-    expect(sessionBody?.customerNote).toBe('Ring the doorbell once.');
+    expect(sessionBodies.at(-1)?.customerNote).toBe('Ring the doorbell once.');
   });
 
   it('sends a whitespace-only order note as null without blocking checkout', async () => {
     resetStores();
-    let sessionBody: Record<string, unknown> | null = null;
+    const sessionBodies: Array<Record<string, unknown>> = [];
 
     server.use(
       http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
       http.post(SESSION_URL, async ({ request }) => {
-        sessionBody = await request.json() as Record<string, unknown>;
+        sessionBodies.push(await request.json() as Record<string, unknown>);
         return HttpResponse.json(createCheckoutSessionResponse(), { status: 201 });
       }),
     );
@@ -1661,7 +1663,7 @@ describe('CartCheckoutPanel', () => {
     await waitFor(() => {
       expect(redirectToCheckout).toHaveBeenCalledWith('https://checkout.stripe.com/pay/cs_test_123');
     });
-    expect(sessionBody?.customerNote).toBeNull();
+    expect(sessionBodies.at(-1)?.customerNote).toBeNull();
   });
 
   it('blocks the page while checkout session creation is pending and clears the lock after failure', async () => {

@@ -1,9 +1,13 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { captureException } from '@sentry/nextjs';
 import ProductsPageClient from '../../products/products-page-client';
+import { Button } from '@/components/ui/button';
 import type { ITag } from '@/interfaces/product';
 import {
   getPublicCollections,
+  getPublicApiErrorStatus,
   getPublicProductsPage,
   getPublicTags,
 } from '@/lib/api/public-storefront';
@@ -28,6 +32,18 @@ type CollectionSlugPageProps = {
   }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
+
+function getCollectionRetryHref(slug: string, searchParams: Awaited<CollectionSlugPageProps['searchParams']>) {
+  const retrySearchParams = new URLSearchParams();
+
+  for (const [key, values] of Object.entries(searchParams)) {
+    for (const value of typeof values === 'string' ? [values] : values ?? []) {
+      retrySearchParams.append(key, value);
+    }
+  }
+
+  return `/collections/${encodeURIComponent(slug)}${retrySearchParams.size > 0 ? `?${retrySearchParams}` : ''}`;
+}
 
 export async function generateMetadata(props: CollectionSlugPageProps): Promise<Metadata> {
   const params = await props.params;
@@ -74,7 +90,34 @@ export default async function CollectionSlugPage(props: CollectionSlugPageProps)
   const serializedTags = serializeTagSearchParam(selectedTags);
   const seoState = getCollectionListingSeoState(params.slug, searchParams);
 
-  const collections = await getPublicCollections();
+  let collections: Awaited<ReturnType<typeof getPublicCollections>>;
+
+  try {
+    collections = await getPublicCollections();
+  } catch (error) {
+    captureException(error, {
+      tags: {
+        operation: 'storefront.collections',
+        upstream_status: String(getPublicApiErrorStatus(error) ?? 'unknown'),
+      },
+    });
+    return (
+      <div className="container mx-auto flex min-h-[60vh] flex-col items-center justify-center px-4 py-16 text-center">
+        <h1 className="text-3xl font-bold text-foreground">Collection temporarily unavailable</h1>
+        <p className="mt-4 max-w-lg text-muted-foreground">
+          We couldn’t load this collection right now. Please try again in a moment.
+        </p>
+        <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+          <Button asChild className="rounded-full">
+            <a href={getCollectionRetryHref(params.slug, searchParams)}>Try Again</a>
+          </Button>
+          <Button asChild variant="outline" className="rounded-full">
+            <Link href="/products">Browse Products</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
   const collection = collections.find((item) => item.slug === params.slug && item.isActive);
 
   if (!collection) {

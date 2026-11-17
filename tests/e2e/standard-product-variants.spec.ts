@@ -6,11 +6,14 @@ test('standard variants select, price, and persist as distinct cart lines', asyn
   await expect(page.getByRole('radio', { name: /small/i })).toBeChecked();
   await expect(page.getByRole('radio', { name: /collector/i })).toBeDisabled();
 
-  await page.getByRole('radio', { name: /large/i }).check();
+  // The native inputs are visually hidden; customers select their visible labels.
+  await page.getByText('Large', { exact: true }).click();
+  await expect(page.getByRole('radio', { name: /large/i })).toBeChecked();
   await expect(page.getByText('$34.99').first()).toBeVisible();
   await page.getByTestId('add-to-cart').click();
 
-  await page.getByRole('radio', { name: /small/i }).check();
+  await page.getByText('Small', { exact: true }).click();
+  await expect(page.getByRole('radio', { name: /small/i })).toBeChecked();
   await page.getByTestId('add-to-cart').click();
   await expect(page.getByRole('button', { name: 'Open cart 2' })).toBeVisible();
   await page.evaluate(() => {

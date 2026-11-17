@@ -46,7 +46,11 @@ function useCustomizeQuery<ApiResponse>(
 
       const status = error.response?.status;
 
-      if (status === HttpStatusCode.Unauthorized || status === HttpStatusCode.Forbidden) {
+      if (
+        status === HttpStatusCode.Unauthorized
+        || status === HttpStatusCode.Forbidden
+        || status === HttpStatusCode.TooManyRequests
+      ) {
         return false;
       }
 

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   axiosPatch: vi.fn(),
   revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
 }));
 
 vi.mock('axios', () => ({
@@ -17,6 +18,7 @@ vi.mock('axios', () => ({
 
 vi.mock('next/cache', () => ({
   revalidatePath: mocks.revalidatePath,
+  revalidateTag: mocks.revalidateTag,
 }));
 
 vi.mock('@/configs/public-env', () => ({
@@ -50,6 +52,7 @@ describe('Collection order route handler', () => {
       },
     );
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/', 'layout');
+    expect(mocks.revalidateTag).toHaveBeenCalledWith('storefront-collections', { expire: 0 });
     expect(response.status).toBe(200);
   });
 
@@ -74,5 +77,6 @@ describe('Collection order route handler', () => {
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual(upstreamBody);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    expect(mocks.revalidateTag).not.toHaveBeenCalled();
   });
 });

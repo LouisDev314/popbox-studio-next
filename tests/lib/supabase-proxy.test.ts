@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { refreshSupabaseSession } from '@/lib/supabase/proxy';
 import { ADMIN_MAX_SESSION_SECONDS } from '@/lib/auth/session-policy';
+import { AuthRetryableFetchError } from '@supabase/supabase-js';
 
 const supabaseMocks = vi.hoisted(() => ({
   clearAuthCookiesAtScopes: vi.fn(),
@@ -105,5 +106,56 @@ describe('Supabase admin proxy guard', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('x-middleware-next')).toBe('1');
+  });
+
+  it.each(['/products/figure', '/api/v1/settings/shipping', '/account?next=orders'])
+  ('skips auth construction for an anonymous non-admin request to %s', async (path) => {
+    const response = await refreshSupabaseSession(new NextRequest(`https://store.example.com${path}`));
+
+    expect(supabaseMocks.createServerClient).not.toHaveBeenCalled();
+    expect(response.headers.get('x-middleware-next')).toBe('1');
+    expect(response.headers.get('x-middleware-request-x-popbox-request-path')).toBe(path);
+    expect(response.headers.get('set-cookie')).toBeNull();
+  });
+
+  it.each(['sb-project-ref-auth-token', 'sb-project-ref-auth-token.0', 'sb-project-ref-auth-token.1'])
+  ('still verifies public visitors with the %s cookie', async (cookieName) => {
+    supabaseMocks.getClaims.mockResolvedValue({ data: { claims: verifiedClaims() }, error: null });
+    await refreshSupabaseSession(new NextRequest('https://store.example.com/products', {
+      headers: { cookie: `${cookieName}=session` },
+    }));
+    expect(supabaseMocks.getClaims).toHaveBeenCalledOnce();
+  });
+
+  it('preserves refreshed cookies and private cache headers on public responses', async () => {
+    supabaseMocks.createServerClient.mockImplementation((_url, _key, options) => ({
+      auth: {
+        getClaims: async () => {
+          options.cookies.setAll(
+            [{ name: 'sb-project-ref-auth-token', value: 'refreshed', options: { httpOnly: true } }],
+            { 'Cache-Control': 'private, no-store', Pragma: 'no-cache', Expires: '0' },
+          );
+          return { data: { claims: verifiedClaims() }, error: null };
+        },
+      },
+    }));
+
+    const response = await refreshSupabaseSession(new NextRequest('https://store.example.com/products', {
+      headers: { cookie: 'sb-project-ref-auth-token=expired' },
+    }));
+
+    expect(response.cookies.get('sb-project-ref-auth-token')?.value).toBe('refreshed');
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('pragma')).toBe('no-cache');
+  });
+
+  it('returns 503 for a protected API during a retryable auth outage without clearing cookies', async () => {
+    supabaseMocks.getClaims.mockResolvedValue({
+      data: { claims: null }, error: new AuthRetryableFetchError('temporarily unavailable', 503),
+    });
+
+    const response = await refreshSupabaseSession(new NextRequest('https://store.example.com/api/v1/admin/products'));
+    expect(response.status).toBe(503);
+    expect(supabaseMocks.clearAuthCookiesAtScopes).not.toHaveBeenCalled();
   });
 });

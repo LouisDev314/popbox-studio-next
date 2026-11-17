@@ -164,7 +164,7 @@ describe('CheckoutSuccessPage', () => {
 
     await expect(renderPage()).resolves.not.toThrow();
 
-    expect(screen.getByText('We received your payment, but could not load your order details.')).toBeInTheDocument();
+    expect(screen.getByText('We couldn’t confirm your checkout status yet. Please refresh this page or contact support before trying to pay again.')).toBeInTheDocument();
   });
 
   it('renders payment recovery when the success request fails', async () => {
@@ -172,7 +172,7 @@ describe('CheckoutSuccessPage', () => {
 
     await renderPage();
 
-    expect(screen.getByText('We received your payment, but could not load your order details.')).toBeInTheDocument();
+    expect(screen.getByText('We couldn’t confirm your checkout status yet. Please refresh this page or contact support before trying to pay again.')).toBeInTheDocument();
   });
 
   it('does not call performance.measure while rendering recovery', async () => {

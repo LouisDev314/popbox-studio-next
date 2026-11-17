@@ -214,8 +214,12 @@ test('admin can sort Featured products with the keyboard', async ({ page }, test
   await handle.focus();
   await expect(handle).toBeFocused();
   await page.keyboard.press('Space');
+  // Wait for each drag state so consecutive keys do not race layout measurement.
+  await expect(page.getByRole('status')).toContainText('moved over position 3 of 10');
   await page.keyboard.press('ArrowUp');
+  await expect(page.getByRole('status')).toContainText('moved over position 2 of 10');
   await page.keyboard.press('ArrowUp');
+  await expect(page.getByRole('status')).toContainText('moved over position 1 of 10');
   await page.keyboard.press('Space');
 
   await expect(orderList.getByRole('listitem').first()).toContainText('Final Featured Plush');

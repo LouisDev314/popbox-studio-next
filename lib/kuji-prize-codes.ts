@@ -120,8 +120,8 @@ export function groupKujiPrizesByTier(prizes: IKujiPrize[]): Array<{
 
   return Array.from(prizeGroups, ([tier, items]) => ({
     tier,
-    items: items.toSorted(compareKujiPrizes),
-  })).toSorted((left, right) => compareKujiPrizeTiers(left.tier, right.tier));
+    items: [...items].sort(compareKujiPrizes),
+  })).sort((left, right) => compareKujiPrizeTiers(left.tier, right.tier));
 }
 
 export function formatKujiPrizeQuantity(remainingQuantity: number, initialQuantity: number): string {

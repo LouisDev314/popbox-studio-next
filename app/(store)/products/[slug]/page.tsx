@@ -15,6 +15,7 @@ import {
 import { type IProduct } from '@/interfaces/product';
 import {
   getPublicProductBySlug,
+  getPublicProductRecommendations,
   getPublicShippingSettings,
   isPublicApiNotFoundError,
 } from '@/lib/api/public-storefront';
@@ -142,6 +143,8 @@ export default async function ProductDetailPage(props: ProductDetailPageProps) {
 
   const productPath = `/products/${product.slug}`;
   const productDescription = product.description?.trim() || 'No description available.';
+  // Reuse the request-memoized read in the Suspense child while shipping loads.
+  void getPublicProductRecommendations(product.slug).catch(() => undefined);
   const shippingSettings = await getPublicShippingSettings().catch(() => null);
   const breadcrumbJsonLd = buildBreadcrumbListJsonLd([
     { name: 'Home', path: '/' },

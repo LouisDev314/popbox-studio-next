@@ -17,7 +17,8 @@ import {
 } from 'vitest';
 import { CartDrawer } from '@/components/cart/cart-drawer';
 import { useCartStore } from '@/hooks/use-cart';
-import { createCartItem } from '../fixtures';
+import QueryConfigs from '@/configs/api/query-config';
+import { createCartItem, createInvalidCartItem } from '../fixtures';
 import {
   renderWithProviders,
   resetStores,
@@ -80,6 +81,31 @@ describe('CartDrawer', () => {
   beforeEach(() => {
     push.mockReset();
     resetStores();
+  });
+
+  it('does not request shipping for a closed drawer, then loads it once when an eligible cart opens', async () => {
+    useCartStore.setState({ hasHydrated: true, items: [createCartItem()] });
+    const fetchSettings = vi.spyOn(QueryConfigs, 'fetchPublicShippingSettings');
+    renderWithProviders(<CartDrawerHarness />);
+
+    expect(fetchSettings).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
+    await screen.findByText(/\$77\.00 in Calgary/);
+
+    expect(fetchSettings).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { label: 'empty', invalidItems: [] },
+    { label: 'invalid-only', invalidItems: [createInvalidCartItem()] },
+  ])('does not request shipping for an open $label cart', async ({ invalidItems }) => {
+    useCartStore.setState({ hasHydrated: true, items: [], invalidItems });
+    const fetchSettings = vi.spyOn(QueryConfigs, 'fetchPublicShippingSettings');
+    renderWithProviders(<CartDrawerHarness />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open cart' }));
+
+    expect(fetchSettings).not.toHaveBeenCalled();
   });
 
   it('shows the migration notice when no legacy standard items survive', async () => {

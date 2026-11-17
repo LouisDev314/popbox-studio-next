@@ -13,13 +13,14 @@ export const PUBLIC_SHIPPING_SETTINGS_QUERY_KEY = ['settings', 'shipping'] as co
 
 type PublicShippingSettingsSource = 'fallback' | 'loading' | 'remote';
 
-export function usePublicShippingSettings(): {
+export function usePublicShippingSettings(options: { enabled?: boolean } = {}): {
   settings: IShippingSettings | null;
   source: PublicShippingSettingsSource;
   } {
   const query = useCustomizeQuery<IShippingSettings>({
     queryKey: PUBLIC_SHIPPING_SETTINGS_QUERY_KEY,
     queryFn: QueryConfigs.fetchPublicShippingSettings,
+    enabled: options.enabled ?? true,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });

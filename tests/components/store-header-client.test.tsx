@@ -72,7 +72,7 @@ vi.mock('@/components/layout/mobile-menu-panel', () => ({
 vi.mock('@/components/layout/mobile-search-panel', () => ({
   MobileSearchPanel: (props: NonNullable<typeof mobileSearchMock.props>) => {
     mobileSearchMock.props = props;
-    return null;
+    return <form data-testid="header-search-form" onSubmit={props.onSearchSubmit} />;
   },
 }));
 
@@ -167,10 +167,9 @@ describe('StoreHeaderClient', () => {
       mobileSearchMock.props?.onSearchQueryChange(' kuji ');
     });
 
-    const preventDefault = vi.fn();
-    act(() => {
-      mobileSearchMock.props?.onSearchSubmit({ preventDefault } as FormEvent<HTMLFormElement>);
-    });
+    const event = new Event('submit', { bubbles: true, cancelable: true });
+    const preventDefault = vi.spyOn(event, 'preventDefault');
+    fireEvent(screen.getByTestId('header-search-form'), event);
 
     expect(preventDefault).toHaveBeenCalledOnce();
     expect(analyticsMock.trackSearch).toHaveBeenCalledWith('kuji');

@@ -26,7 +26,7 @@ describe('kuji-prize-codes', () => {
   it('sorts normal prize tiers first, unknown tiers next, and Last One last', () => {
     const tiers = ['LO', 'B', 'VIP', 'A2', 'A1', 'A'];
 
-    expect(tiers.toSorted(compareKujiPrizeTiers)).toEqual(['A', 'A1', 'A2', 'B', 'VIP', 'LO']);
+    expect([...tiers].sort(compareKujiPrizeTiers)).toEqual(['A', 'A1', 'A2', 'B', 'VIP', 'LO']);
   });
 
   it('sorts prizes by tier, sort order, code, and name', () => {
@@ -38,7 +38,7 @@ describe('kuji-prize-codes', () => {
       { name: 'Prize A First', prizeCode: 'A3', prizeTier: 'A', sortOrder: 0 },
     ];
 
-    expect(prizes.toSorted(compareKujiPrizes).map((prize) => prize.name)).toEqual([
+    expect([...prizes].sort(compareKujiPrizes).map((prize) => prize.name)).toEqual([
       'Prize A First',
       'Prize A One',
       'Prize A Two',
@@ -64,5 +64,34 @@ describe('kuji-prize-codes', () => {
     expect(groups.map((group) => group.tier)).toEqual(['A', 'B', 'VIP', 'LO']);
     expect(groups[0]?.items.map((prize) => prize.name)).toEqual(['Prize A One', 'Prize A Two']);
     expect(groups.at(-1)?.items.map((prize) => prize.name)).toEqual(['Last One']);
+  });
+
+  it('groups without toSorted and preserves the source array and prize objects', () => {
+    const prizes = [
+      createPrize({ id: 'last-one', prizeCode: 'LO', prizeTier: 'LO' }),
+      createPrize({ id: 'a-10', prizeCode: 'A10', prizeTier: 'A' }),
+      createPrize({ id: 'a-2', prizeCode: 'A2', prizeTier: 'A' }),
+    ];
+    const sourceOrder = [...prizes];
+    prizes.forEach(Object.freeze);
+    Object.freeze(prizes);
+    const descriptor = Object.getOwnPropertyDescriptor(Array.prototype, 'toSorted');
+    Object.defineProperty(Array.prototype, 'toSorted', { configurable: true, value: undefined });
+
+    try {
+      const groups = groupKujiPrizesByTier(prizes);
+
+      expect(groups.map((group) => group.tier)).toEqual(['A', 'LO']);
+      expect(groups[0]?.items.map((prize) => prize.prizeCode)).toEqual(['A2', 'A10']);
+      expect(groups[0]?.items[0]).toBe(prizes[2]);
+      expect(prizes).toEqual(sourceOrder);
+      expect(groupKujiPrizesByTier([])).toEqual([]);
+    } finally {
+      if (descriptor) {
+        Object.defineProperty(Array.prototype, 'toSorted', descriptor);
+      } else {
+        Reflect.deleteProperty(Array.prototype, 'toSorted');
+      }
+    }
   });
 });

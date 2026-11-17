@@ -64,7 +64,9 @@ export function CartDrawer(props: ICartDrawerProps) {
   const cartSummary = getCartSummary();
   const hasHydrated = useCartStore((state) => state.hasHydrated);
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
-  const shippingSettings = usePublicShippingSettings();
+  const shippingSettings = usePublicShippingSettings({
+    enabled: isOpen && hasHydrated && items.length > 0,
+  });
   const totalItems = cartSummary.totalItems + invalidItems.reduce((count, item) => count + item.quantity, 0);
   const hasKujiItems = items.some((item) => item.product.productType === 'kuji');
 
