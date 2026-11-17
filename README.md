@@ -234,13 +234,16 @@ of `NEXT_PUBLIC_*` variables.
 | `pnpm build`             | Production Next.js build                                                   |
 | `pnpm exec tsc --noEmit` | TypeScript typecheck                                                       |
 | `pnpm check`             | Repo quality command: lint with fixes, tests, and build                    |
+| `pnpm check:ci`          | Run `pnpm check` with a local API fixture for deterministic prerendering   |
 
 Note: `pnpm lint` is configured as `eslint . --fix`, so inspect diffs after running `pnpm check`.
 
 Before the first browser test run, install Chromium with `pnpm exec playwright install chromium`. Playwright starts a
 separate Next.js dev build in `.next-playwright`; use a free port (default 3001, override with `PLAYWRIGHT_PORT`) to
 avoid
-reusing a normal dev server. Browser tests run separately from `pnpm check`. CI runs `pnpm check` on Node.js 24.
+reusing a normal dev server. Browser tests run separately from `pnpm check`. CI runs `pnpm check:ci` on Node.js 24.
+The CI fixture supplies empty homepage, collection, tag, product, and FAQ responses without contacting
+the deployed backend. Its build output is for validation only; deployment builds use the real backend.
 
 ---
 

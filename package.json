@@ -14,7 +14,8 @@
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
     "test:production": "node tests/production/reliability.mjs",
-    "check": "pnpm lint && pnpm test && pnpm build"
+    "check": "pnpm lint && pnpm test && pnpm build",
+    "check:ci": "node tests/ci/check.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
