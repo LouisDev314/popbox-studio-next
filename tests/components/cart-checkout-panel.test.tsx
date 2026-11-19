@@ -1,5 +1,6 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { webcrypto } from 'node:crypto';
 import {
   http,
   HttpResponse,
@@ -188,6 +189,9 @@ function installMockGooglePlaces(): MockGooglePlaces {
 }
 
 afterEach(() => {
+  vi.restoreAllMocks();
+  window.sessionStorage.clear();
+  vi.unstubAllGlobals();
   analyticsMocks.trackAddToCart.mockClear();
   analyticsMocks.trackBeginCheckout.mockClear();
   analyticsMocks.trackRemoveFromCart.mockClear();
@@ -1725,5 +1729,174 @@ describe('CartCheckoutPanel', () => {
 
     expect(document.documentElement).not.toHaveStyle({ overflow: 'hidden' });
     expect(document.body).not.toHaveStyle({ overflow: 'hidden' });
+  });
+
+  it.each([
+    { status: 502, errorCode: 'CHECKOUT_CREATION_UNCERTAIN', keepKey: true },
+    { status: 409, errorCode: 'CHECKOUT_CREATION_PENDING', keepKey: true },
+    { status: 502, errorCode: 'CHECKOUT_RESUME_UNAVAILABLE', keepKey: true },
+    { status: 504, errorCode: undefined, keepKey: true },
+    { status: 0, errorCode: undefined, keepKey: true, storageBlocked: true },
+    { status: 400, errorCode: undefined, keepKey: true },
+    { status: 502, errorCode: 'CHECKOUT_CREATION_FAILED', keepKey: false },
+  ])('uses the expected checkout key after $status / $errorCode', async ({ status, errorCode, keepKey, storageBlocked }) => {
+    if (storageBlocked) {
+      vi.stubGlobal('crypto', webcrypto);
+      vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
+        throw new DOMException('Browser storage is unavailable.', 'SecurityError');
+      });
+    }
+
+    const keys: (string | null)[] = [];
+    const requestBodies: unknown[] = [];
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+      http.post(SESSION_URL, async ({ request }) => {
+        keys.push(request.headers.get('Idempotency-Key'));
+        requestBodies.push(await request.json());
+
+        if (keys.length === 1) {
+          if (status === 0) return HttpResponse.error();
+          if (!errorCode) return new HttpResponse('Gateway Timeout', { status });
+
+          return HttpResponse.json({
+            code: status,
+            success: false,
+            message: 'Checkout status is still uncertain. Retry shortly.',
+            errors: { code: errorCode, retryable: keepKey },
+          }, { status });
+        }
+
+        return HttpResponse.json(createCheckoutSessionResponse(), { status: 201 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({ hasHydrated: true, invalidItems: [], items: [createCartItem()] });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+    await fillValidCheckoutForm();
+    const checkoutButton = screen.getByRole('button', { name: 'Check Out' });
+    await waitFor(() => expect(checkoutButton).toBeEnabled());
+    await userEvent.click(checkoutButton);
+    await waitFor(() => expect(keys).toHaveLength(1));
+
+    const alert = await screen.findByRole('alert');
+    if (errorCode && keepKey) {
+      expect(alert).toHaveTextContent('Checkout is still being verified.');
+    }
+
+    await waitFor(() => expect(checkoutButton).toBeEnabled());
+    await userEvent.click(checkoutButton);
+    await waitFor(() => expect(redirectToCheckout).toHaveBeenCalledTimes(1));
+
+    expect(requestBodies).toHaveLength(2);
+    expect(requestBodies[1]).toEqual(requestBodies[0]);
+    expect(keys[0]).toMatch(/^checkout-/);
+    expect(keys[1]).toMatch(/^checkout-/);
+    if (keepKey) {
+      expect(keys[1]).toBe(keys[0]);
+    } else {
+      expect(keys[1]).not.toBe(keys[0]);
+    }
+  });
+
+  it.each([
+    { scenario: 'the same request', changeAddress: false, definiteFailure: false },
+    { scenario: 'a changed request', changeAddress: true, definiteFailure: false },
+    { scenario: 'definitive checkout failure', changeAddress: false, definiteFailure: true },
+  ])('uses the expected checkout key after remount for $scenario', async ({ changeAddress, definiteFailure }) => {
+    vi.stubGlobal('crypto', webcrypto);
+    const requests: { body: unknown; key: string | null }[] = [];
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+      http.post(SESSION_URL, async ({ request }) => {
+        requests.push({ body: await request.json(), key: request.headers.get('Idempotency-Key') });
+        if (requests.length !== 1) {
+          return HttpResponse.json(createCheckoutSessionResponse(), { status: 201 });
+        }
+        return definiteFailure ? HttpResponse.json({
+          code: 502,
+          errors: { code: 'CHECKOUT_CREATION_FAILED', retryable: false },
+          message: 'Checkout creation failed.',
+          success: false,
+        }, { status: 502 }) : HttpResponse.error();
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({ hasHydrated: true, invalidItems: [], items: [createCartItem()] });
+    });
+
+    const initialCart = renderWithProviders(<CartCheckoutPanel />);
+    await fillValidCheckoutForm();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled());
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+    await screen.findByRole('alert');
+    const stored = window.sessionStorage.getItem('popbox-checkout-attempt:v1');
+    expect(JSON.parse(stored ?? 'null')).toEqual(definiteFailure ? null : {
+      key: requests[0].key,
+      payloadHash: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
+    initialCart.unmount();
+
+    renderWithProviders(<CartCheckoutPanel />);
+    await fillValidCheckoutForm();
+    if (changeAddress) {
+      await userEvent.clear(screen.getByLabelText('City'));
+      await userEvent.type(screen.getByLabelText('City'), 'Burnaby');
+    }
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check Out' })).toBeEnabled());
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+    await waitFor(() => expect(redirectToCheckout).toHaveBeenCalledTimes(1));
+
+    expect(requests).toHaveLength(2);
+    expect(requests.map(({ key }) => key)).toEqual([expect.stringMatching(/^checkout-/), expect.stringMatching(/^checkout-/)]);
+    if (changeAddress || definiteFailure) {
+      expect(requests[1].key).not.toBe(requests[0].key);
+    } else {
+      expect(requests[1]).toEqual(requests[0]);
+    }
+    expect(window.sessionStorage.getItem('popbox-checkout-attempt:v1')).toBeNull();
+  });
+
+  it('keeps a completed checkout on its original key while payment is finalized', async () => {
+    const keys: (string | null)[] = [];
+    server.use(
+      http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())),
+      http.post(SESSION_URL, async ({ request }) => {
+        keys.push(request.headers.get('Idempotency-Key'));
+        const pending = keys.length === 1;
+        return HttpResponse.json({
+          code: 409,
+          success: false,
+          message: 'The original checkout can no longer be paid.',
+          errors: {
+            code: pending ? 'CHECKOUT_PAYMENT_PENDING' : 'CHECKOUT_NOT_PAYABLE',
+            retryable: pending,
+          },
+        }, { status: 409 });
+      }),
+    );
+
+    act(() => {
+      useCartStore.setState({ hasHydrated: true, invalidItems: [], items: [createCartItem()] });
+    });
+
+    renderWithProviders(<CartCheckoutPanel />);
+    await fillValidCheckoutForm();
+    const checkoutButton = screen.getByRole('button', { name: 'Check Out' });
+    await waitFor(() => expect(checkoutButton).toBeEnabled());
+    await userEvent.click(checkoutButton);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your payment is being confirmed.');
+
+    await userEvent.click(checkoutButton);
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('We couldn’t resume this checkout.');
+    });
+    expect(keys[0]).toMatch(/^checkout-/);
+    expect(keys).toEqual([keys[0], keys[0]]);
+    expect(redirectToCheckout).not.toHaveBeenCalled();
   });
 });

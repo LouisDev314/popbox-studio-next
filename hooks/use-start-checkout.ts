@@ -29,6 +29,64 @@ import {
 import { trackBeginCheckout } from '@/lib/analytics';
 import { useCustomerAuth } from '@/components/auth/customer-auth-provider';
 
+const CHECKOUT_ATTEMPT_STORAGE_KEY = 'popbox-checkout-attempt:v1';
+const CHECKOUT_ATTEMPT_KEY_PATTERN = /^checkout-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+type CheckoutAttempt = { fingerprint: string; key: Promise<string> };
+
+function readSavedCheckoutAttempt(): { payloadHash: string; key: string } | null {
+  try {
+    const attempt: unknown = JSON.parse(window.sessionStorage.getItem(CHECKOUT_ATTEMPT_STORAGE_KEY) ?? 'null');
+
+    if (
+      typeof attempt === 'object'
+      && attempt !== null
+      && 'payloadHash' in attempt
+      && typeof attempt.payloadHash === 'string'
+      && /^[0-9a-f]{64}$/.test(attempt.payloadHash)
+      && 'key' in attempt
+      && typeof attempt.key === 'string'
+      && CHECKOUT_ATTEMPT_KEY_PATTERN.test(attempt.key)
+    ) {
+      return { payloadHash: attempt.payloadHash, key: attempt.key };
+    }
+  } catch {
+    // Storage can be blocked or contain an unreadable record.
+  }
+
+  return null;
+}
+
+async function getCheckoutAttemptKey(fingerprint: string): Promise<string> {
+  const key = `checkout-${uuidv4()}`;
+  try {
+    // Browser storage only receives the hash and key. The payload includes contact details.
+    const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
+    const payloadHash = Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const saved = readSavedCheckoutAttempt();
+    if (saved?.payloadHash === payloadHash) {
+      return saved.key;
+    }
+
+    window.sessionStorage.setItem(CHECKOUT_ATTEMPT_STORAGE_KEY, JSON.stringify({ payloadHash, key }));
+  } catch {
+    // The hook still retains the key in memory if browser storage or hashing is unavailable.
+  }
+
+  return key;
+}
+
+function clearSavedCheckoutAttempt(key: string) {
+  if (readSavedCheckoutAttempt()?.key !== key) {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(CHECKOUT_ATTEMPT_STORAGE_KEY);
+  } catch {
+    // A retained key remains safe for the backend to reconcile.
+  }
+}
+
 function getCheckoutRequestErrorMessage(
   error: AxiosError,
 ): string {
@@ -79,21 +137,44 @@ function getCheckoutDialogConfig(error: AxiosError) {
   return null;
 }
 
+function getCheckoutStatusMessage(code: string | null): string | null {
+  switch (code) {
+    case 'CHECKOUT_CREATION_PENDING':
+    case 'CHECKOUT_CREATION_UNCERTAIN':
+    case 'CHECKOUT_CUSTOMER_BUSY':
+    case 'CHECKOUT_RESUME_UNAVAILABLE':
+      return 'Checkout is still being verified. Please retry from this page shortly.';
+    case 'CHECKOUT_PAYMENT_PENDING':
+      return 'Your payment is being confirmed. Check your email for confirmation or contact support before paying again.';
+    case 'CHECKOUT_NOT_PAYABLE':
+    case 'CHECKOUT_IDEMPOTENCY_CONFLICT':
+    case 'CHECKOUT_SESSION_CONFLICT':
+      return 'We couldn’t resume this checkout. Check for an order confirmation or contact support before starting a new checkout.';
+    default:
+      return null;
+  }
+}
+
 export function useStartCheckout() {
   const auth = useCustomerAuth();
+  const isAuthenticated = auth.status === 'customer';
+  const customerId = isAuthenticated ? auth.user?.id ?? null : null;
   const invalidItems = useCartStore((state) => state.invalidItems);
   const checkoutErrorMessage = useCheckoutUiStore((state) => state.checkoutErrorMessage);
   const checkoutDialog = useCheckoutUiStore((state) => state.checkoutDialog);
   const isCheckingOut = useCheckoutUiStore((state) => state.isCheckingOut);
-  const attemptRef = useRef<{ fingerprint: string; key: string } | null>(null);
+  const attemptRef = useRef<CheckoutAttempt | null>(null);
 
   const { mutation: createCheckoutSession } = useCustomizeMutation<
     CheckoutSessionData,
-    { data: CheckoutSessionRequest; key: string }
+    { data: CheckoutSessionRequest; key: Promise<string>; isAuthenticated: boolean }
   >({
-    mutationFn: ({ data, key }) => auth.status === 'customer'
-      ? MutationConfigs.createAuthenticatedCheckoutSession(data, key)
-      : MutationConfigs.createCheckoutSession(data, key),
+    mutationFn: async ({ data, key, isAuthenticated }) => {
+      const idempotencyKey = await key;
+      return isAuthenticated
+        ? MutationConfigs.createAuthenticatedCheckoutSession(data, idempotencyKey)
+        : MutationConfigs.createCheckoutSession(data, idempotencyKey);
+    },
   });
 
   const startCheckout = useCallback((
@@ -118,20 +199,26 @@ export function useStartCheckout() {
       return;
     }
 
-    const fingerprint = JSON.stringify(data);
+    const fingerprint = JSON.stringify([isAuthenticated, customerId, data]);
     if (attemptRef.current?.fingerprint !== fingerprint) {
       attemptRef.current = {
         fingerprint,
-        key: `checkout-${uuidv4()}`,
+        key: isAuthenticated && !customerId ? Promise.resolve(`checkout-${uuidv4()}`) : getCheckoutAttemptKey(fingerprint),
       };
     }
 
+    const attempt = attemptRef.current;
+    const clearAttempt = () => {
+      if (attemptRef.current === attempt) {
+        attemptRef.current = null;
+      }
+      void attempt.key.then(clearSavedCheckoutAttempt);
+    };
+
     createCheckoutSession(
-      { data, key: attemptRef.current.key },
+      { data, key: attempt.key, isAuthenticated },
       {
         onSuccess: (response) => {
-          attemptRef.current = null;
-
           if (response.status !== HttpStatusCode.Created) {
             useCheckoutUiStore.getState().setCheckoutError(
               'We couldn’t start checkout right now. Please try again.',
@@ -147,6 +234,7 @@ export function useStartCheckout() {
             getValidatedCheckoutUrl(checkoutUrl);
             trackBeginCheckout(useCartStore.getState().items);
             redirectToCheckout(checkoutUrl);
+            clearAttempt();
           } catch (error) {
             useCheckoutUiStore.getState().setCheckoutError(
               error instanceof Error
@@ -156,11 +244,20 @@ export function useStartCheckout() {
           }
         },
         onError: (error) => {
-          if (error.response) {
-            attemptRef.current = null;
+          const errorCode = getApiErrorCode(error);
+
+          // Only a definitive rejection can safely start a new attempt with the same request.
+          if (errorCode === 'CHECKOUT_CREATION_FAILED') {
+            clearAttempt();
           }
 
-          if (getApiErrorCode(error) === 'AUTH_CHECKOUT_EMAIL_MISMATCH') {
+          const checkoutStatusMessage = getCheckoutStatusMessage(errorCode);
+          if (checkoutStatusMessage) {
+            useCheckoutUiStore.getState().setCheckoutError(checkoutStatusMessage);
+            return;
+          }
+
+          if (errorCode === 'AUTH_CHECKOUT_EMAIL_MISMATCH') {
             useCheckoutUiStore.getState().endCheckout();
             options.onAuthEmailMismatch?.();
             return;
@@ -205,7 +302,7 @@ export function useStartCheckout() {
         },
       },
     );
-  }, [createCheckoutSession, invalidItems]);
+  }, [createCheckoutSession, customerId, invalidItems, isAuthenticated]);
 
   return {
     checkoutDialog,
