@@ -98,7 +98,7 @@ export function CartDrawer(props: ICartDrawerProps) {
                 {formatPrice(cartSummary.subtotalCents, cartSummary.currency)}
               </span>
             </div>
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
               <span className="font-medium text-muted-foreground">Shipping</span>
               <span className="font-semibold text-foreground">Calculated after details are provided</span>
             </div>

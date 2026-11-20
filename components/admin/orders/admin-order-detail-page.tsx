@@ -344,19 +344,19 @@ function OrderItemsSection({ order }: { order: IOrderDetail }) {
         ))}
       </div>
       <div className="space-y-2 border-t border-border/30 bg-muted/30 p-6 text-sm text-muted-foreground">
-        <div className="flex justify-between">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <p>Subtotal</p>
           <p>{formatPrice(order.subtotalCents, order.currency)}</p>
         </div>
-        <div className="flex justify-between">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <p>Shipping</p>
           <p>{formatPrice(order.shippingCents, order.currency)}</p>
         </div>
-        <div className="flex justify-between">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <p>Tax</p>
           <p>{formatPrice(order.taxCents, order.currency)}</p>
         </div>
-        <div className="flex justify-between border-t border-border/30 pt-2 text-base font-semibold text-foreground">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-border/30 pt-2 text-base font-semibold text-foreground">
           <p>Total</p>
           <p>{formatPrice(order.totalCents, order.currency)}</p>
         </div>

@@ -649,8 +649,8 @@ export function ProductKujiPrizes({ product }: { product: IAdminProductEditor })
         </div>
 
         <div className="rounded-lg bg-muted/30 p-4 border border-border/30">
-          <div className='flex justify-between mb-8'>
-            <h3 className="mb-3 text-md font-medium text-foreground">Add New Prize</h3>
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-medium text-foreground">Add New Prize</h3>
             <Button
               type="submit"
               form="create-kuji-prize-form"

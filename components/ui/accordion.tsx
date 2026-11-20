@@ -38,12 +38,12 @@ function AccordionTrigger({
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         className={cn(
-          'group/accordion-trigger flex flex-1 items-center justify-between px-6 py-5 text-left text-base font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 cursor-pointer',
+          'group/accordion-trigger flex min-w-0 flex-1 items-center justify-between gap-3 px-6 py-5 text-left text-base font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 cursor-pointer',
           className,
         )}
         {...props}
       >
-        <span>{children}</span>
+        <span className="min-w-0 wrap-anywhere">{children}</span>
         <ChevronDownIcon className="pointer-events-none size-5 shrink-0 text-muted-foreground group-aria-expanded/accordion-trigger:hidden" />
         <ChevronUpIcon className="pointer-events-none hidden size-5 shrink-0 text-muted-foreground group-aria-expanded/accordion-trigger:block" />
       </AccordionPrimitive.Trigger>

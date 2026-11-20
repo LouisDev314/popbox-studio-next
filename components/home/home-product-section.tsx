@@ -22,11 +22,11 @@ export function HomeProductSection(props: IHomeProductSectionProps) {
 
   return (
     <section className={cn('mb-14 md:mb-16', props.className)}>
-      <div className={cn('mb-4 sm:mb-6 flex items-end justify-between gap-4', props.headerClassName)}>
+      <div className={cn('mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 sm:mb-6', props.headerClassName)}>
         <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">{props.title}</h2>
         <Link
           href={props.viewAllHref}
-          className="text-sm underline underline-offset-3 font-medium transition-colors hover:text-foreground"
+          className="whitespace-nowrap text-sm underline underline-offset-3 font-medium transition-colors hover:text-foreground"
         >
           View All
         </Link>

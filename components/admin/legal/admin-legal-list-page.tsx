@@ -113,7 +113,7 @@ function DocumentCard({
   return (
     <div className="flex flex-col justify-between rounded-xl border border-border/40 bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
       <div>
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
             <FileText className="h-5 w-5 text-primary" />
           </div>
@@ -131,11 +131,11 @@ function DocumentCard({
         <h3 className="mt-4 font-semibold text-foreground">{label}</h3>
 
         <div className="mt-4 flex flex-col gap-1 text-xs text-muted-foreground">
-          <div className="flex justify-between">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <span className="font-medium">Active Version</span>
             <span>{exists ? `v${activeDoc.version}` : '—'}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <span className="font-medium">Last Updated</span>
             <span>{exists ? formatRelativeDate(activeDoc.updatedAt) : '—'}</span>
           </div>
@@ -195,7 +195,7 @@ function FaqCard({ faqItems }: { faqItems: IAdminFaqItem[] }) {
   return (
     <div className="flex flex-col justify-between rounded-xl border border-border/40 bg-card p-5 shadow-sm transition-shadow hover:shadow-md">
       <div>
-        <div className="flex items-start justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
             <FileText className="h-5 w-5 text-primary" />
           </div>
@@ -209,15 +209,15 @@ function FaqCard({ faqItems }: { faqItems: IAdminFaqItem[] }) {
         </p>
 
         <div className="mt-4 flex flex-col gap-1 text-xs text-muted-foreground">
-          <div className="flex justify-between">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <span className="font-medium">FAQ Items</span>
             <span>{faqItems.length}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <span className="font-medium">Published</span>
             <span>{publishedCount}</span>
           </div>
-          <div className="flex justify-between">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
             <span className="font-medium">Last Updated</span>
             <span>{formatRelativeDate(latestUpdatedAt ?? undefined)}</span>
           </div>
@@ -258,7 +258,7 @@ function LoadingSkeleton() {
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="flex flex-col justify-between rounded-xl border border-border/40 bg-card p-5 shadow-sm">
           <div>
-            <div className="flex items-start justify-between">
+            <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="h-10 w-10 shrink-0 rounded-lg bg-muted" />
               <div className="h-5 w-16 rounded-full bg-muted" />
             </div>

@@ -81,7 +81,7 @@ function CartSummaryHeader(props: {
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         {props.heading !== null ? (
           <h2 className="text-2xl font-semibold tracking-tight text-foreground">{props.heading}</h2>
         ) : null}
@@ -113,7 +113,7 @@ function BackendQuoteTotals(props: {
 
   return (
     <div className="space-y-2" data-testid="cart-summary-backend-totals">
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
         <span className="text-muted-foreground">{primaryTaxLabel}</span>
         <span className="font-medium text-foreground">
           {formatPrice(props.quote.taxCents, props.currency)}
@@ -122,7 +122,7 @@ function BackendQuoteTotals(props: {
       {shouldShowBreakdownRows ? (
         <div className="space-y-1.5 px-3 py-1">
           {taxRows.map((row) => (
-            <div key={row.label} className="flex items-center justify-between gap-3 text-xs">
+            <div key={row.label} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-xs">
               <span className="text-muted-foreground">{getTaxComponentLabel(row)}</span>
               <span className="font-medium text-foreground">
                 {formatPrice(row.amountCents, props.currency)}
@@ -190,14 +190,14 @@ export function CartSummary(props: ICartSummaryProps) {
           <span className="font-medium text-foreground">{props.summary.totalItems}</span>
         </div>
 
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
           <span className="text-muted-foreground">Subtotal</span>
           <span className="font-medium text-foreground">
             {formatPrice(subtotalCents, props.summary.currency)}
           </span>
         </div>
 
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
           <span className="text-muted-foreground">Shipping</span>
           <span className="font-medium text-foreground">{shippingLabel}</span>
         </div>
@@ -220,25 +220,19 @@ export function CartSummary(props: ICartSummaryProps) {
         <BackendQuoteTotals currency={props.summary.currency} quote={quote} />
 
         <div className="border-t border-border/60 pt-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-base font-semibold text-foreground">
-                {quote ? 'Total' : 'Checkout total'}
+          {quote ? (
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <span className="text-base font-semibold text-foreground">Total</span>
+              <span className="text-xl font-bold text-foreground">
+                {formatPrice(quote.totalCents, props.summary.currency)}
               </span>
-              {/* TEMP: Tax disabled (not collecting tax yet) */}
-              {/* <Tooltip
-                containerClassName="text-muted-foreground"
-                content="The sales tax listed on the checkout page is only an estimate. Your invoice will contain the final sales tax, including federal and province taxes, as well as any applicable rebates or fees."
-              >
-                <CircleQuestionMark className='size-4.5' />
-              </Tooltip> */}
             </div>
-            <span className="text-xl font-bold text-foreground">
-              {quote
-                ? formatPrice(quote.totalCents, props.summary.currency)
-                : 'Calculated after details are provided'}
-            </span>
-          </div>
+          ) : (
+            <div className="space-y-1">
+              <p className="text-base font-semibold text-foreground">Checkout total</p>
+              <p className="text-sm text-muted-foreground">Calculated after details are provided</p>
+            </div>
+          )}
         </div>
       </div>
 

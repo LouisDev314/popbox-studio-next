@@ -173,28 +173,28 @@ export function GuestOrderDetail(props: IGuestOrderDetailProps) {
           <h2 className="mb-6 text-lg font-semibold">Order Summary</h2>
 
           <div className="space-y-3 border-t border-border/30 pt-4">
-            <div className="flex justify-between text-sm">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-medium text-foreground">
                 {formatPrice(order.subtotalCents, order.currency)}
               </span>
             </div>
 
-            <div className="flex justify-between text-sm">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
               <span className="text-muted-foreground">Shipping</span>
               <span className="font-medium text-foreground">
                 {formatPrice(order.shippingCents, order.currency)}
               </span>
             </div>
 
-            <div className="flex justify-between text-sm">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm">
               <span className="text-muted-foreground">Taxes</span>
               <span className="font-medium text-foreground">
                 {formatPrice(order.taxCents, order.currency)}
               </span>
             </div>
 
-            <div className="mt-2 flex justify-between border-t border-border/30 pt-4">
+            <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-border/30 pt-4">
               <span className="text-base font-bold text-foreground">Total</span>
               <span className="text-base font-bold text-primary">
                 {formatPrice(order.totalCents, order.currency)}

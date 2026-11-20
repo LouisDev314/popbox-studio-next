@@ -85,7 +85,7 @@ export function CartPageItem(props: ICartPageItemProps) {
             </div>
           </div>
 
-          <div className="mt-4 sm:mx-1.5 flex justify-between items-center">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 sm:mx-1.5">
             <QuantityStepper
               disabled={props.disabled}
               value={props.item.quantity}
@@ -94,7 +94,7 @@ export function CartPageItem(props: ICartPageItemProps) {
               onDecrease={props.onDecrease}
               onIncrease={props.onIncrease}
             />
-            <p className="shrink-0 text-lg font-semibold text-foreground sm:text-right">
+            <p className="text-lg font-semibold tabular-nums text-foreground sm:text-right">
               {formatPrice(lineTotalCents, props.item.product.currency)}
             </p>
           </div>
