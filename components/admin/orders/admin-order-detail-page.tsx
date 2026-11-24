@@ -23,6 +23,7 @@ import {
   IOrderDetail,
   IOrderStatus,
   IShipment,
+  type ShippingAddressReviewReason,
 } from '@/interfaces/order';
 import LastOnePrizeBadge from '@/components/admin/orders/last-one-prize-badge';
 import {
@@ -32,6 +33,11 @@ import {
   type IShipmentFormValues,
 } from '@/utils/admin-order';
 import { adminOrderKeys } from '@/lib/admin-query-keys';
+
+const REVIEW_REASONS: Record<ShippingAddressReviewReason, string> = {
+  customer_confirmed: 'Customer confirmed the exact address',
+  carrier_verified: 'Carrier verified the exact address',
+};
 
 const STATUS_CONFIG: Record<IOrderStatus, { label: string; bg: string; text: string }> = {
   pending_payment: { label: 'Pending Payment', bg: 'bg-accent', text: 'text-foreground' },
@@ -148,7 +154,8 @@ function OrderActionFeedbackBanner({ feedback }: { feedback: OrderActionFeedback
 }
 
 interface IOrderActionButtonsProps {
-  order: IOrderDetail;
+  order: IAdminOrderDetail;
+  addressReviewRequired: boolean;
   isStatusUpdating: boolean;
   isShipmentUpdating: boolean;
   isResendingConfirmation: boolean;
@@ -161,6 +168,7 @@ interface IOrderActionButtonsProps {
 
 function OrderActionButtons({
   order,
+  addressReviewRequired,
   isStatusUpdating,
   isShipmentUpdating,
   isResendingConfirmation,
@@ -205,7 +213,7 @@ function OrderActionButtons({
         </Button>
       ) : null}
 
-      {order.status === 'paid' && (
+      {order.status === 'paid' && !addressReviewRequired && (
         <Button
           type="button"
           onClick={() => onUpdateStatus('packed')}
@@ -231,7 +239,7 @@ function OrderActionButtons({
         {isResendingConfirmation ? 'Resending...' : 'Resend confirmation email'}
       </Button>
 
-      {shipmentActionMode ? (
+      {shipmentActionMode && !addressReviewRequired ? (
         <Button
           type="button"
           onClick={onOpenShipment}
@@ -580,6 +588,7 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
   const [isShipmentDialogOpen, setIsShipmentDialogOpen] = useState(false);
   const [isPaymentRecoveryDialogOpen, setIsPaymentRecoveryDialogOpen] = useState(false);
   const [shipmentForm, setShipmentForm] = useState<IShipmentFormValues>(createShipmentForm(null));
+  const [reviewReason, setReviewReason] = useState<ShippingAddressReviewReason | ''>('');
   const [actionFeedback, setActionFeedback] = useState<OrderActionFeedback | null>(null);
 
   const { data: fetchRes, isPending } = useCustomizeQuery<IAdminOrderDetail>({
@@ -588,6 +597,8 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
   });
 
   const order = fetchRes?.data?.data;
+  const addressReview = order?.shippingAddressReview;
+  const addressReviewRequired = addressReview?.validationStatus === 'unverified' && !addressReview.reviewedAt;
   const shipmentActionMode: ShipmentActionMode = order?.status === 'packed' ? 'ship' : 'edit';
 
   const refreshOrderQueries = async () => {
@@ -684,6 +695,17 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
     },
   });
 
+  const { mutation: reviewAddress, isPending: isReviewingAddress } = useCustomizeMutation({
+    mutationFn: MutationConfigs.reviewAdminOrderAddress,
+    onSuccess: async () => {
+      await refreshOrderQueries();
+      setActionFeedback({ type: 'success', message: 'Shipping address review recorded.' });
+    },
+    onError: (error) => setActionFeedback({
+      type: 'error', message: getAdminOrderActionErrorMessage(error, 'Failed to review shipping address.'),
+    }),
+  });
+
   if (isPending) return <div className="p-12 text-center text-muted-foreground">Loading order details...</div>;
   if (!order) return <div className="p-12 text-center text-red-500">Failed to load order.</div>;
 
@@ -764,6 +786,7 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
         <div className="flex max-w-full flex-col items-stretch gap-3 sm:items-end">
           <OrderActionButtons
             order={order}
+            addressReviewRequired={addressReviewRequired}
             isStatusUpdating={isStatusUpdating}
             isShipmentUpdating={isShipmentUpdating}
             isResendingConfirmation={isResendingConfirmation}
@@ -792,7 +815,45 @@ export default function AdminOrderDetailPageClient({ adminOrderId }: { adminOrde
           <OrderTicketsSection order={order} />
         </div>
 
-        <OrderSidebar order={order} />
+        <div className="space-y-4">
+          <OrderSidebar order={order} />
+          {addressReview?.validationStatus === 'unverified' ? (
+            <section className="space-y-3 rounded-xl border border-border bg-card p-4 text-sm">
+              <h2 className="font-semibold">Shipping address review</h2>
+              {addressReview.reviewedAt && addressReview.reason ? (
+                <>
+                  <p>{REVIEW_REASONS[addressReview.reason]}</p>
+                  <p className="text-muted-foreground">Reviewed {new Date(addressReview.reviewedAt).toLocaleString()}</p>
+                  <p className="break-all text-muted-foreground">Reviewer {addressReview.reviewedBy}</p>
+                </>
+              ) : (
+                <>
+                  <p>Verify the saved address before packing or shipping.</p>
+                  {order.status === 'paid' ? (
+                    <form className="space-y-3" onSubmit={(event) => {
+                      event.preventDefault();
+                      const id = resolveAdminOrderId();
+                      if (id && reviewReason) reviewAddress({ adminOrderId: id, reason: reviewReason });
+                    }}>
+                      <label className="block" htmlFor="shipping-address-review-reason">Verification reason</label>
+                      <select id="shipping-address-review-reason" required value={reviewReason}
+                        className="w-full rounded-md border border-border bg-background p-2"
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setReviewReason(value === 'customer_confirmed' || value === 'carrier_verified' ? value : '');
+                        }}>
+                        <option value="">Select a reason</option>
+                        <option value="customer_confirmed">{REVIEW_REASONS.customer_confirmed}</option>
+                        <option value="carrier_verified">{REVIEW_REASONS.carrier_verified}</option>
+                      </select>
+                      <Button type="submit" disabled={!reviewReason || isReviewingAddress}>Approve saved address</Button>
+                    </form>
+                  ) : null}
+                </>
+              )}
+            </section>
+          ) : null}
+        </div>
       </div>
 
       <ShipmentDialog

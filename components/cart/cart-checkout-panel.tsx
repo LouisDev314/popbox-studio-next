@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Control, Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
 import MutationConfigs from '@/configs/api/mutation-config';
 import { CheckoutHandoffOverlay } from '@/components/cart/checkout-handoff-overlay';
 import { CheckoutButton } from '@/components/cart/checkout-button';
@@ -49,6 +50,7 @@ import {
 import {
   areShippingAddressesEquivalent,
   buildCheckoutRequest,
+  CHECKOUT_DRAFT_STORAGE_KEY,
   CANADIAN_PROVINCES,
   shouldConfirmSuggestedAddress,
 } from '@/utils/checkout';
@@ -86,11 +88,31 @@ type TQuoteState =
 
 type TAddressConfirmationState = {
   source: 'quote' | 'session';
+  kind?: 'manual' | 'correction';
+  proof?: string;
+  requestKey?: string;
   suggestedAddress: SuggestedShippingAddress;
 } | null;
 
+function getCheckoutDraftId(): string {
+  const draftId = uuidv4();
+  try {
+    const existing = window.sessionStorage.getItem(CHECKOUT_DRAFT_STORAGE_KEY);
+    if (existing && z.uuid().safeParse(existing).success) return existing;
+    window.sessionStorage.setItem(CHECKOUT_DRAFT_STORAGE_KEY, draftId);
+  } catch {
+    // The persisted destination guard also applies when browser storage is unavailable.
+  }
+  return draftId;
+}
+
+function addressProofKey(request: CheckoutQuoteRequest, authMode: 'customer' | 'guest', customerId?: string) {
+  const { line1, line2, city, province, postalCode, countryCode } = request.shippingAddress;
+  return JSON.stringify([authMode, customerId, request.email, line1, line2, city, province, postalCode, countryCode]);
+}
+
 function createCheckoutRequestKey(data: CheckoutQuoteRequest, authMode: 'customer' | 'guest' = 'guest'): string {
-  const { customerNote: _customerNote, ...quoteRelevantData } = data;
+  const { customerNote: _customerNote, addressProof: _proof, checkoutDraftId: _draft, ...quoteRelevantData } = data;
 
   return JSON.stringify({ authMode, request: quoteRelevantData });
 }
@@ -154,14 +176,15 @@ function isCheckoutReady(params: {
   itemCount: number;
   requestIsValid: boolean;
   quoteState: TQuoteState;
+  canResume: boolean;
 }): boolean {
   return Boolean(
     params.hasHydrated
     && params.itemCount > 0
     && params.invalidItemCount === 0
     && params.requestIsValid
-    && params.quoteState.status === 'success'
-    && params.quoteState.key === params.currentRequestKey
+    && (params.canResume || (params.quoteState.status === 'success'
+      && params.quoteState.key === params.currentRequestKey))
     && !params.isCheckingOut,
   );
 }
@@ -178,7 +201,9 @@ function AddressAutocompleteInput(props: {
   onAddressSelected: (values: Partial<CheckoutFormValues['shippingAddress']>) => void;
   onManualAddressChanged: () => void;
 }) {
+  const [hasFocus, setHasFocus] = useState(false);
   const autocomplete = useGoogleAddressAutocomplete({
+    active: hasFocus,
     disabled: props.disabled,
     input: props.field.value,
   });
@@ -195,13 +220,8 @@ function AddressAutocompleteInput(props: {
   const handleSelectSuggestion = useCallback(async (suggestion: GoogleAddressAutocompleteOption) => {
     props.onManualAddressChanged();
 
-    try {
-      const values = await autocomplete.selectSuggestion(suggestion);
-
-      props.onAddressSelected(values);
-    } catch {
-      autocomplete.clearSuggestions();
-    }
+    const values = await autocomplete.selectSuggestion(suggestion);
+    if (values) props.onAddressSelected(values);
   }, [autocomplete, props]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
@@ -227,7 +247,7 @@ function AddressAutocompleteInput(props: {
 
     if (event.key === 'Escape') {
       event.preventDefault();
-      autocomplete.clearSuggestions();
+      autocomplete.endSearch();
       return;
     }
 
@@ -250,13 +270,18 @@ function AddressAutocompleteInput(props: {
         aria-controls={visibleSuggestions.length > 0 ? listboxId : undefined}
         aria-expanded={visibleSuggestions.length > 0}
         className={cn(props.invalid && invalidControlClassName)}
-        onBlur={props.field.onBlur}
+        onFocus={() => setHasFocus(true)}
+        onBlur={() => {
+          props.field.onBlur();
+          setHasFocus(false);
+          autocomplete.endSearch();
+        }}
         onKeyDown={handleKeyDown}
         onChange={(event) => {
           const nextValue = event.target.value;
 
           if (nextValue.trim().length < 4) {
-            autocomplete.clearSuggestions();
+            autocomplete.endSearch();
           }
 
           autocomplete.resetSelectionSuppression();
@@ -264,6 +289,7 @@ function AddressAutocompleteInput(props: {
           props.onManualAddressChanged();
         }}
       />
+      {autocomplete.errorMessage ? <p className="mt-1 text-xs text-muted-foreground" role="status">{autocomplete.errorMessage}</p> : null}
       {visibleSuggestions.length > 0 ? (
         <div
           id={listboxId}
@@ -291,6 +317,7 @@ function AddressAutocompleteInput(props: {
               {suggestion.description}
             </button>
           ))}
+          <div className="border-t px-3 py-1 text-right text-xs text-muted-foreground">Google Maps</div>
         </div>
       ) : null}
     </div>
@@ -363,6 +390,11 @@ function AddressConfirmationPrompt(props: {
     <div className="rounded-2xl border border-border bg-muted/30 p-4" role="status" aria-live="polite">
       <div className="space-y-2">
         <h4 className="text-base font-semibold text-foreground">Confirm your shipping address</h4>
+        {props.confirmation.kind === 'manual' ? (
+          <p className="text-sm text-muted-foreground">
+            Address verification is unavailable. Review the address you entered. We’ll check it before shipping.
+          </p>
+        ) : null}
         <div className="rounded-xl bg-background px-3 py-2 text-sm text-foreground">
           <p className="font-medium">{suggestedAddress.line1}</p>
           {suggestedAddress.line2 ? (
@@ -376,11 +408,12 @@ function AddressConfirmationPrompt(props: {
             {suggestedAddress.postalCode}
           </p>
           <p>Canada</p>
+          {props.confirmation.kind !== 'manual' ? <p className="mt-1 text-xs text-muted-foreground">Google Maps</p> : null}
         </div>
       </div>
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
         <Button type="button" onClick={props.onAccept}>
-          Use suggested address
+          {props.confirmation.kind === 'manual' ? 'Confirm entered address' : 'Use suggested address'}
         </Button>
         <Button type="button" variant="outline" onClick={props.onEdit}>
           Edit address
@@ -398,7 +431,13 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   const hasHydrated = useCartStore((state) => state.hasHydrated);
   const getCartSummary = useCartStore((state) => state.getCartSummary);
   const clearCheckoutDialog = useCheckoutUiStore((state) => state.clearCheckoutDialog);
-  const { checkoutDialog, checkoutErrorMessage, isCheckingOut, startCheckout } = useStartCheckout();
+  const { checkoutDialog, checkoutErrorMessage, getResumableCheckout, isCheckingOut, startCheckout } = useStartCheckout();
+  const draftIdRef = useRef<string | null>(null);
+  const [quoteRefresh, setQuoteRefresh] = useState(0);
+  const [quoteNotice, setQuoteNotice] = useState<string | null>(null);
+  const [resumableRequest, setResumableRequest] = useState<CheckoutSessionRequest | null>(null);
+  const submittedClearance = useRef<{ key: string; proof: string } | null>(null);
+  const acceptedProof = useRef<{ key: string; proof: string; expiresAt: number } | null>(null);
   const [addressConfirmation, setAddressConfirmation] = useState<TAddressConfirmationState>(null);
   const [acceptedSuggestedAddress, setAcceptedSuggestedAddress] = useState<SuggestedShippingAddress | null>(null);
   const [confirmedAddressRequestKey, setConfirmedAddressRequestKey] = useState<string | null>(null);
@@ -531,6 +570,27 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     [baseRequestKey, checkoutCustomerInput, confirmedAddressRequestKey, items],
   );
   const sessionRequestResultRef = useRef(sessionRequestResult);
+  const sessionPayload = sessionRequestResult.success ? JSON.stringify(sessionRequestResult.data) : null;
+  const accountId = auth.status === 'customer' ? auth.user?.id : undefined;
+
+  useEffect(() => {
+    draftIdRef.current ??= getCheckoutDraftId();
+  }, []);
+
+  useEffect(() => {
+    let current = true;
+    if (sessionPayload) {
+      const data = JSON.parse(sessionPayload) as CheckoutSessionRequest;
+      void getResumableCheckout(data).then((attempt) => {
+        if (current) setResumableRequest(attempt);
+      });
+    }
+    return () => { current = false; };
+  }, [getResumableCheckout, sessionPayload]);
+  const canResume = Boolean(resumableRequest && sessionPayload && (
+    JSON.stringify(resumableRequest) === sessionPayload ||
+    JSON.stringify({ ...JSON.parse(sessionPayload) as CheckoutSessionRequest, confirmedAddress: true }) === JSON.stringify(resumableRequest)
+  ));
   const currentRequestKey = requestResult.success ? createCheckoutRequestKey(requestResult.data, authMode) : null;
   const debouncedRequestKey = useDebouncedValue(currentRequestKey, 400);
   const isQuoteCurrent = quoteState.key === currentRequestKey;
@@ -612,11 +672,12 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
 
   const { mutation: createCheckoutQuote } = useCustomizeMutation<
     CheckoutQuoteData,
-    CheckoutQuoteRequest
+    { data: CheckoutQuoteRequest; signal: AbortSignal }
   >({
-    mutationFn: (data) => auth.status === 'customer'
-      ? MutationConfigs.createAuthenticatedCheckoutQuote(data)
-      : MutationConfigs.createCheckoutQuote(data),
+    retry: false,
+    mutationFn: ({ data, signal }) => auth.status === 'customer'
+      ? MutationConfigs.createAuthenticatedCheckoutQuote(data, signal)
+      : MutationConfigs.createCheckoutQuote(data, signal),
   });
 
   const handleCheckoutSessionSuccess = useCallback(() => {
@@ -628,14 +689,16 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
   }, []);
 
   useEffect(() => {
-    if (!debouncedRequestKey || !isAuthResolved) {
+    const draftId = draftIdRef.current;
+    if (!draftId || !debouncedRequestKey || debouncedRequestKey !== currentRequestKey || !isAuthResolved) {
       return;
     }
 
     const request = (JSON.parse(debouncedRequestKey) as { request: CheckoutQuoteRequest }).request;
-    let isCancelled = false;
+    const controller = new AbortController();
+    const proofKey = addressProofKey(request, authMode, accountId);
     const pendingTimeoutId = window.setTimeout(() => {
-      if (isCancelled) {
+      if (controller.signal.aborted) {
         return;
       }
 
@@ -647,9 +710,13 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
       });
       setFormErrorMessage(null);
 
-      createCheckoutQuote(request, {
+      const accepted = acceptedProof.current;
+      const clearance = submittedClearance.current;
+      const proof = clearance?.key === debouncedRequestKey ? clearance.proof
+        : accepted?.key === proofKey && accepted.expiresAt > Date.now() ? accepted.proof : undefined;
+      createCheckoutQuote({ data: { ...request, checkoutDraftId: draftId, ...(proof && { addressProof: proof }) }, signal: controller.signal }, {
         onSuccess: (response) => {
-          if (isCancelled || checkoutSessionSucceededRef.current) {
+          if (controller.signal.aborted || checkoutSessionSucceededRef.current) {
             return;
           }
 
@@ -665,6 +732,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
             return;
           }
 
+          if (data.addressProof && data.expiresAt) {
+            acceptedProof.current = { key: proofKey, proof: data.addressProof, expiresAt: Date.parse(data.expiresAt) };
+            submittedClearance.current = null;
+          }
           setQuoteState({
             data,
             errorMessage: null,
@@ -674,6 +745,7 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
 
           if (
             pendingConfirmedCheckoutKey === debouncedRequestKey
+            && !data.addressProof
             && request.confirmedAddress === true
             && sessionRequestResultRef.current.success
           ) {
@@ -691,11 +763,19 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
           }
         },
         onError: (error) => {
-          if (isCancelled || checkoutSessionSucceededRef.current) {
+          if (controller.signal.aborted || checkoutSessionSucceededRef.current) {
             return;
           }
 
-          if (getApiErrorCode(error) === 'AUTH_CHECKOUT_EMAIL_MISMATCH') {
+          const errorCode = getApiErrorCode(error);
+          if (errorCode === 'CHECKOUT_QUOTE_REQUIRED' && proof) {
+            acceptedProof.current = null;
+            submittedClearance.current = null;
+            setConfirmedAddressRequestKey(null);
+            setQuoteRefresh((value) => value + 1);
+            return;
+          }
+          if (errorCode === 'AUTH_CHECKOUT_EMAIL_MISMATCH') {
             setQuoteState({
               data: null,
               errorMessage: 'Checkout must use the verified email for this signed-in account. Refresh your session or sign in again.',
@@ -709,6 +789,18 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
           const checkoutAddressError = getCheckoutAddressError(error as AxiosError<IBaseApiResponse<unknown>>);
 
           if (checkoutAddressError) {
+            if (checkoutAddressError.addressProof && (checkoutAddressError.code === 'ADDRESS_MANUAL_CONFIRMATION_REQUIRED'
+              || (checkoutAddressError.code === 'ADDRESS_NEEDS_CONFIRMATION' && checkoutAddressError.suggestedAddress))) {
+              setAddressConfirmation({
+                source: 'quote',
+                kind: checkoutAddressError.code === 'ADDRESS_MANUAL_CONFIRMATION_REQUIRED' ? 'manual' : 'correction',
+                proof: checkoutAddressError.addressProof,
+                requestKey: debouncedRequestKey,
+                suggestedAddress: checkoutAddressError.suggestedAddress ?? request.shippingAddress,
+              });
+              setQuoteState({ data: null, key: debouncedRequestKey, errorMessage: null, status: 'idle' });
+              return;
+            }
             if (
               checkoutAddressError.code === 'ADDRESS_NEEDS_CONFIRMATION'
               && checkoutAddressError.suggestedAddress
@@ -739,12 +831,16 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     }, 0);
 
     return () => {
-      isCancelled = true;
+      controller.abort();
       window.clearTimeout(pendingTimeoutId);
     };
   }, [
+    accountId,
+    authMode,
     createCheckoutQuote,
+    currentRequestKey,
     debouncedRequestKey,
+    quoteRefresh,
     handleAddressConfirmationRequired,
     handleCheckoutSessionSuccess,
     isAuthResolved,
@@ -753,7 +849,10 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     startCheckout,
   ]);
 
-  const canCheckout = isAuthResolved && !addressConfirmation && isCheckoutReady({
+  const activeConfirmation = addressConfirmation?.requestKey && addressConfirmation.requestKey !== currentRequestKey
+    ? null : addressConfirmation;
+  const canCheckout = isAuthResolved && (!activeConfirmation || canResume) && isCheckoutReady({
+    canResume,
     currentRequestKey,
     hasHydrated,
     invalidItemCount: invalidItems.length,
@@ -766,25 +865,29 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     ? checkoutErrorMessage
     : formErrorMessage
       || (isQuoteCurrent ? quoteState.errorMessage : null)
+      || quoteNotice
       || authBlockingMessage
       || checkoutErrorMessage;
 
   function clearAddressConfirmationForManualEdit() {
     checkoutSessionSucceededRef.current = false;
+    setQuoteNotice(null);
     setHasCheckoutSessionSucceeded(false);
     setAddressConfirmation(null);
     setAcceptedSuggestedAddress(null);
     setConfirmedAddressRequestKey(null);
     setPendingConfirmedCheckoutKey(null);
+    acceptedProof.current = null;
+    submittedClearance.current = null;
   }
 
   function handleAcceptSuggestedAddress() {
-    if (!addressConfirmation) {
+    if (!activeConfirmation) {
       return;
     }
 
     const currentValues = form.getValues();
-    const suggestedAddress = addressConfirmation.suggestedAddress;
+    const suggestedAddress = activeConfirmation.suggestedAddress;
     const nextCustomerInput = {
       customerNote: currentValues.customerNote ?? '',
       email: currentValues.email ?? '',
@@ -817,8 +920,11 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
 
     setConfirmedAddressRequestKey(createCheckoutRequestKey(nextBaseRequest.data, authMode));
     setAcceptedSuggestedAddress(suggestedAddress);
+    if (activeConfirmation.proof) {
+      submittedClearance.current = { key: createCheckoutRequestKey(nextConfirmedRequest.data, authMode), proof: activeConfirmation.proof };
+    }
     setPendingConfirmedCheckoutKey(
-      addressConfirmation.source === 'session'
+      activeConfirmation.source === 'session'
         ? createCheckoutRequestKey(nextConfirmedRequest.data, authMode)
         : null,
     );
@@ -853,11 +959,30 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
     checkoutSessionSucceededRef.current = false;
     setHasCheckoutSessionSucceeded(false);
 
-    startCheckout(sessionRequestResult.data as CheckoutSessionRequest, {
+    const draftId = draftIdRef.current;
+    const data = sessionRequestResult.data;
+    const currentQuote = quoteState.status === 'success' && isQuoteCurrent ? quoteState.data : null;
+    const quoteProof = currentQuote?.addressProof;
+    const { confirmedAddress: _confirmed, ...order } = data;
+    const sessionRequest = canResume && resumableRequest
+      ? { ...resumableRequest, ...(draftId && (!currentQuote || quoteProof) && { checkoutDraftId: draftId }), ...(quoteProof && { addressProof: quoteProof }) }
+      : quoteProof && draftId ? { ...order, checkoutDraftId: draftId, addressProof: quoteProof } : data;
+    setQuoteNotice(null);
+    startCheckout(sessionRequest, {
       onAddressConfirmationRequired: (suggestedAddress, request) => {
         handleAddressConfirmationRequired('session', suggestedAddress, request);
       },
       onSessionSuccess: handleCheckoutSessionSuccess,
+      onQuoteRequired: (code) => {
+        if (code === 'CHECKOUT_QUOTE_REQUIRED') {
+          acceptedProof.current = null;
+          submittedClearance.current = null;
+          setConfirmedAddressRequestKey(null);
+        }
+        if (code === 'CHECKOUT_QUOTE_CHANGED') setQuoteNotice('Checkout totals changed. Review the updated quote before paying.');
+        setQuoteState({ data: null, errorMessage: null, key: null, status: 'idle' });
+        setQuoteRefresh((value) => value + 1);
+      },
       onAuthEmailMismatch: () => {
         setFormErrorMessage('Checkout must use the verified email for this signed-in account. Refresh your session or sign in again.');
         form.setFocus('email');
@@ -952,11 +1077,19 @@ export function CartCheckoutPanel(props: ICartCheckoutPanelProps = {}) {
               </p>
 
               <AddressConfirmationPrompt
-                confirmation={addressConfirmation}
+                confirmation={activeConfirmation}
                 onAccept={handleAcceptSuggestedAddress}
                 onEdit={handleEditSuggestedAddress}
               />
 
+              {isQuoteCurrent && quoteState.status === 'error' && !activeConfirmation ? (
+                <Button type="button" variant="outline" size="sm" onClick={() => setQuoteRefresh((value) => value + 1)}>
+                  Refresh quote
+                </Button>
+              ) : null}
+              {quote?.addressValidationStatus === 'unverified' ? (
+                <p className="text-sm text-muted-foreground" role="status">We’ll review this address before shipping.</p>
+              ) : null}
               <FieldGroup>
                 <Controller
                   name="shippingAddress.fullName"

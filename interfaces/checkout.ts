@@ -56,6 +56,8 @@ export interface CheckoutRequestBody extends ContactFields {
   billingAddress?: ShippingAddress | null;
   billingSameAsShipping?: boolean;
   confirmedAddress?: boolean;
+  checkoutDraftId?: string;
+  addressProof?: string;
 }
 
 export type CheckoutQuoteRequest = CheckoutRequestBody;
@@ -82,6 +84,9 @@ export interface CheckoutQuoteData {
   taxCents: number;
   totalCents: number;
   taxBreakdown: TaxBreakdown;
+  addressValidationStatus?: 'verified' | 'unverified';
+  addressProof?: string;
+  expiresAt?: string;
   shippingRegion?: ShippingRegion;
   appliedFreeShippingThresholdCents?: number;
 }

@@ -22,6 +22,7 @@ import {
   isTimeoutAxiosError,
 } from '@/utils/api-errors';
 import {
+  CHECKOUT_DRAFT_STORAGE_KEY,
   getInvalidCartItemsCheckoutMessage,
   getValidatedCheckoutUrl,
   redirectToCheckout,
@@ -56,12 +57,21 @@ function readSavedCheckoutAttempt(): { payloadHash: string; key: string } | null
   return null;
 }
 
+function getCheckoutAttemptFingerprint(isAuthenticated: boolean, customerId: string | null, data: CheckoutSessionRequest): string {
+  const { addressProof: _proof, checkoutDraftId: _draft, ...order } = data;
+  return JSON.stringify([isAuthenticated, customerId, order]);
+}
+
+async function hashCheckoutAttempt(fingerprint: string): Promise<string> {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
 async function getCheckoutAttemptKey(fingerprint: string): Promise<string> {
   const key = `checkout-${uuidv4()}`;
   try {
     // Browser storage only receives the hash and key. The payload includes contact details.
-    const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
-    const payloadHash = Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const payloadHash = await hashCheckoutAttempt(fingerprint);
     const saved = readSavedCheckoutAttempt();
     if (saved?.payloadHash === payloadHash) {
       return saved.key;
@@ -177,6 +187,20 @@ export function useStartCheckout() {
     },
   });
 
+  const getResumableCheckout = useCallback(async (data: CheckoutSessionRequest): Promise<CheckoutSessionRequest | null> => {
+    const saved = readSavedCheckoutAttempt();
+    if (!saved || (isAuthenticated && !customerId)) return null;
+    try {
+      for (const candidate of [data, { ...data, confirmedAddress: true }]) {
+        const fingerprint = getCheckoutAttemptFingerprint(isAuthenticated, customerId, candidate);
+        if (saved.payloadHash === await hashCheckoutAttempt(fingerprint)) return candidate;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }, [customerId, isAuthenticated]);
+
   const startCheckout = useCallback((
     data: CheckoutSessionRequest,
     options: {
@@ -186,6 +210,7 @@ export function useStartCheckout() {
       ) => void;
       onSessionSuccess?: () => void;
       onAuthEmailMismatch?: () => void;
+      onQuoteRequired?: (code: 'CHECKOUT_QUOTE_REQUIRED' | 'CHECKOUT_QUOTE_CHANGED') => void;
     } = {},
   ) => {
     if (invalidItems.length > 0) {
@@ -199,7 +224,7 @@ export function useStartCheckout() {
       return;
     }
 
-    const fingerprint = JSON.stringify([isAuthenticated, customerId, data]);
+    const fingerprint = getCheckoutAttemptFingerprint(isAuthenticated, customerId, data);
     if (attemptRef.current?.fingerprint !== fingerprint) {
       attemptRef.current = {
         fingerprint,
@@ -235,6 +260,9 @@ export function useStartCheckout() {
             trackBeginCheckout(useCartStore.getState().items);
             redirectToCheckout(checkoutUrl);
             clearAttempt();
+            if (data.checkoutDraftId) {
+              try { window.sessionStorage.removeItem(CHECKOUT_DRAFT_STORAGE_KEY); } catch { /* Storage may be unavailable. */ }
+            }
           } catch (error) {
             useCheckoutUiStore.getState().setCheckoutError(
               error instanceof Error
@@ -254,6 +282,12 @@ export function useStartCheckout() {
           const checkoutStatusMessage = getCheckoutStatusMessage(errorCode);
           if (checkoutStatusMessage) {
             useCheckoutUiStore.getState().setCheckoutError(checkoutStatusMessage);
+            return;
+          }
+
+          if (errorCode === 'CHECKOUT_QUOTE_REQUIRED' || errorCode === 'CHECKOUT_QUOTE_CHANGED') {
+            useCheckoutUiStore.getState().endCheckout();
+            options.onQuoteRequired?.(errorCode);
             return;
           }
 
@@ -307,6 +341,7 @@ export function useStartCheckout() {
   return {
     checkoutDialog,
     checkoutErrorMessage,
+    getResumableCheckout,
     isCheckingOut,
     startCheckout,
   };

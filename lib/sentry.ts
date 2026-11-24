@@ -7,13 +7,15 @@ const BROWSER_EXTENSION_OBJECT_NOT_FOUND_PATTERN =
 const SENSITIVE_QUERY_KEYS = new Set([
   'token',
   'session_id',
+  'key',
+  'addressproof',
   'checkout_session_id',
   'code',
   'error',
   'error_code',
   'error_description',
 ]);
-const SENSITIVE_HEADER_KEYS = new Set(['authorization', 'cookie', 'set-cookie']);
+const SENSITIVE_HEADER_KEYS = new Set(['authorization', 'cookie', 'set-cookie', 'x-goog-api-key']);
 const URL_SCHEME_PATTERN = /^[a-zA-Z][a-zA-Z\d+\-.]*:/;
 
 export const sentryEnabled = process.env.NODE_ENV === 'production';
@@ -108,6 +110,10 @@ export function sanitizeSentryEvent<T extends Event>(event: T): T {
       }
     }
 
+    if (typeof nextRequest.url === 'string' && /\/api\/v1\/checkout\/(?:quote|session)(?:[/?#]|$)/.test(nextRequest.url) && nextRequest.data !== undefined) {
+      delete nextRequest.data;
+      hasChanges = true;
+    }
     nextEvent.request = nextRequest;
   }
 
@@ -139,6 +145,19 @@ export function sanitizeSentryEvent<T extends Event>(event: T): T {
   }
 
   return hasChanges ? nextEvent : event;
+}
+
+export function sanitizeGoogleSpan<T extends { data?: Record<string, unknown>; description?: string }>(span: T): T {
+  const data = span.data;
+  if (data) {
+    for (const field of ['url.full', 'url', 'http.url']) {
+      if (typeof data[field] === 'string') data[field] = sanitizeUrlValue(data[field]);
+    }
+  }
+  if (typeof span.description === 'string' && /googleapis\.com|maps\.google/.test(span.description)) {
+    span.description = span.description.replace(/https?:\/\/[^\s]+/g, (value) => sanitizeUrlValue(value) ?? value);
+  }
+  return span;
 }
 
 export function sanitizeBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb {
@@ -217,6 +236,10 @@ function sanitizeUrlValue(value: string | undefined): string | undefined {
     const isProtocolRelativeUrl = value.startsWith('//');
     const url = new URL(value, 'https://sentry.invalid');
     let hasChanges = false;
+    if (/^(?:maps\.googleapis\.com|places\.googleapis\.com|addressvalidation\.googleapis\.com|maps\.gstatic\.com)$/.test(url.hostname) && url.search) {
+      url.search = '';
+      hasChanges = true;
+    }
 
     for (const key of SENSITIVE_QUERY_KEYS) {
       if (url.searchParams.has(key)) {

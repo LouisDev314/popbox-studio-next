@@ -3,6 +3,7 @@ import {
   filterAndSanitizeSentryEvent,
   getClientSentryDsn,
   sanitizeBreadcrumb,
+  sanitizeGoogleSpan,
   sanitizeSentryEvent,
   sentryEnabled,
   sentryTracesSampleRate,
@@ -16,6 +17,7 @@ Sentry.init({
   beforeSend: filterAndSanitizeSentryEvent,
   beforeSendTransaction: sanitizeSentryEvent,
   beforeBreadcrumb: sanitizeBreadcrumb,
+  beforeSendSpan: sanitizeGoogleSpan,
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

@@ -6,7 +6,7 @@ import AdminOrderDetailPageClient from '@/components/admin/orders/admin-order-de
 import QueryConfigs from '@/configs/api/query-config';
 import MutationConfigs from '@/configs/api/mutation-config';
 import type { IBaseApiResponse } from '@/interfaces/api-response';
-import type { IAdminPaymentRecoveryResponse, IOrderDetail } from '@/interfaces/order';
+import type { IAdminOrderDetail, IAdminPaymentRecoveryResponse } from '@/interfaces/order';
 import { renderWithProviders } from '../test-utils';
 
 function createResponse<T>(data: T): AxiosResponse<IBaseApiResponse<T>> {
@@ -25,7 +25,7 @@ function createResponse<T>(data: T): AxiosResponse<IBaseApiResponse<T>> {
   } as AxiosResponse<IBaseApiResponse<T>>;
 }
 
-function createOrder(overrides: Partial<IOrderDetail & { customerNote: string | null }> = {}): IOrderDetail & { customerNote: string | null } {
+function createOrder(overrides: Partial<IAdminOrderDetail> = {}): IAdminOrderDetail {
   return {
     id: 'order-1',
     publicId: 'PBX-1001',
@@ -258,4 +258,28 @@ describe('AdminOrderDetailPageClient', () => {
     await screen.findByRole('heading', { name: 'Order #PBX-1001' });
     expect(screen.queryByRole('heading', { name: 'Customer note' })).not.toBeInTheDocument();
   });
+
+  it('requires a verification reason before releasing a paid shipping-address hold', async () => {
+    const pending = createOrder({ shippingAddressReview: {
+      validationStatus: 'unverified', reviewedAt: null, reviewedBy: null, reason: null,
+    } });
+    const reviewed = createOrder({ shippingAddressReview: {
+      validationStatus: 'unverified', reviewedAt: '2026-04-01T12:00:00.000Z', reviewedBy: 'admin-1', reason: 'carrier_verified',
+    } });
+    const fetchOrder = vi.spyOn(QueryConfigs, 'fetchAdminOrder').mockResolvedValue(createResponse(pending));
+    const review = vi.spyOn(MutationConfigs, 'reviewAdminOrderAddress').mockImplementation(async () => {
+      fetchOrder.mockResolvedValue(createResponse(reviewed));
+      return createResponse(reviewed);
+    });
+    renderWithProviders(<AdminOrderDetailPageClient adminOrderId="order-1" />);
+    const approve = await screen.findByRole('button', { name: 'Approve saved address' });
+    expect(approve).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Mark Packed' })).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText('Verification reason'), 'carrier_verified');
+    await userEvent.click(approve);
+    await waitFor(() => expect(review.mock.calls[0]?.[0]).toEqual({ adminOrderId: 'order-1', reason: 'carrier_verified' }));
+    expect(await screen.findByText('Carrier verified the exact address')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mark Packed' })).toBeEnabled();
+  });
+
 });

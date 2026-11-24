@@ -14,6 +14,8 @@ import {
 } from '@/interfaces/checkout';
 import { IOrderDetail, IOrderStatus } from '@/interfaces/order';
 
+export const CHECKOUT_DRAFT_STORAGE_KEY = 'popbox-checkout-draft:v1';
+
 const FINALIZED_CHECKOUT_ORDER_STATUSES = new Set<IOrderStatus>([
   'paid',
   'packed',

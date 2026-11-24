@@ -76,9 +76,10 @@ function OrderStatusBadge({ status }: { status: IOrderStatus }) {
 }
 
 function OrderAttentionIndicator({ order }: { order: IAdminOrderListItem }) {
-  if (order.status !== 'paid_needs_attention') {
-    return null;
+  if (order.shippingAddressReviewRequired && order.status === 'paid') {
+    return <p className="mt-2 text-xs font-semibold text-muted-foreground">Shipping address review required</p>;
   }
+  if (order.status !== 'paid_needs_attention') return null;
 
   return (
     <div className="mt-2 flex max-w-xs items-start gap-1.5 rounded-lg border border-[#f6cdb8] bg-[#fff8f4] px-2 py-1.5 text-xs leading-5 text-[#b54708]">
@@ -187,6 +188,7 @@ export default function AdminOrdersPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentQuery = searchParams.get('search')?.trim() ?? '';
+  const pendingAddressReview = searchParams.get('shippingAddressReview') === 'pending';
   const activeStatus = parseAdminOrderStatusParam(searchParams.get('status')) ?? ADMIN_ORDER_DEFAULT_STATUS;
   const activeSort = parseAdminOrderSortParam(searchParams.get('sort')) ?? ADMIN_ORDER_DEFAULT_SORT;
   const [searchState, setSearchState] = useState({
@@ -199,7 +201,8 @@ export default function AdminOrdersPageClient() {
     search: currentQuery || undefined,
     sort: activeSort,
     status: activeStatus,
-  }), [activeSort, activeStatus, currentQuery]);
+    ...(pendingAddressReview && { shippingAddressReview: 'pending' as const }),
+  }), [activeSort, activeStatus, currentQuery, pendingAddressReview]);
 
   const replaceSearchParams = useCallback((mutator: (params: URLSearchParams) => void) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -250,6 +253,7 @@ export default function AdminOrdersPageClient() {
 
   const handleStatusChange = (status: AdminOrderStatusFilter) => {
     replaceSearchParams((params) => {
+      params.delete('shippingAddressReview');
       if (status === 'all') {
         params.delete('status');
       } else {
@@ -293,6 +297,7 @@ export default function AdminOrdersPageClient() {
       params.delete('search');
       params.delete('status');
       params.delete('sort');
+      params.delete('shippingAddressReview');
     });
   };
 
@@ -304,7 +309,7 @@ export default function AdminOrdersPageClient() {
         <div className="-mx-1 overflow-x-auto pb-1">
           <div className="flex min-w-max gap-2 px-1">
             {ADMIN_ORDER_STATUS_OPTIONS.map((option) => {
-              const isActive = activeStatus === option.value;
+              const isActive = !pendingAddressReview && activeStatus === option.value;
 
               return (
                 <button
@@ -322,6 +327,15 @@ export default function AdminOrdersPageClient() {
                 </button>
               );
             })}
+            <button type="button" aria-pressed={pendingAddressReview}
+              className="rounded-full border border-border px-4 py-2 text-sm font-semibold aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+              onClick={() => replaceSearchParams((params) => {
+                params.delete('status');
+                if (pendingAddressReview) params.delete('shippingAddressReview');
+                else params.set('shippingAddressReview', 'pending');
+              })}>
+              Address review
+            </button>
           </div>
         </div>
 
@@ -382,7 +396,7 @@ export default function AdminOrdersPageClient() {
               </div>
             ) : orders.length === 0 ? (
               <EmptyOrdersState
-                hasActiveFilters={hasActiveStatusFilter || hasActiveSort}
+                hasActiveFilters={hasActiveStatusFilter || hasActiveSort || pendingAddressReview}
                 hasActiveSearch={hasActiveSearch}
                 onClearFilters={clearFilters}
                 onClearSearch={clearSearch}

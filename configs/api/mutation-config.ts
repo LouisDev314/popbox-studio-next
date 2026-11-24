@@ -7,7 +7,7 @@ import {
   CheckoutSessionData,
   CheckoutSessionRequest,
 } from '@/interfaces/checkout';
-import { IOrderTicket, IGuestTicketView, IAdminOrderStatusUpdate, IAdminOrderShipmentUpdate, IAdminOrderDetail, IAdminPaymentRecoveryResponse } from '@/interfaces/order';
+import { IOrderTicket, IGuestTicketView, IAdminOrderStatusUpdate, IAdminOrderShipmentUpdate, IAdminOrderDetail, IAdminPaymentRecoveryResponse, type ShippingAddressReviewReason } from '@/interfaces/order';
 import {
   IAdminProduct,
   IAdminProductImagePatch,
@@ -56,8 +56,9 @@ import { customerPatch, customerPost } from '@/lib/api/customer-client';
 const MutationConfigs = {
   createCheckoutQuote: (
     data: CheckoutQuoteRequest,
+    signal?: AbortSignal,
   ): Promise<AxiosResponse<IBaseApiResponse<CheckoutQuoteData>>> => {
-    return httpClient.post('/api/v1/checkout/quote', data);
+    return httpClient.post('/api/v1/checkout/quote', data, { signal });
   },
   createCheckoutSession: (
     data: CheckoutSessionRequest,
@@ -71,8 +72,9 @@ const MutationConfigs = {
   },
   createAuthenticatedCheckoutQuote: (
     data: CheckoutQuoteRequest,
+    signal?: AbortSignal,
   ): Promise<AxiosResponse<IBaseApiResponse<CheckoutQuoteData>>> => {
-    return customerPost('/api/v1/checkout/quote', data);
+    return customerPost('/api/v1/checkout/quote', data, { signal });
   },
   createAuthenticatedCheckoutSession: (
     data: CheckoutSessionRequest,
@@ -214,6 +216,9 @@ const MutationConfigs = {
   },
   updateAdminTag: async ({ id, data }: { id: string; data: IAdminTagUpdateRequest }): Promise<AxiosResponse<IBaseApiResponse<ITag>>> => {
     return httpClient.patch(`/api/v1/admin/tags/${id}`, data, await withAdminAuth());
+  },
+  reviewAdminOrderAddress: async ({ adminOrderId, reason }: { adminOrderId: string; reason: ShippingAddressReviewReason }): Promise<AxiosResponse<IBaseApiResponse<IAdminOrderDetail>>> => {
+    return httpClient.post(`/api/v1/admin/orders/${adminOrderId}/shipping-address/review`, { confirmed: true, reason }, await withAdminAuth());
   },
   updateAdminOrderStatus: async ({ adminOrderId, data }: { adminOrderId: string; data: IAdminOrderStatusUpdate }): Promise<AxiosResponse<IBaseApiResponse<IAdminOrderDetail>>> => {
     return httpClient.patch(`/api/v1/admin/orders/${adminOrderId}/status`, data, await withAdminAuth());

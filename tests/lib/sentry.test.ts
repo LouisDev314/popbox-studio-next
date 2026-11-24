@@ -1,6 +1,6 @@
 import type { Event } from '@sentry/nextjs';
 import { describe, expect, it } from 'vitest';
-import { filterAndSanitizeSentryEvent } from '@/lib/sentry';
+import { filterAndSanitizeSentryEvent, sanitizeSentryEvent } from '@/lib/sentry';
 
 const ignoredMessage = 'Non-Error promise rejection captured with value: Object Not Found Matching Id:5, MethodName:update, ParamCount:4';
 
@@ -114,4 +114,15 @@ describe('filterAndSanitizeSentryEvent', () => {
     image.dispatchEvent(imageError);
     expect(filterAndSanitizeSentryEvent(event, { originalException: imageError })).toBe(event);
   });
+
+  it('drops checkout bodies and strips Google resource query strings', () => {
+    const sensitive = '123 Synthetic Avenue';
+    const sample = sanitizeSentryEvent({
+      request: { url: 'https://api.example.com/api/v1/checkout/quote', data: { shippingAddress: sensitive, addressProof: 'sensitive-proof' } },
+      breadcrumbs: [{ data: { url: `https://maps.googleapis.com/maps/api/js?key=secret&input=${encodeURIComponent(sensitive)}` } }],
+    });
+    expect(sample.request).not.toHaveProperty('data');
+    expect(sample.breadcrumbs?.[0]?.data?.url).toBe('https://maps.googleapis.com/maps/api/js');
+  });
+
 });

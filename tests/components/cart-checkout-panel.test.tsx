@@ -209,6 +209,9 @@ function createQuoteResponse(overrides: Partial<{
   shippingCents: number;
   taxCents: number;
   totalCents: number;
+  addressProof: string;
+  addressValidationStatus: 'verified' | 'unverified';
+  expiresAt: string;
 }> = {}) {
   const data = {
     subtotalCents: 4999,
@@ -355,6 +358,7 @@ describe('CartCheckoutPanel', () => {
 
     renderWithProviders(<CartCheckoutPanel />);
 
+    await userEvent.type(screen.getByLabelText('Street address'), '123 M');
     await waitFor(() => {
       expect(document.querySelectorAll('script[data-popbox-google-places="true"]')).toHaveLength(1);
     });
@@ -365,6 +369,7 @@ describe('CartCheckoutPanel', () => {
         ?.dispatchEvent(new Event('error'));
     });
 
+    await userEvent.clear(screen.getByLabelText('Street address'));
     await fillValidCheckoutForm();
 
     await waitFor(() => {
@@ -397,6 +402,7 @@ describe('CartCheckoutPanel', () => {
 
     renderWithProviders(<CartCheckoutPanel />);
 
+    await userEvent.type(screen.getByLabelText('Street address'), '123 M');
     await waitFor(() => {
       expect(document.querySelectorAll('script[data-popbox-google-places="true"]')).toHaveLength(1);
     });
@@ -411,6 +417,7 @@ describe('CartCheckoutPanel', () => {
       }).google?.maps?.__ib__?.();
     });
 
+    await userEvent.clear(screen.getByLabelText('Street address'));
     await fillValidCheckoutForm();
 
     await waitFor(() => {
@@ -476,7 +483,7 @@ describe('CartCheckoutPanel', () => {
     expect(screen.queryByRole('option', {
       name: '123 Maple Street, Vancouver, BC, Canada',
     })).not.toBeInTheDocument();
-    expect(googlePlaces.AutocompleteSessionToken).toHaveBeenCalledTimes(2);
+    expect(googlePlaces.AutocompleteSessionToken).toHaveBeenCalledTimes(1);
 
     await userEvent.type(screen.getByLabelText('Email'), 'customer@example.com');
     await userEvent.type(screen.getByLabelText('Phone (optional)'), '+1 780 555 0100');
@@ -624,7 +631,7 @@ describe('CartCheckoutPanel', () => {
     });
   });
 
-  it('loads the Google Maps script once when autocomplete initializes without an existing library', async () => {
+  it('lazy-loads the Google Maps script once after eligible address entry', async () => {
     resetStores();
     publicEnvMock.googleMapsApiKey = 'test-public-google-key';
 
@@ -637,6 +644,8 @@ describe('CartCheckoutPanel', () => {
     });
 
     const firstRender = renderWithProviders(<CartCheckoutPanel />);
+    expect(document.querySelectorAll('script[data-popbox-google-places="true"]')).toHaveLength(0);
+    await userEvent.type(screen.getByLabelText('Street address'), '123 M');
 
     await waitFor(() => {
       expect(document.querySelectorAll('script[data-popbox-google-places="true"]')).toHaveLength(1);
@@ -644,6 +653,7 @@ describe('CartCheckoutPanel', () => {
 
     firstRender.unmount();
     renderWithProviders(<CartCheckoutPanel />);
+    await userEvent.type(screen.getByLabelText('Street address'), '124 M');
 
     await waitFor(() => {
       expect(document.querySelectorAll('script[data-popbox-google-places="true"]')).toHaveLength(1);
@@ -1839,6 +1849,7 @@ describe('CartCheckoutPanel', () => {
       key: requests[0].key,
       payloadHash: expect.stringMatching(/^[0-9a-f]{64}$/),
     });
+    const savedDraft = window.sessionStorage.getItem('popbox-checkout-draft:v1');
     initialCart.unmount();
 
     renderWithProviders(<CartCheckoutPanel />);
@@ -1856,7 +1867,11 @@ describe('CartCheckoutPanel', () => {
     if (changeAddress || definiteFailure) {
       expect(requests[1].key).not.toBe(requests[0].key);
     } else {
-      expect(requests[1]).toEqual(requests[0]);
+      expect(requests[1].key).toBe(requests[0].key);
+      const { checkoutDraftId, ...order } = requests[1].body as Record<string, unknown>;
+      expect(order).toEqual(requests[0].body);
+      // A retry sent before a fresh quote can identify its draft without changing the order or key.
+      if (checkoutDraftId !== undefined) expect(checkoutDraftId).toBe(savedDraft);
     }
     expect(window.sessionStorage.getItem('popbox-checkout-attempt:v1')).toBeNull();
   });
@@ -1899,4 +1914,62 @@ describe('CartCheckoutPanel', () => {
     expect(keys).toEqual([keys[0], keys[0]]);
     expect(redirectToCheckout).not.toHaveBeenCalled();
   });
+
+  it('requires explicit outage confirmation and keeps the draft ID after a same-tab remount', async () => {
+    resetStores();
+    const quoteRequests: Array<Record<string, unknown>> = [];
+    const sessionRequests: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(QUOTE_URL, async ({ request }) => {
+        const data = await request.json() as Record<string, unknown>;
+        quoteRequests.push(data);
+        if (!data.confirmedAddress) return HttpResponse.json({
+          code: 422, message: 'Confirm the shipping address you entered.', success: false, errors: { code: 'ADDRESS_MANUAL_CONFIRMATION_REQUIRED', addressProof: 'manual-proof', failure: 'quota' },
+        }, { status: 422 });
+        return HttpResponse.json(createQuoteResponse({
+          addressProof: 'quote-proof', addressValidationStatus: 'unverified', expiresAt: new Date(Date.now() + 600_000).toISOString(),
+        }));
+      }),
+      http.post(SESSION_URL, async ({ request }) => {
+        sessionRequests.push(await request.json() as Record<string, unknown>);
+        return HttpResponse.json(createCheckoutSessionResponse(), { status: 201 });
+      }),
+    );
+    act(() => useCartStore.setState({ hasHydrated: true, invalidItems: [], items: [createCartItem()] }));
+    const mounted = renderWithProviders(<CartCheckoutPanel />);
+    await fillValidCheckoutForm();
+    expect(await screen.findByRole('button', { name: 'Confirm entered address' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Check Out' })).toBeDisabled();
+    const draft = quoteRequests.at(-1)?.checkoutDraftId;
+    expect(draft).toEqual(expect.any(String));
+    mounted.unmount();
+
+    renderWithProviders(<CartCheckoutPanel />);
+    await fillValidCheckoutForm();
+    await userEvent.click(await screen.findByRole('button', { name: 'Confirm entered address' }));
+    expect(await screen.findByText('We’ll review this address before shipping.')).toBeInTheDocument();
+    expect(quoteRequests.at(-1)).toMatchObject({ checkoutDraftId: draft, addressProof: 'manual-proof', confirmedAddress: true });
+    expect(sessionRequests).toHaveLength(0);
+    await userEvent.click(screen.getByRole('button', { name: 'Check Out' }));
+    await waitFor(() => expect(sessionRequests).toHaveLength(1));
+    expect(sessionRequests[0]).toMatchObject({ checkoutDraftId: draft, addressProof: 'quote-proof' });
+    expect(sessionRequests[0]).not.toHaveProperty('confirmedAddress');
+  });
+
+  it('keeps manual entry available when autocomplete quota is exhausted', async () => {
+    resetStores();
+    publicEnvMock.googleMapsApiKey = 'test-public-google-key';
+    const googlePlaces = installMockGooglePlaces();
+    googlePlaces.fetchAutocompleteSuggestions.mockRejectedValue({ code: 'RESOURCE_EXHAUSTED' });
+    server.use(http.post(QUOTE_URL, async () => HttpResponse.json(createQuoteResponse())));
+    act(() => useCartStore.setState({ hasHydrated: true, invalidItems: [], items: [createCartItem()] }));
+    renderWithProviders(<CartCheckoutPanel />);
+    await userEvent.type(screen.getByLabelText('Street address'), '123 Maple');
+    expect(await screen.findByText('Address suggestions are unavailable. You can enter your address manually.')).toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText('Street address'));
+    await fillValidCheckoutForm();
+    expect(await screen.findByText('$69.43')).toBeInTheDocument();
+    expect(googlePlaces.fetchAutocompleteSuggestions).toHaveBeenCalledTimes(1);
+  });
+
 });

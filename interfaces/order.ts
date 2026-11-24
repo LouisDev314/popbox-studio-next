@@ -92,7 +92,15 @@ export interface IOrderDetail {
 
 export type IGuestOrderDetail = IOrderDetail;
 
+export type ShippingAddressReviewReason = 'customer_confirmed' | 'carrier_verified';
+
 export interface IAdminOrderDetail extends IOrderDetail {
+  shippingAddressReview?: {
+    validationStatus: 'verified' | 'unverified' | null;
+    reviewedAt: string | null;
+    reviewedBy: string | null;
+    reason: ShippingAddressReviewReason | null;
+  };
   customerNote: string | null;
 }
 
@@ -124,6 +132,7 @@ export interface IAdminOrderListItem {
   publicId: string;
   status: IOrderStatus;
   attention: IOrderAttention | null;
+  shippingAddressReviewRequired?: boolean;
   customerNote: string | null;
   includesLastOnePrize?: boolean;
   totalCents: number;

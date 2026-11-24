@@ -7,6 +7,7 @@ export interface IAdminOrderListQueryParams {
   cursor?: string;
   limit?: number;
   search?: string;
+  shippingAddressReview?: 'pending';
   sort: AdminOrderSort;
   status: AdminOrderStatusFilter;
 }
@@ -113,6 +114,7 @@ export function buildAdminOrderListKeyParams(
 export function buildAdminOrdersRequestParams(filters: IAdminOrderListQueryParams) {
   return {
     ...(filters.search ? { search: filters.search } : {}),
+    ...(filters.shippingAddressReview ? { shippingAddressReview: filters.shippingAddressReview } : {}),
     status: filters.status,
     sort: filters.sort,
     ...(filters.cursor ? { cursor: filters.cursor } : {}),

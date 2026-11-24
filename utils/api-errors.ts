@@ -15,12 +15,16 @@ export type CheckoutAddressErrorCode =
   | 'ADDRESS_COUNTRY_UNSUPPORTED'
   | 'ADDRESS_INVALID'
   | 'ADDRESS_NEEDS_CONFIRMATION'
+  | 'ADDRESS_MANUAL_CONFIRMATION_REQUIRED'
+  | 'ADDRESS_VALIDATION_RATE_LIMITED'
+  | 'ADDRESS_VALIDATION_IN_PROGRESS'
   | 'ADDRESS_VALIDATION_UNAVAILABLE';
 
 interface ICheckoutAddressErrorDetails {
   code: CheckoutAddressErrorCode;
   message: string;
   suggestedAddress: SuggestedShippingAddress | null;
+  addressProof?: string;
 }
 
 const CHECKOUT_ADDRESS_ERROR_MESSAGES: Record<CheckoutAddressErrorCode, string> = {
@@ -28,6 +32,9 @@ const CHECKOUT_ADDRESS_ERROR_MESSAGES: Record<CheckoutAddressErrorCode, string> 
   ADDRESS_COUNTRY_UNSUPPORTED: 'PopBox Studio currently only ships within Canada.',
   ADDRESS_INVALID: 'We could not validate this shipping address or product. Please check the street address, city, province and postal code, or the product availability.',
   ADDRESS_NEEDS_CONFIRMATION: 'Please confirm the corrected shipping address before checkout.',
+  ADDRESS_MANUAL_CONFIRMATION_REQUIRED: 'Address verification is unavailable. Confirm the address you entered to continue.',
+  ADDRESS_VALIDATION_RATE_LIMITED: 'Too many shipping address checks. Try again later.',
+  ADDRESS_VALIDATION_IN_PROGRESS: 'This shipping address is already being checked. Try again shortly.',
   ADDRESS_VALIDATION_UNAVAILABLE: 'Address validation is temporarily unavailable. Please try again.',
 };
 
@@ -181,6 +188,9 @@ export function getCheckoutAddressError(
     return null;
   }
 
+  const addressProof = getStringField(errors, 'addressProof');
+  const proof = addressProof ? { addressProof } : {};
+
   if (code === 'ADDRESS_NEEDS_CONFIRMATION') {
     const suggestedAddress = parseSuggestedShippingAddress(errors.suggestedAddress);
 
@@ -196,6 +206,7 @@ export function getCheckoutAddressError(
       code,
       message: CHECKOUT_ADDRESS_ERROR_MESSAGES[code],
       suggestedAddress,
+      ...proof,
     };
   }
 
@@ -203,6 +214,7 @@ export function getCheckoutAddressError(
     code,
     message: CHECKOUT_ADDRESS_ERROR_MESSAGES[code],
     suggestedAddress: null,
+    ...proof,
   };
 }
 
