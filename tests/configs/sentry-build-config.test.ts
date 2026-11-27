@@ -7,7 +7,7 @@ vi.mock('@sentry/nextjs', () => ({
 }));
 
 const sentryBuildVariables = [
-  'CI', 'VERCEL', 'VERCEL_ENV', 'VERCEL_GIT_COMMIT_SHA',
+  'CI', 'VERCEL', 'VERCEL_ENV', 'VERCEL_GIT_COMMIT_SHA', 'WORKERS_CI_COMMIT_SHA',
   'SENTRY_ENABLE_BUILD', 'SENTRY_ORG', 'SENTRY_PROJECT', 'SENTRY_AUTH_TOKEN', 'SENTRY_RELEASE',
 ] as const;
 
@@ -57,6 +57,14 @@ describe('Sentry build integration', () => {
     await expect(import('@/next.config')).rejects.toThrow('Sentry production build integration requires');
   });
 
+  it('leaves upload disabled in a credential-free Workers Builds preview', async () => {
+    vi.stubEnv('CI', 'true');
+    vi.stubEnv('WORKERS_CI_COMMIT_SHA', 'preview-commit-sha');
+    await import('@/next.config');
+
+    expect(withSentryConfig).not.toHaveBeenCalled();
+  });
+
   it('uploads production maps under the deployment commit instead of a shared release label', async () => {
     configureVercelProduction();
     configureUploadEnvironment();
@@ -70,13 +78,33 @@ describe('Sentry build integration', () => {
     }));
   });
 
+  it('uses the Workers Builds deployment commit for an explicitly enabled upload', async () => {
+    vi.stubEnv('SENTRY_ENABLE_BUILD', 'true');
+    vi.stubEnv('WORKERS_CI_COMMIT_SHA', ' workers-commit-sha ');
+    vi.stubEnv('SENTRY_RELEASE', 'shared-label');
+    configureUploadEnvironment();
+    await import('@/next.config');
+
+    expect(withSentryConfig).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({
+      release: { name: 'workers-commit-sha' },
+      sourcemaps: { disable: false },
+    }));
+  });
+
   it('requires an attributable release in a credentialed production build', async () => {
     configureVercelProduction();
     configureUploadEnvironment();
 
     await expect(import('@/next.config')).rejects.toThrow(
-      'Sentry production builds require VERCEL_GIT_COMMIT_SHA or SENTRY_RELEASE.',
+      'Sentry production builds require VERCEL_GIT_COMMIT_SHA, WORKERS_CI_COMMIT_SHA, or SENTRY_RELEASE.',
     );
+  });
+
+  it('also requires a release in a credentialed explicitly enabled build', async () => {
+    vi.stubEnv('SENTRY_ENABLE_BUILD', 'true');
+    configureUploadEnvironment();
+
+    await expect(import('@/next.config')).rejects.toThrow('Sentry production builds require');
   });
 
   it('uses an explicit CI release and supports CI=1', async () => {

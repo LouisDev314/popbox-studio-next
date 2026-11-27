@@ -422,3 +422,338 @@ Additional references: [Sentry upload permissions](https://docs.sentry.io/api/pe
 [Northflank health checks](https://northflank.com/docs/v1/application/observe/configure-health-checks),
 [Northflank injected SHA](https://northflank.com/docs/v1/application/secure/inject-secrets),
 [Vercel notification availability](https://vercel.com/docs/notifications).
+
+## Cloudflare Workers migration verification — November 26, 2026
+
+Production still serves through Vercel. The read-only [Cloudflare preview](https://popboxstudio-web.ca-support.workers.dev/)
+is deployed as `popboxstudio-web` on the confirmed Workers Free account. Direct
+OpenNext and vinext rendering exceeded the 10 ms Free CPU limit in route-level
+telemetry. The SQLite Durable Object rendering candidate is in validation.
+Production cutover and Vercel decommissioning remain pending.
+
+### Production baseline
+
+- Namecheap is authoritative for `popboxstudio.com`, with no DS record
+  observed. Both storefront hostnames serve HTTPS. The apex returns a 307 to
+  `www.popboxstudio.com`, and `/home` returns a 308 to `/`.
+- The existing storefront DNS targets are apex `A 216.198.79.1` and `www CNAME
+  0f09280bb0395d82.vercel-dns-017.com.` with approximately 30-minute observed
+  TTLs. These are the public storefront records. Obtain a complete Namecheap
+  export and confirm effective TTLs before any delegation change.
+- Representative storefront pages returned server-rendered HTML and SEO metadata.
+  The sitemap returned 109 URLs. Anonymous account and admin routes redirected
+  to their sign-in flows.
+- Median TTFB across three public samples per route was 194 ms for the
+  homepage, 282 ms for a filtered listing, 295 ms for a collection and 537 ms
+  for a Kuji detail page. Repeat at the same location and cache state. Use
+  Workers telemetry for invocation CPU.
+
+### Candidate
+
+The candidate uses OpenNext `1.20.19`, Next.js `16.4.6` and Wrangler
+`4.168.0` on Workers Free. OpenNext adapts the existing Next.js build,
+so the app can retain App Router SSR, route handlers, rewrites and metadata.
+Version 1.20.19 fixes a cookie-handling regression in the experimental Node.js
+`proxy.ts` support. vinext uses a Vite reimplementation of the Next.js APIs
+and is in beta. Static export cannot serve this app's authenticated routes,
+request-time catalog or API rewrite. [OpenNext support](https://opennext.js.org/cloudflare) ·
+[OpenNext release](https://github.com/opennextjs/opennextjs-cloudflare/releases/tag/@opennextjs%2Fcloudflare@1.20.19) ·
+[Cloudflare vinext guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/).
+
+The Worker uses Workers Static Assets, a KV namespace for Next.js incremental
+cache data, two SQLite Durable Object classes for timed regeneration and tag
+invalidation, and the Free Images binding for Supabase Storage image transforms.
+On an Images quota error, the image route serves the original source through
+OpenNext's existing allowlist. The Kuji video alone uses Worker-first routing to
+support HTTP byte ranges required by Safari. `workers.dev` allows anonymous
+catalog reads and omits production service credentials from the preview build.
+Its pages carry `X-Robots-Tag: noindex`. [OpenNext caching](https://opennext.js.org/cloudflare/caching) ·
+[Static Assets limitations](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/#range-requests).
+
+### Preview results
+
+- `pnpm check:ci` passed lint, 784 tests and the Next.js build and type check.
+  The local production reliability suite passed taxonomy invalidation, live
+  pricing, sitemap caching and last-good homepage ISR. Across Playwright fixture
+  runs, all functional cases and four separate analytics consent checks passed.
+  The full browser suite was not green in one run. Five old visual baselines
+  differed by the same pixels on the original and migration builds, and dev
+  reloads affected some runs.
+- Public HTTPS checks passed for home, product listing and detail, collections,
+  search, same-origin API reads, redirects, canonical and structured metadata,
+  all 109 sitemap URLs, transformed WebP images and the video `206` byte range.
+  Browser verification covered the Kuji product, inventory display and local
+  cart add/remove. The preview rejected a write method and private routes.
+- Wrangler reported 19,111 KiB uncompressed, 4,936 KiB gzip, fewer than 100
+  asset files, and 309–390 ms startup across deploys. The largest asset was the
+  8.5 MiB Kuji video. The dashboard
+  showed 46 MB median and 57 MB P99 memory, zero CPU-limit and memory-limit
+  errors, and 107 invocations in the sampled 24-hour window.
+- In the follow-up sample, per-URL median CPU was 26 ms on home, 45 ms on the
+  filtered listing, 60 ms on Kuji detail, 40 ms on the Featured collection,
+  32 ms on search and 25 ms on the sitemap. P95 was 436, 316, 559, 174, 58 and
+  250 ms respectively. Cloudflare can allow CPU rollover temporarily. Successful
+  HTTP responses in a small test do not establish sustained operation at 10 ms.
+  [Workers metrics](https://developers.cloudflare.com/workers/observability/metrics-and-analytics/#cpu-time-per-execution).
+- A deployed 25-second CPU profile during product renders showed time in the
+  generated Next.js request pipeline, routing, cache initialization and garbage
+  collection. OpenNext cache interception can help existing public cache hits.
+  Dynamic catalog and private routes still require live request processing.
+  [Workers profiling](https://developers.cloudflare.com/workers/observability/profiling-in-production/).
+- Median network TTFB across five follow-up requests per route was 371 ms for
+  home, 222 ms for the listing, 274 ms for the collection and 527 ms for Kuji
+  detail. These are network timings from one client. The CPU finding prevents
+  a sustainable production traffic estimate.
+
+### Vinext evaluation
+
+The official checker scored the baseline project 97% compatible and flagged
+partial support for remote images and Sentry build integration. A scratch
+build used vinext `1.4.7`, React `19.3.1` and Node `24.22.1`. The separate
+[vinext preview](https://popboxstudio-vinext-eval.ca-support.workers.dev/) uses
+the same read-only boundary and a separate key prefix in the existing Free KV
+namespace. Wrangler reported 6,042 KiB uncompressed, 2,419 KiB gzip, 191 asset
+files and 50 ms startup. [Vinext compatibility guide](https://developers.cloudflare.com/workers/framework-guides/web-apps/nextjs/).
+
+| Public route | OpenNext median CPU | OpenNext P95 CPU | Vinext median CPU | Vinext P95 CPU |
+| --- | ---: | ---: | ---: | ---: |
+| Homepage | 26 ms | 436 ms | 11 ms | 316 ms |
+| Filtered listing | 45 ms | 316 ms | 62 ms | 411 ms |
+| Kuji detail | 60 ms | 559 ms | 68 ms | 89 ms |
+| Featured collection | 40 ms | 174 ms | 44 ms | 56 ms |
+| Search results | 32 ms | 58 ms | 25 ms | 34 ms |
+| Sitemap | 25 ms | 250 ms | 2 ms | 24 ms |
+
+The vinext sample returned 200 on the public SSR and API routes, 109 sitemap
+entries, 206 for the video range, and 404 for authenticated paths in read-only
+mode. The 38 sampled invocations produced zero CPU or memory limit errors. P99
+memory was 47 MB. Median network TTFB was 229 ms for home, 248 ms for the
+filtered listing, 233 ms for Featured and 545 ms for Kuji detail. Both adapters
+exceeded the CPU threshold on required live routes. The production build,
+GitHub integration, DNS change and Vercel disconnection remain gated.
+
+Netlify Free is a separate $0 candidate for evaluation. It supports dynamic
+Next.js and caps usage at 300 credits per month. Confirm traffic headroom and
+the existing 5 MiB admin upload path against Netlify Functions' roughly 4.5 MB
+effective binary request limit. [Netlify Next.js support](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/) ·
+[Netlify pricing](https://docs.netlify.com/manage/accounts-and-billing/billing/billing-for-credit-based-plans/credit-based-pricing-plans/) ·
+[Netlify Functions limits](https://docs.netlify.com/build/functions/configuration/).
+
+### SQLite Durable Object renderer
+
+Workers Free supports SQLite Durable Objects with a default 30-second CPU
+allowance per invocation. A thin Worker forwards the original request stream
+to an object and returns its response. OpenNext runs inside the object with
+the existing Next.js proxy, cache, routes, image optimization and server
+rendering. Static assets and Kuji video stay outside the renderer pool. The
+pool uses four fixed shard names. Request data
+cannot create a new renderer identity. [Workers CPU limits](https://developers.cloudflare.com/workers/platform/limits/#cpu-time) ·
+[Durable Object limits](https://developers.cloudflare.com/durable-objects/platform/limits/).
+
+The deployed single-renderer probe served the public listing, products,
+collections, search, API reads, all 109 sitemap URLs and the Kuji video byte
+range. The matching Cloudflare version reported 51 Durable Object fetches with
+38 ms median, 206 ms P95 and 1,282 ms maximum CPU. Only one matching stateless
+gateway event was recorded, at 2 ms. A larger gateway sample and the updated
+four-shard preview are still required. The first three parallel cold routes
+took 2.9–3.8 seconds to first byte. Follow-up samples must verify cold and warm
+latency with the final topology.
+
+The four-shard candidate built with Turbopack and OpenNext, seeded the isolated
+KV prefix, and deployed as `30298f40-1a8d-4c0c-bfab-6b56419a292c`. Public SSR,
+metadata, API, sitemap, preview isolation, byte range and WebP checks passed.
+All 70 sampled route responses returned HTTP 200. Median network TTFB was 269 ms
+for home, 321 ms for the listing and Featured collection, and 536 ms for the
+Kuji detail. The first parallel requests after deploy took 2.4–2.9 seconds to
+first byte.
+
+Version telemetry showed stateless CPU P50 1 ms, P95 3 ms and maximum 11 ms.
+The one stateless fetch over 10 ms was a successful image transformation.
+Durable Object fetch CPU was 63 ms at P50, 472 ms at P95, and 1,029 ms maximum.
+The updated preview `40dc4bce-2a97-4424-8b5d-090179bf4973` moves image
+optimization and its quota fallback into the renderer. It reported 19,114 KiB
+uncompressed, 4,937 KiB gzip and 272 ms startup. Production domain routes remain
+absent.
+
+The updated preview passed the same storefront checks, all 70 network samples
+and 24 WebP responses across 12 image variants. The median network TTFB was
+290 ms for home, 231 ms for listing, 269 ms for Featured and 532 ms for Kuji
+detail. Median image TTFB was 249 ms. These timings come from one test client.
+
+Workers Free quotas are shared across renderer, queue and tag classes. These
+include 100,000 Durable Object requests and 13,000 GB-seconds per UTC day.
+Duration is billed at 128 MB of allocated memory per active object. Compare
+the account's change in usage with a quiet baseline after representative
+journeys, including time spent active after responses. Measure with production
+Sentry configuration present. Confirm headroom against expected live traffic
+and both Worker and Durable Object budgets before cutover. [Durable Object pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/) ·
+[Durable Object telemetry](https://developers.cloudflare.com/durable-objects/observability/metrics-and-analytics/).
+
+The Free dashboard showed 13.1 GB-seconds across the account after the
+single-renderer probe. A later dashboard sample showed 228 GB-seconds and 119
+requests in the renderer namespace, with 229 GB-seconds across the account.
+The last-24-hour namespace view later showed 230 requests, zero errors and P99
+memory between 43 and 58 MB on the four active shards. The usage and instance
+views update at different times. Keep measuring billed duration after the
+objects go idle and during realistic request patterns before projecting
+sustainable traffic.
+
+The [Vercel baseline](#vercel-capacity-and-eligibility) averaged 3,537 function
+invocations per day across team environments over 30 days. A separate production
+window recorded 354 invocations in 12 hours. The current Vercel connector did
+not return aggregate metrics. Measure peak production demand and Cloudflare
+invocations per journey before extrapolating from that historical baseline.
+
+Synthetic local account and admin checks exercised valid and expired sessions
+on both direct OpenNext and Durable Object paths. Those checks found that the
+HTTP transport folded multiple guest-order cookies and that the authenticated
+admin shell returned a shared-cache directive. The guest route now uses Axios
+with explicit manual redirects and a transport that keeps separate cookies.
+The Worker sets `private, no-store` on protected routes, authenticated API reads
+and responses that set cookies.
+
+A local workerd fixture exercised the gateway and SQLite renderer with concurrent
+sessions and streamed responses. A full Next.js Webpack fixture was packaged
+by OpenNext and ran in workerd. It verified authenticated session isolation,
+private cache headers, denied admin requests, and a 5 MiB admin upload with an
+intact payload through the real Next.js rewrite to a synthetic backend. The
+guest handoff now resolves the destination from the original order or ticket
+path if a rewrite preserves the browser URL. Regression checks cover both
+guest URLs and explicit handoff URLs. Local tests verified a same-origin 307,
+separate cookies and `private, no-store`. Hosted validation remains pending.
+
+The OpenNext cache queue uses a private Worker loopback to send trusted
+revalidation headers to Next.js. Public requests have these headers stripped.
+In workerd, the actual queue refreshed the homepage in read-only mode, and
+Next rejected an incorrect revalidation token. An in-process Sentry endpoint
+received an error envelope and the synthetic release for a storefront upstream
+failure. Hosted Sentry delivery, traces and source-map matching remain gated.
+
+After these changes, `pnpm check` passed ESLint, 802 Vitest tests, and the
+Turbopack production build and TypeScript check with source-map upload disabled.
+The registrar's current session stopped at sign-in. The full Namecheap zone
+inventory and rollback export need an authenticated registrar session before
+any nameserver or DNS cutover.
+
+### Deployment and environment
+
+For a local Workers build, use `pnpm build:cloudflare` followed by
+`pnpm preview:cloudflare`. Manual deployment from a built artifact uses
+`pnpm deploy:cloudflare`. Use an isolated Wrangler configuration with no custom
+domain routes for preview deployments. Set `POPBOX_PREVIEW_READ_ONLY=true` in
+that configuration and set `NEXT_INC_CACHE_KV_PREFIX=renderer-preview` for
+both cache seeding and runtime. Use the public catalog API, a dummy Supabase
+publishable key, and empty Stripe, Google, analytics and Sentry build values in
+this mode. The tracked production config sets the preview flag to `false` and
+uses its own cache prefix. These explicit values replace the corresponding
+preview settings when `keep_vars` preserves other dashboard-managed values.
+The `workers.dev` host still enforces read-only behavior.
+
+Native Workers Builds shows `LouisDev314/popbox-studio-next` connected to
+`popboxstudio-web` on `main`. Production builds and preview branch builds are
+both disabled. Configure the repository root `/` and the production commands
+below before enabling production builds after preview validation.
+Set `NODE_VERSION=24.22.1` and `SKIP_DEPENDENCY_INSTALL=1`. Corepack uses the
+repository pin `pnpm@10.30.2`. Run
+`corepack pnpm install --frozen-lockfile && corepack pnpm build:cloudflare` as
+the build command and `corepack pnpm deploy:cloudflare` as the deploy command.
+Keep production secrets scoped to production builds. [Build image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/).
+Manage storefront custom domains in the dashboard after DNS validation. The
+build credential needs access to deploy the Worker and seed its KV cache.
+
+- Set the public `NEXT_PUBLIC_*` values from [the environment reference](../README.md#environment-variables)
+  as build variables. Set `NEXT_PUBLIC_SITE_URL` explicitly to
+  `https://www.popboxstudio.com`. Also set the backend URL, canonical URL,
+  Supabase URL and publishable key, storage bucket, storefront flag and Sentry
+  DSN as Worker runtime variables where used by server-side resolvers.
+- Set `SENTRY_ORG`, `SENTRY_PROJECT` and `SENTRY_ENABLE_BUILD=true` in the
+  production build environment. Store `SENTRY_AUTH_TOKEN` as a Build Secret.
+  `WORKERS_CI_COMMIT_SHA` identifies the release in native Builds. Set
+  `SENTRY_RELEASE` for an authorized manual build that uploads source maps.
+- Use Workers & Pages → `popboxstudio-web` → Metrics and Observability for CPU,
+  memory, status, and the deployment version. Preserve Sentry and consent-gated
+  GA4. Vercel Analytics and Speed Insights continue to load on Vercel only.
+  Cloudflare invocation query strings are redacted and production invocation
+  logging is disabled in the repository default.
+  [Workers Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/) ·
+  [OpenNext environment variables](https://opennext.js.org/cloudflare/howtos/env-vars).
+- Workers Logs on Free includes 200,000 events per day through November 30,
+  2026. Starting December 1, the shared Free observability allowance is 0.5 GB
+  of ingestion per day, with seven-day retention. Restrict diagnostic sampling
+  to the isolated preview and check aggregate ingestion before promotion.
+  [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/#pricing) ·
+  [Observability pricing](https://developers.cloudflare.com/observability/pricing/).
+
+### DNS cutover sequence
+
+After the pre-cutover gates pass, compare the complete Namecheap zone against
+the Cloudflare Free zone before changing nameservers. Retain the original
+Vercel targets during delegation and verify authoritative answers, HTTPS and
+unchanged backend and email records on the active Cloudflare zone.
+
+Confirm the edge certificate covers `popboxstudio.com` and `www.popboxstudio.com`.
+At cutover, replace the existing `www` CNAME with the Worker Custom Domain
+and verify HTTPS before changing the apex. Enable a Single Redirect for
+`http.host eq "popboxstudio.com"` with status 307, dynamic target
+`concat("https://www.popboxstudio.com", http.request.uri.path)`, and query
+preservation. Point the apex at a proxied `A` record for `192.0.2.0` so Cloudflare
+handles the redirect without invoking the storefront Worker. Keep the Vercel
+domain mappings until post-cutover verification passes. [Worker custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/) ·
+[Apex redirect example](https://developers.cloudflare.com/rules/url-forwarding/examples/redirect-root-to-www/).
+
+### Rollback boundaries
+
+Record the validated production Worker version and Vercel targets before
+cutover. Router changes, environment changes, and DNS changes need separate
+rollback steps. For code rollback within the same Durable Object class layout,
+use `pnpm exec wrangler rollback <verified-version-id> --name popboxstudio-web`
+and verify the deployed version and storefront after the rollback. Cloudflare
+allows rollback within the 100 newest retained versions and preserves bindings.
+The creation of `PopBoxNextRenderer` in `renderer-v2` prevents a version rollback
+to any earlier class layout. Deploy class lifecycle changes while the Worker is
+isolated. If no verified post-migration Worker version can serve production,
+restore the recorded Vercel DNS targets as described below. [Workers rollbacks](https://developers.cloudflare.com/workers/versions-and-deployments/rollbacks/).
+
+### Pending gates
+
+- [x] Build and test the Worker locally and deploy an isolated preview. Verify
+  public storefront, API rewrites, image delivery, SEO and redirects.
+- [ ] Verify cookie refresh, guest-order cookie handoffs, on-demand admin invalidation,
+  secure cache headers and Sentry event/source-map matching on a hosted candidate.
+  Use fixtures or an isolated test environment for authenticated and commerce
+  mutations, including checkout and inventory. Record coverage gaps.
+- [ ] Verify homepage ISR, taxonomy and sitemap freshness, stale fallback during
+  an upstream outage, and cache quotas. Prove account, cart, admin and checkout
+  data stay out of shared caches. Measure cold sitemap subrequests against the
+  Free limit. Monitor the shared KV allowance of 100,000 reads and 1,000 writes
+  per day. Confirm image optimization and fallback delivery when Free image
+  transformation quota is exhausted. R2 requires a subscription and is outside
+  the $0 deployment scope. [OpenNext caching](https://opennext.js.org/cloudflare/caching) ·
+  [Workers KV limits](https://developers.cloudflare.com/kv/platform/limits/) ·
+  [Images pricing](https://developers.cloudflare.com/images/pricing/) ·
+  [R2 setup](https://developers.cloudflare.com/r2/get-started/).
+- [ ] Pass the Free-tier CPU gate and measure Worker invocations per journey.
+  The direct adapters exceeded the 10 ms CPU requirement. Verify the final
+  Durable Object gateway separately and measure shared compute usage. Track
+  startup, memory, error rate and account usage. Workers Free documents
+  10 ms CPU, 128 MB memory and 50 subrequests per invocation, 100,000 dynamic
+  requests per day, 64 MiB uncompressed code, one second startup and 20,000
+  static asset files up to 25 MiB each. The size cap applies to the uncompressed
+  bundle. Record raw and gzip size and estimate traffic headroom from observed
+  journeys. [Workers limits](https://developers.cloudflare.com/workers/platform/limits/) ·
+  [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/).
+- [ ] Verify an actual GitHub-triggered build and deploy from `main` through the
+  existing repository process. Verify duration and failure visibility against
+  the Free limit of 3,000 build minutes per month, one concurrent build and
+  a 20-minute timeout per build. Keep preview builds isolated from production
+  secrets and mutations. [Workers Builds limits](https://developers.cloudflare.com/workers/ci-cd/builds/limits-and-pricing/).
+- [ ] Record the full current DNS zone, TTLs, Vercel domain mappings and rollback
+  targets. Compare the imported zone before changing delegation and preserve
+  backend, email and verification records. Keep Vercel serving until all gates
+  pass. Then attach the Worker to the active zone and verify HTTPS and apex-to-www
+  behavior. On a critical regression, detach the Worker domain routes and restore
+  the recorded Vercel targets and proxy state. Restore prior nameservers if
+  delegation itself is faulty. [Worker custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).
+- [ ] Verify production functionality, SEO, DNS, TLS, backend and email DNS,
+  Sentry, and Workers usage and errors after cutover. Disconnect automatic Vercel
+  deployments only after successful verification and retain rollback information.

@@ -12,7 +12,9 @@ const shouldEnableSentryBuild = !sentryBuildExplicitlyDisabled
 const sentryOrg = process.env.SENTRY_ORG?.trim();
 const sentryProject = process.env.SENTRY_PROJECT?.trim();
 const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN?.trim();
-const sentryRelease = process.env.VERCEL_GIT_COMMIT_SHA?.trim() || process.env.SENTRY_RELEASE?.trim();
+const sentryRelease = process.env.VERCEL_GIT_COMMIT_SHA?.trim()
+  || process.env.WORKERS_CI_COMMIT_SHA?.trim()
+  || process.env.SENTRY_RELEASE?.trim();
 const hasRequiredSentryBuildEnv = Boolean(sentryOrg && sentryProject && sentryAuthToken);
 const shouldApplySentryConfig = shouldEnableSentryBuild && hasRequiredSentryBuildEnv;
 const configuredSupabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -46,11 +48,12 @@ if (
   );
 }
 
-if (shouldApplySentryConfig && isVercelProductionBuild && !sentryRelease) {
-  throw new Error('Sentry production builds require VERCEL_GIT_COMMIT_SHA or SENTRY_RELEASE.');
+if (shouldApplySentryConfig && (isVercelProductionBuild || sentryBuildExplicitlyEnabled) && !sentryRelease) {
+  throw new Error('Sentry production builds require VERCEL_GIT_COMMIT_SHA, WORKERS_CI_COMMIT_SHA, or SENTRY_RELEASE.');
 }
 
 const nextConfig: NextConfig = {
+  agentRules: false,
   allowedDevOrigins: ['127.0.0.1'],
   distDir: process.env.NEXT_DIST_DIR?.trim() || '.next',
   htmlLimitedBots: /.*/,
