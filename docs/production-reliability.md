@@ -627,6 +627,21 @@ Vercel, and the three other routes returned cache misses. Both production
 hostnames passed TLS validation and the apex returned the expected 307 to
 `www`.
 
+The single renderer logged 132 requests and zero errors, with P99 isolate
+memory of 84.39 MB. Stateless CPU was 1 ms at P50 and 2 ms at P95 and maximum.
+Renderer CPU was 23 ms at P50, 155 ms at P95 and 1,881 ms maximum. The account
+dashboard then showed about 5,280 GB-seconds for the UTC day, including the
+earlier four-shard tests. At that snapshot the queue and tag cache accounted
+for 5.36 and 1.06 GB-seconds, respectively.
+
+The mobile browser found an inline `next-themes` error from Wrangler's function
+name preservation. Both Wrangler configurations now use `keep_names: false`.
+Version `002bcc89-56c6-48ae-8284-6c3b7721a8c0` deployed with this setting and
+reported 18,382 KiB uncompressed, 4,830 KiB gzip and 270 ms startup. The
+homepage and Kuji detail rendered the bootstrap without the broken helper.
+Chromium applied a saved dark theme and reported zero page exceptions on both.
+[OpenNext theme script fix](https://opennext.js.org/cloudflare/howtos/keep_names).
+
 The [Vercel baseline](#vercel-capacity-and-eligibility) averaged 3,537 function
 invocations per day across team environments over 30 days. A separate production
 window recorded 354 invocations in 12 hours. The current Vercel connector did
@@ -687,13 +702,15 @@ The `workers.dev` host still enforces read-only behavior.
 
 Native Workers Builds shows `LouisDev314/popbox-studio-next` connected to
 `popboxstudio-web` on `main`. Production builds and preview branch builds are
-both disabled. Configure the repository root `/` and the production commands
-below before enabling production builds after preview validation.
-Set `NODE_VERSION=24.22.1` and `SKIP_DEPENDENCY_INSTALL=1`. Corepack uses the
-repository pin `pnpm@10.30.2`. Run
-`corepack pnpm install --frozen-lockfile && corepack pnpm build:cloudflare` as
-the build command and `corepack pnpm deploy:cloudflare` as the deploy command.
-Keep production secrets scoped to production builds. [Build image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/).
+both disabled. The production build configuration was saved and verified with
+repository root `/`, `NODE_VERSION=24.22.1`, `SKIP_DEPENDENCY_INSTALL=1`, and
+the repository pin `pnpm@10.30.2`. Its build command is
+`corepack pnpm install --frozen-lockfile && corepack pnpm build:cloudflare`,
+and its deploy command is `corepack pnpm deploy:cloudflare`. The masked Sentry
+upload token and the existing Vercel GA4 identifier were verified in the
+production build settings. Public `NEXT_PUBLIC_*` values that the server reads
+through its runtime environment must also be set on the Worker before cutover.
+[Build image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/).
 Manage storefront custom domains in the dashboard after DNS validation. The
 build credential needs access to deploy the Worker and seed its KV cache.
 
