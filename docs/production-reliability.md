@@ -545,9 +545,9 @@ Workers Free supports SQLite Durable Objects with a default 30-second CPU
 allowance per invocation. A thin Worker forwards the original request stream
 to an object and returns its response. OpenNext runs inside the object with
 the existing Next.js proxy, cache, routes, image optimization and server
-rendering. Static assets and Kuji video stay outside the renderer pool. The
-pool uses four fixed shard names. Request data
-cannot create a new renderer identity. [Workers CPU limits](https://developers.cloudflare.com/workers/platform/limits/#cpu-time) ·
+rendering. Static assets and Kuji video stay outside the renderer. The current
+candidate uses one fixed Durable Object identity for all render requests.
+Request data cannot create another object. [Workers CPU limits](https://developers.cloudflare.com/workers/platform/limits/#cpu-time) ·
 [Durable Object limits](https://developers.cloudflare.com/durable-objects/platform/limits/).
 
 The deployed single-renderer probe served the public listing, products,
@@ -580,6 +580,15 @@ and 24 WebP responses across 12 image variants. The median network TTFB was
 290 ms for home, 231 ms for listing, 269 ms for Featured and 532 ms for Kuji
 detail. Median image TTFB was 249 ms. These timings come from one test client.
 
+After Cloudflare's deferred object update window, the image-rendering version
+recorded stateless CPU P50 1 ms, P95 3 ms and maximum 3 ms. Its Durable Object
+CPU was 37 ms at P50, 375 ms at P95 and 1,260 ms maximum. A separate workerd
+fixture injected the Free Images quota error into the real optimizer. It
+served the original asset with a matching SHA-256 digest.
+When working from Cloudflare Logs, match the renderer's own script version
+because warm objects can run the preceding version for up to five minutes.
+[Durable Object code updates](https://developers.cloudflare.com/durable-objects/deployments/durable-objects-code-updates/).
+
 Workers Free quotas are shared across renderer, queue and tag classes. These
 include 100,000 Durable Object requests and 13,000 GB-seconds per UTC day.
 Duration is billed at 128 MB of allocated memory per active object. Compare
@@ -597,6 +606,26 @@ memory between 43 and 58 MB on the four active shards. The usage and instance
 views update at different times. Keep measuring billed duration after the
 objects go idle and during realistic request patterns before projecting
 sustainable traffic.
+
+After the four-shard preview sat overnight, Cloudflare reported about 5,200
+GB-seconds for 306 renderer requests and one renderer error. The four active
+shards showed no invocation after the final test batch. This billing sample
+prevents projecting four-shard production usage from HTTP response times.
+At 128 MB of allocated memory, one fixed renderer can use at most about 11,059
+GB-seconds per UTC day. This leaves about 1,941 GB-seconds for the queue, tag
+cache and other account objects. Their usage still needs independent checks.
+
+The single-renderer preview `8eacb684-21ad-484d-ba1d-487c6e2341bd` reported
+286 ms startup. All 70 route samples and 24 WebP responses passed again.
+A warm six-client burst returned 24 of 24 HTTP 200 responses at 442 ms median,
+719 ms P90 and 1.09 seconds maximum TTFB. Initial parallel requests after
+deploy took 3.6–5.0 seconds. Warm home, listing, Featured collection and Kuji
+detail medians were 430, 360, 447 and 703 ms. A separate fresh Vercel check
+from the same workstation measured respective warmed medians of 205, 286,
+294 and 516 ms. The homepage had one cache hit and four stale responses on
+Vercel, and the three other routes returned cache misses. Both production
+hostnames passed TLS validation and the apex returned the expected 307 to
+`www`.
 
 The [Vercel baseline](#vercel-capacity-and-eligibility) averaged 3,537 function
 invocations per day across team environments over 30 days. A separate production
@@ -628,6 +657,13 @@ In workerd, the actual queue refreshed the homepage in read-only mode, and
 Next rejected an incorrect revalidation token. An in-process Sentry endpoint
 received an error envelope and the synthetic release for a storefront upstream
 failure. Hosted Sentry delivery, traces and source-map matching remain gated.
+
+The local Workers candidate completed standard and Kuji checkout in the
+dedicated PopBox Launch Rehearsal Stripe sandbox. Both receipts were confirmed
+as test mode. The isolated backend processed one signed webhook per checkout
+and converted each inventory reservation. The standard browser displayed its
+guest order. The Kuji browser revealed the one ticket issued to the test order.
+The rehearsal used an isolated PostgreSQL instance and suppressed email.
 
 After these changes, `pnpm check` passed ESLint, 802 Vitest tests, and the
 Turbopack production build and TypeScript check with source-map upload disabled.

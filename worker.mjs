@@ -9,8 +9,6 @@ import { serveKujiVideo } from './worker-video-range.mjs';
 
 export { BucketCachePurge, DOShardedTagCache };
 
-const rendererCount = 4;
-
 export class DOQueueHandler extends OpenNextQueueHandler {
   constructor(ctx, env) {
     // Use a loopback binding so queue requests can carry Next's revalidation token.
@@ -30,9 +28,8 @@ const storefront = {
     if (video) {
       return video;
     }
-    // Render requests are stateless. Keep the shard count bounded without
-    // deriving object names from customer, session, or request data.
-    const renderer = env.POPBOX_NEXT_RENDERER.getByName(String(Math.floor(Math.random() * rendererCount)));
+    // One fixed renderer bounds aggregate compute duration on Workers Free.
+    const renderer = env.POPBOX_NEXT_RENDERER.getByName('storefront');
     return renderer.fetch(request);
   },
 };
