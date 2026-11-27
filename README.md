@@ -29,8 +29,8 @@ PopBox Studio demonstrates frontend engineering for a real commerce surface:
 - **Admin workflows** for products, variants, images, collections, tags, orders, legal content, shipping settings,
   and store banner settings.
 
-No production live-site URL is declared in this repository. Local and deployment URLs are configured through environment
-variables.
+Production serves [www.popboxstudio.com](https://www.popboxstudio.com/) on Vercel. The Cloudflare Worker is an isolated
+read-only preview. Deployment URLs are configured through environment variables.
 
 ---
 
@@ -205,6 +205,7 @@ Use `.env.local` locally. `.env.example` shows the required public configuration
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key used by browser and SSR auth clients                                                                 |
 | `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET`  | Public product-image bucket; defaults to `product-images`                                                                     |
 | `NEXT_PUBLIC_IS_SITE_OPEN`             | Set to `false` for maintenance-style storefront gating                                                                        |
+| `NEXT_PUBLIC_SENTRY_DSN`               | Public DSN for browser and server error reporting                                                                             |
 
 On Vercel, `VERCEL_PROJECT_PRODUCTION_URL` or `VERCEL_URL` can back `NEXT_PUBLIC_SITE_URL` when it is not explicitly
 set.
@@ -244,6 +245,17 @@ avoid
 reusing a normal dev server. Browser tests run separately from `pnpm check`. CI runs `pnpm check:ci` on Node.js 24.
 The CI fixture supplies empty homepage, collection, tag, product, and FAQ responses without contacting
 the deployed backend. Its build output is for validation only; deployment builds use the real backend.
+
+## Cloudflare preview
+
+Run `pnpm build:cloudflare` to build OpenNext and `pnpm preview:cloudflare` to start the local Workers runtime. Use local
+fixtures or a separate test backend for authenticated and checkout validation. Set the public build variables before
+building. For local runtime overrides, use an ignored `.dev.vars` file and set
+`CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false` to exclude other dotenv settings. `POPBOX_PREVIEW_READ_ONLY=true` enables
+the preview request restrictions on localhost. The restrictions apply automatically on `workers.dev`.
+
+The [migration runbook](docs/production-reliability.md#cloudflare-workers-migration-verification--november-26-2026)
+records the deployed preview, Free-tier findings, environment setup and production cutover gates.
 
 ---
 

@@ -64,7 +64,7 @@ export default function RootLayout(props: Readonly<IRootLayoutProps>) {
         <AppProviders>
           {props.children}
         </AppProviders>
-        {publicEnv.isGoogleAnalyticsEnabled ? (
+        {process.env.VERCEL === '1' && publicEnv.isGoogleAnalyticsEnabled ? (
           <OperationalAnalytics />
         ) : null}
       </body>

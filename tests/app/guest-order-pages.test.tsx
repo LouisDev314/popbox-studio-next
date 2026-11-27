@@ -47,6 +47,55 @@ describe('guest order pages', () => {
     vi.mocked(getPublicGuestTickets).mockReset();
   });
 
+  it('keeps separate guest cookies and redirects to the storefront after an upstream redirect', async () => {
+    const setCookies = [
+      'guest_access=fixture; HttpOnly; Path=/orders; Expires=Wed, 09 Jun 2032 10:18:14 GMT',
+      'guest_tickets=fixture; HttpOnly; Path=/orders',
+    ];
+    vi.mocked(axios.get).mockResolvedValue({
+      status: 302,
+      headers: {
+        'set-cookie': setCookies,
+        location: 'https://example.com/upstream',
+      },
+    });
+
+    const response = await guestAccessGet(
+      new NextRequest('http://localhost:3001/orders/pbs-ORDER/access?next=tickets&token=fixture-token', {
+        headers: { Cookie: 'guest_access=previous' },
+      }),
+      { params: Promise.resolve({ publicId: 'pbs-ORDER' }) },
+    );
+
+    expect(axios.get).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/orders/pbs-ORDER/access?token=fixture-token'),
+      expect.objectContaining({
+        adapter: 'fetch',
+        fetchOptions: { redirect: 'manual' },
+        headers: { Cookie: 'guest_access=previous' },
+      }),
+    );
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe('http://localhost:3001/orders/pbs-ORDER/tickets');
+    expect(response.headers.getSetCookie()).toEqual(setCookies);
+  });
+
+  it.each([
+    ['/tickets?token=fixture-token', '/tickets'],
+    ['/tickets?token=fixture-token&next=order', '/tickets'],
+    ['?token=fixture-token&next=tickets', ''],
+  ])('keeps the destination of a rewritten guest URL ending in %s', async (suffix, destination) => {
+    vi.mocked(axios.get).mockResolvedValue({ status: 200, headers: {} });
+
+    const orderUrl = 'http://localhost:3001/orders/pbs-ORDER';
+    const response = await guestAccessGet(new NextRequest(`${orderUrl}${suffix}`), {
+      params: Promise.resolve({ publicId: 'pbs-ORDER' }),
+    });
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(`${orderUrl}${destination}`);
+  });
+
   it('redirects failed guest token handoffs to a clean url without leaking the token', async () => {
     vi.mocked(axios.get).mockRejectedValue(new Error('upstream unavailable'));
 

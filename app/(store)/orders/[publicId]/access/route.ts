@@ -25,7 +25,11 @@ function appendSetCookieHeaders(response: NextResponse, setCookieHeaders: string
 export async function GET(request: NextRequest, context: RouteContext) {
   const { publicId } = await context.params;
   const token = request.nextUrl.searchParams.get('token');
-  const nextTarget = normalizeGuestAccessNext(request.nextUrl.searchParams.get('next'));
+  // A rewritten request can retain the browser URL and its original query.
+  const originalPage = /^\/orders\/[^/]+(?:\/(tickets))?\/?$/.exec(request.nextUrl.pathname);
+  const nextTarget = normalizeGuestAccessNext(
+    originalPage ? originalPage[1] ?? null : request.nextUrl.searchParams.get('next'),
+  );
 
   const destinationPath =
     nextTarget === 'tickets' ? getGuestTicketsPath(publicId) : getGuestOrderPath(publicId);
@@ -46,12 +50,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   try {
     const upstreamResponse = await axios.get(accessUrl.toString(), {
+      // The Workers HTTP adapter combines multiple Set-Cookie headers.
+      adapter: 'fetch',
+      fetchOptions: { redirect: 'manual' },
       headers: request.headers.get('cookie')
         ? {
           Cookie: request.headers.get('cookie') as string,
         }
         : undefined,
-      maxRedirects: 0,
       validateStatus: () => true,
     });
 
